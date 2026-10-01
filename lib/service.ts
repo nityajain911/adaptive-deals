@@ -2,15 +2,15 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { activate, assertPaymentsUnlocked, buyerAccept, createAgreementVersion, markSent, merchantApprove, type AgreementVersion } from "@/domain/agreement";
-import { applyCollectionUpdate, earliestDebitAfterUnavailableUntil, proposeReschedule, transitionAmendment, type Amendment } from "@/domain/amendment";
+import { activate, assertPaymentsUnlocked, buyerAccept, buyerReject, createAgreementVersion, markSent, merchantApprove, type AgreementVersion } from "@/domain/agreement";
+import { applyCollectionUpdate, proposeReschedule, transitionAmendment, type Amendment } from "@/domain/amendment";
 import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/domain/clock";
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
-import { compareDates, localDateOf, normaliseRelativeDate } from "@/domain/dates";
+import { compareDates, localDateOf } from "@/domain/dates";
 import type { EvaluatedStructure } from "@/domain/engine";
 import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate";
-import { planAdvanceNotice, recordReplyToNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
+import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
 import type { Message } from "@/domain/types";
@@ -23,13 +23,31 @@ import { ReplayProvider } from "@/ai/replay-provider";
 import type { RecordedAnswer, RunRecord } from "@/ai/run-record";
 import { SyntheticAuthoredProvider } from "@/ai/synthetic-provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
-import { heroBuyer, heroDemoEvents, heroMerchant, HERO_DEAL_ID } from "@/data/synthetic/hero";
+import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
+import {
+  amendmentMessageText,
+  codeMessage,
+  ConversationError,
+  draftClarification,
+  merchantSend,
+  noticeMessageText,
+  paymentLinkMessageText,
+  proposalMessageText,
+  receiveBuyerReply,
+  rescheduledMessageText,
+  type ConversationItem,
+} from "@/domain/conversation";
+import { CLASSIFICATION_LABEL } from "@/domain/replies";
+import { createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
+
+/** Buyer proposal page for an exact version (standalone buyer route). */
+export const proposalLink = (v: Pick<AgreementVersion, "agreementId" | "version">) => `/proposal/${v.agreementId}/v${v.version}`;
 
 export type Provenance = "engine" | "merchant" | "buyer_demo" | "simulated" | "real_test" | "synthetic_replay" | "live_model";
 
@@ -59,6 +77,11 @@ export interface DemoState {
   amendments: Amendment[];
   events: TimelineEvent[];
   scenario: { id: string; record: RunRecord } | null;
+  /** Simulated WhatsApp conversation (merchant ⇄ buyer), in order. */
+  conversation: ConversationItem[];
+  /** While true, no new AI-authored outbound drafts are created; inbound replies still arrive. */
+  suggestionsPaused: boolean;
+  changeRequests: ChangeRequest[];
 }
 
 export class ActionError extends Error {
@@ -161,15 +184,46 @@ export async function seedState(record: RunRecord = demoRunRecord(), viewing: "r
     amendments: [],
     events: [],
     scenario: null,
+    conversation: [],
+    suggestionsPaused: false,
+    changeRequests: [],
   };
   event(s, "run_loaded", record.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", record.kind === "live" ? "live_model" : "synthetic_replay", `Run ${record.runId}`);
   setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
+  draftMissingClarifications(s);
   return s;
+}
+
+/** Older stores predate the conversation; fill the new fields without touching anything else. */
+function withDefaults(s: DemoState): DemoState {
+  s.conversation ??= [];
+  s.suggestionsPaused ??= false;
+  s.changeRequests ??= [];
+  return s;
+}
+
+const itemId = (s: DemoState, prefix: string) => `${prefix}-${s.conversation.length + 1}`;
+
+/** One draft per clarification question not yet drafted. AI drafts are skipped while paused. */
+function draftMissingClarifications(s: DemoState) {
+  if (s.status !== "clarifying") return;
+  for (const q of s.run.record.displayed.questions) {
+    if (s.conversation.some((i) => i.kind === "clarification" && i.refs.questionId === q.id)) continue;
+    const d = draftClarification({ id: itemId(s, "conv"), dealId: s.dealId, questionId: q.id, text: q.question, wording: q.wording, at: clockOf(s).now(), paused: s.suggestionsPaused });
+    if (d) s.conversation.push(d);
+  }
+}
+
+function sendCode(s: DemoState, kind: Parameters<typeof codeMessage>[0]["kind"], text: string, refs: ConversationItem["refs"] = {}) {
+  const m = codeMessage({ id: itemId(s, "conv"), dealId: s.dealId, kind, text, at: clockOf(s).now(), refs });
+  s.conversation.push(m);
+  event(s, `message_${kind}`, `Sent by Adaptive Deals: ${kind} message`, "simulated", text);
+  return m;
 }
 
 export async function getState(): Promise<DemoState> {
   const s = await readJson<DemoState>(STORE_FILE);
-  if (s) return s;
+  if (s) return withDefaults(s);
   return serialised(async () => {
     const again = await readJson<DemoState>(STORE_FILE);
     if (again) return again;
@@ -181,7 +235,7 @@ export async function getState(): Promise<DemoState> {
 
 async function mutate(fn: (s: DemoState) => Promise<void> | void): Promise<DemoState> {
   return serialised(async () => {
-    const s = (await readJson<DemoState>(STORE_FILE)) ?? (await seedState());
+    const s = withDefaults((await readJson<DemoState>(STORE_FILE)) ?? (await seedState()));
     await fn(s);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
@@ -291,7 +345,7 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
       answeredAt: i.answeredAt ?? clockOf(s).now(),
     }));
     const out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
-    s.run = { record: out.record, viewing: s.run.viewing };
+    s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
     // Keep the stored copy of a live run complete, so "Replay of an actual run" replays all of it.
     if (out.record.kind === "live" && s.run.viewing === "fresh") await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
     for (const a of answers) event(s, "clarification_answered", `Answer recorded: ${a.answerText}`, "merchant", `Confirmed by buyer via ${a.confirmedByBuyerVia}`);
@@ -325,6 +379,9 @@ export async function approveAndSend(version: number, termsHash: string): Promis
     setStatus(s, "approved", `Merchant approved version ${version}`);
     setStatus(s, "sent", "Proposal sent to the buyer (Demo buyer view)");
     event(s, "merchant_approved", `Merchant approved version ${version}`, "merchant", `Terms hash ${termsHash}`);
+    // The proposal link exists only now, after the merchant approved this exact version.
+    const v = s.agreements[i];
+    sendCode(s, "proposal", proposalMessageText(v.terms, v.version, proposalLink(v)), { agreementVersion: v.version });
   });
 }
 
@@ -362,6 +419,7 @@ export async function acceptAgreement(version: number, termsHash: string, author
       s.paymentLinks.push(link);
       s.attempts = s.attempts.map((a) => (a.id === linkAttempt.id ? { ...a, razorpayId: link.id } : a));
       event(s, "payment_link_created", `Upfront payment link created`, link.mode === "real_test" ? "real_test" : "simulated", link.mode === "real_test" ? `Razorpay test mode · ${link.id}` : `Simulated · ${link.id}`);
+      sendCode(s, "payment", paymentLinkMessageText({ amountPaise: link.amountPaise, url: link.shortUrl, simulated: link.mode === "simulated" }), { agreementVersion: v.version, attemptId: linkAttempt.id });
     }
     if (v.terms.mandate) {
       const reg = await adapters.recurring.registerMandate({ referenceId: `${v.agreementId}_v${v.version}`, perDebitLimitPaise: v.terms.mandate.perDebitLimitPaise, endDate: v.terms.mandate.endDate.value, customerName: heroBuyer.name });
@@ -408,6 +466,7 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
       const sent = sendAdvanceNotice(n, clockOf(s), heroMerchant.timeZone);
       s.notices = s.notices.map((x) => (x.id === n.id ? sent : x));
       event(s, "advance_notice_sent", `Advance notice sent for ${n.dueDate}`, "simulated", sent.text);
+      sendCode(s, "notice", noticeMessageText(sent), { noticeId: sent.id, attemptId: sent.attemptId });
       return;
     }
     if (kind === "debit_failed" || kind === "debit_succeeded") {
@@ -427,14 +486,139 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
       event(s, "debit_failed", `Recurring debit of ${a.dueDate} failed`, "simulated", `Simulated event · Adaptive Deals internal retry scheduled for ${s.attempts.at(-1)!.dueDate}`);
       return;
     }
-    // buyer_reply
-    const n = [...s.notices].reverse().find((x) => x.sentAt);
-    if (!n) throw new ActionError("The buyer can only reply to a notice that was sent");
-    if (s.extraMessages.some((m) => m.inReplyTo === n.id)) throw new ActionError("The buyer already replied to this notice");
-    advanceTo(s, heroDemoEvents.buyerReply.timestamp, "Simulated: buyer replies to the advance notice");
-    const reply = recordReplyToNotice(n, { id: heroDemoEvents.buyerReply.id, dealId: s.dealId, author: "buyer", text: heroDemoEvents.buyerReply.text, timestamp: heroDemoEvents.buyerReply.timestamp, source: heroDemoEvents.buyerReply.source });
-    s.extraMessages.push(reply);
-    event(s, "buyer_message", `Buyer: “${reply.text}”`, "simulated", `Reply to advance notice ${n.id}`);
+    // buyer_reply (secondary path): the scripted reply after a failed debit, through the same
+    // bounded reply path as every other buyer message.
+    const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice" && i.sentAt);
+    if (!noticeItem) throw new ActionError("The buyer can only reply to a notice that was sent");
+    if (s.conversation.some((i) => i.inReplyTo === noticeItem.id)) throw new ActionError("The buyer already replied to this notice");
+    applyBuyerReply(s, { inReplyTo: noticeItem.id, text: heroDemoEvents.buyerReply.text, at: heroDemoEvents.buyerReply.timestamp, scripted: true });
+  });
+}
+
+// ── Simulated conversation ──────────────────────────────────────────────────
+
+/**
+ * Record a simulated buyer reply and act on code's classification. Used identically for
+ * pre-scripted and typed replies, and for replay and live-run states: no model is called.
+ */
+function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
+  if (Date.parse(args.at) > Date.parse(clockOf(s).now())) advanceTo(s, args.at, "Simulated: buyer reply arrives");
+  const at = Date.parse(args.at) < Date.parse(clockOf(s).now()) ? clockOf(s).now() : args.at;
+  let reply: ConversationItem;
+  try {
+    reply = receiveBuyerReply({ id: itemId(s, "conv"), dealId: s.dealId, text: args.text, at, inReplyTo: args.inReplyTo, conversation: s.conversation, timeZone: heroMerchant.timeZone, scripted: args.scripted, kind: args.kind, source: args.source });
+  } catch (e) {
+    if (e instanceof ConversationError) throw new ActionError(e.message);
+    throw e;
+  }
+  if (args.answerValue) reply = { ...reply, refs: { ...reply.refs, answerValue: args.answerValue } };
+  s.conversation.push(reply);
+  const target = s.conversation.find((i) => i.id === reply.inReplyTo)!;
+  s.extraMessages.push({ id: reply.id, dealId: s.dealId, author: "buyer", text: reply.text, timestamp: reply.createdAt, source: "whatsapp", inReplyTo: target.refs.noticeId ?? target.id });
+  const c = reply.classification!;
+  const label = `${args.scripted ? "Scripted" : "Typed"} simulated reply`;
+  event(s, "buyer_message", `Buyer: “${reply.text}”`, "simulated", `${label} · reply to ${target.kind} ${target.id}${target.kind === "clarification" ? "" : ` · ${CLASSIFICATION_LABEL[c.kind]}`}`);
+
+  if (target.kind !== "notice") return reply; // clarification answers and proposal replies change nothing here
+  if (c.kind === "payment_claimed") event(s, "payment_claimed", "Payment claimed — verification required", "engine", "Recorded only. Payment status, collection attempts and the ledger change only from a verified payment event.");
+  else if (c.kind === "acknowledgement") event(s, "acknowledgement", "Acknowledgement only", "engine", "No terms are accepted and no collection is authorised by this reply.");
+  else if (c.kind === "needs_attention") event(s, "merchant_attention", "Merchant attention needed", "engine", c.detail);
+  else {
+    try {
+      const v = activeVersion(s);
+      if (!v) throw new RestructureError("No active agreement");
+      const cr = createChangeRequest({ id: `chg-${s.changeRequests.length + 1}`, reply, conversation: s.conversation, notices: s.notices, attempts: s.attempts, activeVersion: v.version });
+      s.changeRequests.push(cr);
+      event(s, "change_requested", "Change requested", "engine", `Code read “${cr.phrase}” from the reply's own timestamp: unavailable through ${cr.unavailableUntil}; earliest proposed debit ${cr.earliestDebit} (${cr.scheduleLineId})`);
+    } catch (e) {
+      if (!(e instanceof RestructureError)) throw e;
+      event(s, "merchant_attention", "Merchant attention needed", "engine", e.message);
+    }
+  }
+  return reply;
+}
+
+type ScriptedReply = (typeof heroScriptedReplies)[number];
+
+/** A buyer reply chosen from the demo operator's scripts, or typed by the operator. */
+export async function buyerReply(args: { inReplyTo: string; scriptId?: string; text?: string }): Promise<DemoState> {
+  return mutate((s) => {
+    const target = s.conversation.find((i) => i.id === args.inReplyTo);
+    if (!target) throw new ActionError("Unknown message", 404);
+    if (args.scriptId) {
+      const sc: ScriptedReply | undefined = heroScriptedReplies.find((r) => r.id === args.scriptId);
+      if (!sc) throw new ActionError("Unknown scripted reply", 404);
+      if (sc.context !== target.kind) throw new ActionError(`That scripted reply answers a ${sc.context}, not a ${target.kind}`);
+      if ("questionId" in sc && sc.questionId !== target.refs.questionId) throw new ActionError("That scripted reply answers a different question");
+      const at = sc.context === "clarification" ? Object.values(heroClarificationAnswers).find((a) => a.clarificationId === target.refs.questionId)!.answeredAt : sc.context === "notice" ? heroDemoEvents.preventiveReplyAt : clockOf(s).now();
+      applyBuyerReply(s, { inReplyTo: target.id, text: sc.text, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined });
+      return;
+    }
+    if (!args.text?.trim()) throw new ActionError("Choose a scripted reply or type one");
+    applyBuyerReply(s, { inReplyTo: target.id, text: args.text, at: clockOf(s).now(), scripted: false });
+  });
+}
+
+/** The merchant sends a clarification draft. Nothing is sent automatically. */
+export async function sendClarification(itemId: string): Promise<DemoState> {
+  return mutate((s) => {
+    const i = s.conversation.findIndex((x) => x.id === itemId);
+    if (i < 0) throw new ActionError("Unknown draft", 404);
+    try {
+      s.conversation[i] = merchantSend(s.conversation[i], clockOf(s).now());
+    } catch (e) {
+      if (e instanceof ConversationError) throw new ActionError(e.message);
+      throw e;
+    }
+    event(s, "clarification_sent", "Approved and sent by merchant", "merchant", s.conversation[i].text);
+  });
+}
+
+export async function setSuggestionsPaused(paused: boolean): Promise<DemoState> {
+  return mutate((s) => {
+    s.suggestionsPaused = paused;
+    event(s, "suggestions", paused ? "Suggested replies paused" : "Suggested replies resumed", "merchant", paused ? "Inbound messages are still recorded; no new AI drafts are created." : null);
+    if (!paused) draftMissingClarifications(s);
+  });
+}
+
+/** Record the buyer's scripted clarification replies as the answers (confirmed via WhatsApp). */
+export async function adoptRepliesAsAnswers(): Promise<DemoState> {
+  const s = await getState();
+  const inputs: AnswerInput[] = s.run.record.displayed.questions.map((q) => {
+    const draft = s.conversation.find((i) => i.kind === "clarification" && i.refs.questionId === q.id && i.sentAt);
+    if (!draft) throw new ActionError(`Send the question “${q.question}” first`);
+    const reply = [...s.conversation].reverse().find((i) => i.inReplyTo === draft.id);
+    if (!reply) throw new ActionError(`Waiting for the buyer's reply to “${q.question}”`);
+    if (!reply.refs.answerValue) throw new ActionError(`Record the answer to “${q.question}” manually: typed replies are not interpreted`);
+    return { questionId: q.id, value: reply.refs.answerValue, answerText: reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
+  });
+  return recordAnswers(inputs);
+}
+
+/** Buyer asks for a change from the proposal page. Terms are not touched. */
+export async function requestChange(version: number, text: string): Promise<DemoState> {
+  return mutate((s) => {
+    const v = s.agreements.find((x) => x.version === version);
+    if (!v || v.status !== "sent") throw new ActionError("Only a sent proposal can receive a change request");
+    const proposal = [...s.conversation].reverse().find((i) => (i.kind === "proposal" || i.kind === "amendment") && i.refs.agreementVersion === version);
+    if (!proposal) throw new ActionError("No proposal message for this version");
+    applyBuyerReply(s, { inReplyTo: proposal.id, text, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
+    event(s, "change_request_received", `Buyer requested a change to version ${version}`, "buyer_demo", "Terms are unchanged; the merchant decides how to respond.");
+  });
+}
+
+/** Buyer declines a sent proposal. No payment setup is created. */
+export async function declineAgreement(version: number): Promise<DemoState> {
+  return mutate((s) => {
+    const i = s.agreements.findIndex((x) => x.version === version && x.status === "sent");
+    if (i < 0) throw new ActionError("No sent proposal to decline");
+    if (s.amendments.some((a) => a.toVersion === version)) throw new ActionError("Declining a revision is not supported in this prototype; request a change instead");
+    s.agreements[i] = buyerReject(s.agreements[i], "Buyer (Demo buyer view)", clockOf(s));
+    const proposal = [...s.conversation].reverse().find((x) => x.kind === "proposal" && x.refs.agreementVersion === version);
+    if (proposal) applyBuyerReply(s, { inReplyTo: proposal.id, text: "Declined the proposal", at: clockOf(s).now(), scripted: false, kind: "decline", source: "buyer_proposal_page" });
+    setStatus(s, "buyer_rejected", `Buyer declined version ${version}`);
+    event(s, "buyer_declined", `Buyer declined version ${version}`, "buyer_demo", "No payment setup was created.");
   });
 }
 
@@ -463,19 +647,19 @@ const UNAVAILABLE_UNTIL = /\b(?:till|until|upto|up to)\s+(?:the\s+)?\d{1,2}(?:st
 /** The "cash unavailable until" phrase in a buyer reply, located by code. */
 export const unavailableUntilPhrase = (text: string) => UNAVAILABLE_UNTIL.exec(text)?.[0] ?? null;
 
+/**
+ * Draft an amendment from an open change request. Code rechecks buyer constraints, seller
+ * economics and mandate fit; a failed recheck records "not restructured" and changes nothing.
+ */
 export async function proposeAmendment(): Promise<DemoState> {
   return mutate(async (s) => {
     if (s.status !== "active") throw new ActionError(`Amendments start from an active agreement (deal is ${s.status})`);
     const v = activeVersion(s)!;
-    const failed = [...s.attempts].reverse().find((a) => a.status === "failed");
-    if (!failed) throw new ActionError("No failed debit to amend");
-    const reply = [...s.extraMessages].reverse().find((m) => m.inReplyTo);
-    if (!reply) throw new ActionError("Waiting for the buyer's reply");
-    const phrase = unavailableUntilPhrase(reply.text);
-    if (!phrase) throw new ActionError("The reply does not state when cash is available; ask the buyer");
-    const parsed = normaliseRelativeDate(phrase, reply.timestamp, heroMerchant.timeZone);
-    if (!parsed.ok) throw new ActionError(`Cannot normalise “${phrase}”: ${parsed.reason}`);
-    const newDate = earliestDebitAfterUnavailableUntil(parsed.value);
+    const ci = s.changeRequests.findIndex((c) => c.state === "change_requested");
+    if (ci < 0) throw new ActionError("No change request to act on");
+    const cr = s.changeRequests[ci];
+    if (cr.agreementVersion !== v.version) throw new ActionError("The change request refers to an earlier version");
+    if (s.attempts.some((a) => a.status === "submitted")) throw new ActionError("Awaiting payment outcome; rescheduling is blocked until it is known");
 
     const out = await currentOutcome(s);
     const constraints = interpretations(out.profile)[0].constraints;
@@ -484,20 +668,27 @@ export async function proposeAmendment(): Promise<DemoState> {
       id: `amd-${s.amendments.length + 1}`,
       from: v,
       structure: current.structure as Structure,
-      lineId: failed.scheduleLineId,
-      newDueDate: newDate,
+      lineId: cr.scheduleLineId,
+      newDueDate: cr.earliestDebit,
       constraints,
       engine: { merchant: heroMerchant, packages: heroDeal().packages, templates: heroDeal().templates },
       mandate: s.mandate!,
-      trigger: "failed_debit",
-      triggerRefs: [failed.id, reply.inReplyTo!, reply.id],
+      trigger: cr.timing === "preventive" ? "buyer_message" : "failed_debit",
+      triggerRefs: [cr.attemptId, cr.noticeId!, cr.replyId],
       at: clockOf(s).now(),
     });
     s.amendments.push(amendment);
-    event(s, "amendment_proposed", `Revision proposed: ${failed.dueDate} → ${newDate}`, "engine", `“${phrase}” read from the reply's own timestamp as ${parsed.value.value}; earliest debit is the next day`);
-    if (amendment.state === "rejected") return;
+    const from = current.structure.payments.find((p) => p.id === cr.scheduleLineId)!.dueDate;
+    if (amendment.state === "rejected") {
+      const failing = [...amendment.revised.buyerChecks, ...amendment.revised.sellerChecks].filter((c) => c.status === "fail" || c.status === "needs_information").map((c) => c.code);
+      s.changeRequests[ci] = transitionChangeRequest(cr, "not_restructured", clockOf(s).now(), `Recheck failed: ${failing.join(", ")}`, amendment.id);
+      event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
+      return;
+    }
     s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: heroBuyer.id, policy: heroMerchant.policy, clock: clockOf(s), supersedes: v.version }));
-    setStatus(s, "amending", "Revision proposed after a failed debit");
+    s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
+    event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
+    setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");
   });
 }
 
@@ -509,6 +700,9 @@ export async function approveAmendment(termsHash: string): Promise<DemoState> {
     s.agreements[i] = markSent(merchantApprove(s.agreements[i], termsHash, "Merchant (Pinecone Media Works)", clockOf(s)));
     s.amendments[s.amendments.length - 1] = transitionAmendment(a, "merchant_approved", clockOf(s).now());
     event(s, "merchant_approved", `Merchant approved revision (version ${a.toVersion})`, "merchant", `Terms hash ${termsHash}`);
+    const v2 = s.agreements[i];
+    const line = v2.terms.paymentSchedule.find((l) => l.id === a.change.lineId)!;
+    sendCode(s, "amendment", amendmentMessageText({ fromDate: a.change.fromDueDate, toDate: a.change.toDueDate, amountPaise: line.totalPaise, version: v2.version, link: proposalLink(v2) }), { agreementVersion: v2.version, amendmentId: a.id });
   });
 }
 
@@ -537,6 +731,11 @@ export async function acceptAmendment(termsHash: string, authorityConfirmed: boo
       event(s, "mandate_requested", "Fresh mandate authorisation requested", "simulated", reg.note);
     }
     planNotices(s);
+    const ci = s.changeRequests.findIndex((c) => c.amendmentId === a!.id && c.state === "draft_amendment");
+    if (ci >= 0) s.changeRequests[ci] = transitionChangeRequest(s.changeRequests[ci], "payment_rescheduled", clockOf(s).now(), "Collection updated after both approvals");
+    const newAttempt = update.scheduled.find((x) => x.scheduleLineId === a!.change.lineId);
+    if (newAttempt) sendCode(s, "payment", rescheduledMessageText({ toDate: newAttempt.dueDate, amountPaise: newAttempt.amountPaise }), { agreementVersion: v2.version, attemptId: newAttempt.id });
+    event(s, "payment_rescheduled", "Payment rescheduled", "engine", newAttempt ? `${a.change.fromDueDate} → ${newAttempt.dueDate} under version ${v2.version}` : null);
     setStatus(s, "active", `Version ${v2.version} active; collection updated`);
   });
 }
@@ -569,21 +768,24 @@ export interface DemoStep {
 
 /** The next storyboard step for the current state. Pure: derived from stored state only. */
 export function nextDemoStep(s: DemoState): DemoStep | null {
-  const v1 = s.agreements.find((v) => v.version === 1);
   const amendment = s.amendments.at(-1);
-  const link = s.attempts.find((a) => a.method === "payment_link");
-  if (s.status === "clarifying") return { id: "answer", window: "15–25 s", view: "clarification", title: "Record the buyer's confirmed answers", role: "merchant" };
-  if (s.status === "options_ready") return { id: "approve", window: "25–50 s", view: "decision", title: "Approve and send the top-ranked feasible option", role: "merchant" };
-  if (s.status === "sent" && v1) return { id: "accept", window: "50–62 s", view: "agreement", title: "Buyer accepts the same terms hash", role: "buyer" };
-  if (s.status === "active" && link?.status === "scheduled") return { id: "pay_link", window: "62–66 s", view: "timeline", title: "Simulate: buyer pays the upfront payment link", role: "merchant" };
-  if (s.status === "active" && s.mandate?.status === "pending") return { id: "mandate", window: "66–68 s", view: "timeline", title: "Simulate: mandate registration confirmed", role: "merchant" };
-  if (s.status === "active" && !amendment && s.notices.some((n) => !n.sentAt)) return { id: "notice", window: "68–70 s", view: "timeline", title: "Simulate: Adaptive Deals sends its advance notice", role: "merchant" };
-  if (s.status === "active" && !amendment && !s.attempts.some((a) => a.status === "failed")) return { id: "fail", window: "70–72 s", view: "timeline", title: "Simulate failed debit", role: "merchant" };
-  if (s.status === "active" && !amendment && !s.extraMessages.length) return { id: "reply", window: "72–74 s", view: "timeline", title: "Simulate: buyer replies “cash tight till the 20th”", role: "merchant" };
-  if (s.status === "active" && !amendment) return { id: "propose", window: "74–76 s", view: "timeline", title: "Propose the revision and check mandate fit", role: "merchant" };
-  if (amendment?.state === "proposed") return { id: "amend_approve", window: "76–78 s", view: "timeline", title: "Merchant approves the revision", role: "merchant" };
-  if (amendment?.state === "merchant_approved") return { id: "amend_accept", window: "78–80 s", view: "agreement", title: "Buyer accepts the revision", role: "buyer" };
-  if (s.status === "active" && amendment?.state === "active" && s.scenario?.id !== "scenario-no-feasible") return { id: "close", window: "80–90 s", view: "timeline", title: "Close: metric, approval boundary and a no-feasible-deal example", role: "merchant" };
+  const drafts = s.conversation.filter((i) => i.kind === "clarification");
+  const unsent = drafts.filter((i) => !i.sentAt);
+  const unanswered = drafts.filter((i) => i.sentAt && !s.conversation.some((r) => r.inReplyTo === i.id));
+  const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice");
+  const openChange = s.changeRequests.find((c) => c.state === "change_requested");
+  if (s.status === "clarifying" && drafts.length && unsent.length) return { id: "send", window: "15–19 s", view: "workspace", title: "Merchant sends the drafted questions", role: "merchant" };
+  if (s.status === "clarifying" && unanswered.length) return { id: "replies", window: "19–23 s", view: "workspace", title: "Simulated buyer replies to both questions", role: "merchant" };
+  if (s.status === "clarifying") return { id: "answers", window: "23–27 s", view: "workspace", title: "Use the buyer's replies as the confirmed answers", role: "merchant" };
+  if (s.status === "options_ready") return { id: "approve", window: "27–48 s", view: "decision", title: "Approve and send the recommended structure", role: "merchant" };
+  if (s.status === "sent" && !amendment) return { id: "accept", window: "48–62 s", view: "agreement", title: "Buyer accepts the exact version", role: "buyer" };
+  if (s.status === "active" && s.mandate?.status === "pending") return { id: "mandate", window: "62–64 s", view: "timeline", title: "Simulate: mandate registration confirmed", role: "merchant" };
+  if (s.status === "active" && !amendment && !noticeItem) return { id: "notice", window: "64–67 s", view: "timeline", title: "Simulate: Adaptive Deals sends its advance notice", role: "merchant" };
+  if (s.status === "active" && !amendment && noticeItem && !s.conversation.some((r) => r.inReplyTo === noticeItem.id)) return { id: "reply", window: "67–70 s", view: "workspace", title: "Simulated buyer reply: “Cash is tight till the 20th.”", role: "merchant" };
+  if (s.status === "active" && openChange) return { id: "propose", window: "70–74 s", view: "timeline", title: "Draft the amendment and recheck the agreement", role: "merchant" };
+  if (amendment?.state === "proposed") return { id: "amend_approve", window: "74–78 s", view: "timeline", title: "Merchant approves the revised version", role: "merchant" };
+  if (amendment?.state === "merchant_approved") return { id: "amend_accept", window: "78–82 s", view: "agreement", title: "Buyer accepts the revised version", role: "buyer" };
+  if (s.status === "active" && amendment?.state === "active" && s.scenario?.id !== "scenario-no-feasible") return { id: "close", window: "82–90 s", view: "timeline", title: "Close: no-feasible boundary and the primary metric", role: "merchant" };
   return null;
 }
 
@@ -592,14 +794,20 @@ export async function demoNext(): Promise<{ state: DemoState; step: DemoStep | n
   const s = await getState();
   const step = nextDemoStep(s);
   if (!step) return { state: s, step: null };
-  const { heroClarificationAnswers: A } = await import("@/data/synthetic/hero");
   let next: DemoState = s;
   switch (step.id) {
-    case "answer":
-      next = await recordAnswers([
-        { questionId: A.gst.clarificationId, value: A.gst.value, answerText: A.gst.answerText, confirmedByBuyerVia: A.gst.confirmedByBuyerVia, answeredAt: A.gst.answeredAt },
-        { questionId: A.approvalScope.clarificationId, value: A.approvalScope.value, answerText: A.approvalScope.answerText, confirmedByBuyerVia: A.approvalScope.confirmedByBuyerVia, answeredAt: A.approvalScope.answeredAt },
-      ]);
+    case "send":
+      for (const d of s.conversation.filter((x) => x.kind === "clarification" && !x.sentAt)) next = await sendClarification(d.id);
+      break;
+    case "replies":
+      for (const d of s.conversation.filter((x) => x.kind === "clarification" && x.sentAt && !s.conversation.some((r) => r.inReplyTo === x.id))) {
+        const script = heroScriptedReplies.find((r) => r.context === "clarification" && r.questionId === d.refs.questionId);
+        if (!script) throw new ActionError(`No scripted reply for ${d.refs.questionId}`);
+        next = await buyerReply({ inReplyTo: d.id, scriptId: script.id });
+      }
+      break;
+    case "answers":
+      next = await adoptRepliesAsAnswers();
       break;
     case "approve": {
       const top = (await currentOutcome(s)).explanation?.order[0];
@@ -613,21 +821,17 @@ export async function demoNext(): Promise<{ state: DemoState; step: DemoStep | n
       next = await acceptAgreement(v.version, v.termsHash, v.terms.conditions.includes("buyer_confirms_authority_for_phase_scope"));
       break;
     }
-    case "pay_link":
-      next = await simulate("payment_link_paid");
-      break;
     case "mandate":
       next = await simulate("mandate_confirmed");
       break;
     case "notice":
       next = await simulate("advance_notice");
       break;
-    case "fail":
-      next = await simulate("debit_failed");
+    case "reply": {
+      const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice")!;
+      next = await buyerReply({ inReplyTo: noticeItem.id, scriptId: "notice-cash-tight" });
       break;
-    case "reply":
-      next = await simulate("buyer_reply");
-      break;
+    }
     case "propose":
       next = await proposeAmendment();
       break;

@@ -106,6 +106,8 @@ export interface AgreementVersion {
   status: AgreementStatus;
   merchantApproval: Signature | null;
   buyerAcceptance: (Signature & { authorityConfirmed: boolean }) | null;
+  /** Set when the buyer declines a sent version. */
+  buyerDecline?: { by: string; at: string };
   supersedes: number | null;
 }
 
@@ -171,6 +173,12 @@ export function buyerAccept(v: AgreementVersion, presentedHash: string, by: stri
     throw new AgreementError("The buyer must confirm authority to purchase this phase scope");
   }
   return { ...v, status: "accepted", buyerAcceptance: { by, at: clock.now(), termsHash: presentedHash, authorityConfirmed: opts.authorityConfirmed } };
+}
+
+/** The buyer declines a sent version. No payment setup follows. */
+export function buyerReject(v: AgreementVersion, by: string, clock: Clock): AgreementVersion {
+  if (v.status !== "sent") throw new AgreementError(`Cannot decline a ${v.status} agreement version`);
+  return { ...v, status: "buyer_rejected", buyerDecline: { by, at: clock.now() } };
 }
 
 export function hashesMatch(v: AgreementVersion): boolean {

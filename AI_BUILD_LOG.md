@@ -437,6 +437,51 @@ Four of the six cases with misses are Hinglish; two are English. Both missed cla
 
 **Limitation:** the evaluation runner stores per-case counts but not each case's raw model output, so these misses cannot be diagnosed further without new model calls. As instructed, nothing will change after seeing the results: no prompts, schemas, validators, labels or cases.
 
+### 2026-10-02 · Connected buyer journey: domain and state phase [Claude Code]
+
+**Prompt (applicant):** execute `CLAUDE_CODE_PROMPT_CONNECTED_BUYER_JOURNEY.md` with `BUILD_ADDENDUM_CONNECTED_BUYER_JOURNEY.md` as the controlling specification. Complete the domain and state changes with tests, then stop at the Phase Gate.
+
+**Built (no UI yet)**
+- `domain/replies.ts` (`reply-rules.v1`): code-owned, deterministic classification of buyer replies into change requested / payment claimed / acknowledgement / merchant attention.
+  - **Supported:** `till | until | up to | upto` + an ordinal day of month (no month named).
+  - **Resolution:** the next occurrence strictly after the reply's own date in Asia/Kolkata.
+  - **Same-day reply:** ambiguous. **A day missing from both this and next month:** attention; code never skips a month.
+  - Amounts, Hinglish ("20 tak") and relative phrases ("next week", "salary") go to the merchant.
+  - No AI is used.
+- `domain/conversation.ts`: simulated WhatsApp items with state, author, source, timestamp, `inReplyTo`, provenance and code classification.
+  - Replies must answer a sent item and cannot predate it.
+  - Clarification drafts leave only through `merchantSend`.
+  - No new AI drafts are created while suggestions are paused.
+  - Buyer-facing texts are built only from canonical terms and notices, and `assertBuyerSafe` rejects internal wording.
+- `domain/restructure.ts`: change requests. The line is selected via reply → notice → attempt → schedule line. States: `change_requested → draft_amendment → payment_rescheduled`, or `not_restructured`.
+- `domain/agreement.ts`: `buyerReject` (decline; no payment setup).
+- **Defect fixed:** `domain/amendment.ts` `applyCollectionUpdate` previously removed every scheduled attempt and recreated only recurring and changed lines. That would silently drop an unpaid upfront payment-link attempt in the preventive path. It now touches only lines whose date or amount changed.
+- **`lib/service.ts`:**
+  - conversation state, merchant send, pause and resume;
+  - scripted and typed buyer replies through one bounded path, which never calls a model;
+  - replies adopted as answers;
+  - code-authored proposal (after merchant approval only), payment-link, notice, amendment and rescheduled messages;
+  - request a change, without mutating terms;
+  - decline;
+  - amendments drafted only from an open change request;
+  - the guided demo rewritten to the addendum storyboard.
+  - The failed-debit path is kept as the tested secondary path.
+- `data/synthetic/hero.ts`: pre-scripted replies (clarification answer values carried as script metadata) and the preventive reply time, 28 Nov 12:30 IST.
+
+**Tests added:**
+- `tests/domain/replies.test.ts`
+- `tests/domain/conversation.test.ts`
+- `tests/lib/connected-journey.test.ts`: live-run application state, with a fetch spy proving no network or model call.
+- The `payments-guard` helper now drives the new guided steps.
+
+**Verification:**
+- `npm test` 306/306 (30 files) · typecheck clean · lint clean.
+- Replay integrity: the synthetic run and the v1, v2 and v3 live runs all pass.
+- No file changed under `ai/`, `evaluation/`, `data/live-runs/`, `data/demo-run.json` or the synthetic replay. `FREEZE_PACK.md` is unchanged (SHA-256). Prompt hashes match `FREEZE.json`.
+- No Groq call. No frozen evaluation rerun.
+
+**Stopped at the Phase Gate** for applicant review before the UI phase.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

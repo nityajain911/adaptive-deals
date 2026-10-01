@@ -216,11 +216,31 @@ export const heroClarificationAnswers: { gst: ClarificationAnswer & { value: "ye
   },
 };
 
+/**
+ * Pre-scripted simulated buyer replies, selected by the demo operator. Clarification scripts
+ * carry the answer value as script metadata (no interpretation); every other reply goes through
+ * code's bounded reply classification, exactly like a typed reply.
+ */
+export const heroScriptedReplies = [
+  { id: "clar-gst-yes", context: "clarification" as const, questionId: "clar-gst", text: "Yes, both amounts include GST.", answerValue: "yes" },
+  { id: "clar-approval-contract", context: "clarification" as const, questionId: "clar-approval", text: "₹60,000 is per contract.", answerValue: "per_contract" },
+  { id: "notice-cash-tight", context: "notice" as const, text: "Cash is tight till the 20th.", hero: true },
+  { id: "notice-paid", context: "notice" as const, text: "I paid" },
+  { id: "notice-okay", context: "notice" as const, text: "Okay" },
+  { id: "notice-amount", context: "notice" as const, text: "Can we do up to ₹10K this month?" },
+  { id: "notice-tak", context: "notice" as const, text: "20 tak paisa nahi hai" },
+  { id: "notice-next-week", context: "notice" as const, text: "Cash tight till next week" },
+  { id: "proposal-okay", context: "proposal" as const, text: "Okay" },
+];
+
 /** Staged later events. Each one is a simulated demo action with an explicit simulated date. */
 export const heroDemoEvents = {
   upfrontPaidAt: "2026-11-01T10:00:00+05:30",
   advanceNoticeAt: "2026-11-28T10:00:00+05:30",
   failedDebitAt: "2026-12-01T10:00:00+05:30",
+  /** Preventive path (hero): the buyer answers the 28 Nov notice the same afternoon. */
+  preventiveReplyAt: "2026-11-28T12:30:00+05:30",
+  /** Secondary path: reply after a failed debit. */
   buyerReply: {
     id: "msg-3",
     text: "Sorry, cash tight till the 20th. Can you take it after that?",

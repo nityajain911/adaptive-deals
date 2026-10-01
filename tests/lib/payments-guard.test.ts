@@ -13,8 +13,8 @@ beforeAll(async () => {
 
 async function toSent() {
   await svc.resetToSeed();
-  await svc.demoNext(); // answers
-  await svc.demoNext(); // approve and send
+  // Guided steps: send questions → buyer replies → answers → approve and send.
+  for (let i = 0; i < 6 && (await svc.getState()).status !== "sent"; i++) await svc.demoNext();
   return (await svc.getState()).agreements[0];
 }
 
@@ -51,7 +51,7 @@ describe("payment actions sit behind matching hashes and duplicate guards", () =
     const s = await svc.simulate("debit_succeeded");
     expect(s.attempts.every((a) => a.status === "succeeded")).toBe(true);
     await expect(svc.simulate("debit_succeeded")).rejects.toThrow(/No recurring debit is scheduled/);
-    await expect(svc.proposeAmendment()).rejects.toThrow(/No failed debit/);
+    await expect(svc.proposeAmendment()).rejects.toThrow(/No change request/);
   });
 
   it("records each simulated time advance in the state and the run record, labelled", async () => {

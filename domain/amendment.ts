@@ -116,19 +116,31 @@ export function applyCollectionUpdate(args: {
   if (amendment.state !== "buyer_accepted") throw new Error("Collections change only after the buyer accepts the revision");
   if (args.attempts.some((a) => a.status === "submitted")) throw new CollectionError("AWAITING_OUTCOME", "Awaiting payment outcome; revision cannot change collection yet");
 
+  // Only lines whose due date or amount changed in the new version are touched. Attempts for
+  // unchanged lines (e.g. an unpaid upfront payment link) stay exactly as they are.
+  const lines = new Map(newVersion.terms.paymentSchedule.map((l) => [l.id, l]));
+  const paidLines = new Set(args.attempts.filter((a) => a.status === "succeeded").map((a) => a.scheduleLineId));
+  const changed = new Set(
+    newVersion.terms.paymentSchedule
+      .filter((l) => !paidLines.has(l.id))
+      .filter((l) => {
+        const live = args.attempts.filter((a) => a.scheduleLineId === l.id && a.status === "scheduled" && a.origin !== "internal_retry");
+        return l.id === amendment.change.lineId || live.some((a) => a.dueDate !== l.dueDate.value || a.amountPaise !== l.totalPaise);
+      })
+      .map((l) => l.id),
+  );
+
   const removed: CollectionAttempt[] = [];
   let attempts = args.attempts.map((a) => {
-    if (a.status !== "scheduled") return a;
+    if (a.status !== "scheduled" || !changed.has(a.scheduleLineId)) return a;
     const r = transitionAttempt(a, "removed", at, a.origin === "internal_retry" ? RETRY_REMOVED_COPY : `superseded by version ${newVersion.version}`);
     removed.push(r);
     return r;
   });
 
   const scheduled: CollectionAttempt[] = [];
-  const paidLines = new Set(attempts.filter((a) => a.status === "succeeded").map((a) => a.scheduleLineId));
-  for (const line of newVersion.terms.paymentSchedule) {
-    if (paidLines.has(line.id)) continue;
-    if (line.method !== "recurring_debit" && line.id !== amendment.change.lineId) continue;
+  for (const id of changed) {
+    const line = lines.get(id)!;
     const next = scheduleAttempt(
       attempts,
       {
