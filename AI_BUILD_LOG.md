@@ -433,7 +433,7 @@ No product-code change is authorised unless the frozen runner reveals an executi
 | test-hinglish-partial-gst-contract | fields 2 of 3 |
 | test-required-social-early-start | 1 unsupported field |
 
-Five of the six cases with misses are Hinglish.
+Four of the six cases with misses are Hinglish; two are English. Both missed clarifications occurred in `test-hinglish-injection-ambiguity`. The two missed failure states occurred in that case and `test-hinglish-nine-thousand`.
 
 **Limitation:** the evaluation runner stores per-case counts but not each case's raw model output, so these misses cannot be diagnosed further without new model calls. As instructed, nothing will change after seeing the results: no prompts, schemas, validators, labels or cases.
 
