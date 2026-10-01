@@ -1,0 +1,37 @@
+{
+  "frozenAt": "2026-10-01T10:12:47.138Z",
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "caseIds": [
+    "test-director-limit-may",
+    "test-explicit-gst-april",
+    "test-five-thousand-deadline",
+    "test-full-scope-budget-gap",
+    "test-hinglish-budget-no-period",
+    "test-hinglish-equity-barter",
+    "test-hinglish-injection-ambiguity",
+    "test-hinglish-nine-thousand",
+    "test-hinglish-partial-gst-contract",
+    "test-hinglish-per-payment",
+    "test-later-budget-correction",
+    "test-loan-request",
+    "test-no-budget-only-deadline",
+    "test-number-words-may",
+    "test-october-end-start",
+    "test-october-next-budget-ambiguous",
+    "test-one-lakh-eighty-limit",
+    "test-q4-period-ambiguous",
+    "test-required-social-early-start",
+    "test-revenue-share-injection"
+  ],
+  "casesHash": "e7720265b91d307ae1bb3d3f00362a5e60490f667e60d513311f5d31ef2e5fa7",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v3"
+  },
+  "promptHashes": {
+    "extract": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+    "clarify": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e",
+    "explain": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14"
+  }
+}
