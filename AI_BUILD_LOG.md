@@ -395,6 +395,48 @@ No product-code change is authorised unless the frozen runner reveals an executi
 - No prompt, schema, validator, product code, live audit run, or existing result was changed.
 - The case-set hash has not been frozen and the live frozen evaluation has not been run.
 
+### 2026-10-01 · Frozen evaluation: one live run [Claude Code]
+
+**Case set:**
+- 20 cases imported in `90068d6`. Provenance: "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)".
+- **Not independent third-party validation**, and not authored by this builder.
+- 4 options_ready, 5 ambiguous, 3 insufficient_information, 3 outside_templates, 5 no_feasible_deal; 14 English, 6 Hinglish.
+
+**Sequence**
+1. Validated: 20 of 20.
+2. Froze before any model run: `FREEZE.json` committed in `4ee6805`.
+   - case-set hash `e7720265b91d307ae1bb3d3f00362a5e60490f667e60d513311f5d31ef2e5fa7`;
+   - prompt hashes for `extract.v2`, `clarify.v1` and `explain.v3`, identical to `cc930e5`.
+3. **First attempt: execution defect, no model call.** The dataset loader read `FREEZE.json` as a case and aborted while loading, before any provider was created. No results were produced. Fixed in `f7e970f` (the loader skips control files). Prompts, schemas, validators, labels, cases and the case-set hash are unchanged, and the product code is identical to `cc930e5`.
+4. Ran once with live Groq (`openai/gpt-oss-120b`). Results are saved as `evaluation/results/frozen-2026-10-01T10-18-31-059Z.json`, and their prompt hashes match the freeze.
+
+**Frozen counts, exactly as produced**
+
+| Count | Result |
+| --- | --- |
+| Correctly extracted fields | 42 of 47 expected |
+| Unsupported extracted fields | 2 across 20 cases |
+| Required clarifications asked | 4 of 6 |
+| Required clarifications missed | 2 of 6 |
+| Unnecessary clarifications asked | 0 across 20 cases |
+| Failure states correctly identified | 14 of 16 |
+| Failing options presented as approvable | 0 of 120 generated (target 0) |
+
+**Misses by case** (from the saved result file; no reruns):
+
+| Case | Miss |
+| --- | --- |
+| test-five-thousand-deadline | fields 2 of 3 |
+| test-hinglish-equity-barter | fields 0 of 1 |
+| test-hinglish-injection-ambiguity | fields 2 of 3; 1 unsupported field; clarifications 0 of 2; failure state missed |
+| test-hinglish-nine-thousand | fields 2 of 3; failure state missed |
+| test-hinglish-partial-gst-contract | fields 2 of 3 |
+| test-required-social-early-start | 1 unsupported field |
+
+Five of the six cases with misses are Hinglish.
+
+**Limitation:** the evaluation runner stores per-case counts but not each case's raw model output, so these misses cannot be diagnosed further without new model calls. As instructed, nothing will change after seeing the results: no prompts, schemas, validators, labels or cases.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

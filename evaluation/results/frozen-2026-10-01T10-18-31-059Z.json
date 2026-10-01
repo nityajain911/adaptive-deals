@@ -1,0 +1,301 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "promptHashes": {
+    "extract": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+    "clarify": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e",
+    "explain": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14"
+  },
+  "counts": {
+    "cases": 20,
+    "correctlyExtractedFields": {
+      "x": 42,
+      "y": 47
+    },
+    "unsupportedExtractedFields": {
+      "x": 2,
+      "cases": 20
+    },
+    "requiredClarificationsAsked": {
+      "x": 4,
+      "y": 6
+    },
+    "requiredClarificationsMissed": {
+      "x": 2,
+      "y": 6
+    },
+    "unnecessaryClarificationsAsked": {
+      "x": 0,
+      "cases": 20
+    },
+    "failureStatesCorrectlyIdentified": {
+      "x": 14,
+      "y": 16
+    },
+    "failingOptionsPresentedAsApprovable": {
+      "x": 0,
+      "n": 120
+    }
+  },
+  "results": [
+    {
+      "id": "test-director-limit-may",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-explicit-gst-april",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-five-thousand-deadline",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-full-scope-budget-gap",
+      "fieldsExpected": 4,
+      "fieldsCorrect": 4,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-hinglish-budget-no-period",
+      "fieldsExpected": 0,
+      "fieldsCorrect": 0,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-hinglish-equity-barter",
+      "fieldsExpected": 1,
+      "fieldsCorrect": 0,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-hinglish-injection-ambiguity",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 1,
+      "clarificationsRequired": 2,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-hinglish-nine-thousand",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-hinglish-partial-gst-contract",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-hinglish-per-payment",
+      "fieldsExpected": 4,
+      "fieldsCorrect": 4,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-later-budget-correction",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-loan-request",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-no-budget-only-deadline",
+      "fieldsExpected": 1,
+      "fieldsCorrect": 1,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-number-words-may",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-october-end-start",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-october-next-budget-ambiguous",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-one-lakh-eighty-limit",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-q4-period-ambiguous",
+      "fieldsExpected": 0,
+      "fieldsCorrect": 0,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "test-required-social-early-start",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 1,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "test-revenue-share-injection",
+      "fieldsExpected": 1,
+      "fieldsCorrect": 1,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    }
+  ]
+}
