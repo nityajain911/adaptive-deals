@@ -42,7 +42,7 @@ An unfamiliar user, with the demo controls hidden and without narration, can ans
 - Automatic model retraining, automatic prompt, template or policy changes, or a new learning engine.
 - "What would need to change?" threshold search.
 - A deal-completion transition. No `completed` transition is added; see §6.2.
-- Withdrawing or cancelling a proposal after it has been sent (§5.6).
+- Withdrawing or cancelling a proposal after it has been sent (§5.7).
 
 ### 1.5 Protected boundary (must not change)
 
@@ -71,7 +71,7 @@ Additive changes to `lib/service.ts`, the deal-status transitions in `domain/sta
 | `/deals/[dealId]/offer/preview` | Merchant preview of the exact buyer proposal (unsent draft) |
 | `/deals/[dealId]/track` | Stage 3: Track the deal |
 | `/deals/[dealId]` | Redirects to the stage holding the current required action (§3.4) |
-| `/proposal/[agreementId]/v[n]` | Buyer proposal (unchanged route; content is shared, §5.5) |
+| `/proposal/[agreementId]/v[n]` | Buyer proposal (unchanged route; content is shared, §5.6) |
 | `/presenter` | Presenter page (§8.2), not part of the merchant product |
 
 - Only `hero` exists as a deal ID. Any other ID returns "not found".
@@ -118,7 +118,7 @@ Additive changes to `lib/service.ts`, the deal-status transitions in `domain/sta
 - **`eligibleAt`** (ISO timestamp): when the stalled deal entered Adaptive Deals. It opens the 90-day metric window. For the hero deal: 1 Oct 2026, 09:00 IST. Imported earlier messages never move it backwards.
 - **`selectedOption`**: references only, never a copy of the engine result.
   - The selected structure ID.
-  - A source decision fingerprint: a deterministic hash of the replayed engine result's eligible-option set and the selected structure's canonical terms.
+  - A source decision fingerprint: a deterministic hash of the replayed engine result's eligible-option set and the selected structure's canonical terms. Serialisation uses canonical JSON and the option IDs are sorted, so a change in display order alone never invalidates a draft.
   - The selection time from the injected clock.
   - The draft version ID once one is prepared.
 - **Draft validity:** the draft keeps the canonical terms and their hash, as today. It is *stale* when the current decision fingerprint differs from its source, or when the selected structure is no longer eligible for preparation.
@@ -154,6 +154,12 @@ Presenter flags never appear in deal exports or in the merchant audit.
    - On success: the agreement becomes `sent`, the deal becomes `sent`, the proposal message and link are recorded, and buyer access opens.
    - On failure: an attempt record with its reason is added; approval and hash are kept; nothing advances; the buyer route stays unavailable.
    - A retry is the same action.
+   - **Preconditions, checked on every send and retry before any delivery attempt:**
+     - the deal is still open for sending (status `approved`, not `merchant_rejected` or later);
+     - the version is still the selected, valid version (not stale, superseded or invalidated by a new selection);
+     - its merchant approval hash equals the hash of its current canonical terms.
+   - If any precondition fails, nothing is delivered and the service returns an explanatory error. An old retry can never send a proposal the merchant has since replaced or closed.
+   - A request for a version that has already been delivered successfully returns the recorded success without another attempt.
 5. `closeByMerchant(reasonCode, note?)`, allowed while in Offer: options ready, draft prepared, approved-but-unsent, no feasible structure, or outside templates.
    - Closing an approved-but-unsent deal revokes the pending delivery path but keeps the draft, the approval, the hash and the failed-attempt history.
    - It is not available after a successful send.
@@ -202,6 +208,15 @@ Historical unresolved fields can never pull a sent deal back to Understand.
 | Outside templates | action_required | This request needs a custom arrangement. | **Mark as handled outside Adaptive Deals** |
 | Closed by merchant | terminal | Closed in Adaptive Deals · (reason) | none |
 
+**Migration review state** (a safeguard, not a normal workflow). This check runs before the stage precedence:
+
+| Situation | Stage | Kind | Headline | Permitted action |
+|---|---|---|---|---|
+| Saved history is inconsistent or ambiguous, so the selected option or a delivery can't be inferred (§9) | The last stage the evidence supports: Offer if a draft or approval exists without a provable delivery, otherwise Understand | action_required | Saved deal records need review before this deal can continue. ‹Which records disagree.› | **Inspect records** (opens the read-only audit drawer at the conflicting records); **Reset demo** remains available from the demo bar |
+
+- While in this state, approval, sending, retrying and buyer acceptance that depend on the missing evidence are refused by the service, not only hidden in the UI.
+- The product never guesses that a proposal was delivered.
+
 **Track precedence** (exhaustive; first match wins; tested):
 
 | # | Situation | Kind | Example headline | Primary |
@@ -215,14 +230,14 @@ Historical unresolved fields can never pull a sent deal back to Understand.
 | 7 | Accepted; upfront payment unpaid and/or mandate pending | waiting_on_buyer | Buyer accepted. Waiting for the buyer to pay the upfront link and authorise recurring payments. (One combined message.) | none |
 | 8 | Debit submitted with unknown outcome, or failed with an internal retry scheduled | waiting_on_system | Awaiting payment outcome. / Debit failed · retry scheduled for 4 Dec. | none |
 | 9 | Next payment scheduled, nothing required | informational | Up to date · next payment ₹23,010 on 21 Dec 2026. | none |
-| 10 | Every attempt succeeded, status not `completed` | informational | All scheduled payments collected. | none |
+| 10 | The current agreement version's ledger is `fullyPaid` (existing ledger rule: verified successful collections cover the contract total), status not `completed` | informational | All scheduled payments collected. | none |
 
 **Notes on the table:**
 - **Rows 2 and 3 never coexist.** The amendment model allows one amendment in progress at a time, moving through consecutive states. Merchant review always comes before buyer acceptance.
 - **Rows 2 and 4:** an open request whose draft amendment exists is row 2.
 - **Stale requests:** requests from earlier versions are excluded everywhere.
 - **No "overdue" state.** The collection model has no overdue concept, so none is invented.
-- **Row 10 never says the deal is "completed".**
+- **Row 10 never says the deal is "completed".** It is based on the current agreement's obligations and verified collections, never on "every attempt succeeded". Failed and removed attempts stay in history permanently and must not block it.
 - **Row 5 counts as a merchant action within this deal only.** It is not a cross-deal inbox.
 
 **Invariants (tested):**
@@ -290,7 +305,7 @@ Historical unresolved fields can never pull a sent deal back to Understand.
 7. **Primary: Review buyer proposal.**
 8. **Secondary:**
    - **Compare alternatives** (collapsed). Each eligible row has a quiet **Select this offer**, which reselects and recalculates the page; it never sends, approves or creates buyer access. Failed and needs-information options cannot be selected. Options needing buyer approval show that requirement.
-   - **Don't proceed** opens the reason sheet (§5.6).
+   - **Don't proceed** opens the reason sheet (§5.7).
 9. **Why other options didn't fit**, fully collapsed. Expanding it shows the featured buyer-side and seller-side rejections with links to the matching rules; the full list needs a further click. No rejection card appears in the initial viewport.
 10. **Success measure** (quiet line): "Success measure: realised contribution from this deal within 90 days." Its tooltip explains that projected contribution is a forecast, and that realised contribution depends on verified cash, refunds, payment fees and delivery costs. There is no analytics panel on this stage.
 
@@ -304,7 +319,7 @@ See the Offer states table in §3.4. A no-feasible result explains the binding c
 
 - **Review buyer proposal** selects the option if needed, prepares (or reuses) the draft, and opens the preview.
 - **Merchant framing,** outside the proposal content: **Preview · Not sent to the buyer**.
-- **Content:** the shared proposal component (§5.5), rendered from the draft's canonical terms. It shows scope, exclusions, the total including GST, payment amounts and dates, collection and mandate requirements, what happens after acceptance, and any buyer approval requirement. It never shows merchant economics, margin, internal limits, rejection logic or recommendation metadata.
+- **Content:** the shared proposal component (§5.6), rendered from the draft's canonical terms. It shows scope, exclusions, the total including GST, payment amounts and dates, collection and mandate requirements, what happens after acceptance, and any buyer approval requirement. It never shows merchant economics, margin, internal limits, rejection logic or recommendation metadata.
 - **Bottom of the preview:**
   - Primary: **Approve and send to buyer**.
   - Secondary: **Back to offer**.
@@ -319,11 +334,19 @@ See the Offer states table in §3.4. A no-feasible result explains the binding c
 - **After an amendment:** "Terms accepted from offer version 1 were amended by agreement version 2 · payment date changed." The historical offer is never rewritten.
 - **If the merchant closed before sending:** "Closed in Adaptive Deals · ‹reason›", plus the compact outcome summary (§7.3).
 
-### 5.5 Shared proposal content
+### 5.5 Amendment versions and the delivery gate
+
+- **One access gate for every version.** Buyer access depends on a successful delivery record for that specific version, whether it is the initial offer or an amendment.
+- **Amendment rules stay unchanged.** The existing `approveAmendment` path keeps doing what it does today: merchant approval, marking the version sent, and sending the code-written amendment message.
+- **Additive step:** when that simulated amendment message is sent, the same transition records a successful delivery for the new version in `deliveries`, with a stable idempotency key and one attempt. The version-2 buyer page therefore opens exactly when the amendment message has been sent.
+- **Fail next send applies only to the initial proposal** (`sendProposal`) in this build. Amendment delivery always succeeds in the simulated channel, so no amendment-delivery recovery workflow is added.
+- **Migration** infers amendment-version deliveries from the existing amendment message and sent status (§9).
+
+### 5.6 Shared proposal content
 
 The buyer page and the merchant preview render one component from canonical terms: scope, exclusions, customer total, dates, payment and mandate requirements, and acceptance consequences. Merchant framing and buyer actions sit outside it. The buyer route returns "not found" until a successful delivery for that version.
 
-### 5.6 Don't proceed
+### 5.7 Don't proceed
 
 Stable reason codes and display labels:
 
@@ -394,18 +417,21 @@ A change request is a learning signal, not a failed outcome.
 - **Headline: Provisional contribution from modelled inputs.**
   - Beneath it: "This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype."
   - The card names the intended business metric: realised contribution within 90 days per eligible stalled deal.
-- **Metric status:** *In progress* while within 90 days of `eligibleAt`; *Incomplete* while any required input is unavailable, including after day 90 (time passing never turns an incomplete calculation into a verified result); *Complete* only when every input exists, which this prototype never claims.
+- **Metric status** reports two facts together in one compact label, for example "Window in progress · incomplete inputs":
+  - **Window:** *in progress* until `eligibleAt` + 90 days, then *ended*.
+  - **Data:** *incomplete* while any required input is unavailable, which is always the case in this prototype. Data becomes complete only when every input exists; time passing never makes it complete.
 - **Rows,** each stating its GST basis:
   - Proposed value: the sent offer, including GST.
   - Accepted contract value: the accepted terms, including GST, or "Not accepted".
   - Verified cash collected: succeeded payments only, including and excluding GST. This never implies that all contractual value was collected.
-  - Provisional contribution: cash received excluding GST within the window, minus estimated payment fees at the configured rate on verified collections, minus modelled direct delivery costs incurred by the as-of date, all on the injected clock.
+  - Provisional contribution: cash received excluding GST, minus estimated payment fees at the configured rate on those verified collections, minus modelled direct delivery costs incurred.
+    - **One measurement cutoff for every input:** the earlier of the injected current time and the end of the 90-day window (`eligibleAt` + 90 days). Cash, fees and costs all use this cutoff; activity after it falls outside the reported period.
     - It may be negative before cash arrives.
     - It is not shown as "Not started" merely because no cash has arrived.
 - **Disclosures,** in the collapsed calculation:
   - "Refund data is not modelled in this prototype. No refund amount has been assumed." It is never shown as ₹0.
   - "Estimated payment fees at configured rate (2%) — not an actual settled Razorpay fee record."
-  - "Includes modelled costs incurred by this date. Irrevocably committed future costs are not modelled."
+  - "Includes modelled costs incurred up to the measurement cutoff. Irrevocably committed future costs are not modelled."
 - **Recorded signals:** only records that exist.
 - **Learning policy,** verbatim: "Outcomes across eligible stalled deals are reviewed to propose versioned improvements to recommendations and templates. Changes are evaluated before release. Merchant rules and policies never change automatically. If a proposed template or policy change affects a merchant's permitted commercial structures, it requires merchant approval before use."
 - **Never claimed:** that this deal changes the model, continuous or automatic learning, automatic prompt, template or policy changes, or that recorded value equals recovered cash.
@@ -416,7 +442,7 @@ A change request is a learning signal, not a failed outcome.
 There is no artificial Track stage. The settled Offer summary shows:
 - proposed value, if one existed;
 - accepted value: not accepted;
-- verified cash: ₹0 (no payment records exist, so this is a verified zero);
+- "Payments recorded in Adaptive Deals: ₹0." This does not establish that the merchant received no money elsewhere, particularly when the reason is "Will handle outside Adaptive Deals";
 - the merchant's closure reason;
 - measurement status: included, because the denominator includes deals that never sign.
 
@@ -501,11 +527,12 @@ There is no artificial Track stage. The settled Offer summary shows:
   - the selected structure: from the existing agreement or draft;
   - successful delivery: from the existing sent agreement, proposal message and approval event;
   - buyer acceptance or rejection: from agreement state;
+  - amendment-version deliveries, from the existing amendment message and sent status (§5.5);
   - the current agreement version, and amendment and payment history (kept as-is).
 - **If the selected structure or delivery can't be inferred unambiguously:**
   - leave the new field unset;
   - keep every historical record;
-  - show a review-required state (a defined `dealProgress` result);
+  - show the migration review state defined in §3.4;
   - never invent a delivery, acceptance or option.
 - **Historical events are never rewritten.** An existing sent-and-accepted hero state resolves to Track after migration.
 
@@ -550,12 +577,22 @@ There is no artificial Track stage. The settled Offer summary shows:
   - Mark as handled changes no payment, mandate, collection, agreement or ledger data;
   - a merchant close before sending never resolves to Track;
   - amendment copy reflects whether the original debit was scheduled, failed, retried or removed.
+- **Completion and delivery:**
+  - "All scheduled payments collected" after a preventive amendment, and after a failed debit followed by a successful retry, despite failed and removed attempts in history;
+  - the version-2 buyer page opens exactly when the amendment message is sent;
+  - Fail next send never affects amendment delivery;
+  - a retry after the merchant reselects or closes delivers nothing;
+  - a repeated send for a delivered version returns the recorded success;
+  - the migration review state refuses approval, sending, retry and buyer acceptance.
 - **Metric:**
   - `eligibleAt` sets the window, and imported earlier messages can't move it;
   - refunds are disclosed, not zeroed;
   - fees are labelled estimated;
   - incurred costs can make the provisional value negative;
-  - the result stays incomplete after day 90 while inputs are missing.
+  - the result stays incomplete after day 90 while inputs are missing;
+  - after day 90, costs and cash after the cutoff are both excluded;
+  - the label reports window and data status together;
+  - the fingerprint is unchanged by reordering the options.
 - **Migration:**
   - sent and accepted hero state resolves to Track;
   - ambiguous history fails safely;
