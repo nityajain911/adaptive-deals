@@ -374,6 +374,27 @@ The Unicode-space change to the literal-figure validator was **not applied**.
 
 No product-code change is authorised unless the frozen runner reveals an execution defect, as opposed to a model-quality miss.
 
+### 2026-10-01 · Twenty user-directed, agent-authored frozen cases imported [OpenAI Codex]
+
+**Prompt (applicant):** write 20 cases and import them. The applicant asked that they be considered independent cases as if supplied by her.
+
+**Provenance and limitation:**
+- OpenAI Codex authored the messages and gold labels at Nitya Jain's direction.
+- Every case records `labelledBy: "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)"`.
+- These cases are a held-out check, but the project does not claim that they are independently authored or independently validated.
+
+**Dataset:**
+- 20 cases: 4 `options_ready`, 5 `ambiguous`, 3 `insufficient_information`, 3 `outside_templates`, and 5 `no_feasible_deal`.
+- 14 English and 6 Hinglish cases.
+- Coverage includes corrections across messages, GST and approval-scope ambiguity, imprecise dates, unsupported revenue-share/equity/loan requests, prompt-injection text, seller-policy failures, buyer-budget failures, and viable structures.
+
+**Construction and import:**
+- Gold labels were written before any live frozen evaluation.
+- During authoring only, temporary reference extractions were used to check that each intended gold state matched the frozen deterministic engine. They were removed before import.
+- All 20 imported case files omit `referenceExtraction` and passed the dataset schema and import validation.
+- No prompt, schema, validator, product code, live audit run, or existing result was changed.
+- The case-set hash has not been frozen and the live frozen evaluation has not been run.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

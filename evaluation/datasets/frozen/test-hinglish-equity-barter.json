@@ -1,0 +1,46 @@
+{
+  "id": "test-hinglish-equity-barter",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "outside_templates",
+    "hinglish",
+    "barter_or_equity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Is month ₹30k available hai. Baaki fees ke badle clinic ke shares le lo.",
+      "timestamp": "2026-10-12T15:15:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 3000000,
+        "period": {
+          "start": "2026-10-12",
+          "end": "2026-10-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "outside_templates",
+    "suspectedInstruction": false,
+    "unsupportedKinds": [
+      "barter_or_equity"
+    ]
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Equity in place of payment is outside the approved structures."
+}

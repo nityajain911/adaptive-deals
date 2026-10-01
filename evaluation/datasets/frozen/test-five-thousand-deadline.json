@@ -1,0 +1,48 @@
+{
+  "id": "test-five-thousand-deadline",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "no_feasible_deal",
+    "low_budget",
+    "deadline",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Only ₹5,000 including GST is available this quarter, and implementation must start by the 15th.",
+      "timestamp": "2026-10-02T09:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 500000,
+        "period": {
+          "start": "2026-10-02",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": {
+        "value": "2026-10-15",
+        "precision": "day"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "no_feasible_deal",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Budget and start deadline jointly rule out every approved structure."
+}

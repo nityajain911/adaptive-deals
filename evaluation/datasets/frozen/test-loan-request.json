@@ -1,0 +1,46 @@
+{
+  "id": "test-loan-request",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "outside_templates",
+    "credit_or_loan",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "₹50k including GST is available this quarter. Please lend us the rest and recover it with interest next year.",
+      "timestamp": "2026-10-14T10:10:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5000000,
+        "period": {
+          "start": "2026-10-14",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "outside_templates",
+    "suspectedInstruction": false,
+    "unsupportedKinds": [
+      "credit_or_loan"
+    ]
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "A direct credit request rather than an adaptive commercial structure."
+}

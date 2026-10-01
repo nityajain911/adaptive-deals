@@ -1,0 +1,47 @@
+{
+  "id": "test-october-end-start",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "no_feasible_deal",
+    "deadline",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Our ceiling is ₹46,000 including GST this quarter, and the engagement must begin by the 31st.",
+      "timestamp": "2026-10-20T10:25:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4600000,
+        "period": {
+          "start": "2026-10-20",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": {
+        "value": "2026-10-31",
+        "precision": "day"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "no_feasible_deal",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Every template starts after the buyer's day-precision deadline."
+}

@@ -1,0 +1,51 @@
+{
+  "id": "test-full-scope-budget-gap",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "no_feasible_deal",
+    "required_packages",
+    "budget_gap",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "₹30k including GST is left this quarter. The next budget is in June. Social media is mandatory, and we need to start by 15th December.",
+      "timestamp": "2026-10-01T08:30:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 3000000,
+        "period": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-06",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": {
+        "value": "2026-12-15",
+        "precision": "day"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "no_feasible_deal",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Required full scope plus a long budget gap rules out the remaining structures."
+}

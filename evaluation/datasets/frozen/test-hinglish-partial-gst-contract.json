@@ -1,0 +1,47 @@
+{
+  "id": "test-hinglish-partial-gst-contract",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "ambiguous",
+    "hinglish",
+    "partial_gst",
+    "approval_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Is quarter ₹45k GST mila ke hai. Full contract mein ₹60k se upar MD approval chahiye.",
+      "timestamp": "2026-10-02T12:05:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4500000,
+        "period": {
+          "start": "2026-10-02",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": 6000000,
+      "approvalScope": "per_contract",
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "GST is explicit for the budget and unresolved for the approval threshold."
+}

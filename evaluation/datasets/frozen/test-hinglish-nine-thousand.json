@@ -1,0 +1,49 @@
+{
+  "id": "test-hinglish-nine-thousand",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "no_feasible_deal",
+    "hinglish",
+    "low_budget",
+    "deadline",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Is month sirf ₹9,000 before GST hai aur kaam 20th tak start hona chahiye.",
+      "timestamp": "2026-10-05T17:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 900000,
+        "period": {
+          "start": "2026-10-05",
+          "end": "2026-10-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "no",
+      "latestStart": {
+        "value": "2026-10-20",
+        "precision": "day"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "no_feasible_deal",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Hinglish low-budget deadline case."
+}

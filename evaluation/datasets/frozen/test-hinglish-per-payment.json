@@ -1,0 +1,46 @@
+{
+  "id": "test-hinglish-per-payment",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "options_ready",
+    "hinglish",
+    "lakh",
+    "approval_explicit",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Is quarter ka ₹1.2 lakh budget aur per payment approval limit ₹1 lakh hai; dono GST ke bina hain.",
+      "timestamp": "2026-10-07T12:20:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 12000000,
+        "period": {
+          "start": "2026-10-07",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": 10000000,
+      "approvalScope": "per_payment",
+      "amountsIncludeGst": "no",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Hinglish with two amounts, explicit per-payment scope and one GST statement covering both."
+}

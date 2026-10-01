@@ -1,0 +1,47 @@
+{
+  "id": "test-october-next-budget-ambiguous",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "ambiguous",
+    "date_ambiguity",
+    "same_month",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "I have ₹20,000 including GST for this month. The new budget opens in October.",
+      "timestamp": "2026-10-10T14:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 2000000,
+        "period": {
+          "start": "2026-10-10",
+          "end": "2026-10-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "nextBudget"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "A month named during that same month has two safe readings."
+}

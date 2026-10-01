@@ -1,0 +1,38 @@
+{
+  "id": "test-q4-period-ambiguous",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "insufficient_information",
+    "quarter_label",
+    "missing_period"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Our Q4 budget is ₹60,000; I cannot confirm whether finance means calendar or financial-year Q4.",
+      "timestamp": "2026-10-11T13:00:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": null,
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "insufficient_information",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Q-labels are deliberately unsafe to normalise."
+}

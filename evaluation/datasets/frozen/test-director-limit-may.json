@@ -1,0 +1,50 @@
+{
+  "id": "test-director-limit-may",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "ambiguous",
+    "gst_ambiguity",
+    "approval_ambiguity",
+    "relative_date"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "There is 40k left this quarter. New funds arrive in May. Anything above 75k needs the director's sign-off.",
+      "timestamp": "2026-10-05T11:20:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4000000,
+        "period": {
+          "start": "2026-10-05",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-05",
+        "precision": "month"
+      },
+      "approvalLimitPaise": 7500000,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Only the GST ambiguity is expected to change the engine outcome."
+}

@@ -1,0 +1,41 @@
+{
+  "id": "test-no-budget-only-deadline",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "insufficient_information",
+    "missing_budget",
+    "deadline"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We need the work to start by December, but I do not have the approved budget figure yet.",
+      "timestamp": "2026-10-08T16:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": null,
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": {
+        "value": "2026-12",
+        "precision": "month"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "insufficient_information",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "A start deadline without any usable current budget."
+}

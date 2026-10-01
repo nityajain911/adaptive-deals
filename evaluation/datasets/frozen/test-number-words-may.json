@@ -1,0 +1,48 @@
+{
+  "id": "test-number-words-may",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "options_ready",
+    "number_words",
+    "gst_explicit",
+    "relative_date"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Fifty thousand rupees including GST remains this quarter, and our fresh allocation starts in May.",
+      "timestamp": "2026-11-12T09:05:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5000000,
+        "period": {
+          "start": "2026-11-12",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-05",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Number words and an email source."
+}

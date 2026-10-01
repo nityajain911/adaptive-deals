@@ -1,0 +1,38 @@
+{
+  "id": "test-hinglish-budget-no-period",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "insufficient_information",
+    "hinglish",
+    "missing_period"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Budget ₹40k hai, lekin kis period ke liye approved hai woh abhi clear nahi hai.",
+      "timestamp": "2026-10-09T11:10:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": null,
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "insufficient_information",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "An amount without a safely normalisable current period."
+}

@@ -1,0 +1,48 @@
+{
+  "id": "test-required-social-early-start",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "no_feasible_deal",
+    "required_packages",
+    "deadline",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We have ₹30k including GST this quarter. Search marketing and social media are both mandatory, and delivery must start by the 15th.",
+      "timestamp": "2026-10-03T11:45:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 3000000,
+        "period": {
+          "start": "2026-10-03",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": {
+        "value": "2026-10-15",
+        "precision": "day"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "no_feasible_deal",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Required scope and an early deadline eliminate phased and full-scope options."
+}

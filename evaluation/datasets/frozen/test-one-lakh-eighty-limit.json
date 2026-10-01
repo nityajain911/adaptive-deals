@@ -1,0 +1,47 @@
+{
+  "id": "test-one-lakh-eighty-limit",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "ambiguous",
+    "lakh",
+    "gst_ambiguity",
+    "approval_ambiguity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We can spend one lakh this quarter. Anything above eighty thousand needs approval.",
+      "timestamp": "2026-10-01T09:45:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 10000000,
+        "period": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": 8000000,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Number words with decision-relevant GST and non-decision-relevant scope ambiguity."
+}

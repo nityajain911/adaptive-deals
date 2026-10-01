@@ -1,0 +1,47 @@
+{
+  "id": "test-explicit-gst-april",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "options_ready",
+    "gst_explicit",
+    "relative_date"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We have ₹55,000 including GST left this quarter. The next budget opens in April.",
+      "timestamp": "2026-10-04T10:15:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5500000,
+        "period": {
+          "start": "2026-10-04",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "Straightforward explicit GST and a month-precision next budget."
+}

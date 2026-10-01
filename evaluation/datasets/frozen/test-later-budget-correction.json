@@ -1,0 +1,55 @@
+{
+  "id": "test-later-budget-correction",
+  "split": "frozen",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "options_ready",
+    "multi_message",
+    "correction",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "I think only ₹25k is left this quarter.",
+      "timestamp": "2026-10-01T10:00:00+05:30",
+      "source": "whatsapp"
+    },
+    {
+      "id": "m2",
+      "author": "buyer",
+      "text": "Correction: ₹50k including GST is left this quarter, and the next budget is in April.",
+      "timestamp": "2026-10-03T14:30:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5000000,
+        "period": {
+          "start": "2026-10-03",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "labelledAt": "2026-10-01",
+  "notes": "A later message explicitly corrects the amount and period evidence."
+}
