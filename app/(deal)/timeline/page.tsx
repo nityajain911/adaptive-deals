@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { RETRY_REMOVED_COPY } from "@/domain/amendment";
 import { shortReason } from "@/domain/copy";
-import { formatDate } from "@/domain/dates";
+import { addDays, formatDate } from "@/domain/dates";
+import { unavailableUntilPhrase } from "@/lib/service";
 import { computeLedger } from "@/domain/ledger";
 import { formatINR } from "@/domain/money";
 import { ActionButton } from "@/components/client";
@@ -34,7 +35,8 @@ export default async function TimelinePage() {
   const failed = s.attempts.some((a) => a.status === "failed");
   const replied = s.extraMessages.some((m) => m.inReplyTo);
   const draft = s.agreements.find((v) => v.status === "draft" && v.version > 1);
-  const scenario = s.scenario?.id === "scenario-no-feasible" ? s.scenario.record.engine.initial : null;
+  const reply = s.extraMessages.find((m) => amendment?.triggerRefs.includes(m.id)) ?? null;
+  const scenario = s.scenario?.record.engine.initial.state === "no_feasible_deal" ? s.scenario.record.engine.initial : null;
 
   return (
     <div className="space-y-6">
@@ -79,7 +81,7 @@ export default async function TimelinePage() {
         </section>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card aria-labelledby="delivery">
           <CardHeader id="delivery" title="Delivery schedule" meta={<Label kind="engine" />} />
           <div className="p-3">
@@ -127,10 +129,15 @@ export default async function TimelinePage() {
             title={`Revision: instalment ${amendment.change.lineId.replace("pay-", "")} from ${formatDate(amendment.change.fromDueDate)} to ${formatDate(amendment.change.toDueDate)}`}
             meta={<><Badge tone={amendment.state === "active" ? "green" : amendment.state === "rejected" ? "red" : "amber"}>{amendment.state.replace(/_/g, " ")}</Badge><Pill>v{amendment.fromVersion} → v{amendment.toVersion}</Pill></>}
           />
-          <div className="grid gap-5 p-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-3">
             <div className="text-[13px] text-ink-2">
               <div className="font-semibold text-ink">Why this date</div>
-              The buyer replied “cash tight till the 20th” to the advance notice. Code read the 20th from the reply&apos;s own timestamp ({formatDate("2026-12-20")}). “Till” includes that day, so the earliest debit is the next day. The revision passes every buyer and seller check again: {amendment.revised.verdict}.
+              {reply ? (
+                <>
+                  The buyer replied “{reply.text}” to the advance notice. Code located “{unavailableUntilPhrase(reply.text)}” and read it from the reply&apos;s own timestamp ({fmtTime(reply.timestamp)}) as {formatDate(addDays(amendment.change.toDueDate, -1))}. “Till” includes that day, so the earliest debit is the next day.{" "}
+                </>
+              ) : null}
+              The revision is re-checked against every buyer and seller check: {amendment.revised.verdict}.
             </div>
             <div className="text-[13px]" data-testid="mandate-fit">
               <div className="flex items-center gap-2 font-semibold text-ink">
@@ -167,7 +174,7 @@ export default async function TimelinePage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card aria-labelledby="versions" data-testid="version-history">
           <CardHeader id="versions" title="Version history" />
           <div className="p-3">
@@ -205,7 +212,7 @@ export default async function TimelinePage() {
 
       <Card aria-labelledby="close" data-testid="close">
         <CardHeader id="close" title="Close" meta={<span>What we would measure, and where the product stops</span>} />
-        <div className="grid gap-5 p-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-3">
           <div className="text-[13px] text-ink-2">
             <div className="font-semibold text-ink">Primary metric (definition only, no results)</div>
             Realised contribution within 90 days per eligible stalled deal = (cash received within 90 days excl. GST − refunds − payment fees − direct delivery costs incurred or committed because of the deal) ÷ all eligible stalled deals, including those that never sign.
@@ -218,7 +225,7 @@ export default async function TimelinePage() {
             <div className="font-semibold text-ink">No feasible deal</div>
             {scenario ? (
               <span data-testid="no-feasible-example">
-                “Only ₹5K left this quarter…”: all {scenario.structures.length} structures across {scenario.templatesEvaluated.length} templates evaluated; none passes ({[...new Set(scenario.structures.flatMap((x) => x.failingCodes))].map(shortReason).join("; ")}).
+                “{s.scenario!.record.inputs.messages[0].text}” All {scenario.structures.length} structures across {scenario.templatesEvaluated.length} templates evaluated; none passes ({[...new Set(scenario.structures.flatMap((x) => x.failingCodes))].map(shortReason).join("; ")}).
               </span>
             ) : (
               <ActionButton body={{ action: "run_scenario", scenarioId: "scenario-no-feasible" }} variant="secondary">

@@ -143,3 +143,56 @@ Each item names where it is implemented. The Playwright smoke test (`e2e/journey
 - [x] Internal retry removal: "Adaptive Deals retry removed; revised payment scheduled."
 - [x] Version history with hash checks (`version-history`)
 - [x] Close: metric definition, approval boundary, and the no-feasible example (`close`, `no-feasible-example`)
+
+## Trust controls
+
+| Risk | Control |
+| --- | --- |
+| Buyer text tries to instruct the AI | Messages are delimited as untrusted data, and delimiter-like text is neutralised. The system prompt never contains buyer text. Suspected instructions are recorded and displayed but have no effect. Policy comes only from merchant configuration (`tests/ai/injection.test.ts`). |
+| AI invents or paraphrases evidence | Every field needs a verbatim quote at verified character offsets in the cited message; otherwise the field is rejected and the rejection is shown. |
+| AI supplies numbers | The schemas have no numeric fields. Explanations may use placeholders only; any literal figure, date or percentage rejects the text. |
+| AI hides or forces options | Code enumerates every template before checks. The AI ranks aliases of engine-feasible structures only; unknown aliases are ignored, omitted options are appended, and the approval ordering is enforced. |
+| Approval limit used as a loophole | A limit is an approval requirement, not a prohibition. A Phase 1 must have independent value, requires the buyer's authority confirmation at acceptance, and is never described as a way around approval; bypass wording is rejected. |
+| Unsafe deal disguised as an option | Anything failing a check is shown only in the Rejected or Needs information sections, is never approvable, and an agreement cannot be created from it. |
+| Terms change after approval | A canonical SHA-256 terms hash is used. Activation requires the merchant-approval hash and the buyer-acceptance hash to equal the recomputed hash, and any contractual change creates a new version. |
+| AI or UI triggers a payment | The model has no tools. The AI layer imports no payment code. Payment adapters are reachable only through the service after `assertPaymentsUnlocked`. |
+| Duplicate or overlapping collection | Idempotency keys are unique per attempt. A submitted attempt blocks others; a paid line or a fully paid agreement cannot be charged; internal retries are removed only after an accepted revision. |
+| Live credentials | Only `rzp_test_` keys are accepted; live and unrecognised keys are refused before a client can exist. The model key is never logged or returned. |
+| Misleading provenance | Synthetic, simulated, replayed and test-mode elements are labelled. "Replay of an actual run" appears only for a stored `live` run; replays must reproduce the stored run exactly. |
+| Clock manipulation | Domain code never reads the system clock (enforced by a test). Demo time moves only forwards, through explicit, recorded and labelled advances. |
+
+## Metric definitions
+
+**Primary: realised contribution within 90 days per eligible stalled deal**
+
+`(cash received within 90 days excl. GST − refunds − payment fees − direct delivery costs incurred or irrevocably committed because of the deal) ÷ all eligible stalled deals in the group`
+
+The denominator includes deals that never sign. No results are claimed. The prototype has no real deals.
+
+**Guardrails**
+- Amount still owed after day 90.
+- Remaining delivery obligations.
+- Contribution-floor breaches (target zero).
+
+**Supporting**
+- Accepted agreements per eligible stalled deal.
+- Cash collected excl. GST as a share of the amount scheduled excl. GST within 90 days.
+- Buyer rejection and cancellation.
+- Median time from stalled to accepted.
+- Amended deals completing on the revised schedule above the contribution floor.
+
+Discount from list price and written-off contractual amounts are tracked separately and never subtracted twice.
+
+**Evaluation counts (FP §16):** reported as "X of Y" by `npm run eval`. Development results guide prompt changes only. Frozen results require 15–20 unseen cases labelled by another person, a recorded prompt freeze, and a live model.
+
+## Scope exclusions
+
+These are not built and do not appear as navigation:
+- scope-change pricing;
+- Smart Collect;
+- lending, underwriting or buyer credit scoring;
+- goods sellers;
+- autonomous AI negotiation with the buyer;
+- AI-triggered payments;
+- claims that a mandate guarantees payment;
+- claims of proven demand or collection uplift.

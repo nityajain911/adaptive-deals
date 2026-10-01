@@ -171,6 +171,28 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 
 **Verification:** `npm test` 226/226 · typecheck clean · lint clean.
 
+### 2026-10-01 · Phase 5 — evaluation, documentation and UI review [Claude Code]
+
+**Evaluation**
+- `evaluation/metrics.ts` produces count-only metrics in freeze-pack wording.
+- `evaluation/runner.ts` runs cases in two modes. "Live model" mode is the only one that measures the model. "Reference extraction" mode is labelled as checking labels and code only.
+- Frozen-set controls: an importer, validation, a prompt freeze (prompt hashes plus a case hash), and blockers. The frozen runner refuses to run without 15–20 cases supplied by another person, a freeze, and a live model.
+- `npm run eval` currently runs the reference-extraction check, because no key is present. **No frozen evaluation was run, and no frozen cases were authored.**
+
+**UI review:** Playwright captured all five views at 1440×900 and 390×844 into `artifacts/ui-review/`, and I inspected the screenshots. I found and fixed:
+- **Horizontal overflow at 390px** (up to 114px) on four views. Below the breakpoint the grids had implicit auto columns, so wide tables stretched them. Added `grid-cols-1` as the base.
+- **Clipped mandate values on mobile:** a two-column table forced to a 420px minimum. It is now a definition list, and tables with three or fewer columns have no minimum width.
+- **Mobile payment tables** cut the GST column. The Method column now hides on small screens, with tighter padding.
+- **Cash-at-risk chart** was letterboxed small. It now scales to the card, and a zero-risk series says so.
+- **Conversation card** stretched to the column height. It now aligns to its content.
+- **Hardcoded display text**, which breaks the no-UI-constants rule:
+  - the reply phrase and "20 Dec 2026" in the amendment explanation, a default answer text, and the no-feasible quote, all now derived from data;
+  - "2027-01" in the buyer view, now formatted as a month.
+
+**Docs:** README, a draft `DEMO_SCRIPT.md`, `ONE_PAGE_PRODUCT_NOTE.md` (structure only; [APPLICANT] sections are left for the applicant), and `PRODUCT_DECISIONS.md` completed with trust controls, metrics and scope exclusions.
+
+**Verification:** `npm test` 232/232 · typecheck clean · lint clean · `next build` clean · Playwright 4/4 (five-view journey, four failure states, guided demo, mobile layout without horizontal scroll).
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

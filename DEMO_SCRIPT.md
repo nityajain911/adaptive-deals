@@ -1,0 +1,14 @@
+# 90-second demo script
+
+Start from a clean state: `npm run reset:seed`, then open `/workspace`. Click **Do this step** on the Guided demo bar to advance; it navigates to the right view each time. All data is synthetic, and simulated events are labelled on screen.
+
+| Time | View | Show | Say (draft — rewrite in your own voice) |
+| --- | --- | --- | --- |
+| 0–15 s | Deal workspace | Buyer message with highlighted evidence; cards for "₹50,000 available 1 Oct–31 Dec 2026", "Available from Apr 2027 (month precision)" and "Above ₹60,000 needs MD approval"; the **Derived budget gap** card; amber **Ambiguous** badges | "A stalled deal. The AI cites exact words; code normalises every value and derives that nothing is available from January to April." |
+| 15–25 s | Clarification | Two questions, each with the engine's "why it matters"; click **Do this step** to record "Yes, both amounts include GST" and "₹60,000 is per contract", both confirmed via WhatsApp | "We ask only what changes the decision. Both answers came from the buyer." |
+| 25–50 s | Decision | Featured rejection: "Payments due 1 Jan 2027, 1 Feb 2027, 1 Mar 2027 fall before the buyer's next budget". Seller-side rejection: the 20/80 split's ₹10,500 peak is above the ₹10,000 limit. Phase 1 (₹46,020) is **Within buyer's approval limit**; the full annual options (₹1,41,600) are labelled **Needs buyer's MD approval** and ranked lower. Show the AI comparison, then **Approve and send** with the exact terms hash | "Fifteen structures across four templates, all evaluated. Some fail the buyer, one fails the seller. The AI only ranks what passed, and code fills every figure." |
+| 50–62 s | Agreement → Demo buyer view | GST-inclusive dates, "No additional financing charge added by the seller.", the authority confirmation for Phase 1, the same hash; accept. The merchant view then shows the hashes match, a simulated payment link, and the mandate (₹23,010 limit, ends 31 Jan 2027, pending) | "The buyer accepts the exact version the merchant approved. Only then can payment be set up." |
+| 62–80 s | Deal timeline | Simulated events: link paid → mandate confirmed → advance notice (28 Nov) → **Simulate failed debit** (1 Dec) → reply "cash tight till the 20th" → revision to 21 Dec → mandate fit ✓ → merchant approves v2 → buyer accepts v2. The notice reads **Adaptive Deals retry removed; revised payment scheduled.** Show the ledger tiles and version history | "Read from the reply's own timestamp, 'till the 20th' gives the 21st. The revision fits the mandate and needs both approvals again." |
+| 80–90 s | Deal timeline → Close | Primary metric definition (no results); the merchant approval boundary; the **No feasible deal** example (all 15 structures evaluated, none passes) | "We will measure realised contribution per stalled deal. When nothing works, we say so." |
+
+Fallbacks: if a step errors, **Reset demo** and use **Do this step** again. Every state transition is deterministic.

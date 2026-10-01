@@ -92,15 +92,16 @@ export function SectionTitle({ children, meta, id }: { children: ReactNode; meta
   );
 }
 
-export function Table({ head, rows, caption, className }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string; className?: string }) {
+export function Table({ head, rows, caption, className, hideOnMobile = [] }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string; className?: string; hideOnMobile?: number[] }) {
+  const hide = (i: number) => (hideOnMobile.includes(i) ? "hidden sm:table-cell" : "");
   return (
     <div className={cx("overflow-x-auto", className)}>
-      <table className="tabular w-full min-w-[420px] border-collapse text-[13px]">
+      <table className={cx("tabular w-full border-collapse text-[13px]", head.length - hideOnMobile.length > 4 ? "min-w-[420px]" : head.length > 3 && "sm:min-w-[420px]")}>
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead>
           <tr className="border-b border-line text-left text-[11px] uppercase tracking-wide text-muted">
             {head.map((h, i) => (
-              <th key={i} scope="col" className={cx("px-3 py-2 font-semibold", i > 0 && "text-right")}>
+              <th key={i} scope="col" className={cx("px-2 py-2 font-semibold sm:px-3", i > 0 && "text-right", hide(i))}>
                 {h}
               </th>
             ))}
@@ -110,7 +111,7 @@ export function Table({ head, rows, caption, className }: { head: ReactNode[]; r
           {rows.map((r, i) => (
             <tr key={i} className="border-b border-line last:border-0">
               {r.map((c, j) => (
-                <td key={j} className={cx("px-3 py-2 align-top", j > 0 && "text-right")}>
+                <td key={j} className={cx("px-2 py-2 align-top sm:px-3", j > 0 && "text-right", hide(j))}>
                   {c}
                 </td>
               ))}

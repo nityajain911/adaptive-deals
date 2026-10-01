@@ -21,7 +21,7 @@ export function FundingChart({ series, limitPaise, id }: { series: EconomicsPoin
       <figcaption id={`${id}-cap`} className="text-[12px] font-semibold text-ink-2">
         Cash at risk over time <span className="font-normal text-muted">(funding requirement, excl. GST)</span>
       </figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 h-24 w-full" role="img" aria-label={`Funding requirement peaks at ${formatINR(peak)} against a ${formatINR(limitPaise)} limit`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 h-auto w-full" role="img" aria-label={`Funding requirement peaks at ${formatINR(peak)} against a ${formatINR(limitPaise)} limit`}>
         <line x1="0" x2={W} y1={H - 14} y2={H - 14} stroke="var(--border-strong)" strokeWidth="1" />
         <line x1="0" x2={W} y1={y(limitPaise)} y2={y(limitPaise)} stroke="var(--muted)" strokeWidth="1" strokeDasharray="4 3" />
         <text x={W - 2} y={y(limitPaise) - 3} textAnchor="end" fontSize="9" fill="var(--muted)">
@@ -46,6 +46,7 @@ export function FundingChart({ series, limitPaise, id }: { series: EconomicsPoin
           {formatDate(pts.at(-1)!.date)}
         </text>
       </svg>
+      {peak === 0 ? <p className="mt-1 text-[12px] text-green">No cash at risk: payments arrive before the costs they cover.</p> : null}
       <details className="mt-1 text-[12px] text-muted">
         <summary className="cursor-pointer">Table view</summary>
         <table className="tabular mt-1 w-full text-left">

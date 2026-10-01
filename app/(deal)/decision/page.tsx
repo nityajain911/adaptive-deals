@@ -57,7 +57,7 @@ export default async function DecisionPage() {
         <SectionTitle id="rejected" meta={<Badge tone="red">Not approvable</Badge>}>
           Rejected structures
         </SectionTitle>
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {[featured.buyer, featured.seller].filter((x): x is NonNullable<typeof x> => !!x).map((x) => (
             <Card as="article" key={x.structure.id} className="border-[#f6cfc9]" data-testid={x === featured.buyer ? "featured-buyer-rejection" : "featured-seller-rejection"}>
               <div className="border-b border-line px-5 py-4">

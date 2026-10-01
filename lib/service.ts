@@ -404,6 +404,9 @@ export async function checkPaymentLinkStatus(): Promise<DemoState> {
 
 const UNAVAILABLE_UNTIL = /\b(?:till|until|upto|up to)\s+(?:the\s+)?\d{1,2}(?:st|nd|rd|th)\b/i;
 
+/** The "cash unavailable until" phrase in a buyer reply, located by code. */
+export const unavailableUntilPhrase = (text: string) => UNAVAILABLE_UNTIL.exec(text)?.[0] ?? null;
+
 export async function proposeAmendment(): Promise<DemoState> {
   return mutate(async (s) => {
     if (s.status !== "active") throw new ActionError(`Amendments start from an active agreement (deal is ${s.status})`);
@@ -412,7 +415,7 @@ export async function proposeAmendment(): Promise<DemoState> {
     if (!failed) throw new ActionError("No failed debit to amend");
     const reply = [...s.extraMessages].reverse().find((m) => m.inReplyTo);
     if (!reply) throw new ActionError("Waiting for the buyer's reply");
-    const phrase = UNAVAILABLE_UNTIL.exec(reply.text)?.[0];
+    const phrase = unavailableUntilPhrase(reply.text);
     if (!phrase) throw new ActionError("The reply does not state when cash is available; ask the buyer");
     const parsed = normaliseRelativeDate(phrase, reply.timestamp, heroMerchant.timeZone);
     if (!parsed.ok) throw new ActionError(`Cannot normalise “${phrase}”: ${parsed.reason}`);

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { formatDate } from "@/domain/dates";
+import { formatDate, formatDateValue } from "@/domain/dates";
 import { formatINR, sum } from "@/domain/money";
 import type { AgreementVersion } from "@/domain/agreement";
 import { AcceptForm, ActionButton } from "@/components/client";
 import { fmtTime } from "@/components/evidence";
 import { PaymentTable } from "@/components/structure-card";
-import { Badge, Card, CardHeader, Empty, Label, Notice, Pill, Table } from "@/components/ui";
+import { Badge, Card, CardHeader, Empty, Label, Notice, Pill } from "@/components/ui";
 import { heroPackages } from "@/data/synthetic/hero";
 import { loadPage, structureFor } from "@/lib/page-data";
 
@@ -72,7 +72,7 @@ function MerchantView({ page, versions }: { page: Awaited<ReturnType<typeof load
   const linkAttempt = s.attempts.find((a) => a.razorpayId === link?.id);
   const m = s.mandate;
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       <div className="space-y-4">
         {versions.map((v) => (
           <VersionCard key={v.version} v={v} />
@@ -116,17 +116,20 @@ function MerchantView({ page, versions }: { page: Awaited<ReturnType<typeof load
           <div className="space-y-2 p-5 text-[13px]">
             {m ? (
               <>
-                <Table
-                  caption="Mandate"
-                  head={["Field", "Value"]}
-                  rows={[
-                    ["Per-debit limit", formatINR(m.perDebitLimitPaise)],
-                    ["End date", formatDate(m.endDate)],
-                    ["Status", <Badge key="s" tone={m.status === "confirmed" ? "green" : m.status === "pending" ? "amber" : "red"}>{m.status}</Badge>],
-                    ["Method", "e-mandate"],
-                    ["Agreement version", m.agreementVersion],
-                  ]}
-                />
+                <dl className="tabular grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+                  <dt className="text-muted">Per-debit limit</dt>
+                  <dd className="font-semibold text-ink">{formatINR(m.perDebitLimitPaise)}</dd>
+                  <dt className="text-muted">End date</dt>
+                  <dd className="font-semibold text-ink">{formatDate(m.endDate)}</dd>
+                  <dt className="text-muted">Status</dt>
+                  <dd>
+                    <Badge tone={m.status === "confirmed" ? "green" : m.status === "pending" ? "amber" : "red"}>{m.status}</Badge>
+                  </dd>
+                  <dt className="text-muted">Method</dt>
+                  <dd className="text-ink">e-mandate</dd>
+                  <dt className="text-muted">Agreement version</dt>
+                  <dd className="text-ink">v{m.agreementVersion}</dd>
+                </dl>
                 <p className="text-[12px] text-muted">{m.note}</p>
                 <p className="text-[12px] text-muted">A mandate does not guarantee payment. Adaptive Deals tracks the agreement balance itself.</p>
                 {m.status === "pending" ? (
@@ -196,7 +199,7 @@ function BuyerView({ page }: { page: Awaited<ReturnType<typeof loadPage>> }) {
           <section>
             <h3 className="text-[13px] font-semibold text-ink">Delivery</h3>
             <p className="text-[13px] text-ink-2">
-              {t.deliverySchedule.length} monthly delivery lines from {formatDate(`${t.deliverySchedule[0].month.value}-01`)} to the end of {t.deliverySchedule.at(-1)!.month.value}. Total {formatINR(t.pricing.prePaise)} excl. GST · {formatINR(t.pricing.totalPaise)} incl. GST.
+              {t.deliverySchedule.length} monthly delivery lines from {formatDate(`${t.deliverySchedule[0].month.value}-01`)} to the end of {formatDateValue(t.deliverySchedule.at(-1)!.month)}. Total {formatINR(t.pricing.prePaise)} excl. GST · {formatINR(t.pricing.totalPaise)} incl. GST.
             </p>
           </section>
           {t.mandate ? (

@@ -55,8 +55,8 @@ export default async function WorkspacePage() {
   const scenarioDef = SCENARIOS.find((x) => x.id === scenario?.id);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <Card aria-labelledby="conv">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <Card aria-labelledby="conv" className="lg:self-start">
         <CardHeader id="conv" title="Buyer conversation" meta={<><Label kind="synthetic" /><span>Pasted from WhatsApp; treated as untrusted data</span></>} />
         <div className="p-5">
           <Conversation messages={messages} evidence={evidence} />
@@ -84,7 +84,7 @@ export default async function WorkspacePage() {
               </>
             }
           />
-          <div className="grid gap-3 p-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
             {cards.map((f) => (
               <ConstraintCard key={f.key} f={f} messages={messages} />
             ))}

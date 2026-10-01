@@ -49,3 +49,6 @@ next-env.d.ts
 
 # allow committed env template
 !.env.example
+
+# e2e data store
+/.data-e2e/

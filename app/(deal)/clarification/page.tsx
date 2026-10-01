@@ -6,16 +6,25 @@ import { fmtTime } from "@/components/evidence";
 import { Badge, Card, CardHeader, Empty, Label, Notice, Table } from "@/components/ui";
 import { loadPage } from "@/lib/page-data";
 
-const OPTIONS: Record<string, QuestionInput["options"]> = {
-  amountsIncludeGst: [
-    { value: "yes", label: "Yes, both include GST", answerText: "Yes, both amounts include GST." },
-    { value: "no", label: "No, both exclude GST", answerText: "No, both amounts exclude GST." },
-  ],
-  approvalScope: [
-    { value: "per_contract", label: "Per contract", answerText: "₹60,000 is per contract." },
-    { value: "per_payment", label: "Per payment", answerText: "₹60,000 is per payment." },
-  ],
-};
+/** Answer choices; default answer text names the stated amounts (formatted by code). */
+function optionsFor(field: string, limit: string | null, several: boolean): QuestionInput["options"] {
+  if (field === "amountsIncludeGst")
+    return several
+      ? [
+          { value: "yes", label: "Yes, both include GST", answerText: "Yes, both amounts include GST." },
+          { value: "no", label: "No, both exclude GST", answerText: "No, both amounts exclude GST." },
+        ]
+      : [
+          { value: "yes", label: "Includes GST", answerText: "Yes, the amount includes GST." },
+          { value: "no", label: "Excludes GST", answerText: "No, the amount excludes GST." },
+        ];
+  if (field === "approvalScope")
+    return [
+      { value: "per_contract", label: "Per contract", answerText: `${limit} is per contract.` },
+      { value: "per_payment", label: "Per payment", answerText: `${limit} is per payment.` },
+    ];
+  return [];
+}
 
 export default async function ClarificationPage() {
   const { s, out } = await loadPage();
@@ -27,7 +36,7 @@ export default async function ClarificationPage() {
   const amounts = [out.profile.budgetNow.value?.amountPaise, out.profile.approvalLimit.value?.amountPaise].filter((x): x is number => x != null);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       <div className="space-y-5">
         {questions.length === 0 ? <Empty>No clarification is needed for this run.</Empty> : null}
         {questions.map((q) => {
@@ -77,7 +86,7 @@ export default async function ClarificationPage() {
           <Card aria-labelledby="record">
             <CardHeader id="record" title="Record the buyer's answers" meta={<span>Ask the buyer outside the product, then record what they confirmed</span>} />
             <div className="p-5">
-              <AnswerForm questions={questions.map((q) => ({ id: q.id, question: q.question, options: OPTIONS[q.field] ?? [] }))} />
+              <AnswerForm questions={questions.map((q) => ({ id: q.id, question: q.question, options: optionsFor(q.field, out.profile.approvalLimit.value ? formatINR(out.profile.approvalLimit.value.amountPaise) : null, q.covers.length > 1) }))} />
             </div>
           </Card>
         ) : null}

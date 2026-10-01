@@ -61,6 +61,7 @@ export function PaymentTable({ x }: { x: EvaluatedStructure }) {
   return (
     <Table
       caption="Payment schedule"
+      hideOnMobile={[1]}
       head={["Due", "Method", "Excl. GST", "GST", "Total"]}
       rows={[
         ...p.map((l) => [<span key="d" className="whitespace-nowrap">{formatDate(l.dueDate)}</span>, l.method === "payment_link" ? "Payment link" : "Recurring debit", formatINR(l.prePaise), formatINR(l.gstPaise), <strong key="t">{formatINR(l.totalPaise)}</strong>]),
@@ -89,7 +90,7 @@ export function StructureCard({ x, rank, note, actionable, limitPaise, floorBps,
         </div>
         {actionable && x.approvable ? <ApproveAndSend structureId={s.id} label={s.label} /> : null}
       </div>
-      <div className="grid gap-5 p-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 p-5 xl:grid-cols-2">
         <div className="space-y-4">
           {s.requirements.includes("buyer_confirms_authority_for_phase_scope") ? (
             <p className="rounded-lg bg-surface-muted px-3 py-2 text-[12px] text-ink-2">
@@ -98,7 +99,7 @@ export function StructureCard({ x, rank, note, actionable, limitPaise, floorBps,
           ) : null}
           {note ? <p className="text-[13px] text-ink-2">AI note: {note}</p> : null}
           <PaymentTable x={x} />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Checks title="Buyer checks" checks={x.buyerChecks} />
             <Checks title="Seller checks" checks={x.sellerChecks} />
           </div>
