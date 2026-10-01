@@ -33,10 +33,32 @@ export interface ChangeRequest {
 
 export class RestructureError extends Error {}
 
+/** A qualifying reply arrived while a request for the same payment is still open. */
+export class ChangeRequestAlreadyOpenError extends RestructureError {
+  constructor(readonly open: ChangeRequest) {
+    super(
+      `Change request ${open.id} is already open for this payment (${open.scheduleLineId}, version ${open.agreementVersion}: buyer wrote “${open.phrase}”, earliest debit ${open.earliestDebit}). ` +
+        "This reply created no second request and did not replace the requested date; the merchant should read it.",
+    );
+  }
+}
+
+/** Open = not yet resolved: the request awaits a draft, or its draft awaits approvals. */
+export const isOpenChangeRequest = (c: ChangeRequest) => c.state === "change_requested" || c.state === "draft_amendment";
+
+/** The open change request under a given agreement version (earlier-version requests are stale). */
+export function openChangeRequestFor(requests: ChangeRequest[], agreementVersion: number): ChangeRequest | null {
+  return requests.find((c) => isOpenChangeRequest(c) && c.agreementVersion === agreementVersion) ?? null;
+}
+
 /**
  * Turn a classified buyer reply into a change request. The collection line is selected through
  * the reply's own reference: reply → advance notice → notice.attemptId → attempt.scheduleLineId.
  * A reply that answers anything other than a sent notice selects no line.
+ *
+ * At most one open request may exist for the same notice, attempt or schedule line under an
+ * agreement version. A further qualifying reply is refused (merchant attention); it never replaces
+ * the first requested date. Requests from earlier versions are stale and never block.
  */
 export function createChangeRequest(args: {
   id: string;
@@ -45,6 +67,7 @@ export function createChangeRequest(args: {
   notices: AdvanceNotice[];
   attempts: CollectionAttempt[];
   activeVersion: number;
+  existing: ChangeRequest[];
 }): ChangeRequest {
   const { reply } = args;
   if (reply.direction !== "inbound" || reply.classification?.kind !== "change_requested") throw new RestructureError("Only a reply classified as a change request can start restructuring");
@@ -55,6 +78,10 @@ export function createChangeRequest(args: {
   if (Date.parse(reply.createdAt) < Date.parse(notice.sentAt)) throw new RestructureError("A reply cannot predate the notice it answers");
   const attempt = args.attempts.find((a) => a.id === notice.attemptId);
   if (!attempt) throw new RestructureError("The notice's collection attempt no longer exists");
+  const open = args.existing.find(
+    (c) => isOpenChangeRequest(c) && c.agreementVersion === args.activeVersion && (c.noticeId === notice.id || c.attemptId === attempt.id || c.scheduleLineId === attempt.scheduleLineId),
+  );
+  if (open) throw new ChangeRequestAlreadyOpenError(open);
   if (args.attempts.some((a) => a.scheduleLineId === attempt.scheduleLineId && a.status === "succeeded")) throw new RestructureError("This payment has already succeeded; it cannot be rescheduled");
   if (args.attempts.some((a) => a.status === "submitted")) throw new RestructureError("Awaiting payment outcome; rescheduling is blocked until it is known");
   if (attempt.status !== "scheduled" && attempt.status !== "failed") throw new RestructureError(`The attempt is ${attempt.status}; nothing to reschedule`);

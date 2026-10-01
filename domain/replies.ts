@@ -8,7 +8,8 @@ import { earliestDebitAfterUnavailableUntil } from "./amendment";
  *
  * Supported change phrase: "till | until | up to | upto" + an ordinal day of month
  * ("the 20th", "20th"), with no month named. The day resolves to its next occurrence strictly
- * after the reply's own date in the merchant timezone. A reply sent on that day is ambiguous.
+ * after the reply's own date in the merchant timezone: this month, else the immediately following
+ * month, else merchant attention. A reply sent on that day is ambiguous.
  */
 export const REPLY_RULES_VERSION = "reply-rules.v1";
 
@@ -60,14 +61,17 @@ const PAYMENT_CLAIM = /\b(i(?:'ve| have)?\s+(?:already\s+)?paid|(?:have|has)\s+(
 const ACKNOWLEDGEMENT = /^(?:ok(?:ay)?|okk+|k|noted|sure|fine|got it|thanks?|thank you|ok,? thanks?|okay,? thanks?|👍)[.!\s]*$/i;
 
 /**
- * Next occurrence of `day` strictly after `date`: later this month, else next month. Returns null
- * when neither month has that day (e.g. "the 30th" sent on 31 January) — code never skips a month.
+ * Next occurrence of `day` strictly after `date`, bounded to two months:
+ *   1. later this month, if this month has that day;
+ *   2. otherwise the immediately following calendar month, if it has that day;
+ *   3. otherwise null (merchant attention) — code never skips another month.
+ * e.g. 10 Feb + 30th → 30 Mar; 29 Apr + 31st → 31 May; 31 Jan + 30th → null (no 30 Feb).
+ * The same-day case is handled by the classifier before this is called.
  */
 export function nextDayOfMonthAfter(date: CalendarDate, day: number): CalendarDate | null {
   if (day < 1 || day > 31) return null;
   const { y, m, d } = parseDate(date);
   if (day > d && day <= daysInMonth(y, m)) return makeDate(y, m, day);
-  if (day > d) return null; // later this month, but this month is too short
   const next = parseDate(addMonths(makeDate(y, m, 1), 1));
   return day <= daysInMonth(next.y, next.m) ? makeDate(next.y, next.m, day) : null;
 }
@@ -101,7 +105,7 @@ export function classifyBuyerReply(rawText: string, replyTimestamp: string, time
       return { kind: "needs_attention", reason: "same_day_ambiguous", phrase, detail: `“${phrase}” was sent on the ${day}${m[3]} itself; it could mean today or next month. Ask the buyer for the date.` };
     }
     const until = nextDayOfMonthAfter(replyDate, day);
-    if (!until) return { kind: "needs_attention", reason: "unsupported_date_expression", phrase, detail: `No valid day ${day} could be resolved; ask the buyer for the date.` };
+    if (!until) return { kind: "needs_attention", reason: "unsupported_date_expression", phrase, detail: `Day ${day} does not exist later this month or in the following month; ask the buyer for the date.` };
     return {
       kind: "change_requested",
       phrase,

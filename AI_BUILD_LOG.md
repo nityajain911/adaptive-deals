@@ -444,8 +444,8 @@ Four of the six cases with misses are Hinglish; two are English. Both missed cla
 **Built (no UI yet)**
 - `domain/replies.ts` (`reply-rules.v1`): code-owned, deterministic classification of buyer replies into change requested / payment claimed / acknowledgement / merchant attention.
   - **Supported:** `till | until | up to | upto` + an ordinal day of month (no month named).
-  - **Resolution:** the next occurrence strictly after the reply's own date in Asia/Kolkata.
-  - **Same-day reply:** ambiguous. **A day missing from both this and next month:** attention; code never skips a month.
+  - **Resolution:** the next occurrence strictly after the reply's own date in Asia/Kolkata: later this month if that day exists, otherwise the immediately following month if it exists there, otherwise merchant attention. Code never skips another month.
+  - **Same-day reply:** ambiguous.
   - Amounts, Hinglish ("20 tak") and relative phrases ("next week", "salary") go to the merchant.
   - No AI is used.
 - `domain/conversation.ts`: simulated WhatsApp items with state, author, source, timestamp, `inReplyTo`, provenance and code classification.
@@ -481,6 +481,29 @@ Four of the six cases with misses are Hinglish; two are English. Both missed cla
 - No Groq call. No frozen evaluation rerun.
 
 **Stopped at the Phase Gate** for applicant review before the UI phase.
+
+### 2026-10-02 · Phase Gate corrections: month rollover and open change requests [Claude Code]
+
+**Prompt (applicant):** the Phase Gate review found two state defects. Fix only these before the UI phase.
+
+1. **Month rollover.** `nextDayOfMonthAfter()` returned `null` when the named day was later than the reply day but missing from the current month (10 Feb + "till the 30th"). That contradicted the "next occurrence" rule. The bounded rule is now:
+   - use the named day later this month if it exists;
+   - otherwise use the immediately following month if it has that day;
+   - otherwise route to merchant attention; code never skips another month.
+   - Same-day replies are still ambiguous.
+   - Results: 10 Feb 2027 + 30th → 30 Mar (earliest debit 31 Mar); 29 Apr 2027 + 31st → 31 May (earliest debit 1 Jun); 31 Jan 2027 + 30th → attention; 28 Nov + 20th → 20 Dec (earliest debit 21 Dec).
+   - The earlier test that asserted `null` for 10 Feb, and the log wording "a day missing from both this and next month", are corrected.
+2. **Duplicate and stale change requests.** Two qualifying replies to one notice created two open requests. After the first amendment activated version 2, `proposeAmendment()` took the first open request regardless of version, and the stale version-1 request blocked restructuring. Now:
+   - `createChangeRequest` refuses a second open request (`change_requested` or `draft_amendment`) for the same notice, attempt or schedule line under the same agreement version. It raises `ChangeRequestAlreadyOpenError`.
+   - The service records "Merchant attention needed: a change request is already open". The reply stays in the conversation, and the first requested date is not replaced.
+   - `proposeAmendment()` and the guided step act only on a request under the active agreement version. Stale earlier-version requests are left as they are and never block.
+
+**Tests added:** rollover and same-day cases (`replies.test.ts`); the open-request guard in the domain (`conversation.test.ts`); and three service integration tests (`connected-journey.test.ts`):
+- two replies give two messages, one request, and no change to terms, attempts, links, mandate, amendments, notices or status;
+- a reply during the draft is refused, and the hero flow then completes unchanged;
+- a stale version-1 request does not block a version-2 request. With the old selection restored, this test fails.
+
+No change to prompts, schemas, validators, frozen cases or results, live runs or prompt hashes. No Groq call.
 
 ### [APPLICANT] Decisions on AI suggestions
 

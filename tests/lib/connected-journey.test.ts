@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { assertBuyerSafe } from "@/domain/conversation";
 import { formatINR } from "@/domain/money";
+import { localDateOf } from "@/domain/dates";
+import { readJson, writeJsonAtomic } from "@/lib/store";
 
 /**
  * Connected buyer journey through the service and real store. Uses the default displayed demo
@@ -206,6 +208,81 @@ describe("typed replies use the same bounded path in replay and live-run states"
     expect(live.out).toEqual(["false:change_requested", "false:payment_claimed", "false:acknowledgement", "false:needs_attention"]);
     expect(fetchSpy).not.toHaveBeenCalled();
     delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+  });
+});
+
+describe("one open change request per payment under an agreement version", () => {
+  const toNotice = async () => {
+    await svc.resetToSeed();
+    for (let i = 0; i < 12 && !(await S()).conversation.some((x) => x.kind === "notice"); i++) await svc.demoNext();
+    return (await S()).conversation.find((x) => x.kind === "notice")!;
+  };
+  /** Terms, attempts (the collection ledger), links, mandate, amendments, notices, status and change requests. */
+  const material = async () => {
+    const s = await S();
+    return JSON.stringify({ attempts: s.attempts, paymentLinks: s.paymentLinks, agreements: s.agreements, mandate: s.mandate, amendments: s.amendments, notices: s.notices, status: s.status, changeRequests: s.changeRequests });
+  };
+
+  it("two qualifying replies to one notice: two messages, one change request, merchant attention, nothing else changes", async () => {
+    const notice = await toNotice();
+    await svc.buyerReply({ inReplyTo: notice.id, scriptId: "notice-cash-tight" });
+    const before = await material();
+    const s = await svc.buyerReply({ inReplyTo: notice.id, text: "Sorry, cash is tight till the 25th." });
+    const replies = s.conversation.filter((i) => i.inReplyTo === notice.id);
+    expect(replies.map((r) => [r.text, r.classification!.kind])).toEqual([
+      ["Cash is tight till the 20th.", "change_requested"],
+      ["Sorry, cash is tight till the 25th.", "change_requested"],
+    ]);
+    expect(s.changeRequests).toHaveLength(1);
+    expect(s.changeRequests[0]).toMatchObject({ replyId: replies[0].id, unavailableUntil: "2026-12-20", earliestDebit: "2026-12-21", state: "change_requested" }); // first date kept
+    expect(await material()).toBe(before);
+    expect(s.events.at(-1)).toMatchObject({ kind: "merchant_attention", title: "Merchant attention needed: a change request is already open" });
+    expect(s.events.at(-1)!.detail).toMatch(/chg-1 is already open.*did not replace the requested date/);
+  });
+
+  it("a further reply while the draft awaits approvals is also refused; the hero flow then completes unchanged", async () => {
+    const notice = (await S()).conversation.find((x) => x.kind === "notice")!;
+    let s = await svc.proposeAmendment();
+    expect(s.changeRequests[0].state).toBe("draft_amendment");
+    const before = await material();
+    s = await svc.buyerReply({ inReplyTo: notice.id, text: "Make it till the 22nd" });
+    expect(s.conversation.filter((i) => i.inReplyTo === notice.id)).toHaveLength(3);
+    expect(await material()).toBe(before);
+    expect(s.events.at(-1)!.title).toBe("Merchant attention needed: a change request is already open");
+
+    for (let i = 0; i < 4 && (await S()).amendments[0].state !== "active"; i++) await svc.demoNext();
+    s = await S();
+    expect(s.changeRequests).toHaveLength(1);
+    expect(s.changeRequests[0].history.map((h) => h.state)).toEqual(["change_requested", "draft_amendment", "payment_rescheduled"]);
+    expect(s.amendments).toHaveLength(1);
+    expect(s.amendments[0]).toMatchObject({ trigger: "buyer_message", state: "active", change: { lineId: "pay-2", fromDueDate: "2026-12-01", toDueDate: "2026-12-21" } });
+    expect(s.attempts.filter((a) => a.scheduleLineId === "pay-2" && a.status === "scheduled").map((a) => [a.dueDate, a.agreementVersion])).toEqual([["2026-12-21", 2]]);
+  });
+
+  it("a stale earlier-version request never blocks a valid request for the active version", async () => {
+    // A stale version-1 request for the same line, as a store saved before this guard could hold.
+    const raw = (await readJson<Awaited<ReturnType<Svc["getState"]>>>(svc.STORE_FILE))!;
+    const done = raw.changeRequests[0];
+    raw.changeRequests.unshift({ ...done, id: "chg-stale", state: "change_requested", amendmentId: null, agreementVersion: 1, history: [done.history[0]] });
+    await writeJsonAtomic(svc.STORE_FILE, raw);
+    expect(svc.nextDemoStep(await S())?.id).not.toBe("propose"); // the stale request is not actionable
+
+    let s = await svc.simulate("advance_notice");
+    const notice = s.conversation.filter((i) => i.kind === "notice").at(-1)!;
+    expect(s.attempts.find((a) => a.id === notice.refs.attemptId)).toMatchObject({ scheduleLineId: "pay-2", agreementVersion: 2, dueDate: "2026-12-21" });
+    expect(localDateOf(notice.sentAt!, "Asia/Kolkata")).toBe("2026-12-18");
+    s = await svc.buyerReply({ inReplyTo: notice.id, text: "Cash is tight till the 24th." });
+    const fresh = s.changeRequests.find((c) => c.agreementVersion === 2)!;
+    expect(fresh).toMatchObject({ scheduleLineId: "pay-2", state: "change_requested", unavailableUntil: "2026-12-24", earliestDebit: "2026-12-25" });
+    expect(s.events.at(-1)!.title).toBe("Change requested");
+    expect(svc.nextDemoStep(s)?.id).toBe("propose");
+
+    s = await svc.proposeAmendment();
+    expect(s.amendments).toHaveLength(2);
+    expect(s.amendments[1]).toMatchObject({ fromVersion: 2, change: { lineId: "pay-2", fromDueDate: "2026-12-21", toDueDate: "2026-12-25" } });
+    expect(s.changeRequests.find((c) => c.id === fresh.id)!.state).not.toBe("change_requested"); // the active-version request was acted on
+    expect(s.changeRequests.find((c) => c.id === "chg-stale")).toMatchObject({ state: "change_requested", amendmentId: null }); // stale one untouched
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

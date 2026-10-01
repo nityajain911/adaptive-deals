@@ -41,7 +41,7 @@ import {
   type ConversationItem,
 } from "@/domain/conversation";
 import { CLASSIFICATION_LABEL } from "@/domain/replies";
-import { createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
+import { ChangeRequestAlreadyOpenError, createChangeRequest, openChangeRequestFor, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -527,12 +527,12 @@ function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; 
     try {
       const v = activeVersion(s);
       if (!v) throw new RestructureError("No active agreement");
-      const cr = createChangeRequest({ id: `chg-${s.changeRequests.length + 1}`, reply, conversation: s.conversation, notices: s.notices, attempts: s.attempts, activeVersion: v.version });
+      const cr = createChangeRequest({ id: `chg-${s.changeRequests.length + 1}`, reply, conversation: s.conversation, notices: s.notices, attempts: s.attempts, activeVersion: v.version, existing: s.changeRequests });
       s.changeRequests.push(cr);
       event(s, "change_requested", "Change requested", "engine", `Code read “${cr.phrase}” from the reply's own timestamp: unavailable through ${cr.unavailableUntil}; earliest proposed debit ${cr.earliestDebit} (${cr.scheduleLineId})`);
     } catch (e) {
       if (!(e instanceof RestructureError)) throw e;
-      event(s, "merchant_attention", "Merchant attention needed", "engine", e.message);
+      event(s, "merchant_attention", e instanceof ChangeRequestAlreadyOpenError ? "Merchant attention needed: a change request is already open" : "Merchant attention needed", "engine", e.message);
     }
   }
   return reply;
@@ -655,10 +655,10 @@ export async function proposeAmendment(): Promise<DemoState> {
   return mutate(async (s) => {
     if (s.status !== "active") throw new ActionError(`Amendments start from an active agreement (deal is ${s.status})`);
     const v = activeVersion(s)!;
-    const ci = s.changeRequests.findIndex((c) => c.state === "change_requested");
+    // Only a request under the active version; a stale earlier-version request never blocks it.
+    const ci = s.changeRequests.findIndex((c) => c.state === "change_requested" && c.agreementVersion === v.version);
     if (ci < 0) throw new ActionError("No change request to act on");
     const cr = s.changeRequests[ci];
-    if (cr.agreementVersion !== v.version) throw new ActionError("The change request refers to an earlier version");
     if (s.attempts.some((a) => a.status === "submitted")) throw new ActionError("Awaiting payment outcome; rescheduling is blocked until it is known");
 
     const out = await currentOutcome(s);
@@ -773,7 +773,8 @@ export function nextDemoStep(s: DemoState): DemoStep | null {
   const unsent = drafts.filter((i) => !i.sentAt);
   const unanswered = drafts.filter((i) => i.sentAt && !s.conversation.some((r) => r.inReplyTo === i.id));
   const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice");
-  const openChange = s.changeRequests.find((c) => c.state === "change_requested");
+  const active = activeVersion(s);
+  const openChange = active ? openChangeRequestFor(s.changeRequests, active.version)?.state === "change_requested" : false;
   if (s.status === "clarifying" && drafts.length && unsent.length) return { id: "send", window: "15–19 s", view: "workspace", title: "Merchant sends the drafted questions", role: "merchant" };
   if (s.status === "clarifying" && unanswered.length) return { id: "replies", window: "19–23 s", view: "workspace", title: "Simulated buyer replies to both questions", role: "merchant" };
   if (s.status === "clarifying") return { id: "answers", window: "23–27 s", view: "workspace", title: "Use the buyer's replies as the confirmed answers", role: "merchant" };

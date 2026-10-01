@@ -17,7 +17,7 @@ import { enumerateAndEvaluate } from "@/domain/engine";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import { planAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
-import { createChangeRequest, RestructureError } from "@/domain/restructure";
+import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest } from "@/domain/restructure";
 import { heroMerchant } from "@/data/synthetic/hero";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
@@ -75,23 +75,40 @@ describe("change requests select the collection line through the notice", () => 
   it("reply → notice → attempt → schedule line", () => {
     const { attempt, notice, item } = noticeThread();
     const r = reply([item], "Cash is tight till the 20th.");
-    const cr = createChangeRequest({ id: "chg-1", reply: r, conversation: [item, r], notices: [notice], attempts: [attempt], activeVersion: 1 });
+    const cr = createChangeRequest({ id: "chg-1", reply: r, conversation: [item, r], notices: [notice], attempts: [attempt], activeVersion: 1, existing: [] });
     expect(cr).toMatchObject({ noticeId: notice.id, attemptId: attempt.id, scheduleLineId: "pay-2", unavailableUntil: "2026-12-20", earliestDebit: "2026-12-21", timing: "preventive", state: "change_requested" });
   });
 
   it("refuses non-change replies, replies to non-notices, pending outcomes and paid lines", () => {
     const { attempt, notice, item } = noticeThread();
     const ok = reply([item], "Okay");
-    expect(() => createChangeRequest({ id: "c", reply: ok, conversation: [item, ok], notices: [notice], attempts: [attempt], activeVersion: 1 })).toThrow(RestructureError);
+    expect(() => createChangeRequest({ id: "c", reply: ok, conversation: [item, ok], notices: [notice], attempts: [attempt], activeVersion: 1, existing: [] })).toThrow(RestructureError);
 
     const proposal = codeMessage({ ...base, id: "p1", kind: "proposal", text: "Proposal", at: T0 });
     const toProposal = reply([proposal], "Cash is tight till the 20th.", "2026-11-28T12:30:00+05:30", "p1");
-    expect(() => createChangeRequest({ id: "c", reply: toProposal, conversation: [proposal, toProposal], notices: [notice], attempts: [attempt], activeVersion: 1 })).toThrow(/does not answer an advance notice/);
+    expect(() => createChangeRequest({ id: "c", reply: toProposal, conversation: [proposal, toProposal], notices: [notice], attempts: [attempt], activeVersion: 1, existing: [] })).toThrow(/does not answer an advance notice/);
 
     const r = reply([item], "Cash is tight till the 20th.");
     const submitted: CollectionAttempt = transitionAttempt(attempt, "submitted", T0, "");
-    expect(() => createChangeRequest({ id: "c", reply: r, conversation: [item, r], notices: [notice], attempts: [submitted], activeVersion: 1 })).toThrow(/Awaiting payment outcome/);
+    expect(() => createChangeRequest({ id: "c", reply: r, conversation: [item, r], notices: [notice], attempts: [submitted], activeVersion: 1, existing: [] })).toThrow(/Awaiting payment outcome/);
     const paid = transitionAttempt(submitted, "succeeded", T0, "");
-    expect(() => createChangeRequest({ id: "c", reply: r, conversation: [item, r], notices: [notice], attempts: [paid], activeVersion: 1 })).toThrow(/already succeeded/);
+    expect(() => createChangeRequest({ id: "c", reply: r, conversation: [item, r], notices: [notice], attempts: [paid], activeVersion: 1, existing: [] })).toThrow(/already succeeded/);
+  });
+
+  it("at most one open request per payment under a version; stale and resolved requests never block", () => {
+    const { attempt, notice, item } = noticeThread();
+    const r1 = reply([item], "Cash is tight till the 20th.");
+    const first = createChangeRequest({ id: "chg-1", reply: r1, conversation: [item, r1], notices: [notice], attempts: [attempt], activeVersion: 1, existing: [] });
+    const r2 = { ...reply([item, r1], "Actually till the 25th."), id: "r2" };
+    const conv = [item, r1, r2];
+    const second = () => createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 1, existing: [first] });
+    expect(second).toThrow(ChangeRequestAlreadyOpenError);
+    expect(second).toThrow(/already open.*did not replace the requested date/);
+    const drafted = transitionChangeRequest(first, "draft_amendment", T0, "");
+    expect(() => createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 1, existing: [drafted] })).toThrow(ChangeRequestAlreadyOpenError);
+    // An earlier-version request is stale; a resolved one is closed. Neither blocks.
+    expect(createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 2, existing: [first] })).toMatchObject({ agreementVersion: 2, unavailableUntil: "2026-12-25" });
+    const closed = transitionChangeRequest(first, "not_restructured", T0, "");
+    expect(createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 1, existing: [closed] }).state).toBe("change_requested");
   });
 });

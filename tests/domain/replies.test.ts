@@ -22,11 +22,25 @@ describe("supported change phrase, normalised from the reply's own timestamp", (
   it("month rollover across a year end", () => {
     expect(c("Cash is tight until the 5th", at("2026-12-28"))).toMatchObject({ unavailableUntil: "2027-01-05", earliestDebit: "2027-01-06" });
   });
-  it("never skips a month: a day missing from both this and next month needs attention", () => {
+  it("10 Feb 2027 ‘till the 30th’ → February has no 30th, so 30 Mar; earliest debit 31 Mar", () => {
+    expect(nextDayOfMonthAfter("2027-02-10", 30)).toBe("2027-03-30");
+    expect(c("Cash is tight till the 30th", at("2027-02-10"))).toMatchObject({ kind: "change_requested", unavailableUntil: "2027-03-30", earliestDebit: "2027-03-31" });
+  });
+  it("29 Apr 2027 ‘till the 31st’ → April has no 31st, so 31 May; earliest debit 1 Jun", () => {
+    expect(nextDayOfMonthAfter("2027-04-29", 31)).toBe("2027-05-31");
+    expect(c("till the 31st", at("2027-04-29"))).toMatchObject({ kind: "change_requested", unavailableUntil: "2027-05-31", earliestDebit: "2027-06-01" });
+  });
+  it("31 Jan 2027 ‘till the 30th’ → February has no 30th: merchant attention, never skips to March", () => {
     expect(nextDayOfMonthAfter("2027-01-31", 30)).toBeNull();
     expect(c("till the 30th", at("2027-01-31"))).toMatchObject({ kind: "needs_attention", reason: "unsupported_date_expression" });
-    expect(nextDayOfMonthAfter("2027-02-10", 30)).toBeNull(); // later this month, but February is too short
+  });
+  it("an earlier day rolls to the following month when it exists there", () => {
     expect(nextDayOfMonthAfter("2027-03-31", 30)).toBe("2027-04-30");
+    expect(nextDayOfMonthAfter("2026-11-28", 20)).toBe("2026-12-20");
+  });
+  it("same-day references still need merchant attention, including at a month end", () => {
+    expect(c("till the 30th", at("2027-04-30"))).toMatchObject({ kind: "needs_attention", reason: "same_day_ambiguous" });
+    expect(c("till the 31st", at("2027-01-31"))).toMatchObject({ kind: "needs_attention", reason: "same_day_ambiguous" });
   });
 });
 
