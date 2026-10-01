@@ -298,6 +298,50 @@ Eval scripts now load `.env.local` (`--env-file-if-exists`).
 - The frozen guard blocks the run: no cases, no freeze.
 - Key scan: the Groq key appears in no file other than the git-ignored `.env.local`. It is not in tracked files, git history, run records, results or screenshots.
 
+### 2026-10-01 · explain.v3 and final prompts [Claude Code]
+
+**Prompt (applicant):** create `explain.v3`, which separates the structured identifier fields (`ranking`, `option_notes[].option`: bare aliases only) from the prose fields (placeholders only, no approval-avoidance wording). Use an A–L alias enum. Preserve v1 and v2. Rebuild the synthetic replay. Make one focused v3 live run. No full development rerun. Freeze without further hero-specific tuning if Groq still fails.
+
+**Built**
+- `explain.v3` is current. `explain.v1` and `explain.v2` are kept byte for byte in `PROMPT_VERSIONS`.
+- `AliasSchema` (`A`–`L`) is used for every `ranking` item and for `option_notes[].option`. It is sent to Groq as a strict-mode enum.
+- **The explanation schema is now versioned** (`explanationSchemaFor`). v1 and v2 keep the original schema, because tightening it would have changed the stored rejection message in `run-live-a727c9c8` and broken that run's byte-for-byte replay.
+- Code still ignores unavailable aliases, removes duplicates (now reported from v3 on), appends omissions and enforces approval ordering. The literal-figure and approval-bypass validators are **unchanged**.
+- The synthetic replay was rebuilt on `extract.v2` / `clarify.v1` / `explain.v3`, and its byte-for-byte integrity passes.
+- New tests (`tests/ai/explain-v3.test.ts`):
+  - `["A","B"]` is valid; `["{A.label}","{B.label}"]` and `option: "{A.label}"` are invalid;
+  - prose with `{A.label}`, `{A.total}` and `{A.approval}` passes; literal figures and "avoid MD approval" fail;
+  - duplicate, unavailable and missing aliases are corrected safely;
+  - a schema-invalid output falls back entirely to code.
+
+**Focused v3 live run `run-live-3f518779`** (Groq `openai/gpt-oss-120b`; `extract.v2`, `clarify.v1`, `explain.v3`). Saved as `evaluation/results/explanation-v3-run-live-3f518779.json`.
+- Extraction and clarification were accepted. The final engine result is identical to the synthetic run.
+- **Schema: accepted.** Ranking `["A","B","C","D"]` contains every alias exactly once, and the option notes use bare aliases.
+- **AI ranking: accepted.** No approval-ordering correction was needed.
+- **AI prose: replaced by code wording.** There were 3 guardrail corrections: the comparison and notes A and B. Notes C and D passed. `source = {ranking: "ai", text: "code_fallback"}`.
+- **Precise failure:** Groq wrote the label term "Phase 1" with U+202F (a narrow no-break space) between the word and the digit. The validator's allowlist matches only an ASCII space, so the "1" counted as a literal figure. The model also used the label term in plain words instead of `{X.label}`.
+- As instructed: the validator was not changed, the safe fallback stays, and the prompts are frozen without further hero-specific tuning.
+- **Possible future change (needs the applicant's decision; it would alter the validator):** normalise Unicode spaces before applying the label allowlist.
+
+**Audit and demo**
+- v1 `run-live-e1ddc008` and v2 `run-live-a727c9c8` are unchanged (SHA-256 identical to the previous commit), and both still replay.
+- v3 `run-live-3f518779` is committed in `data/live-runs/`. It passed replay integrity before it was made the displayed demo run (`data/demo-run.json`).
+
+**Evaluation decision:** no full development rerun for this explanation-only change. The v2 development counts stand as the final development results for extraction, clarification and failure-state detection. The frozen evaluation must use these final prompt hashes:
+
+| Version | SHA-256 prompt hash |
+| --- | --- |
+| `extract.v2` | `22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a` |
+| `clarify.v1` | `0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e` |
+| `explain.v3` | `746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14` |
+
+**Verification:**
+- `npm test` 255/255 (27 files) · typecheck clean · lint clean · `next build` clean · Playwright 4/4.
+- Replay integrity: the synthetic run and the v1, v2 and v3 live runs all pass.
+- Reference evaluation (no key): 35/35 fields; 6/6 clarifications; 8/8 failure states; 0 of 120 failing options approvable.
+- Frozen guard: blocked (no cases, no freeze).
+- Key scan: the key appears in 0 files outside the git-ignored `.env.local`, and 0 times in git history.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

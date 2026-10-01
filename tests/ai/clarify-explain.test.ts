@@ -70,10 +70,10 @@ describe("explanation: AI ranks and words, code owns figures and feasibility", (
   });
 
   it("cannot rank rejected options or drop feasible ones; approval ordering is enforced by code", () => {
-    const r = interpretExplanation({ ranking: ["D", "Z", "C"], comparison: "Option D is the most flexible for the buyer.", option_notes: [] }, feasible);
+    const r = interpretExplanation({ ranking: ["D", "E", "C"], comparison: "Option D is the most flexible for the buyer.", option_notes: [] }, feasible);
     expect(r.order).toHaveLength(feasible.length);
     expect(r.order.slice(0, 2).every((id) => feasible.find((x) => x.structure.id === id)!.approval === "within_limit")).toBe(true);
-    expect(r.issues.join(" ")).toMatch(/did not mark feasible \(Z\).*omitted feasible options.*approval ordering enforced/);
+    expect(r.issues.join(" ")).toMatch(/did not mark feasible \(E\).*omitted feasible options.*approval ordering enforced/);
   });
 
   it("the explanation step never changes the engine's verdicts or the set of evaluated structures", async () => {

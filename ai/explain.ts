@@ -4,7 +4,7 @@ import { formatINR, sum } from "@/domain/money";
 import { requestHash } from "./extract";
 import { PROMPTS, type PromptDefinition } from "./prompts";
 import type { StructuredRequest } from "./provider";
-import { ExplanationOutputSchema } from "./schemas";
+import { explanationSchemaFor } from "./schemas";
 
 /**
  * The AI ranks and explains only engine-feasible structures, through aliases (A, B, …) and
@@ -61,7 +61,7 @@ export function buildExplanationRequest(options: AliasedOption[], prompt: Prompt
     })
     .join("\n\n");
   const user = `Engine-feasible options (already checked against buyer constraints and seller policy):\n\n${body}\n\nRank them for the merchant and explain the trade-offs.`;
-  return { task: "explain", prompt, user, schema: ExplanationOutputSchema, inputHash: requestHash(prompt.version, user) };
+  return { task: "explain", prompt, user, schema: explanationSchemaFor(prompt.version), inputHash: requestHash(prompt.version, user) };
 }
 
 const PLACEHOLDER = /\{([A-L])\.([a-z]+(?:_[a-z0-9]+)*(?:\.(?:total|date))?)\}/g;
@@ -106,7 +106,9 @@ export interface ExplanationResult {
   issues: string[];
 }
 
-export function interpretExplanation(raw: unknown | null, feasible: EvaluatedStructure[]): ExplanationResult {
+const LEGACY = new Set(["explain.v1", "explain.v2"]);
+
+export function interpretExplanation(raw: unknown | null, feasible: EvaluatedStructure[], promptVersion: string = PROMPTS.explain.version): ExplanationResult {
   const options = aliasOptions(feasible);
   const issues: string[] = [];
   let rankingIds: string[] | null = null;
@@ -114,13 +116,15 @@ export function interpretExplanation(raw: unknown | null, feasible: EvaluatedStr
   const notes: ExplanationResult["notes"] = [];
 
   if (raw !== null) {
-    const parsed = ExplanationOutputSchema.safeParse(raw);
+    const parsed = explanationSchemaFor(promptVersion).safeParse(raw);
     if (!parsed.success) issues.push(`schema: ${parsed.error.issues[0]?.message ?? "invalid"}`);
     else {
       const known = new Map(options.map((o) => [o.alias, o.structureId]));
       const unknown = parsed.data.ranking.filter((a) => !known.has(a));
       if (unknown.length) issues.push(`ranking referenced options the engine did not mark feasible (${unknown.join(", ")}); ignored`);
       const ids = [...new Set(parsed.data.ranking.filter((a) => known.has(a)).map((a) => known.get(a)!))];
+      // Reported from explain.v3 on (earlier runs are replayed exactly as they were recorded).
+      if (!LEGACY.has(promptVersion) && new Set(parsed.data.ranking).size < parsed.data.ranking.length) issues.push("ranking repeated options; duplicates removed");
       if (ids.length < options.length) issues.push("ranking omitted feasible options; code appended them");
       rankingIds = ids;
       const problem = checkText(parsed.data.comparison, options);

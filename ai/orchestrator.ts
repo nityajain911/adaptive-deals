@@ -131,7 +131,7 @@ export async function runConstruct(args: {
   if (final.state === "options_ready" && final.result) {
     const options = aliasOptions(final.result.feasible);
     const exp = await call(buildExplanationRequest(options, prompts.explain));
-    explanation = interpretExplanation(exp.raw, final.result.feasible);
+    explanation = interpretExplanation(exp.raw, final.result.feasible, prompts.explain.version);
     if (exp.raw !== null) {
       exp.step.issues = explanation.issues;
       if (explanation.source.text === "code_fallback" || explanation.issues.length) exp.step.outcome = explanation.source.text === "code_fallback" && explanation.source.ranking === "code" ? "rejected" : "accepted_with_corrections";

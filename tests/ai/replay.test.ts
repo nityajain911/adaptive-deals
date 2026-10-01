@@ -13,12 +13,12 @@ const stored = (): RunRecord => JSON.parse(readFileSync(path.join(__dirname, "..
 describe("run records", () => {
   it("contain provider, model, prompt versions, run ID, inputs, raw outputs and engine result", () => {
     const r = stored();
-    expect(r).toMatchObject({ runId: SYNTHETIC_RUN_ID, kind: "synthetic_replay", status: "complete", provider: "synthetic_replay", promptVersions: { extract: "extract.v2", clarify: "clarify.v1", explain: "explain.v2" } });
+    expect(r).toMatchObject({ runId: SYNTHETIC_RUN_ID, kind: "synthetic_replay", status: "complete", provider: "synthetic_replay", promptVersions: { extract: "extract.v2", clarify: "clarify.v1", explain: "explain.v3" } });
     expect(r.model).toMatch(/synthetic/);
     expect(r.inputs.messages.map((m) => m.id)).toEqual(["msg-1", "msg-2"]);
     expect(r.inputs.answers.map((a) => a.questionId)).toEqual(["clar-gst", "clar-approval"]);
     expect(r.steps.map((s) => s.task)).toEqual(["extract", "clarify", "explain"]);
-    for (const s of r.steps) expect(s).toMatchObject({ promptVersion: expect.stringMatching(/\.v[12]$/), promptHash: expect.stringMatching(/^[0-9a-f]{64}$/), inputHash: expect.stringMatching(/^[0-9a-f]{64}$/), rawOutput: expect.anything() });
+    for (const s of r.steps) expect(s).toMatchObject({ promptVersion: expect.stringMatching(/\.v\d+$/), promptHash: expect.stringMatching(/^[0-9a-f]{64}$/), inputHash: expect.stringMatching(/^[0-9a-f]{64}$/), rawOutput: expect.anything() });
     expect(r.engine.initial.state).toBe("ambiguous");
     expect(r.engine.final!.state).toBe("options_ready");
     expect(r.engine.final!.templatesEvaluated).toHaveLength(4);

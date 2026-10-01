@@ -18,8 +18,8 @@ describe("committed live-run audit records", () => {
     expect(v1).toMatchObject({ kind: "live", status: "complete", provider: "groq", model: "openai/gpt-oss-120b", promptVersions: { extract: "extract.v1", clarify: "clarify.v1", explain: "explain.v1" } });
   });
 
-  it("current prompts are v2 for extraction and explanation; clarification stays v1", () => {
-    expect([PROMPTS.extract.version, PROMPTS.clarify.version, PROMPTS.explain.version]).toEqual(["extract.v2", "clarify.v1", "explain.v2"]);
+  it("current prompts: extract.v2, clarify.v1, explain.v3", () => {
+    expect([PROMPTS.extract.version, PROMPTS.clarify.version, PROMPTS.explain.version]).toEqual(["extract.v2", "clarify.v1", "explain.v3"]);
   });
 
   it.each(runs.map((r) => [r.runId, r] as const))("%s: every step's prompt hash matches a published prompt version exactly", (_, r) => {

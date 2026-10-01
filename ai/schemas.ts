@@ -64,7 +64,15 @@ export const ClarificationOutputSchema = z
   .strict();
 export type ClarificationOutput = z.infer<typeof ClarificationOutputSchema>;
 
-export const ExplanationOutputSchema = z
+/** A bare option alias. Structured identifier fields accept only these, never labels or braces. */
+export const OPTION_ALIASES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
+export const AliasSchema = z.enum(OPTION_ALIASES);
+
+/**
+ * Explanation schema used with explain.v1 and explain.v2. Kept unchanged so runs produced with
+ * those prompts are validated, and therefore replayed, exactly as they were.
+ */
+export const ExplanationOutputSchemaV1 = z
   .object({
     ranking: z.array(z.string().min(1).max(4)).min(1).max(12).describe("Option aliases, best first"),
     comparison: z.string().min(10).max(1200).describe("Trade-offs, using only {placeholders} for figures and dates"),
@@ -73,6 +81,22 @@ export const ExplanationOutputSchema = z
       .max(12),
   })
   .strict();
+
+/** Explanation schema from explain.v3: identifier fields are bare aliases (A–L) only. */
+export const ExplanationOutputSchema = z
+  .object({
+    ranking: z.array(AliasSchema).min(1).max(12).describe("Bare option aliases, best first, e.g. [\"B\", \"A\", \"C\"]"),
+    comparison: z.string().min(10).max(1200).describe("Prose; names and figures only through {placeholders}"),
+    option_notes: z
+      .array(z.object({ option: AliasSchema.describe("Bare option alias, e.g. \"A\""), note: z.string().min(5).max(240).describe("Prose; figures only through {placeholders}") }).strict())
+      .max(12),
+  })
+  .strict();
+
+/** The explanation schema that belongs to a prompt version. */
+export function explanationSchemaFor(promptVersion: string) {
+  return promptVersion === "explain.v1" || promptVersion === "explain.v2" ? ExplanationOutputSchemaV1 : ExplanationOutputSchema;
+}
 export type ExplanationOutput = z.infer<typeof ExplanationOutputSchema>;
 
 export const TASK_SCHEMAS = {

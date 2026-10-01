@@ -1,0 +1,24 @@
+{
+  "kind": "focused_explanation_check",
+  "note": "Single live hero run; not a development or frozen evaluation result.",
+  "runId": "run-live-3f518779",
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v3"
+  },
+  "schema": "accepted",
+  "aiRanking": "accepted",
+  "aiProse": "replaced by code wording",
+  "rankingHasEveryAliasOnce": true,
+  "guardrailCorrections": 3,
+  "corrections": [
+    "comparison rejected: contains a literal figure, date or percentage",
+    "note for A rejected: contains a literal figure, date or percentage",
+    "note for B rejected: contains a literal figure, date or percentage"
+  ],
+  "approvalOrderingCorrected": false,
+  "failureDetail": "Groq wrote the label term \"Phase 1\" with U+202F (narrow no-break space); the literal-figure validator allowlists only \"Phase 1\" with an ASCII space, so the comparison and notes A and B were rejected. Notes C and D passed."
+}
