@@ -9,6 +9,8 @@ import path from "node:path";
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-"));
 delete process.env.ANTHROPIC_API_KEY;
+delete process.env.GROQ_API_KEY;
+delete process.env.ADAPTIVE_DEALS_PROVIDER;
 delete process.env.RAZORPAY_KEY_ID;
 
 type Svc = typeof import("@/lib/service");
@@ -93,7 +95,7 @@ describe("hero journey through the service", () => {
   });
 
   it("Run live without a key is refused with a reason, and nothing is relabelled", async () => {
-    await expect(svc.startLiveRun()).rejects.toThrow(/ANTHROPIC_API_KEY/);
+    await expect(svc.startLiveRun()).rejects.toThrow(/GROQ_API_KEY is not set/);
     expect((await svc.getState()).run.record.kind).toBe("synthetic_replay");
   });
 

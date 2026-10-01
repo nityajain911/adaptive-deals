@@ -34,8 +34,10 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 
 | Variable | Purpose |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Enables **Run live** (a real model call through the official Anthropic SDK). Without it, Run live is disabled and says why. |
-| `ADAPTIVE_DEALS_MODEL` | Model ID, default `claude-opus-5`. |
+| `ADAPTIVE_DEALS_PROVIDER` | `groq` (default) or `anthropic`. |
+| `GROQ_API_KEY` | Enables **Run live** on Groq (official `groq-sdk`, strict JSON-schema output). Without it, Run live is disabled and says why. |
+| `ADAPTIVE_DEALS_MODEL` | Model ID. Default `openai/gpt-oss-120b` for Groq, `claude-opus-5` for Anthropic. |
+| `ANTHROPIC_API_KEY` | Used only when `ADAPTIVE_DEALS_PROVIDER=anthropic`. |
 | `RAZORPAY_MODE` | `test` to create the upfront payment link in Razorpay **test mode**; anything else simulates. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Test keys only. Keys must start with `rzp_test_`; `rzp_live_` and any other form are refused. |
 | `ADAPTIVE_DEALS_DATA_DIR` | Location of the JSON store (default `.data/`, git-ignored). |
@@ -72,7 +74,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 domain/                 deterministic engine: money and GST, dates, constraint profile, templates, checks,
                         economics, ambiguity analysis, agreement hashing, mandate, collections, ledger,
                         amendments, state machines; injectable clock, no system-clock reads
-ai/                     strict schemas, versioned prompts, provider interface (Anthropic SDK and replay),
+ai/                     strict schemas, versioned prompts, provider interface (Groq, Anthropic and replay),
                         extraction, clarification wording, explanation with placeholders, run records, replay
 data/synthetic/         hero fixture (inputs only), synthetic AI outputs, bundled replay, failure scenarios
 integrations/razorpay/  test-key guard, test-mode payment links, simulated payment links and recurring
@@ -83,7 +85,7 @@ app/, components/       five views and one validated actions endpoint
 
 ## Limitations
 
-- **Live model:** not exercised in this build environment, because no key was present. The provider is tested against a fake SDK client.
+- **Live model:** not exercised in this build environment, because no key was present. The Groq and Anthropic providers are tested against fake SDK clients.
 - **Razorpay:**
   - Test-mode payment links are tested against a fake transport only; no test keys were available.
   - Recurring payments (e-mandate, debits, failures) are always simulated.

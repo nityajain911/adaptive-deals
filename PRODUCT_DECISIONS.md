@@ -21,7 +21,15 @@ Draft maintained by the coding agent. Each decision states its rule and where co
 
 **Degrading safely:** an unavailable, refused, truncated, schema-breaking or invalid extraction produces an empty profile and run status `needs_review`. No commercial terms are created from it. Clarification and explanation failures fall back to code wording and code ranking, labelled as such.
 
-**Provider:** official Anthropic SDK, `client.messages.parse` with a Zod output format. The model comes from `ADAPTIVE_DEALS_MODEL` (default `claude-opus-5`) and the key from `ANTHROPIC_API_KEY`. `temperature: 0` is sent only to models that accept sampling parameters. Current Opus, Sonnet 5 and Fable models reject it, and the run record states which applied. Without a key, "Run live" is unavailable and says why; the bundled synthetic replay is never presented as a live run.
+**Provider:** chosen by the applicant: **Groq with `openai/gpt-oss-120b`** (official `groq-sdk`).
+- Requests use `response_format` `json_schema` with `strict: true`, `temperature: 0`, and no tools.
+- The Zod schemas are converted to strict-mode JSON Schema: every object closed and fully required, basic keywords only (`ai/strict-schema.ts`). Length limits removed from the request are still enforced by Zod on the response, followed by code's evidence and normalisation checks.
+
+The Anthropic SDK provider remains available (`ADAPTIVE_DEALS_PROVIDER=anthropic`). Configuration:
+- the provider comes from `ADAPTIVE_DEALS_PROVIDER` and the model from `ADAPTIVE_DEALS_MODEL`;
+- the key comes from `GROQ_API_KEY` or `ANTHROPIC_API_KEY` and is passed explicitly to the client, never logged.
+
+Without the selected provider's key, "Run live" is unavailable and says why. The bundled synthetic replay is never presented as a live run.
 
 **Run records and replay:** every run stores the run ID, kind, provider, model, prompt versions and prompt hashes, inputs (messages, policy, recorded answers), each step's exact request hash and raw output, the engine snapshot and what was displayed. A replay uses only the stored run's own outputs, keyed by exact request hash, and must reproduce the stored engine and display output byte for byte; otherwise it is refused. Labels:
 

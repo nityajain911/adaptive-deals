@@ -15,6 +15,6 @@ export default defineConfig({
     url: "http://localhost:3200/workspace",
     timeout: 300_000,
     reuseExistingServer: false,
-    env: { ADAPTIVE_DEALS_DATA_DIR: ".data-e2e", ANTHROPIC_API_KEY: "", RAZORPAY_MODE: "simulated" },
+    env: { ADAPTIVE_DEALS_DATA_DIR: ".data-e2e", GROQ_API_KEY: "", ANTHROPIC_API_KEY: "", RAZORPAY_MODE: "simulated" },
   },
 });

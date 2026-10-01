@@ -15,6 +15,7 @@ import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/do
 import type { Structure } from "@/domain/structures";
 import type { Message } from "@/domain/types";
 import { sum } from "@/domain/money";
+import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
 import { replayRun, runConstruct, type RunOutcome } from "@/ai/orchestrator";
 import type { ModelProvider } from "@/ai/provider";
@@ -189,7 +190,8 @@ function providerForContinuation(s: DemoState): ModelProvider {
 
 export async function startLiveRun(): Promise<DemoState> {
   const provider = createLiveProvider();
-  if (!provider) throw new ActionError("Run live needs ANTHROPIC_API_KEY. Without it the bundled synthetic replay is used and labelled as such.", 412);
+  const availability = liveAvailability();
+  if (!provider || !availability.available) throw new ActionError(`Run live is unavailable: ${availability.available ? "no provider" : availability.reason}.`, 412);
   const runId = `run-live-${randomUUID().slice(0, 8)}`;
   const out = await runConstruct({ provider, kind: "live", runId, clock: new FixedClock(), deal: heroDeal(), recordedAtWall: new Date().toISOString() });
   await writeJsonAtomic(`runs/${runId}.json`, out.record);

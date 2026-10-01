@@ -7,7 +7,7 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 | Where | Model | Notes |
 | --- | --- | --- |
 | Building the codebase | Claude Opus 5.5 (`claude-opus-5-5`) via Claude Code desktop | Agent wrote code, tests and draft docs from `CLAUDE_CODE_PROMPT.md` + `FREEZE_PACK.md` |
-| Product runtime (constraint extraction, clarification wording, explanation) | Configurable via `ADAPTIVE_DEALS_MODEL` | Phase 2. Default run uses a **synthetic replay**, not a model |
+| Product runtime (constraint extraction, clarification wording, explanation) | **Groq · `openai/gpt-oss-120b`** (applicant's choice), configurable via `ADAPTIVE_DEALS_PROVIDER` / `ADAPTIVE_DEALS_MODEL` | The default run uses a **synthetic replay**, not a model |
 
 ## Data provenance labels
 
@@ -192,6 +192,25 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 **Docs:** README, a draft `DEMO_SCRIPT.md`, `ONE_PAGE_PRODUCT_NOTE.md` (structure only; [APPLICANT] sections are left for the applicant), and `PRODUCT_DECISIONS.md` completed with trust controls, metrics and scope exclusions.
 
 **Verification:** `npm test` 232/232 · typecheck clean · lint clean · `next build` clean · Playwright 4/4 (five-view journey, four failure states, guided demo, mobile layout without horizontal scroll).
+
+### 2026-10-01 · Live provider switched to Groq [Claude Code]
+
+**Prompt (applicant):** "we will use this Groq, model openai/gpt-oss-120b".
+
+**Conflict recorded:** the build prompt specified the official Anthropic SDK. The freeze pack names no provider. The applicant's later instruction takes precedence. The Anthropic provider is kept as an option behind the same interface rather than removed.
+
+**Built**
+- `ai/groq-provider.ts`: `chat.completions.create` with `response_format: { type: "json_schema", json_schema: { strict: true, … } }`, `temperature: 0`, and no tools. Truncation, empty or non-JSON output, a 400, an auth failure, a rate limit or a connection failure each map to the existing safe failures.
+- `ai/strict-schema.ts`: Zod → strict JSON Schema (closed, fully required objects, basic keywords).
+- Provider selection in `ai/config.ts`, defaulting to Groq.
+
+Checked against the Groq structured-outputs documentation: `openai/gpt-oss-120b` supports `strict: true`. Strict mode requires every property to be required and `additionalProperties: false`.
+
+**Failure and fix:** the Groq client read `process.env` at construction, so a test passing an explicit environment failed. Keys are now passed explicitly from the configuration.
+
+**Not verified:** no `GROQ_API_KEY` in this environment, so there has been no real Groq call. Tested against a fake client only.
+
+**Verification:** `npm test` 238/238 · typecheck clean · lint clean.
 
 ### [APPLICANT] Decisions on AI suggestions
 

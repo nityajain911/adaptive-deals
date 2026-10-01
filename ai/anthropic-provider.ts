@@ -27,8 +27,9 @@ export class AnthropicProvider implements ModelProvider {
   constructor(
     readonly model: string,
     client?: Anthropic,
+    apiKey?: string,
   ) {
-    this.client = client ?? new Anthropic();
+    this.client = client ?? new Anthropic(apiKey ? { apiKey } : {});
   }
 
   async generate(req: StructuredRequest): Promise<ProviderResult> {
