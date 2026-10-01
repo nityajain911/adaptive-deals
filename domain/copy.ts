@@ -24,7 +24,7 @@ export function explainCheck(c: CheckResult): string {
     case "BUDGET_EXCEEDS_NEXT_BUDGET":
       return `${inr(f, "dueNextPaise")} falls due after the next budget opens, above the stated ${inr(f, "nextBudgetPaise")}.`;
     case "BUDGET_BASIS_UNKNOWN":
-      return "Cannot check the budget until we know whether it includes GST.";
+      return "Cannot check the budget until its GST basis is confirmed.";
     case "BUDGET_NOT_STATED":
       return "No current budget has been stated.";
     case "TIMING_OK":
@@ -46,7 +46,7 @@ export function explainCheck(c: CheckResult): string {
     case "NO_APPROVAL_LIMIT_STATED":
       return "No buyer approval limit was stated.";
     case "APPROVAL_BASIS_UNKNOWN":
-      return "Cannot check the approval limit until its basis is confirmed.";
+      return "Cannot check the approval limit until its GST basis and scope are confirmed.";
     case "REQUIRED_PACKAGES_INCLUDED":
       return "Includes every package the buyer requires.";
     case "REQUIRED_PACKAGE_EXCLUDED":

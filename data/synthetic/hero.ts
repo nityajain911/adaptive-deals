@@ -197,17 +197,18 @@ export const heroSyntheticExtraction: RawExtraction = {
 export const heroClarificationAnswers: { gst: ClarificationAnswer & { value: "yes" }; approvalScope: ClarificationAnswer & { value: "per_contract" } } = {
   gst: {
     clarificationId: "clar-gst",
-    question: "Does ₹50,000 include GST?",
-    answerText: "Yes, ₹50K includes GST.",
+    question: "Do both ₹50,000 and ₹60,000 include GST?",
+    answerText: "Yes, both amounts include GST.",
     recordedBy: "Merchant (Pinecone Media Works)",
     confirmedByBuyerVia: "whatsapp",
     answeredAt: "2026-10-01T09:20:00+05:30",
+    coversAmounts: ["budgetNow", "approvalLimit"],
     value: "yes",
   },
   approvalScope: {
     clarificationId: "clar-approval",
     question: "Is ₹60,000 the limit per payment or for the full contract?",
-    answerText: "₹60K is for the full contract.",
+    answerText: "₹60,000 is per contract.",
     recordedBy: "Merchant (Pinecone Media Works)",
     confirmedByBuyerVia: "whatsapp",
     answeredAt: "2026-10-01T09:22:00+05:30",

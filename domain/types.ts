@@ -140,7 +140,12 @@ export interface ProfileField<T> {
   note?: string;
   /** Set when the value was resolved by a merchant-recorded clarification answer. */
   clarification?: ClarificationAnswer;
+  /** GST basis only: the stated amounts this value was explicitly confirmed for. */
+  covers?: AmountField[];
 }
+
+/** Amount-bearing profile fields whose GST basis must be confirmed explicitly. */
+export type AmountField = "budgetNow" | "approvalLimit";
 
 export type ConfirmationChannel = "whatsapp" | "email" | "call";
 
@@ -151,6 +156,8 @@ export interface ClarificationAnswer {
   recordedBy: string;
   confirmedByBuyerVia: ConfirmationChannel;
   answeredAt: string;
+  /** GST answers only: which stated amounts the answer explicitly names. */
+  coversAmounts?: AmountField[];
 }
 
 export type GstInclusion = "yes" | "no";
@@ -211,6 +218,8 @@ export interface BuyerConstraints {
   approvalLimit: ApprovalLimit | null;
   approvalScope: ApprovalScope | null;
   amountsIncludeGst: GstInclusion | null;
+  /** Where the GST basis came from and which amounts it was explicitly confirmed for. */
+  gstBasis: { source: string; covers: AmountField[] } | null;
   latestStart: DateValue | null;
   requiredPackages: string[];
   budgetGap: BudgetGap | null;

@@ -142,11 +142,12 @@ describe("buyer and seller policy enforcement", () => {
       extraction([
         field("budget_now_amount", "₹50K", "Only ₹50K left this quarter"),
         field("budget_now_period", "this quarter", "Only ₹50K left this quarter"),
-        field("amounts_include_gst", "incl GST", "this quarter incl GST"),
+        field("amounts_include_gst", "incl GST", "Only ₹50K left this quarter incl GST"),
         field("latest_start", "January", "must start before January"),
       ]),
       [m],
     );
+    expect(p.amountsIncludeGst.status).toBe("stated");
     const r = enumerateAndEvaluate(constraintsOf(p), heroInput());
     expect(check(byId(r, "deferred_start:start=2027-01-01,plan=monthly_12"), "buyer_timing").map((c) => c.code)).toContain("START_DAY_UNKNOWN_IN_DEADLINE_MONTH");
     expect(check(byId(r, "deferred_start:start=2027-05-01,plan=monthly_12"), "buyer_timing").map((c) => c.code)).toContain("START_AFTER_LATEST_START");
@@ -174,26 +175,28 @@ describe("the four failure states are distinct", () => {
   });
   it("an AI 'outside' flag for a representable request does not block the deal", () => {
     const text = "Only ₹50K left this quarter incl GST. Could we split it?";
-    const p = base(text, [field("budget_now_amount", "₹50K", "Only ₹50K left this quarter"), field("budget_now_period", "this quarter", "Only ₹50K left this quarter"), field("amounts_include_gst", "incl GST", "this quarter incl GST")], {
+    const p = base(text, [field("budget_now_amount", "₹50K", "Only ₹50K left this quarter"), field("budget_now_period", "this quarter", "Only ₹50K left this quarter"), field("amounts_include_gst", "incl GST", "Only ₹50K left this quarter incl GST")], {
       outsideTemplates: [{ rawText: "split it", evidenceQuote: "Could we split it?", messageId: "m1", kind: "split_payment" }],
     });
     expect(evaluateDeal(p, heroInput()).state).not.toBe("outside_templates");
   });
   it("no feasible deal: only after full enumeration (see enumeration test) with blocking reasons", () => {
     const text = "Only ₹5K left this quarter incl GST; new budget in April; must start before December";
-    const p = base(text, [field("budget_now_amount", "₹5K", "Only ₹5K left this quarter"), field("budget_now_period", "this quarter", "Only ₹5K left this quarter"), field("amounts_include_gst", "incl GST", "this quarter incl GST"), field("next_budget_date", "April", "new budget in April"), field("latest_start", "December", "must start before December")]);
+    const p = base(text, [field("budget_now_amount", "₹5K", "Only ₹5K left this quarter"), field("budget_now_period", "this quarter", "Only ₹5K left this quarter"), field("amounts_include_gst", "incl GST", "Only ₹5K left this quarter incl GST"), field("next_budget_date", "April", "new budget in April"), field("latest_start", "December", "must start before December")]);
+    expect(p.amountsIncludeGst).toMatchObject({ status: "stated", covers: ["budgetNow"] });
     const e = evaluateDeal(p, heroInput());
     expect(e.state).toBe("no_feasible_deal");
     expect(e.result!.rejected.every((x) => [...x.buyerChecks, ...x.sellerChecks].some((c) => c.status === "fail"))).toBe(true);
   });
   it("structures that are only undecidable produce insufficient information, not no-feasible", () => {
-    const text = "Nothing left this quarter. ₹0 now, new budget in May incl GST";
+    const text = "Nothing left this quarter. ₹0 now incl GST, new budget in May";
     const i = heroInput();
     i.templates.deferred_start.startDates = ["2027-05-01"];
     i.templates.split_payment.enabled = false;
     i.templates.phased_scope.enabled = false;
     i.templates.shorter_commitment.enabled = false;
-    const p = base(text, [field("budget_now_amount", "₹0", "₹0 now"), field("budget_now_period", "this quarter", "Nothing left this quarter"), field("amounts_include_gst", "incl GST", "May incl GST"), field("next_budget_date", "May", "new budget in May")]);
+    const p = base(text, [field("budget_now_amount", "₹0", "₹0 now"), field("budget_now_period", "this quarter", "Nothing left this quarter"), field("amounts_include_gst", "incl GST", "₹0 now incl GST"), field("next_budget_date", "May", "new budget in May")]);
+    expect(p.amountsIncludeGst.status).toBe("stated");
     const e = evaluateDeal(p, i);
     expect(e.state).toBe("insufficient_information");
     expect(e.result!.needsInformation[0].buyerChecks.map((c) => c.code)).toContain("PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH");

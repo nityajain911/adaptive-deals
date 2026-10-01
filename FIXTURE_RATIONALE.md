@@ -87,8 +87,10 @@ The prompt's example simulated date (`2027-05-03`) is only an example. The hero'
 
 | Question | Answer | Effect |
 | --- | --- | --- |
-| Does ₹50,000 include GST? | Yes, confirmed by the buyer via WhatsApp | Pre-GST budget derived as ₹42,372.88 (reconciliation ₹0.00) |
-| Is ₹60,000 per payment or for the full contract? | Full contract, confirmed by the buyer via WhatsApp | Phase 1 (₹46,020) is within the limit; full annual options (₹1,41,600) need the buyer's MD approval |
+| Do both ₹50,000 and ₹60,000 include GST? | "Yes, both amounts include GST." Confirmed by the buyer via WhatsApp; the answer explicitly covers both amounts | Pre-GST budget ₹42,372.88 and pre-GST approval limit ₹50,847.46 (both with ₹0.00 reconciliation). Budget and approval checks both compare GST-inclusive totals |
+| Is ₹60,000 the limit per payment or for the full contract? | "₹60,000 is per contract." Confirmed by the buyer via WhatsApp | Phase 1 (₹46,020) is within the limit; full annual options (₹1,41,600) need the buyer's MD approval |
+
+The first question names both amounts on purpose. The message states ₹50K and ₹60K separately, and a GST answer about one must not be extended to the other (see `PRODUCT_DECISIONS.md`).
 
 ## Synthetic extraction
 

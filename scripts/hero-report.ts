@@ -11,10 +11,14 @@ console.log("PROFILE budgetNow", JSON.stringify(profile.budgetNow.value), "| nex
 const before = evaluateDeal(profile, input);
 console.log("\nBEFORE CLARIFICATION state:", before.state);
 for (const a of before.ambiguities) console.log(` - ${a.field} relevant=${a.decisionRelevant} diffs=${a.differences.map((d) => d.structureId).join(" ; ")}\n   ${explainAmbiguity(a)}`);
+for (const c of [A.gst, A.approvalScope]) console.log(`\nCLARIFICATION ${c.clarificationId}: Q "${c.question}" → A "${c.answerText}" (confirmed by buyer via ${c.confirmedByBuyerVia}, ${c.answeredAt}${c.coversAmounts ? `, covers ${c.coversAmounts.join(" + ")}` : ""})`);
 profile = applyClarificationAnswer(profile, "amountsIncludeGst", A.gst.value, A.gst);
 profile = applyClarificationAnswer(profile, "approvalScope", A.approvalScope.value, A.approvalScope);
-const d = derivePreGstFromInclusive(profile.budgetNow.value!.amountPaise, heroMerchant.policy.gstRateBps);
-console.log("\nDERIVED pre-GST budget", formatINR(d.prePaise, { paise: true }), "GST", formatINR(d.gstPaise, { paise: true }), "total", formatINR(d.totalPaise, { paise: true }), "reconciliation", formatINR(d.reconciliationPaise, { paise: true }));
+console.log("GST basis:", profile.amountsIncludeGst.value, "· confirmed for", profile.amountsIncludeGst.covers?.join(" + "));
+for (const [label, paise] of [["budget ₹50K", profile.budgetNow.value!.amountPaise], ["approval limit ₹60K", profile.approvalLimit.value!.amountPaise]] as const) {
+  const d = derivePreGstFromInclusive(paise, heroMerchant.policy.gstRateBps);
+  console.log(`DERIVED pre-GST ${label}:`, formatINR(d.prePaise, { paise: true }), "+ GST", formatINR(d.gstPaise, { paise: true }), "=", formatINR(d.totalPaise, { paise: true }), "· reconciliation", formatINR(d.reconciliationPaise, { paise: true }));
+}
 const after = evaluateDeal(profile, input);
 const r = after.result!;
 console.log("\nAFTER state:", after.state, "| templates evaluated:", r.templatesEvaluated.join(", "), "| structures:", r.structures.length);

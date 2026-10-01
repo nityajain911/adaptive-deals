@@ -10,6 +10,21 @@ Draft maintained by the coding agent. Each decision states its rule and where co
 
 Enforced in `domain/money.ts` (`gstForLine`, `derivePreGstFromInclusive`).
 
+## GST basis must be confirmed for every stated amount
+
+The constraint profile keeps **one profile-wide GST basis** (`amountsIncludeGst`: yes / no / unknown), as the freeze-pack data model specifies. That single value is used for an amount only when the amount's GST basis was **confirmed explicitly**:
+
+- **From a message:** a GST phrase counts only for the amounts named inside its evidence quote. If the buyer writes "₹50K incl GST … anything above ₹60K needs MD approval", the basis stays ambiguous, with the note "not confirmed for ₹60K".
+- **From a clarification:** the recorded answer must list every stated amount it covers (`coversAmounts`). An answer naming only ₹50,000 is refused, and the question stays open.
+- **In the checks:** the budget check and the approval check each require the basis to cover their own amount. Otherwise they return `BUDGET_BASIS_UNKNOWN` / `APPROVAL_BASIS_UNKNOWN`. Every budget and approval result records where the basis came from (`gstBasisSource`, e.g. `clarification:clar-gst`).
+
+**Hero:** the first clarification is therefore "Do both ₹50,000 and ₹60,000 include GST?", and the pinned answer is "Yes, both amounts include GST." The pre-GST values derived under the rounding rule are:
+
+- ₹50,000 → ₹42,372.88, reconciliation ₹0.00;
+- ₹60,000 → ₹50,847.46, reconciliation ₹0.00.
+
+Enforced in `domain/constraints.ts` (`buildConstraintProfile`, `applyClarificationAnswer`) and `domain/checks.ts`. Tested in `tests/domain/gst-basis.test.ts`.
+
 ## Featured rejections on the Decision view
 
 The Decision view highlights rejected structures chosen **by rule from engine results, never by structure ID**. The full rejected list is always shown as well.

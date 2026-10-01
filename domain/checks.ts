@@ -73,7 +73,9 @@ export function amountOn(basis: "yes" | "no", line: { prePaise: Paise; totalPais
 
 export function buyerChecks(s: Structure, c: BuyerConstraints): CheckResult[] {
   const out: CheckResult[] = [];
-  const basis = c.amountsIncludeGst;
+  // A GST basis applies to an amount only if it was explicitly confirmed for that amount.
+  const basisFor = (f: "budgetNow" | "approvalLimit") => (c.gstBasis?.covers.includes(f) ? c.amountsIncludeGst : null);
+  const basis = basisFor("budgetNow");
 
   // Budget in the current period, and in the next budget if an amount was stated.
   if (!c.budgetNow) out.push(check("buyer_budget", "buyer", "needs_information", "BUDGET_NOT_STATED"));
@@ -82,7 +84,7 @@ export function buyerChecks(s: Structure, c: BuyerConstraints): CheckResult[] {
     const { start, end } = c.budgetNow.period;
     const inPeriod = s.payments.filter((p) => compareDates(p.dueDate, start) >= 0 && compareDates(p.dueDate, end) <= 0);
     const due = sum(inPeriod.map((p) => amountOn(basis, p)));
-    const facts = { duePaise: due, budgetPaise: c.budgetNow.amountPaise, periodStart: start, periodEnd: end, gstIncluded: basis };
+    const facts = { duePaise: due, budgetPaise: c.budgetNow.amountPaise, periodStart: start, periodEnd: end, gstIncluded: basis, gstBasisSource: c.gstBasis!.source };
     if (due > c.budgetNow.amountPaise) out.push(check("buyer_budget", "buyer", "fail", "BUDGET_EXCEEDS_CURRENT_PERIOD", facts, inPeriod.map((p) => p.id)));
     else if (c.nextBudget?.amountPaise != null) {
       const after = s.payments.filter((p) => compareWithBudgetAvailable(p.dueDate, c.nextBudget!.available) !== "fail" && compareDates(p.dueDate, end) > 0);
@@ -121,10 +123,11 @@ export function buyerChecks(s: Structure, c: BuyerConstraints): CheckResult[] {
 
   // Approval: an approval requirement, never a prohibition.
   if (!c.approvalLimit) out.push(check("buyer_approval", "buyer", "within_limit", "NO_APPROVAL_LIMIT_STATED"));
-  else if (!basis || !c.approvalScope) out.push(check("buyer_approval", "buyer", "needs_information", "APPROVAL_BASIS_UNKNOWN"));
+  else if (!basisFor("approvalLimit") || !c.approvalScope) out.push(check("buyer_approval", "buyer", "needs_information", "APPROVAL_BASIS_UNKNOWN"));
   else {
-    const measured = c.approvalScope === "per_contract" ? sum(s.payments.map((p) => amountOn(basis, p))) : Math.max(...s.payments.map((p) => amountOn(basis, p)));
-    const facts = { measuredPaise: measured, limitPaise: c.approvalLimit.amountPaise, scope: c.approvalScope, gstIncluded: basis };
+    const ab = basisFor("approvalLimit")!;
+    const measured = c.approvalScope === "per_contract" ? sum(s.payments.map((p) => amountOn(ab, p))) : Math.max(...s.payments.map((p) => amountOn(ab, p)));
+    const facts = { measuredPaise: measured, limitPaise: c.approvalLimit.amountPaise, scope: c.approvalScope, gstIncluded: ab, gstBasisSource: c.gstBasis!.source };
     out.push(measured > c.approvalLimit.amountPaise ? check("buyer_approval", "buyer", "requires_approval", "ABOVE_APPROVAL_LIMIT", facts) : check("buyer_approval", "buyer", "within_limit", "WITHIN_APPROVAL_LIMIT", facts));
   }
 

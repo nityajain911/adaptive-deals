@@ -33,7 +33,7 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 **Conflicts between prompt and freeze pack:** none detected. The two documents agree. Interpretations made where both are silent are listed below so the applicant can accept or change them.
 
 **Interpretations and assumptions (need applicant review)**
-1. *GST answer scope.* The freeze pack models "whether amounts include GST" as one profile-wide field. The clarification asks about ₹50,000, and the recorded answer is applied to every amount in the message, including the ₹60,000 approval limit. The approval check therefore compares GST-inclusive contract totals with ₹60,000.
+1. *GST answer scope.* ~~The clarification asks about ₹50,000, and the recorded answer is applied to every amount, including ₹60,000.~~ **Superseded** by the applicant's correction below: the question now names both amounts, and the basis is never extended from one amount to another.
 2. *Next-budget amount.* "New budget in April" states a date, not an amount. The engine checks only the timing of payments after April and shows "Next budget amount not stated" on the constraint card. It does not invent an amount. Full-annual options that need large post-April payments are still shown as feasible, labelled **Needs buyer's MD approval**.
 3. *Cost and value timing.* Direct costs are committed at the start of each delivery month. Service value counts as delivered at the end of that month. These choices drive funding requirement and unpaid service value.
 4. *Payment fees.* Expected fee = 2% of each customer-facing collection, borne by the seller and rounded half-up per payment. This is a synthetic assumption.
@@ -69,6 +69,22 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 - Rewrote the cash-at-risk rationale. The earlier text justified ₹10,000 only by the demo outcome it produces. It now states a policy principle (no more than one month of this client's average billing), explains why that is reasonable for a small agency, and discloses that the demo outcome depends on the value.
 
 **Verification:** `npm test` 122/122 passed · `npm run typecheck` clean · `npm run lint` clean.
+
+### 2026-10-01 · Phase 1 correction: explicit GST basis for both amounts [Claude Code]
+
+**Prompt (applicant):** change the first hero clarification to "Do both ₹50,000 and ₹60,000 include GST?" and pin "Yes, both amounts include GST."; keep the per-contract question and answer; keep the profile-wide `amountsIncludeGst` model; prove that the approval comparison does not infer the ₹60,000 basis from an answer about ₹50,000. The freeze pack (§13) and build prompt were updated by the applicant beforehand.
+
+**Changes**
+- Fixture: new question and answer text; the GST answer records `coversAmounts: ["budgetNow", "approvalLimit"]`; the second answer now reads "₹60,000 is per contract."
+- The profile-wide GST value now carries `covers`, the amounts it was explicitly confirmed for.
+  - A message GST phrase covers only the amounts named in its evidence quote.
+  - A clarification answer that does not name every stated amount is refused (`ClarificationError`).
+- The budget and approval checks each require the basis to cover their own amount, and they record `gstBasisSource`.
+- Hero report prints both clarifications and the derived pre-GST values of both amounts.
+- Four engine tests had "incl GST" quotes that did not name the amount. They still passed, but only because the resulting ambiguity did not change their outcome. Their quotes now name the amount, and each test asserts that the basis is stated.
+- New `tests/domain/gst-basis.test.ts` (6 tests).
+
+**Verification:** `npm test` 128/128 passed · `npm run typecheck` clean · `npm run lint` clean · `npm run hero:report` output unchanged except for the new clarification and GST-basis lines.
 
 ### [APPLICANT] Decisions on AI suggestions
 

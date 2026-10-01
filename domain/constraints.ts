@@ -8,6 +8,7 @@ import {
   type DateValue,
 } from "./dates";
 import type {
+  AmountField,
   ApprovalScope,
   BudgetGap,
   BuyerConstraints,
@@ -214,17 +215,25 @@ export function buildConstraintProfile(args: {
   }
 
   // GST inclusion: profile-wide. Unknown whenever an amount is stated without an explicit GST statement.
+  // GST basis: one profile-wide value, but it counts as stated only when its evidence explicitly
+  // covers every stated amount. A GST phrase attached to one amount is never extended to another.
   const amountsIncludeGst = emptyField<GstInclusion>("amountsIncludeGst", "Amounts include GST");
+  const statedAmounts = statedAmountFields({ budgetNow, approvalLimit });
   const gst = one("amounts_include_gst");
   const gstValue = gst ? parseGstInclusion(gst.field.rawText) : null;
-  if (gst && gstValue && !flagged.has("amounts_include_gst")) {
-    Object.assign(amountsIncludeGst, { rawText: gst.field.rawText, value: gstValue, evidence: [gst.evidence], transformation: "GST keyword", confidence: gst.field.confidence, status: "stated" });
-  } else if (budgetNow.value || approvalLimit.value) {
+  const rawOf: Record<AmountField, string | undefined> = { budgetNow: amt?.field.rawText, approvalLimit: al?.field.rawText };
+  const gstCovers = gst ? statedAmounts.filter((f) => rawOf[f] && gst.field.evidenceQuote.includes(rawOf[f]!)) : [];
+  const uncovered = statedAmounts.filter((f) => !gstCovers.includes(f));
+  if (gst && gstValue && !flagged.has("amounts_include_gst") && uncovered.length === 0) {
+    Object.assign(amountsIncludeGst, { rawText: gst.field.rawText, value: gstValue, evidence: [gst.evidence], transformation: "GST keyword", confidence: gst.field.confidence, status: "stated", covers: gstCovers });
+  } else if (statedAmounts.length) {
     Object.assign(amountsIncludeGst, {
       evidence: dedupeEvidence([...budgetNow.evidence, ...approvalLimit.evidence]),
       status: "ambiguous",
       readings: ["yes", "no"],
-      note: flagged.get("amounts_include_gst") ?? "Amounts are stated without saying whether GST is included",
+      note:
+        flagged.get("amounts_include_gst") ??
+        (gst && gstValue ? `GST basis stated only for ${gstCovers.map((f) => rawOf[f]).join(", ") || "no amount"}; not confirmed for ${uncovered.map((f) => rawOf[f]).join(", ")}` : "Amounts are stated without saying whether GST is included"),
     });
   }
 
@@ -360,6 +369,12 @@ const lowest = (a: Confidence, b: Confidence): Confidence => (ORDER.indexOf(a) <
 
 export type ClarifiableField = "amountsIncludeGst" | "approvalScope" | "nextBudget";
 
+export function statedAmountFields(p: Pick<ConstraintProfile, "budgetNow" | "approvalLimit">): AmountField[] {
+  return (["budgetNow", "approvalLimit"] as const).filter((f) => p[f].value !== null || p[f].rawText !== null);
+}
+
+export class ClarificationError extends Error {}
+
 /** Apply a merchant-recorded, buyer-confirmed answer. Returns a new profile. */
 export function applyClarificationAnswer(
   profile: ConstraintProfile,
@@ -370,7 +385,14 @@ export function applyClarificationAnswer(
   const next: ConstraintProfile = structuredClone(profile);
   if (field === "amountsIncludeGst") {
     if (value !== "yes" && value !== "no") throw new Error("GST answer must be yes or no");
-    next.amountsIncludeGst = { ...next.amountsIncludeGst, value, status: "stated", readings: undefined, clarification: answer, transformation: "clarification answer", confidence: "high" };
+    // The profile-wide basis is used only when the answer explicitly names every stated amount.
+    const required = statedAmountFields(next);
+    const covered = answer.coversAmounts ?? [];
+    const missing = required.filter((f) => !covered.includes(f));
+    if (missing.length) {
+      throw new ClarificationError(`GST answer does not name ${missing.join(" and ")}; the GST basis of every stated amount must be confirmed explicitly`);
+    }
+    next.amountsIncludeGst = { ...next.amountsIncludeGst, value, status: "stated", readings: undefined, clarification: answer, transformation: "clarification answer", confidence: "high", covers: [...required] };
   } else if (field === "approvalScope") {
     if (value !== "per_payment" && value !== "per_contract") throw new Error("Approval scope answer must be per_payment or per_contract");
     next.approvalScope = { ...next.approvalScope, value, status: "stated", readings: undefined, clarification: answer, transformation: "clarification answer", confidence: "high" };
@@ -424,6 +446,13 @@ export function interpretations(profile: ConstraintProfile): Interpretation[] {
   return combos.map((c) => ({ assignment: c.assignment, constraints: resolveConstraints(profile, c.values) }));
 }
 
+function gstBasisOf(profile: ConstraintProfile, hypothetical: boolean): BuyerConstraints["gstBasis"] {
+  const f = profile.amountsIncludeGst;
+  if (hypothetical) return { source: "reading under evaluation", covers: statedAmountFields(profile) };
+  if (f.status !== "stated" || !f.covers) return null;
+  return { source: f.clarification ? `clarification:${f.clarification.clarificationId}` : `message:${f.evidence[0]?.messageId}`, covers: f.covers };
+}
+
 function resolveConstraints(profile: ConstraintProfile, overrides: Record<string, unknown>): BuyerConstraints {
   const nextBudget = (overrides.nextBudget as ConstraintProfile["nextBudget"]["value"]) ?? profile.nextBudget.value;
   return {
@@ -432,6 +461,7 @@ function resolveConstraints(profile: ConstraintProfile, overrides: Record<string
     approvalLimit: profile.approvalLimit.value,
     approvalScope: (overrides.approvalScope as ApprovalScope) ?? profile.approvalScope.value,
     amountsIncludeGst: (overrides.amountsIncludeGst as GstInclusion) ?? profile.amountsIncludeGst.value,
+    gstBasis: gstBasisOf(profile, "amountsIncludeGst" in overrides),
     latestStart: profile.latestStart.value,
     requiredPackages: profile.requiredPackages.value ?? [],
     budgetGap: nextBudget ? deriveBudgetGap(profile, nextBudget.available) : profile.derivedBudgetGap,
