@@ -85,3 +85,15 @@ mark.evidence {
     animation: none !important;
   }
 }
+
+/* Applied merchant rules drawer: a right-side modal dialog. */
+dialog.rules-drawer[open] {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.rule-item:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-weak);
+}

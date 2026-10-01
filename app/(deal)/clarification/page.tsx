@@ -84,7 +84,7 @@ export default async function ClarificationPage() {
         })}
         {s.status === "clarifying" && questions.length ? (
           <Card aria-labelledby="record">
-            <CardHeader id="record" title="Record the buyer's answers" meta={<span>Ask the buyer outside the product, then record what they confirmed</span>} />
+            <CardHeader id="record" title="Record answers manually" meta={<span>For answers given by call, email or a typed reply. Scripted WhatsApp replies are adopted from the buyer conversation on the workspace.</span>} />
             <div className="p-5">
               <AnswerForm questions={questions.map((q) => ({ id: q.id, question: q.question, options: optionsFor(q.field, out.profile.approvalLimit.value ? formatINR(out.profile.approvalLimit.value.amountPaise) : null, q.covers.length > 1) }))} />
             </div>

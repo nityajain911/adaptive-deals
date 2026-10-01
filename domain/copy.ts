@@ -54,7 +54,7 @@ export function explainCheck(c: CheckResult): string {
     case "CONTRIBUTION_ABOVE_FLOOR":
     case "CONTRIBUTION_BELOW_FLOOR": {
       const floor = [Number(f.floorBps) >= 0 ? pct(Number(f.floorBps)) : null, Number(f.floorPaise) >= 0 ? inr(f, "floorPaise") : null].filter(Boolean).join(" and ");
-      return `Net contribution ${inr(f, "netContributionPaise")} (${pct(Number(f.netContributionBps))} of price) is ${c.code === "CONTRIBUTION_ABOVE_FLOOR" ? "at or above" : "below"} the ${floor} floor.`;
+      return `Projected contribution ${inr(f, "netContributionPaise")} (${pct(Number(f.netContributionBps))} of price) is ${c.code === "CONTRIBUTION_ABOVE_FLOOR" ? "at or above" : "below"} the ${floor} floor.`;
     }
     case "CASH_AT_RISK_WITHIN_LIMIT":
       return `Peak funding requirement ${inr(f, "peakFundingPaise")} is within the ${inr(f, "limitPaise")} cash-at-risk limit.`;

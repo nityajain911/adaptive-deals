@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -76,43 +75,12 @@ export function ActionButton({ body, children, variant, confirm, testId, disable
   );
 }
 
-export function RoleSwitch() {
-  const params = useSearchParams();
-  const pathname = usePathname();
-  const role = params.get("role") === "buyer" ? "buyer" : "merchant";
-  const opt = (r: "merchant" | "buyer", label: string, href: string) => (
-    <Link
-      href={href}
-      aria-current={role === r ? "page" : undefined}
-      data-testid={`role-${r}`}
-      className={cx("rounded-md px-3 py-1.5 text-[13px] font-semibold", role === r ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink")}
-    >
-      {label}
-    </Link>
-  );
-  return (
-    <nav aria-label="Role" className="inline-flex rounded-lg border border-line bg-[#eef0f3] p-0.5">
-      {opt("merchant", "Merchant", pathname === "/agreement" ? "/agreement" : pathname)}
-      {opt("buyer", "Demo buyer view", "/agreement?role=buyer")}
-    </nav>
-  );
-}
-
-export function DemoGuideButton({ view, role }: { view: string; role: "merchant" | "buyer" }) {
+export function DemoGuideButton({ href }: { href: string }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   return (
     <span className="inline-flex flex-col">
-      <Button
-        variant="primary"
-        data-testid="demo-next"
-        disabled={pending}
-        onClick={() =>
-          run({ action: "demo_next" }, () => {
-            router.push(role === "buyer" ? `/${view}?role=buyer` : `/${view}`);
-          })
-        }
-      >
+      <Button variant="primary" data-testid="demo-next" disabled={pending} onClick={() => run({ action: "demo_next" }, () => router.push(href))}>
         {pending ? "Working…" : "Do this step"}
       </Button>
       <ErrorText error={error} />
@@ -247,10 +215,191 @@ export function AcceptForm({ action, version, termsHash, needsAuthority }: { act
           <span>I confirm I am authorised to purchase this scope on its own. It is a separate purchase with its own value, not part of a larger purchase split to avoid approval.</span>
         </label>
       ) : null}
-      <Button variant="primary" type="submit" disabled={pending || (needsAuthority && !authority)} data-testid="accept">
-        {pending ? "Accepting…" : "Accept these exact terms"}
+      <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (needsAuthority && !authority)} data-testid="accept">
+        {pending ? "Accepting…" : action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal"}
       </Button>
+      <p className="text-center text-[11px] text-muted">
+        You accept version {version} exactly as shown (terms hash {termsHash.slice(0, 12)}…).
+      </p>
       <ErrorText error={error} />
     </form>
+  );
+}
+
+// ── Simulated conversation ──────────────────────────────────────────────────
+
+/** A typed simulated buyer reply. It goes through the same code rules as scripted replies. */
+export function TypedReply({ targets }: { targets: { id: string; label: string }[] }) {
+  const { run, pending, error } = useAction();
+  const [to, setTo] = useState(targets.at(-1)?.id ?? "");
+  const [text, setText] = useState("");
+  if (!targets.length) return null;
+  return (
+    <form
+      className="mt-4 rounded-xl border border-dashed border-[#ddd5ff] bg-violet-weak/40 p-3"
+      data-testid="typed-reply"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "buyer_reply_typed", inReplyTo: to, text }, () => setText(""));
+      }}
+    >
+      <div className="text-[12px] font-semibold text-violet">Type a simulated buyer reply</div>
+      <p className="mt-0.5 text-[12px] text-ink-2">Read by the same code rules as the scripted replies (reply-rules.v1). No AI reads it, in replay or after Run live.</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <label className="text-[12px] font-medium text-muted sm:col-span-2">
+          In reply to
+          <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink" value={to} onChange={(e) => setTo(e.target.value)}>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-[12px] font-medium text-muted">
+          Buyer message
+          <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder="e.g. Cash is tight till the 20th." />
+        </label>
+        <Button type="submit" variant="sim" className="self-end" disabled={pending || !text.trim()}>
+          {pending ? "Sending…" : "Send as buyer"}
+        </Button>
+      </div>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+// ── Buyer proposal actions ──────────────────────────────────────────────────
+
+export function RequestChangeForm({ version }: { version: number }) {
+  const { run, pending, error } = useAction();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  if (!open)
+    return (
+      <Button className="w-full" onClick={() => setOpen(true)} data-testid="request-change" aria-expanded={false}>
+        Request a change
+      </Button>
+    );
+  return (
+    <form
+      className="space-y-2 rounded-xl border border-line p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "request_change", version, text }, () => {
+          setText("");
+          setOpen(false);
+        });
+      }}
+    >
+      <label className="block text-[13px] font-semibold text-ink">
+        What would you like changed?
+        <textarea className="mt-1 block min-h-20 w-full rounded-lg border border-line-strong px-3 py-2 text-[14px] font-normal text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} autoFocus />
+      </label>
+      <p className="text-[12px] text-muted">Your message goes to Pinecone Media Works in your conversation and refers to version {version}. The proposal itself does not change.</p>
+      <div className="flex gap-2">
+        <Button type="submit" variant="primary" disabled={pending || text.trim().length < 2} data-testid="send-change-request">
+          {pending ? "Sending…" : "Send request"}
+        </Button>
+        <Button type="button" onClick={() => setOpen(false)} disabled={pending}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+export function DeclineButton({ version }: { version: number }) {
+  const { run, pending, error } = useAction();
+  const [confirming, setConfirming] = useState(false);
+  if (!confirming)
+    return (
+      <Button variant="ghost" className="w-full text-ink-2" onClick={() => setConfirming(true)} data-testid="decline">
+        Decline
+      </Button>
+    );
+  return (
+    <div role="group" aria-label="Confirm decline" className="space-y-2 rounded-xl border border-[#f6cfc9] bg-red-weak p-3 text-[13px]">
+      <div className="font-semibold text-ink">Decline version {version}? No payment will be set up.</div>
+      <div className="flex gap-2">
+        <Button variant="danger" onClick={() => run({ action: "decline", version })} disabled={pending} data-testid="confirm-decline">
+          {pending ? "Declining…" : "Yes, decline"}
+        </Button>
+        <Button onClick={() => setConfirming(false)} disabled={pending}>
+          Keep reviewing
+        </Button>
+      </div>
+      <ErrorText error={error} />
+    </div>
+  );
+}
+
+// ── Applied merchant rules drawer ───────────────────────────────────────────
+
+const OPEN_RULE = "adaptive-deals:open-rule";
+
+/** Opens the rules drawer at one rule. Used next to each seller-side rejection. */
+export function RuleLink({ ruleId, children }: { ruleId: string; children: ReactNode }) {
+  return (
+    <button type="button" className="font-semibold text-blue underline-offset-2 hover:underline" onClick={() => window.dispatchEvent(new CustomEvent(OPEN_RULE, { detail: ruleId }))}>
+      {children}
+    </button>
+  );
+}
+
+/** A right-side drawer built on the native modal dialog (focus trap, Escape to close). */
+export function RulesDrawer({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [focusRule, setFocusRule] = useState<string | null>(null);
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      setFocusRule((e as CustomEvent<string>).detail ?? null);
+      ref.current?.showModal();
+    };
+    window.addEventListener(OPEN_RULE, onOpen);
+    return () => window.removeEventListener(OPEN_RULE, onOpen);
+  }, []);
+  useEffect(() => {
+    if (!focusRule) return;
+    const el = ref.current?.querySelector<HTMLElement>(`[data-rule="${focusRule}"]`);
+    el?.focus();
+    el?.scrollIntoView({ block: "center" });
+  }, [focusRule]);
+  return (
+    <>
+      <Button
+        onClick={() => {
+          setFocusRule(null);
+          ref.current?.showModal();
+        }}
+        data-testid="open-rules"
+        aria-haspopup="dialog"
+      >
+        Applied merchant rules
+      </Button>
+      <dialog
+        ref={ref}
+        aria-labelledby="rules-title"
+        data-testid="rules-drawer"
+        className="rules-drawer m-0 ml-auto h-full max-h-none w-full max-w-[440px] border-l border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/30"
+        onClose={() => setFocusRule(null)}
+        onClick={(e) => {
+          if (e.target === ref.current) ref.current?.close();
+        }}
+      >
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 id="rules-title" className="text-[16px] font-semibold">
+            Applied merchant rules
+          </h2>
+          <Button variant="ghost" onClick={() => ref.current?.close()} aria-label="Close applied merchant rules">
+            Close
+          </Button>
+        </div>
+        <div className="space-y-3 p-5" data-focus-rule={focusRule ?? undefined}>
+          {children}
+        </div>
+      </dialog>
+    </>
   );
 }

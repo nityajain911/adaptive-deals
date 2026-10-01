@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cx } from "./ui";
 
 const STEPS = [
-  ["/workspace", "1", "Deal workspace"],
+  ["/workspace", "1", "Workspace · conversation"],
   ["/clarification", "2", "Clarification"],
   ["/decision", "3", "Decision"],
   ["/agreement", "4", "Agreement"],

@@ -93,7 +93,7 @@ Enforced in `domain/notices.ts`.
 
 Code computes this. The AI never chooses the date.
 
-**Hero:** the buyer replies on 1 Dec 2026 to the 28 Nov advance notice. "Till the 20th" is normalised from the reply's own timestamp to 20 Dec 2026, so the revised debit is **21 Dec 2026, not 20 Dec**. Debiting on the 20th would land on the last day the buyer said cash is tight. The inclusive reading is the conservative one: it can delay a debit by a day but never pulls one into the period the buyer excluded.
+**Hero (preventive path):** Adaptive Deals sends its advance notice on 28 Nov 2026 for the 1 Dec debit. The buyer replies the same afternoon (28 Nov, 12:30 IST), before any debit is attempted: "Cash is tight till the 20th." Normalised from the reply's own timestamp, that is 20 Dec 2026, so the revised debit is **21 Dec 2026, not 20 Dec**. (The failed-debit path, where the buyer replies on 1 Dec after a failed debit, reaches the same dates and remains a tested secondary path.) Debiting on the 20th would land on the last day the buyer said cash is tight. The inclusive reading is the conservative one: it can delay a debit by a day but never pulls one into the period the buyer excluded.
 
 The proposed date is not automatically accepted. It is re-checked against:
 
@@ -105,56 +105,79 @@ It then needs merchant approval and buyer acceptance of the new version's hash.
 
 Enforced in `domain/amendment.ts` (`earliestDebitAfterUnavailableUntil`, `CASH_UNAVAILABLE_UNTIL_RULE`).
 
+## Payment-change replies are read by code (`reply-rules.v1`)
+
+**Owner: code, not AI.** Replies to advance notices are classified by `domain/replies.ts`. No model is called, in replay or after **Run live**, and pre-scripted and typed simulated replies take the same path. The phrases are narrow and an error moves money, so code handles the supported phrase and everything else goes to the merchant. A broader reply reader would be a separate, versioned AI task (for example `interpret_payment_reply.v1`) with its own schema, prompt, development set, injection tests and recorded results. The earlier frozen evaluation does not cover it.
+
+**Supported phrase:** `till`, `until`, `up to` or `upto`, followed by an ordinal day of month (`the 20th`, `20th`), with no month named.
+
+| Rule | Behaviour |
+| --- | --- |
+| **Reference date** | The reply's own timestamp, in the merchant time zone (Asia/Kolkata). Never "today" and never the notice date. |
+| **Month rollover** | The named day resolves to its next occurrence strictly after the reply date, bounded to two months: (1) later this month, if the month has that day; (2) otherwise the immediately following calendar month, if it has that day; (3) otherwise merchant attention. Code never skips another month. Examples: 28 Nov + "till the 20th" → 20 Dec; 10 Feb 2027 + "till the 30th" → 30 Mar; 29 Apr 2027 + "till the 31st" → 31 May; 31 Jan 2027 + "till the 30th" → merchant attention (February has no 30th). |
+| **Same day** | A reply sent on the named day itself ("till the 20th" sent on the 20th) is ambiguous between today and next month. It needs merchant attention and creates no amendment. |
+| **Inclusive "till"** | Cash is unavailable *through* the named day; the earliest proposed debit is the following day (20 Dec → 21 Dec). |
+| **Amount versus date** | "up to ₹10K", "up to 10k" and other amounts are not dates. They need merchant attention. |
+| **Unsupported language** | Hinglish ("20 tak"), relative dates ("till next week", "till salary comes"), dates with a month name, more than one day, mixed intent ("I paid half, rest till the 20th") and questions all need merchant attention. No amendment is drafted. |
+| **"I paid"** | Recorded as **Payment claimed — verification required**. Payment status, attempts and the ledger change only from a verified payment event. |
+| **"Okay"** | Acknowledgement only. It never accepts an agreement or an amendment and never authorises collection. |
+
+**Selecting the payment.** A reply selects its collection line only through its own reference: reply → advance notice → `notice.attemptId` → `attempt.scheduleLineId`. A reply to anything other than a sent notice selects nothing. A submitted attempt with an unknown outcome blocks rescheduling; a succeeded line can never be rescheduled or charged again.
+
+**One open change request per payment.** At most one unresolved request (change requested or draft amendment) may exist for the same notice, attempt or schedule line under an agreement version. A further qualifying reply is kept in the conversation, creates no second request, never replaces the first requested date, and shows **Merchant attention needed: a change request is already open**.
+
+**Stale requests.** A request left unresolved from an earlier agreement version is never shown as open or actionable and is not counted in pending actions. Drafting acts only on a request under the active version. Where it appears in history it reads **Superseded by agreement version ‹active version›**. No new domain state was added: this is derived for display (`lib/views.ts`).
+
+**State sequence.** Change requested → Draft amendment (rechecks buyer constraints, projected contribution, funding requirement and mandate fit) → merchant approval of the new hash → buyer acceptance of the same hash → collection updated → **Payment rescheduled**. The original scheduled attempt is kept until both approvals exist. A failed recheck ends in **Not restructured** with nothing changed. The amendment summary is written by code from verified state; `explain.v3` is not used.
+
+## Buyer-facing content
+
+Buyer-facing messages and the buyer proposal are written by code from canonical terms and notices. They never contain contribution, cost, margin, cash-at-risk, funding, policy or rejection wording (`assertBuyerSafe`). The buyer proposal (`/proposal/agr-hero/v‹n›`) has its own layout, with no merchant navigation, guided demo, run/reset controls, evaluation provenance or deal status. A thin, labelled **Demo control** bar sits outside the buyer frame. The page is a demonstration with no authentication.
+
 ## Merchant policy values are configuration, not engine logic
 
 Limits such as the cash-at-risk limit, contribution floor and smallest instalment are merchant settings. The engine enforces whatever the merchant configures. The hero values and their reasons are in `FIXTURE_RATIONALE.md`.
 
 ## View acceptance checklists
 
-Each item names where it is implemented. The Playwright smoke test (`e2e/journey.spec.ts`) asserts them.
+Each item names where it is implemented. The Playwright journey (`e2e/journey.spec.ts`) asserts them at 1440 px and 390 px.
 
-### 1. Deal workspace (`/workspace`)
-- [x] Source message, shown verbatim (`message-msg-2`)
-- [x] Message timestamp in IST and its source channel
-- [x] Evidence highlights: verified quote offsets rendered as `<mark>` in the message, plus a quote on each card
-- [x] Extracted constraints as cards with status, value, raw text, code transformation and confidence (`constraint-*`)
-- [x] Derived budget gap with both cited statements (`budget-gap`)
-- [x] Ambiguity status per field, with whether it changes the decision (`ambiguity-*`)
-- [x] The other three failure states are available from "Try another conversation" (`scenario-*`)
+### 1. Workspace · conversation (`/workspace`)
+- [x] Simulated WhatsApp thread labelled **WhatsApp simulated · buyer replies selected by the demo operator** (`conversation`)
+- [x] States: **Suggested by AI**, **Approved and sent by merchant**, **Received from buyer**; code-authored messages are labelled **Sent by Adaptive Deals · Written by code from verified state**
+- [x] Each item shows source, timestamp, reply-to reference, author and scripted or typed provenance
+- [x] Every clarification draft needs a merchant **Send to buyer**; nothing is sent automatically
+- [x] **Pause suggested replies**: inbound replies are still recorded and no new AI drafts are created; resuming is explicit
+- [x] Pre-scripted replies and a typed simulated reply, both read by code
+- [x] **Use replies as confirmed answers** (typed answers are not interpreted and must be recorded on Clarification)
+- [x] Evidence highlights, constraint cards and the derived budget gap
+- [x] **Other outcomes** with one bounded next action each (`other-outcomes`, `next-action`)
 
 ### 2. Clarification (`/clarification`)
-- [x] Question, labelled AI wording or code wording (`question-clar-*`)
-- [x] Engine-derived "why it matters", plus feasible counts per reading (`why-clar-*`)
-- [x] Answer, entered by the merchant
-- [x] Confirmer and channel (the "Confirmed by buyer via" field is required), with the time (`recorded-clar-*`)
-- [x] GST-inclusive amounts derived for both stated amounts, with the reconciliation difference
+- [x] Questions labelled AI wording or code wording, with the engine's "why it matters"
+- [x] Recorded answers with confirmer, channel and time; a manual form for call, email or typed answers
 
 ### 3. Decision (`/decision`)
-- [x] At least one computed rejection: one featured buyer-side and one seller-side, plus the full list with reasons (`featured-*-rejection`, `rejected-row`)
-- [x] Feasible structures, ranked with within-limit first (`feasible-*`)
-- [x] Buyer checks and seller checks with code-generated explanations
-- [x] Unpaid service value and funding requirement shown separately, with a cash-at-risk chart and table view
-- [x] AI comparison, with every figure filled by code (`ai-comparison`)
-- [x] Merchant action: Approve and send, which shows the exact terms hash before approval
+- [x] One leading **Recommended** card: scope, exclusions, schedule, **Projected contribution** with the floor result, **Peak funding requirement** with the cash-at-risk result, buyer approval, **Why this structure is recommended**, and **Approve and send** (`recommendation`)
+- [x] Attribution follows the actual source: "Explanation written by AI · all figures calculated by the engine" only when the text is AI; otherwise it names code (`attribution`)
+- [x] Compact alternatives, each with **View details** (`alternative-*`)
+- [x] One buyer-side and one seller-side rejection; seller-side failures link to their rule
+- [x] Full checks, calculations, every rejected structure and needs-information structures behind **View details** (`view-details`); none can be approved
+- [x] **Applied merchant rules** drawer with values from configuration (`rules-drawer`)
 
-### 4. Agreement (`/agreement`, `/agreement?role=buyer`)
-- [x] Visible role switch: Merchant / Demo buyer view (`role-*`)
-- [x] Exact version and hash status, with a match indicator for approval and acceptance (`version-*`)
-- [x] GST-inclusive payment dates and amounts in the buyer proposal, plus "No additional financing charge added by the seller." (`no-financing`)
-- [x] Merchant approval and buyer acceptance against the same hash (`buyer-hash`, `accept`)
-- [x] Payment-link state (`payment-link`)
-- [x] Mandate limit, end date and status (`mandate`)
-- [x] Provenance labels: Simulated or Razorpay test mode; Demo buyer view; Synthetic data
+### 4. Agreement (`/agreement`) and buyer proposal (`/proposal/agr-hero/v‹n›`)
+- [x] Merchant view: versions, hash checks, the proposal link (only after merchant approval), payment link and mandate
+- [x] Buyer page, in this order: merchant and buyer, included scope, exclusions, GST-inclusive total, payments, recurring authorisation, what happens next; actions **Accept proposal**, **Request a change**, **Decline**; collapsed **Agreement details** with version, hash and audit facts
+- [x] Every figure comes from canonical terms (`lib/views.ts` `proposalView`, `tests/lib/views.test.ts`)
+- [x] Request a change creates a linked conversation item and leaves the terms untouched; Decline records buyer rejection and creates no payment setup
+- [x] A revision shows the moved payment and revision-specific next steps; declining a revision is not offered (request a change instead)
 
 ### 5. Deal timeline (`/timeline`)
-- [x] Three schedules: delivery, invoice and collection (`collections`)
-- [x] Ledger amounts kept separate (`ledger`)
-- [x] Failed-debit event in the event log and in the collection schedule (`events`)
-- [x] Mandate-fit result (`mandate-fit`)
-- [x] Both amendment approvals, merchant and buyer, in the amendment history (`amendment`)
-- [x] Internal retry removal: "Adaptive Deals retry removed; revised payment scheduled."
-- [x] Version history with hash checks (`version-history`)
-- [x] Close: metric definition, approval boundary, and the no-feasible example (`close`, `no-feasible-example`)
+- [x] Conversation after acceptance: payment, notice and amendment messages, with buyer replies and their code classification
+- [x] **Buyer-triggered restructuring**: progress (Change requested → Draft amendment → Merchant approved → Buyer accepted → Payment rescheduled), the buyer quote, **Read by code · reply-rules.v1 · not AI**, rechecked checks, projected contribution, funding requirement, mandate fit, original and new attempt status, and change-request history (`restructuring`)
+- [x] Secondary path: restructure after a failed debit
+- [x] Ledger, the three schedules, version history and the labelled event log
+- [x] Close: realised-contribution definition, approval boundary, no-feasible example
 
 ## Trust controls
 
@@ -171,6 +194,10 @@ Each item names where it is implemented. The Playwright smoke test (`e2e/journey
 | Duplicate or overlapping collection | Idempotency keys are unique per attempt. A submitted attempt blocks others; a paid line or a fully paid agreement cannot be charged; internal retries are removed only after an accepted revision. |
 | Live credentials | Only `rzp_test_` keys are accepted; live and unrecognised keys are refused before a client can exist. The model key is never logged or returned. |
 | Misleading provenance | Synthetic, simulated, replayed and test-mode elements are labelled. "Replay of an actual run" appears only for a stored `live` run; replays must reproduce the stored run exactly. |
+| Chat reply treated as consent | "Okay" is acknowledgement only. Acceptance happens only on the proposal page, against the exact terms hash. "I paid" never changes payment status or the ledger. |
+| Payment reply misread | Code reads one narrow phrase from the reply's own timestamp; everything else goes to the merchant. AI does not read payment replies. |
+| Internal economics leak to the buyer | Buyer-facing text is built from canonical terms only and checked by `assertBuyerSafe`; the buyer page has its own layout with no merchant data. |
+| Duplicate or stale restructuring | One open change request per payment per version; stale earlier-version requests are shown as superseded and are never actionable. |
 | Clock manipulation | Domain code never reads the system clock (enforced by a test). Demo time moves only forwards, through explicit, recorded and labelled advances. |
 
 ## Metric definitions

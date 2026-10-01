@@ -505,6 +505,69 @@ Four of the six cases with misses are Hinglish; two are English. Both missed cla
 
 No change to prompts, schemas, validators, frozen cases or results, live runs or prompt hashes. No Groq call.
 
+### 2026-10-02 · Connected buyer journey: UI phase [Claude Code]
+
+**Prompt (applicant):** Phase Gate approved. Build the UI phase on domain baseline `ee5488f` without changing the validated reply rules, the restructuring state logic, frozen prompts, schemas, evaluation cases, results or live runs. Stale earlier-version change requests must not appear open or actionable, must not count as pending, and must read "Superseded by agreement version ‹n›" in history, without a new domain state unless unavoidable.
+
+**Next.js 16.3.8 docs read first** (`node_modules/next/dist/docs/`): layouts and pages, dynamic segments (`params` is a Promise), route groups, server and client components, `useRouter().refresh`, mutating data, `notFound`. Route types were regenerated with `next typegen`.
+
+**Built**
+- **Routes and layouts.** The root layout is now only the document shell. The Razorpay-style merchant header moved into `app/(deal)/layout.tsx`. New standalone buyer route `app/proposal/[agreementId]/[version]` (segment `v‹n›`, validated) with its own layout: no merchant navigation, guided demo, run/reset, provenance or deal status, and a thin labelled **Demo control** bar outside the buyer frame. `/agreement?role=buyer` redirects to the proposal.
+- **Mutations.** The existing validated route handler plus `router.refresh()` was kept and extended with: `send_clarification`, `set_suggestions_paused`, `buyer_reply` (scripted), `buyer_reply_typed`, `adopt_replies`, `request_change` and `decline`. All go through the domain-phase service functions; none calls a model.
+- **P0 · Conversation** (`components/conversation-panel.tsx`): the simulated WhatsApp thread on the workspace, and its post-acceptance part on the timeline.
+  - Labelled states (Suggested by AI, Approved and sent by merchant, Received from buyer, Sent by Adaptive Deals).
+  - Author, source, timestamp and reply-to on every item.
+  - **Send to buyer** per draft; **Pause / Resume suggested replies**.
+  - Pre-scripted replies and a typed composer, both "Read by code (reply-rules.v1), not AI".
+  - **Use replies as confirmed answers**.
+- **P0 · Decision:** recommended-first.
+  - One card: scope, exclusions, schedule, **Projected contribution** with the floor result, **Peak funding requirement** with the cash-at-risk result, buyer approval, **Why this structure is recommended**, and Approve and send.
+  - Attribution follows `explanation.source`. For the stored demo run the AI wording failed validation, so the screen reads "Explanation written by code (AI wording did not pass validation) · all figures calculated by the engine · Order suggested by AI…". "Explanation written by AI" appears only when the text is AI.
+  - Compact alternatives, each with **View details**; one buyer-side and one seller-side rejection; everything else behind **View details**.
+  - The forecast metric is renamed **Projected contribution**, including the check sentence in `domain/copy.ts` (display copy only; the AI layer does not use it). **Realised contribution** is reserved for the outcome metric.
+- **P0 · Buyer proposal:** information order per the addendum; **Accept proposal**, **Request a change** (a linked conversation item; terms untouched) and **Decline** (buyer rejection; no payment setup). **Agreement details** are collapsed.
+  - Every figure comes from canonical terms via `lib/views.ts` `proposalView`.
+  - Revisions show the moved payment and revision-specific next steps. Declining a revision is not offered, because the domain refuses it; the page says to request a change instead.
+- **P0 · Preventive restructuring** (timeline): progress chip row (Change requested → Draft amendment → Merchant approved → Buyer accepted → Payment rescheduled); the buyer quote; **Read by code · reply-rules.v1 · not AI** with the date transformation; **Draft amendment and recheck**; a code-written amendment summary with rechecked buyer and seller checks, projected contribution, funding requirement, mandate fit, and the original attempt shown as kept until both approvals; merchant approval; a link to the buyer's v2 proposal; **Payment rescheduled** only after the collection update; change-request history. The failed-debit path sits under **Secondary path**.
+- **Stale change requests:** handled in display only (`lib/views.ts` `changeRequestDisplay`, `actionableChangeRequests`, `pendingActions`). No domain state was added. They are never open or actionable, are excluded from the header's pending-action count, and read "Superseded by agreement version ‹active›" in history.
+- **P1 · Applied merchant rules:** a right-side drawer on the native modal `<dialog>` (focus trap, Escape). Values come from merchant configuration and the hero fixture: contribution floor, cash-at-risk limit, permitted templates, maximum tenure, smallest instalment, discount policy, package rules. Each seller-side rejection has **Rule: ‹name›**, which opens the drawer focused on that rule.
+- **P1 · Other outcomes** (renamed from "Try another conversation"), with one bounded next action each:
+  - missing information → a code-drafted question;
+  - ambiguous → the hero's drafted questions;
+  - outside templates → hand over to the merchant;
+  - no feasible structure → the binding checks, with close or reconsider.
+- **Visual:** the Razorpay dashboard reference was followed (dark header with the glowing active tab, large bold headings, grey metadata pills, white bordered cards, blue actions). The buyer page is a narrower, simpler, mobile-first card.
+
+**Defects found and fixed during verification:**
+- The merchant's pasted message was labelled "Received from buyer".
+- Duplicate status badges on a reply.
+- 390 px overflow from a non-wrapping channel badge, long non-wrapping badges, and a long payment-link URL in a bubble.
+- The request-change form stayed open after sending.
+- A revised proposal listed onboarding steps (payment link, work start) that had already happened.
+- Settled notices still offered scripted replies.
+- "Run live is off" said the synthetic replay was shown when the stored actual run is shown. The source string is in `ai/config.ts`, a frozen-baseline file, so the layout now prints only its first clause.
+
+**Tests:**
+- `tests/lib/views.test.ts`: stale display, actionability and pending counts; buyer proposal derived from canonical terms (and changing with them); version-segment parsing; attribution follows the source.
+- `e2e/journey.spec.ts` rewritten, 8 tests:
+  - the full connected journey;
+  - other outcomes;
+  - typed and unsupported replies plus the duplicate guard;
+  - decline;
+  - stale request shown as superseded;
+  - guided demo;
+  - keyboard access (drawer, details, buyer actions);
+  - 390 px mobile without horizontal scroll.
+- Screenshots in `artifacts/ui-review/`. The 13 screenshots of the superseded UI were removed; they remain in git history.
+
+**Verification:**
+- `npm test` 322/322 (31 files) · typecheck clean · lint clean · `next build` succeeds.
+- Playwright 8/8.
+- The 44-file SHA-256 baseline matches; current prompt hashes equal `FREEZE.json`.
+- No diff from `ee5488f` in `ai/`, `evaluation/`, `data/`, `domain/replies.ts`, `domain/restructure.ts`, `domain/amendment.ts`, `domain/conversation.ts` or `lib/service.ts`.
+- Credential scan: only the existing fake test-key fixtures; `.env.local` is git-ignored.
+- No Groq call. No frozen evaluation rerun.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

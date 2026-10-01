@@ -97,7 +97,7 @@ export function StructureCard({ x, rank, note, actionable, limitPaise, floorBps,
               Phase 1 has value on its own and is its own purchase. The buyer must confirm authority to buy this scope. Remaining services are not part of this agreement; any later purchase follows the buyer&apos;s normal approval.
             </p>
           ) : null}
-          {note ? <p className="text-[13px] text-ink-2">AI note: {note}</p> : null}
+          {note ? <p className="text-[13px] text-ink-2">AI note (figures filled by code): {note}</p> : null}
           <PaymentTable x={x} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Checks title="Buyer checks" checks={x.buyerChecks} />
@@ -106,7 +106,7 @@ export function StructureCard({ x, rank, note, actionable, limitPaise, floorBps,
         </div>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            <Metric label="Net contribution" value={formatINR(e.netContributionPaise)} hint={`${(e.netContributionBps / 100).toFixed(2)}% of price${floorBps !== null ? ` · floor ${floorBps / 100}%` : ""}`} />
+            <Metric label="Projected contribution" value={formatINR(e.netContributionPaise)} hint={`${(e.netContributionBps / 100).toFixed(2)}% of price${floorBps !== null ? ` · floor ${floorBps / 100}%` : ""}`} />
             <Metric label="Peak funding requirement" value={formatINR(e.peakFundingPaise)} hint={e.peakFundingDate ? `on ${formatDate(e.peakFundingDate)} · limit ${formatINR(limitPaise)}` : `limit ${formatINR(limitPaise)}`} />
             <Metric label="Peak unpaid service value" value={formatINR(e.peakUnpaidServiceValuePaise)} hint="Delivered but not yet paid; separate from funding" />
             <Metric label="Delivery obligations" value={formatINR(s.pricePaise)} hint={`${s.deliveries.length} delivery lines from ${formatDate(s.startDate)}`} />

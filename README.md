@@ -22,11 +22,12 @@ Open `/workspace` and use the **Guided demo** bar: **Do this step** performs eac
 
 | View | Route |
 | --- | --- |
-| 1. Deal workspace: conversation, evidence-backed constraint cards, derived budget gap, ambiguity status, failure-state scenarios | `/workspace` |
-| 2. Clarification: two questions, engine-derived reasons, answers with "Confirmed by buyer via" | `/clarification` |
-| 3. Decision: rejected and feasible structures, buyer and seller checks, AI comparison, Approve and send | `/decision` |
-| 4. Agreement: merchant view and the no-login **Demo buyer view** (role switch), hash match, payment link, mandate | `/agreement`, `/agreement?role=buyer` |
-| 5. Deal timeline: schedules, ledger, simulated events, failed debit, amendment, mandate fit, version history | `/timeline` |
+| 1. Workspace · conversation: the simulated WhatsApp thread (AI drafts the merchant sends, simulated buyer replies, pause control), evidence-backed constraint cards, derived budget gap, **Other outcomes** | `/workspace` |
+| 2. Clarification: engine-derived reasons, recorded answers, manual answer form | `/clarification` |
+| 3. Decision: one **Recommended** card (projected contribution, peak funding requirement, approval status, why), compact alternatives, one buyer-side and one seller-side rejection, **View details**, **Applied merchant rules** drawer | `/decision` |
+| 4. Agreement (merchant): versions, hash match, proposal link, payment link, mandate | `/agreement` |
+| Buyer proposal: standalone mobile-first page with **Accept proposal**, **Request a change** and **Decline**, and collapsed **Agreement details**. A thin **Demo control** bar sits outside the buyer frame | `/proposal/agr-hero/v1`, `/v2` for the revision |
+| 5. Deal timeline: conversation after acceptance, **Buyer-triggered restructuring** (change requested → draft amendment → two approvals → payment rescheduled), ledger, schedules, version history, event log, close | `/timeline` |
 
 ## Environment variables
 
@@ -48,7 +49,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | --- | --- |
 | `npm test` | Unit and integration tests (Vitest) |
 | `npm run typecheck` · `npm run lint` · `npm run build` | Static checks and production build |
-| `npm run test:e2e` | Playwright smoke test of the five-view journey; writes screenshots to `artifacts/ui-review/` |
+| `npm run test:e2e` | Playwright journey across the merchant views and the buyer proposal, at 1440 px and 390 px, including keyboard and expand/collapse checks; writes screenshots to `artifacts/ui-review/` |
 | `npm run reset:seed` | Restore the clean demo state |
 | `npm run hero:report` | Print every hero structure with its engine result |
 | `npm run replay:build` | Rebuild the bundled synthetic replay from the hand-written synthetic AI outputs |
@@ -65,8 +66,11 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | **Live run · run ID …** | A run in progress with a real model. |
 | **Simulated** / **Simulated event** / **Simulated date: …** | A local stand-in for a payment, mandate, debit, notice or clock advance. |
 | **Razorpay test mode** | A real call to Razorpay's test environment. |
-| **Demo buyer view** | A no-login page that shows what the buyer accepts. It is not a buyer portal. |
-| **AI wording** / **Code wording** | Who wrote the question or comparison text. Figures are always filled by code. |
+| **Demo control** · **Demo buyer view** | The buyer proposal is a no-login demonstration of what the buyer accepts. It is not a buyer portal. |
+| **WhatsApp simulated · buyer replies selected by the demo operator** | The conversation channel. No message reaches anyone. |
+| **Suggested by AI** / **Approved and sent by merchant** / **Received from buyer** / **Sent by Adaptive Deals** | Conversation message states. Proposal, payment, notice and amendment messages are written by code from verified state. |
+| **Read by code · reply-rules.v1 · not AI** | A buyer's payment-change reply, classified by deterministic rules. |
+| **AI wording** / **Code wording** · "Explanation written by …" | Who wrote the question or explanation text. Figures are always calculated by the engine. |
 
 ## Architecture
 
@@ -80,17 +84,18 @@ data/synthetic/         hero fixture (inputs only), synthetic AI outputs, bundle
 integrations/razorpay/  test-key guard, test-mode payment links, simulated payment links and recurring
 evaluation/             gold-label format, count metrics, development set, frozen-set import and run
 lib/                    JSON store (atomic writes) and the deal service used by the API
-app/, components/       five views and one validated actions endpoint
+app/, components/       merchant views, the standalone buyer proposal (app/proposal) and one validated actions endpoint
 ```
 
 ## Limitations
 
-- **Live model:** not exercised in this build environment, because no key was present. The Groq and Anthropic providers are tested against fake SDK clients.
+- **WhatsApp is simulated.** Buyer replies are pre-scripted or typed by the demo operator. Payment-change replies are read by narrow code rules (`reply-rules.v1`). Hinglish and imprecise relative dates ("20 tak", "till next week", "till salary comes") need merchant attention by design.
+- **Buyer proposal:** a demonstration with no authentication.
+- **Live model:** the committed live runs (`data/live-runs/`) were produced on Groq `openai/gpt-oss-120b`. The connected journey added no model calls; the demo replays the stored run named in `data/demo-run.json`.
 - **Razorpay:**
-  - Test-mode payment links are tested against a fake transport only; no test keys were available.
-  - Recurring payments (e-mandate, debits, failures) are always simulated.
-  - Advance notices are simulated.
+  - Test-mode payment links are tested against a fake transport only.
+  - Recurring payments (e-mandate, debits, failures) and advance notices are always simulated.
+- **Evaluation:** the frozen evaluation was run once against its recorded prompts (`extract.v2`, `clarify.v1`, `explain.v3`) on 20 cases written with Codex at the applicant's direction, so they are not independent. It does not cover the connected journey. Development labels for clarifications and state were reconciled with the engine and are not independent either.
 - **Data:** a single merchant segment, one Phase 1 preset, the hero seller configuration for all scenarios, and a single local user. The JSON store has an in-process lock only.
 - **Next-budget amount:** "new budget in April" has no amount, so after April the engine checks timing only. This is shown on the constraint card.
-- **Evaluation:** development labels for clarifications and state were reconciled with the engine, so they are not independent. No frozen evaluation has been run.
-- **No external evidence:** the problem's frequency among Indian agencies is an assumption to validate.
+- **No external evidence:** the problem's frequency among Indian agencies, and how often commercial negotiation happens over WhatsApp, are assumptions to validate.

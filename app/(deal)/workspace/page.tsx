@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { formatDate, formatDateValue } from "@/domain/dates";
-import { shortReason } from "@/domain/copy";
-import { Conversation, Quote } from "@/components/evidence";
-import { ActionButton } from "@/components/client";
+import { Quote } from "@/components/evidence";
+import { ConversationPanel } from "@/components/conversation-panel";
+import { OtherOutcomes } from "@/components/other-outcomes";
 import { Badge, Card, CardHeader, Empty, Label, Notice, Pill } from "@/components/ui";
-import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { loadPage } from "@/lib/page-data";
 import type { FieldCard } from "@/ai/run-record";
 
@@ -45,32 +44,26 @@ function ConstraintCard({ f, messages }: { f: FieldCard; messages: Parameters<ty
 export default async function WorkspacePage() {
   const { s, out } = await loadPage();
   const r = s.run.record;
-  const messages = [...r.inputs.messages, ...s.extraMessages];
+  // Evidence quotes can only point at the opening messages; later replies live in the thread.
+  const messages = r.inputs.messages;
   const cards = r.engine.profile.filter((f) => f.status !== "missing" || ["budgetNow", "nextBudget", "approvalLimit"].includes(f.key));
   const evidence = r.engine.profile.flatMap((f) => f.evidence.map((e) => ({ ...e, label: f.label })));
   const gap = r.engine.derivedBudgetGap;
   const initial = r.engine.initial;
   const [stateLabel, stateTone] = STATE_COPY[initial.state];
-  const scenario = s.scenario;
-  const scenarioDef = SCENARIOS.find((x) => x.id === scenario?.id);
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <Card aria-labelledby="conv" className="lg:self-start">
-        <CardHeader id="conv" title="Buyer conversation" meta={<><Label kind="synthetic" /><span>Pasted from WhatsApp; treated as untrusted data</span></>} />
-        <div className="p-5">
-          <Conversation messages={messages} evidence={evidence} />
-          {r.engine.suspectedInstructions.length ? (
-            <div className="mt-4">
-              <Notice tone="red" title="Embedded instructions ignored">
-                {r.engine.suspectedInstructions.map((q, i) => (
-                  <div key={i}>“{q.quote}” ({q.messageId}) — recorded for review; it cannot change instructions or seller policy.</div>
-                ))}
-              </Notice>
-            </div>
-          ) : null}
-        </div>
-      </Card>
+      <div className="space-y-5 lg:self-start">
+        <ConversationPanel s={s} messages={messages} evidence={evidence} />
+        {r.engine.suspectedInstructions.length ? (
+          <Notice tone="red" title="Embedded instructions ignored">
+            {r.engine.suspectedInstructions.map((q, i) => (
+              <div key={i}>“{q.quote}” ({q.messageId}) — recorded for review; it cannot change instructions or seller policy.</div>
+            ))}
+          </Notice>
+        ) : null}
+      </div>
 
       <div className="space-y-5">
         <Card aria-labelledby="profile">
@@ -156,52 +149,8 @@ export default async function WorkspacePage() {
           </div>
         </Card>
 
-        <Card aria-labelledby="scen">
-          <CardHeader id="scen" title="Try another conversation" meta={<><Label kind="synthetic_replay" /><span>All four failure states, computed by the engine</span></>} />
-          <div className="p-5">
-            <div className="flex flex-wrap gap-2">
-              {SCENARIOS.map((sc) => (
-                <ActionButton key={sc.id} body={{ action: "run_scenario", scenarioId: sc.id }} variant={scenario?.id === sc.id ? "primary" : "secondary"} testId={sc.id}>
-                  {sc.title}
-                </ActionButton>
-              ))}
-              {scenario ? (
-                <ActionButton body={{ action: "run_scenario", scenarioId: null }} variant="ghost">
-                  Clear
-                </ActionButton>
-              ) : null}
-            </div>
-            <p className="mt-2 text-[12px] text-muted">The hero conversation above shows the fourth state, Ambiguous.</p>
-            {scenario && scenarioDef ? (
-              <div className="mt-4 space-y-3" data-testid="scenario-result">
-                <Conversation messages={scenario.record.inputs.messages} evidence={scenario.record.engine.profile.flatMap((f) => f.evidence.map((e) => ({ ...e, label: f.label })))} />
-                <Notice tone={STATE_COPY[scenario.record.engine.initial.state][1] === "red" ? "red" : "amber"} title={`Engine state: ${STATE_COPY[scenario.record.engine.initial.state][0]}`}>
-                  <ScenarioExplanation record={scenario.record} />
-                </Notice>
-              </div>
-            ) : null}
-          </div>
-        </Card>
+        <OtherOutcomes scenario={s.scenario} />
       </div>
     </div>
   );
-}
-
-function ScenarioExplanation({ record }: { record: import("@/ai/run-record").RunRecord }) {
-  const e = record.engine.initial;
-  if (e.state === "insufficient_information") return <>Required information is missing: {e.missingRequired.join(", ") || "a decidable payment date"}. Ask the buyer for it before structuring a deal.</>;
-  if (e.state === "outside_templates")
-    return (
-      <>
-        {e.outsideTemplates.map((o) => o.reason).join(" ")} Supported structures are split payment, phased scope, deferred start and shorter commitment.
-      </>
-    );
-  if (e.state === "no_feasible_deal")
-    return (
-      <>
-        All {e.structures.length} structures across {e.templatesEvaluated.length} templates were evaluated; none passes. Blocking reasons:{" "}
-        {[...new Set(e.structures.flatMap((x) => x.failingCodes))].map(shortReason).join("; ")}.
-      </>
-    );
-  return <>Decision-relevant facts are unresolved.</>;
 }

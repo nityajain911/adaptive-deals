@@ -7,7 +7,7 @@ const fmtTime = (iso: string) =>
 export { fmtTime };
 
 /** Render message text with every verified evidence span highlighted (offsets from code). */
-function highlighted(text: string, spans: { start: number; end: number; label: string }[]) {
+export function highlighted(text: string, spans: { start: number; end: number; label: string }[]) {
   const sorted = [...spans].sort((a, b) => a.start - b.start).filter((s, i, arr) => i === 0 || s.start >= arr[i - 1].end);
   const out: React.ReactNode[] = [];
   let pos = 0;

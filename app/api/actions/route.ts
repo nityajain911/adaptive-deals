@@ -2,11 +2,12 @@ import { z } from "zod";
 import { AgreementError } from "@/domain/agreement";
 import { CollectionError } from "@/domain/collections";
 import { ClarificationError } from "@/domain/constraints";
+import { ConversationError } from "@/domain/conversation";
 import { AnswerError, ReplayIntegrityError } from "@/ai/orchestrator";
 import * as svc from "@/lib/service";
 
 /**
- * Single mutation endpoint for the five views. Every payload is validated; every action runs
+ * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
  * through domain transitions. The AI layer never reaches payment actions from here.
  */
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
@@ -38,6 +39,15 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("approve_amendment"), termsHash: Hash }),
   z.object({ action: z.literal("accept_amendment"), termsHash: Hash, authorityConfirmed: z.boolean() }),
   z.object({ action: z.literal("run_scenario"), scenarioId: z.string().max(40).nullable() }),
+  // Simulated conversation. Buyer replies (scripted or typed) go through code's bounded rules only.
+  z.object({ action: z.literal("send_clarification"), itemId: z.string().max(40) }),
+  z.object({ action: z.literal("set_suggestions_paused"), paused: z.boolean() }),
+  z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40) }),
+  z.object({ action: z.literal("buyer_reply_typed"), inReplyTo: z.string().max(40), text: z.string().trim().min(1).max(500) }),
+  z.object({ action: z.literal("adopt_replies") }),
+  // Buyer proposal page (demo buyer view).
+  z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500) }),
+  z.object({ action: z.literal("decline"), version: z.number().int().positive() }),
 ]);
 
 export async function POST(request: Request) {
@@ -97,10 +107,31 @@ export async function POST(request: Request) {
       case "run_scenario":
         await svc.runScenario(a.scenarioId);
         break;
+      case "send_clarification":
+        await svc.sendClarification(a.itemId);
+        break;
+      case "set_suggestions_paused":
+        await svc.setSuggestionsPaused(a.paused);
+        break;
+      case "buyer_reply":
+        await svc.buyerReply({ inReplyTo: a.inReplyTo, scriptId: a.scriptId });
+        break;
+      case "buyer_reply_typed":
+        await svc.buyerReply({ inReplyTo: a.inReplyTo, text: a.text });
+        break;
+      case "adopt_replies":
+        await svc.adoptRepliesAsAnswers();
+        break;
+      case "request_change":
+        await svc.requestChange(a.version, a.text);
+        break;
+      case "decline":
+        await svc.declineAgreement(a.version);
+        break;
     }
     return Response.json({ ok: true, result });
   } catch (e) {
-    const known = e instanceof svc.ActionError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError;
+    const known = e instanceof svc.ActionError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError || e instanceof ConversationError;
     const status = e instanceof svc.ActionError ? e.status : known ? 409 : 500;
     return Response.json({ ok: false, error: known ? (e as Error).message : "Unexpected error" }, { status });
   }
