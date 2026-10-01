@@ -1,0 +1,102 @@
+{
+  "id": "dev-04-contradiction",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "contradiction",
+    "correction",
+    "gst_ambiguity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We have 50k this quarter for this.",
+      "timestamp": "2026-10-01T10:00:00+05:30",
+      "source": "whatsapp"
+    },
+    {
+      "id": "m2",
+      "author": "buyer",
+      "text": "Correction — only 35k is left this quarter, sorry. New budget comes in April.",
+      "timestamp": "2026-10-01T16:30:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 3500000,
+        "period": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "50k",
+        "evidence_quote": "We have 50k this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "We have 50k this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_amount",
+        "raw_text": "35k",
+        "evidence_quote": "only 35k is left this quarter",
+        "message_id": "m2",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "only 35k is left this quarter",
+        "message_id": "m2",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "April",
+        "evidence_quote": "New budget comes in April",
+        "message_id": "m2",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "amounts_include_gst",
+        "reason": "Amounts are stated without saying whether GST is included"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "The later message corrects the budget; code uses the later value and shows the superseded one. GST stays unresolved but changes no outcome at ₹35K. Label for state corrected after engine check (see AI_BUILD_LOG)."
+}

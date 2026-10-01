@@ -1,0 +1,80 @@
+{
+  "id": "dev-10-after-three-months",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "relative_date",
+    "gst_ambiguity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We can manage 25k this month and the remaining after three months.",
+      "timestamp": "2026-10-10T17:20:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 2500000,
+        "period": {
+          "start": "2026-10-10",
+          "end": "2026-10-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-01-10",
+        "precision": "day"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "25k",
+        "evidence_quote": "We can manage 25k this month",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this month",
+        "evidence_quote": "We can manage 25k this month",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "after three months",
+        "evidence_quote": "the remaining after three months",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "amounts_include_gst",
+        "reason": "Amounts are stated without saying whether GST is included"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "Budget opens 10 Jan 2027, so a May 2027 deferred start is feasible. Label corrected after engine check (see AI_BUILD_LOG)."
+}

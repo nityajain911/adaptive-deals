@@ -240,11 +240,12 @@ export function normaliseCurrentPeriod(raw: string, messageTimestamp: string, ti
   if (/\bq[1-4]\b/.test(text)) {
     return { ok: false, kind: "ambiguous", reason: `"${raw}": Q-labels differ between calendar and Indian financial-year numbering` };
   }
-  if (/\bthis quarter\b/.test(text)) {
+  // "is quarter" is the Hinglish form of "this quarter".
+  if (/\b(this|is) quarter\b/.test(text)) {
     const q = calendarQuarterOf(today);
     return { ok: true, period: { start: today, end: q.end }, transformation: `calendar quarter containing message date ${today} (${q.start} to ${q.end}); from message date` };
   }
-  if (/\bthis month\b/.test(text)) {
+  if (/\b(this month|is mahine|is month)\b/.test(text)) {
     return { ok: true, period: { start: today, end: endOfMonth(monthOf(today)) }, transformation: `rest of ${monthOf(today)} from message date` };
   }
   return { ok: false, kind: "unsupported", reason: `"${raw}" is not a supported budget period` };

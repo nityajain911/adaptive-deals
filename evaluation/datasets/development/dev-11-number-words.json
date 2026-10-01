@@ -1,0 +1,81 @@
+{
+  "id": "dev-11-number-words",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "number_words",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We have fifty thousand rupees this quarter, inclusive of GST. Next budget opens next April.",
+      "timestamp": "2026-11-15T09:05:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5000000,
+        "period": {
+          "start": "2026-11-15",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "fifty thousand rupees",
+        "evidence_quote": "We have fifty thousand rupees this quarter, inclusive of GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "We have fifty thousand rupees this quarter, inclusive of GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "inclusive of GST",
+        "evidence_quote": "We have fifty thousand rupees this quarter, inclusive of GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "next April",
+        "evidence_quote": "Next budget opens next April",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

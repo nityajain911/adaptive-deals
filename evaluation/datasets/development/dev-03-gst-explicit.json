@@ -1,0 +1,81 @@
+{
+  "id": "dev-03-gst-explicit",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "gst_explicit",
+    "relative_date"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We can do ₹50,000 including GST this quarter, and the rest from April. No approval issues on our side.",
+      "timestamp": "2026-10-01T12:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 5000000,
+        "period": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "₹50,000",
+        "evidence_quote": "₹50,000 including GST this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "₹50,000 including GST this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "including GST",
+        "evidence_quote": "₹50,000 including GST this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "April",
+        "evidence_quote": "the rest from April",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

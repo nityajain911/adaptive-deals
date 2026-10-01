@@ -1,0 +1,99 @@
+{
+  "id": "dev-02-hinglish-partial-gst",
+  "split": "development",
+  "synthetic": true,
+  "language": "hinglish",
+  "tags": [
+    "hinglish",
+    "gst_ambiguity",
+    "approval_ambiguity",
+    "partial_gst_statement"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Bhai is quarter mein sirf 45k bacha hai, April se naya budget aayega. 60k se upar MD approval chahiye hoga, GST mila ke.",
+      "timestamp": "2026-10-02T10:15:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4500000,
+        "period": {
+          "start": "2026-10-02",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": 6000000,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst",
+      "approvalScope"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "45k",
+        "evidence_quote": "is quarter mein sirf 45k bacha hai",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "is quarter",
+        "evidence_quote": "is quarter mein sirf 45k bacha hai",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "April",
+        "evidence_quote": "April se naya budget aayega",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_amount",
+        "raw_text": "60k",
+        "evidence_quote": "60k se upar MD approval chahiye hoga",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "GST mila ke",
+        "evidence_quote": "60k se upar MD approval chahiye hoga, GST mila ke",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "approval_limit_scope",
+        "reason": "The approval limit could apply per payment or to the whole contract"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "The GST phrase is attached to 60k only; the GST basis of 45k is not confirmed, so GST stays ambiguous."
+}

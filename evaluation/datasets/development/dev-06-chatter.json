@@ -1,0 +1,81 @@
+{
+  "id": "dev-06-chatter",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "irrelevant_chatter",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Hi! Hope Diwali prep is going well 🙂 Loved the website mockups. Team is travelling next week. Anyway — budget: 30k left this quarter incl. GST, rest only after the new FY starts in April.",
+      "timestamp": "2026-10-20T19:40:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 3000000,
+        "period": {
+          "start": "2026-10-20",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "30k",
+        "evidence_quote": "30k left this quarter incl. GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "30k left this quarter incl. GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "incl. GST",
+        "evidence_quote": "30k left this quarter incl. GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "April",
+        "evidence_quote": "rest only after the new FY starts in April",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

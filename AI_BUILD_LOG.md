@@ -86,6 +86,41 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 
 **Verification:** `npm test` 128/128 passed · `npm run typecheck` clean · `npm run lint` clean · `npm run hero:report` output unchanged except for the new clarification and GST-basis lines.
 
+### 2026-10-01 · Phase 2 — AI layer [Claude Code]
+
+**Prompt (applicant):** build the AI layer per the freeze pack and build prompt: strict schemas, exact evidence, rejection of bad fields, an Anthropic SDK provider, credential-free replay by default, versioned prompts, complete run records, safe degradation, the four states, engine-driven clarification, inert prompt injection, and no AI money, schedules, template removal, feasibility or payments. Keep development examples separate from the frozen set.
+
+**Built**
+- `ai/schemas.ts`: strict Zod schemas with no numeric fields, for extraction, clarification wording and explanation.
+- `ai/prompts.ts`: versioned prompts `extract.v1`, `clarify.v1`, `explain.v1`, a prompt hash, and delimiter neutralisation.
+- `ai/anthropic-provider.ts`: `messages.parse` + `zodOutputFormat`. No tools are attached. Refusal, truncation, schema failure and API errors are mapped to safe failures.
+- `ai/replay-provider.ts`, `ai/synthetic-provider.ts`, `ai/live.ts`, `ai/config.ts`.
+- `ai/extract.ts`, `ai/clarify.ts`, `ai/explain.ts`: build each request, validate its output, fall back to code.
+- `ai/orchestrator.ts`: one continuous run (extract → engine → clarify → recorded answers → engine → explain), plus `replayRun` with integrity checks. `ai/run-record.ts`: record format and provenance labels.
+- `data/synthetic/hero-ai-outputs.ts`: hand-written synthetic outputs. `data/synthetic/replay/hero-synthetic-run.json`: the bundled **Synthetic replay**, built by `npm run replay:build`.
+- `evaluation/gold.ts`: the case format shared by both sets. `evaluation/datasets/development/`: 16 synthetic development cases. `evaluation/datasets/frozen/`: README only; no cases authored. `evaluation/oracle.ts` checks labels and code with reference extractions; it is never reported as a model result.
+
+**Model choice:** default `claude-opus-5`, configurable through `ADAPTIVE_DEALS_MODEL`. Opus 5 rejects `temperature`, so it is omitted for that model and recorded. Server-side refusal fallbacks were **not** enabled. A fallback would silently change which model produced the output, and a refusal already degrades safely to review.
+
+**Failures and corrections**
+- My hand-written explanation exceeded the 700-character schema limit and was rejected, so code fallback text was used. Comparing four options needs more room; I raised the limit to 1,200.
+- The figure check then rejected "Phase 1" as a literal figure. It is a product label, so I added it to an explicit allowlist. All other digits remain forbidden.
+- Writing development cases exposed three normalisation gaps, now fixed in code: Hinglish "is quarter" / "is mahine"; "exclude/include GST" and Hinglish GST phrases; and corrections across messages (later message supersedes; same-message conflict is rejected).
+- **Three of my draft development labels were wrong.** The engine disagreed, and checking by hand showed the engine was right:
+  - dev-04: GST does not change any outcome at ₹35K.
+  - dev-10: a January budget makes the May deferred start feasible.
+  - dev-15: the GST basis, not the approval scope, decides the 6-month single payment against ₹80K.
+
+  The labels were corrected. **Consequence:** development labels for clarifications and state are reconciled with the engine, so they are not independent. They must never be reported as evaluation results. Only the frozen set, labelled by another person, can measure performance.
+- Three test bugs were fixed:
+  - one regex checked raw text that still contained placeholders;
+  - the import-boundary test matched the word "Razorpay" in prompt text, and now checks imports only;
+  - a replay of tampered output raised `AnswerError` instead of `ReplayIntegrityError`, so `replayRun` now wraps errors.
+
+**Not verified:** no live model call was made. There is no key in this environment, and spending on the user's account needs their approval. The Anthropic provider is tested against a fake client that returns SDK-shaped responses.
+
+**Verification:** `npm test` 198/198 passed · `npm run typecheck` clean · `npm run lint` clean.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

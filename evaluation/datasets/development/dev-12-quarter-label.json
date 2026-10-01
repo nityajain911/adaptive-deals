@@ -1,0 +1,63 @@
+{
+  "id": "dev-12-quarter-label",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "quarter_label_ambiguity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Only 50k in Q3, more in Q4.",
+      "timestamp": "2026-10-07T12:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": null,
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "insufficient_information",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "50k",
+        "evidence_quote": "Only 50k in Q3",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "Q3",
+        "evidence_quote": "Only 50k in Q3",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "budget_now_period",
+        "reason": "Q3 could follow calendar or financial-year numbering"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "Code refuses to choose a quarter convention, so the budget period is not established."
+}

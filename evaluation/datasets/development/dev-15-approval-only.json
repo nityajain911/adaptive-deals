@@ -1,0 +1,84 @@
+{
+  "id": "dev-15-approval-only",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "approval_ambiguity",
+    "gst_ambiguity",
+    "lakh"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Approval above 80k is needed from our board, but budget is fine this quarter — we have 1 lakh.",
+      "timestamp": "2026-10-01T18:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 10000000,
+        "period": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": 8000000,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "approval_limit_amount",
+        "raw_text": "80k",
+        "evidence_quote": "Approval above 80k is needed from our board",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_amount",
+        "raw_text": "1 lakh",
+        "evidence_quote": "budget is fine this quarter — we have 1 lakh",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "budget is fine this quarter — we have 1 lakh",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "amounts_include_gst",
+        "reason": "Amounts are stated without saying whether GST is included"
+      },
+      {
+        "field_key": "approval_limit_scope",
+        "reason": "The approval limit could apply per payment or to the whole contract"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "GST basis decides whether the 6-month single payment (₹84,960 incl. / ₹72,000 excl.) is above the ₹80K limit; per-payment vs per-contract changes nothing. Label corrected after engine check (see AI_BUILD_LOG)."
+}

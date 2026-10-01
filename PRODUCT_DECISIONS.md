@@ -2,6 +2,36 @@
 
 Draft maintained by the coding agent. Each decision states its rule and where code enforces it. Sections on AI/code boundaries, trust controls, metric definitions, scope exclusions and the per-view acceptance checklists are added in later phases.
 
+## AI and code boundaries
+
+| Responsibility | Owner | Where enforced |
+| --- | --- | --- |
+| Read the conversation; return raw text, exact evidence quote and message ID per field | AI (call 1) | `ai/schemas.ts` (strict, no numeric fields) |
+| Flag ambiguities, missing facts, unsupported requests, suspected instructions | AI flags | same |
+| Verify every quote is verbatim in its cited message; reject fields that fail | Code | `domain/constraints.ts` |
+| Normalise amounts, periods and relative dates from each message's own timestamp | Code | `domain/amounts.ts`, `domain/dates.ts` |
+| Confirm whether a flagged request is representable by the four templates | Code | `REPRESENTABLE_REQUEST_KINDS` |
+| Compare every reading of each ambiguity and decide which change the decision | Code | `analyseAmbiguities` |
+| Word one question per decision-relevant fact | AI (call 2) | `ai/clarify.ts` validates: only listed facts; only figures from the message; GST question names every stated amount; otherwise code wording |
+| "Why it matters" text | Code | `explainAmbiguity` |
+| Enumerate every template, compute GST, schedules, contribution, funding, checks, verdicts | Code | `domain/engine.ts` and friends |
+| Rank and explain feasible structures | AI (call 3) | `ai/explain.ts`: aliases only; placeholders only; no literal figures, dates or percentages; no approval-bypass or guarantee wording; unknown aliases ignored, omitted options appended, approval ordering enforced |
+| Fill every displayed figure | Code | `fillPlaceholders` |
+| Approval, acceptance, hashes, payments, collections | Code + people | `domain/agreement.ts` etc.; the AI layer imports none of these and the model is given no tools |
+
+**Degrading safely:** an unavailable, refused, truncated, schema-breaking or invalid extraction produces an empty profile and run status `needs_review`. No commercial terms are created from it. Clarification and explanation failures fall back to code wording and code ranking, labelled as such.
+
+**Provider:** official Anthropic SDK, `client.messages.parse` with a Zod output format. The model comes from `ADAPTIVE_DEALS_MODEL` (default `claude-opus-5`) and the key from `ANTHROPIC_API_KEY`. `temperature: 0` is sent only to models that accept sampling parameters. Current Opus, Sonnet 5 and Fable models reject it, and the run record states which applied. Without a key, "Run live" is unavailable and says why; the bundled synthetic replay is never presented as a live run.
+
+**Run records and replay:** every run stores the run ID, kind, provider, model, prompt versions and prompt hashes, inputs (messages, policy, recorded answers), each step's exact request hash and raw output, the engine snapshot and what was displayed. A replay uses only the stored run's own outputs, keyed by exact request hash, and must reproduce the stored engine and display output byte for byte; otherwise it is refused. Labels:
+
+- `Synthetic replay · run ID …` for the bundled hand-written run;
+- `Replay of an actual run · run ID …` only for a stored `live` run.
+
+## Corrections across messages
+
+For a single-valued field, a value in a later message supersedes an earlier one, treating it as an explicit correction. The card notes the superseded value and the message it came from. Two different values for the same field in the same message are a conflict: the field is rejected rather than guessed.
+
 ## Money and GST
 
 **Rule:** money is integer paise, in INR. GST is computed **per invoice line** at the merchant's configured rate (18% in the hero fixture) as `round_half_up(pre_GST × rate_bps / 10000)`, rounded to the nearest paise. A line total is pre-GST plus GST. No floating-point arithmetic touches amounts.

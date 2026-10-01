@@ -1,0 +1,45 @@
+{
+  "id": "dev-08-missing-budget",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "missing_information"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Can we start in January? Payments can be split into parts.",
+      "timestamp": "2026-10-04T14:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": null,
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "insufficient_information",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [],
+    "ambiguities": [],
+    "missing_required": [
+      "budget_now_amount",
+      "budget_now_period"
+    ],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

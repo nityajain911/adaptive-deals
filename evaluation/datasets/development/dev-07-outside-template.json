@@ -1,0 +1,77 @@
+{
+  "id": "dev-07-outside-template",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "unsupported_request"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Can you take part payment as a revenue share on new patient bookings instead? We have about 20k this quarter.",
+      "timestamp": "2026-10-03T09:30:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 2000000,
+        "period": {
+          "start": "2026-10-03",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "outside_templates",
+    "suspectedInstruction": false,
+    "unsupportedKinds": [
+      "revenue_share"
+    ]
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "20k",
+        "evidence_quote": "We have about 20k this quarter",
+        "message_id": "m1",
+        "confidence": "medium"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "We have about 20k this quarter",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "amounts_include_gst",
+        "reason": "Amounts are stated without saying whether GST is included"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [
+      {
+        "raw_text": "revenue share on new patient bookings",
+        "evidence_quote": "Can you take part payment as a revenue share on new patient bookings instead?",
+        "message_id": "m1",
+        "kind": "revenue_share"
+      }
+    ],
+    "suspected_instructions": []
+  }
+}

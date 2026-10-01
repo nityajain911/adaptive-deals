@@ -1,0 +1,94 @@
+{
+  "id": "dev-01-english-variant",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "several_amounts",
+    "relative_date",
+    "gst_ambiguity",
+    "approval_ambiguity"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Budget left this quarter is 40k. Fresh budget in May. Our director signs off on anything over 75k.",
+      "timestamp": "2026-10-05T11:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4000000,
+        "period": {
+          "start": "2026-10-05",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-05",
+        "precision": "month"
+      },
+      "approvalLimitPaise": 7500000,
+      "approvalScope": null,
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [
+      "amountsIncludeGst"
+    ],
+    "expectedState": "ambiguous",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "40k",
+        "evidence_quote": "Budget left this quarter is 40k",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "Budget left this quarter is 40k",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "May",
+        "evidence_quote": "Fresh budget in May",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_amount",
+        "raw_text": "75k",
+        "evidence_quote": "anything over 75k",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [
+      {
+        "field_key": "amounts_include_gst",
+        "reason": "Amounts are stated without saying whether GST is included"
+      },
+      {
+        "field_key": "approval_limit_scope",
+        "reason": "The approval limit could apply per payment or to the whole contract"
+      }
+    ],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

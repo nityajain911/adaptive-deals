@@ -1,0 +1,81 @@
+{
+  "id": "dev-13-latest-start",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "deadline_month",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "We must start before December. 60k this quarter including GST is all we have.",
+      "timestamp": "2026-10-03T15:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 6000000,
+        "period": {
+          "start": "2026-10-03",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "yes",
+      "latestStart": {
+        "value": "2026-12",
+        "precision": "month"
+      }
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "latest_start",
+        "raw_text": "December",
+        "evidence_quote": "We must start before December",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_amount",
+        "raw_text": "60k",
+        "evidence_quote": "60k this quarter including GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "60k this quarter including GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "including GST",
+        "evidence_quote": "60k this quarter including GST",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

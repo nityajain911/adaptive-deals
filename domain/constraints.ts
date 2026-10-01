@@ -121,7 +121,31 @@ export function buildConstraintProfile(args: {
     verified.set(f.key, [...(verified.get(f.key) ?? []), { field: f, evidence: ev, message }]);
   }
 
-  const one = (key: ExtractionFieldKey) => verified.get(key)?.[0];
+  // Single-valued fields: a later message supersedes an earlier one (an explicit correction);
+  // two different values in the same message are a conflict and the field is rejected.
+  const superseded = new Map<ExtractionFieldKey, string>();
+  const chosen = new Map<ExtractionFieldKey, Verified | undefined>();
+  const one = (key: ExtractionFieldKey): Verified | undefined => {
+    if (chosen.has(key)) return chosen.get(key);
+    const xs = [...(verified.get(key) ?? [])].sort((a, b) => Date.parse(a.message.timestamp) - Date.parse(b.message.timestamp));
+    let pick = xs.at(-1);
+    if (pick) {
+      const sameMessage = xs.filter((x) => x.message.id === pick!.message.id && x.field.rawText !== pick!.field.rawText);
+      const earlier = xs.filter((x) => x.message.id !== pick!.message.id && x.field.rawText !== pick!.field.rawText);
+      if (sameMessage.length) {
+        rejected.push({ key, reason: "conflicting values in the same message", rawText: pick.field.rawText });
+        pick = undefined;
+      } else if (earlier.length) {
+        superseded.set(key, `Earlier ${earlier.map((e) => `"${e.field.rawText}" (${e.message.id})`).join(", ")} superseded by a later message`);
+      }
+    }
+    chosen.set(key, pick);
+    return pick;
+  };
+  const withSuperseded = (f: { note?: string }, ...keys: ExtractionFieldKey[]) => {
+    const notes = keys.map((k) => superseded.get(k)).filter(Boolean);
+    if (notes.length) f.note = [f.note, ...notes].filter(Boolean).join(" · ");
+  };
   const flagged = new Map(extraction.ambiguities.map((a) => [a.fieldKey, a.reason]));
 
   // Budget now: amount + period, both normalised from the cited message.
@@ -308,6 +332,10 @@ export function buildConstraintProfile(args: {
     suspectedInstructions,
     rejectedFields: rejected,
   };
+  withSuperseded(profile.budgetNow, "budget_now_amount", "budget_now_period");
+  withSuperseded(profile.nextBudget, "next_budget_date", "next_budget_amount");
+  withSuperseded(profile.approvalLimit, "approval_limit_amount");
+  withSuperseded(profile.latestStart, "latest_start");
   profile.derivedBudgetGap = deriveBudgetGap(profile);
   return profile;
 }
@@ -341,8 +369,8 @@ function parseApprovalScope(raw: string): ApprovalScope | null {
 
 function parseGstInclusion(raw: string): GstInclusion | null {
   const t = raw.toLowerCase();
-  const incl = /\b(incl\.?|including|inclusive of|includes|with)\s+gst\b|\bgst[- ]inclusive\b/.test(t);
-  const excl = /\b(excl\.?|excluding|exclusive of|plus|\+|before|without)\s*gst\b|\bgst[- ]exclusive\b|\bgst extra\b/.test(t);
+  const incl = /\b(incl\.?|including|inclusive of|includes?|with)\s+gst\b|\bgst[- ]inclusive\b|\bgst (mila ke|milake|ke saath|included)\b/.test(t);
+  const excl = /(\b(excl\.?|excluding|exclusive of|excludes?|plus|before|without)\s*|\+\s*)gst\b|\bgst[- ]exclusive\b|\bgst extra\b|\bgst (alag|ke bina|excluded)\b/.test(t);
   if (incl === excl) return null;
   return incl ? "yes" : "no";
 }

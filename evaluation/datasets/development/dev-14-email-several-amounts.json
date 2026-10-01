@@ -1,0 +1,89 @@
+{
+  "id": "dev-14-email-several-amounts",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "several_amounts",
+    "email",
+    "gst_explicit"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Hello, our clinic network has ₹1,50,000 approved for marketing in total, but only ₹40,000 of that is available this quarter (exclude GST). The balance is released in April. Regards, Operations",
+      "timestamp": "2026-10-08T10:30:00+05:30",
+      "source": "email"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 4000000,
+        "period": {
+          "start": "2026-10-08",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": {
+        "value": "2027-04",
+        "precision": "month"
+      },
+      "approvalLimitPaise": null,
+      "approvalScope": null,
+      "amountsIncludeGst": "no",
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "₹40,000",
+        "evidence_quote": "only ₹40,000 of that is available this quarter (exclude GST)",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "only ₹40,000 of that is available this quarter (exclude GST)",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "exclude GST",
+        "evidence_quote": "only ₹40,000 of that is available this quarter (exclude GST)",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "April",
+        "evidence_quote": "The balance is released in April",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "other_constraint",
+        "raw_text": "₹1,50,000 approved for marketing in total",
+        "evidence_quote": "our clinic network has ₹1,50,000 approved for marketing in total",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

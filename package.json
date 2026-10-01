@@ -14,7 +14,8 @@
     "reset:seed": "tsx scripts/reset-seed.ts",
     "eval": "tsx scripts/run-dev-eval.ts",
     "eval:frozen": "tsx scripts/run-frozen-eval.ts",
-    "hero:report": "tsx scripts/hero-report.ts"
+    "hero:report": "tsx scripts/hero-report.ts",
+    "replay:build": "tsx scripts/build-synthetic-replay.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

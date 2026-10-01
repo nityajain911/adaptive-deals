@@ -1,0 +1,87 @@
+{
+  "id": "dev-09-lakh-per-invoice",
+  "split": "development",
+  "synthetic": true,
+  "language": "english",
+  "tags": [
+    "lakh",
+    "approval_explicit",
+    "partial_gst_statement"
+  ],
+  "seller": "hero",
+  "messages": [
+    {
+      "id": "m1",
+      "author": "buyer",
+      "text": "Our marketing budget for this quarter is 1.2 lakh plus GST. Anything above 1 lakh per invoice needs the MD.",
+      "timestamp": "2026-10-06T10:00:00+05:30",
+      "source": "whatsapp"
+    }
+  ],
+  "gold": {
+    "fields": {
+      "budgetNow": {
+        "amountPaise": 12000000,
+        "period": {
+          "start": "2026-10-06",
+          "end": "2026-12-31"
+        }
+      },
+      "nextBudget": null,
+      "approvalLimitPaise": 10000000,
+      "approvalScope": "per_payment",
+      "amountsIncludeGst": null,
+      "latestStart": null
+    },
+    "requiredClarifications": [],
+    "expectedState": "options_ready",
+    "suspectedInstruction": false,
+    "unsupportedKinds": []
+  },
+  "labelledBy": "Claude Code (synthetic development example; applicant to review)",
+  "labelledAt": "2026-10-01",
+  "referenceExtraction": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "1.2 lakh",
+        "evidence_quote": "Our marketing budget for this quarter is 1.2 lakh plus GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "Our marketing budget for this quarter is 1.2 lakh plus GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "amounts_include_gst",
+        "raw_text": "plus GST",
+        "evidence_quote": "budget for this quarter is 1.2 lakh plus GST",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_amount",
+        "raw_text": "1 lakh",
+        "evidence_quote": "Anything above 1 lakh per invoice needs the MD",
+        "message_id": "m1",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_scope",
+        "raw_text": "per invoice",
+        "evidence_quote": "Anything above 1 lakh per invoice needs the MD",
+        "message_id": "m1",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  },
+  "notes": "'plus GST' covers 1.2 lakh only; the GST basis of the 1 lakh limit is unconfirmed but does not change any outcome here."
+}
