@@ -147,6 +147,30 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 
 **Verification:** `npm test` 206/206 · typecheck clean · lint clean · `next build` clean · the full 12-step guided storyboard was run through the API, and every view returned 200.
 
+### 2026-10-01 · Phase 4 — payment integration and simulation [Claude Code]
+
+**Checked:** the Razorpay Payment Links API reference (`POST /v1/payment_links`, Basic auth, amount in paise, `reference_id` ≤ 40 chars, statuses created/partially_paid/paid/expired/cancelled) before writing the test-mode client.
+
+**Built and tested**
+- **Key guard:** accepts only `rzp_test_` keys. `rzp_live_` and every unrecognised form are refused, and the real client cannot even be constructed with a live key.
+- **Adapter selection:**
+  - Razorpay test mode is used for payment links only with a valid test key pair **and** `RAZORPAY_MODE=test`; otherwise links are simulated.
+  - Recurring is always simulated, with a stated reason (`RECURRING_SIMULATION_NOTE`).
+- **Test-mode client:** sends paise, INR, our idempotency key as `reference_id`, and notifications off. It surfaces API errors instead of pretending success. Local status uses polling ("Check status"); nothing relies on a public webhook.
+- **Service guards** (tested against the real store):
+  - no payment link, mandate or collection attempt exists unless acceptance presents the approved hash;
+  - no simulated payment events happen before activation;
+  - no double payment of a link;
+  - no debit before mandate confirmation;
+  - no collection after full payment.
+- **Simulated time advances** are now also written into the run record (`record.clockAdvances`), as the prompt requires, and each one is labelled "Simulated date: …" in the event log.
+
+**Not verified:**
+- No Razorpay test credentials exist in this environment, so the real test-mode client is exercised only against a fake transport.
+- Recurring Payments (e-mandate/UPI Autopay registration, debits, failures) is simulated end to end.
+
+**Verification:** `npm test` 226/226 · typecheck clean · lint clean.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

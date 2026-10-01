@@ -90,7 +90,10 @@ function setStatus(s: DemoState, to: DealStatus, reason: string) {
 function advanceTo(s: DemoState, to: string, reason: string) {
   const c = clockOf(s);
   if (Date.parse(to) <= Date.parse(c.now())) return;
-  s.clockAdvances.push(c.advanceTo(to, reason));
+  const adv = c.advanceTo(to, reason);
+  s.clockAdvances.push(adv);
+  // The run record keeps every deliberate demo time advance alongside the run it belongs to.
+  s.run.record.clockAdvances = [...s.run.record.clockAdvances, adv];
   event(s, "clock_advanced", `Simulated date: ${localDateOf(to, heroMerchant.timeZone)}`, "simulated", reason);
 }
 
