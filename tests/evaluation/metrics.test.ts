@@ -38,10 +38,11 @@ describe("count-based metrics", () => {
 });
 
 describe("frozen evaluation guards", () => {
-  it("refuses to run without 15–20 supplied cases, a prompt freeze and a live model", () => {
-    const b = frozenRunBlockers([], false);
-    expect(b).toHaveLength(3);
-    expect(b.join(" ")).toMatch(/another person.*not frozen.*live model is required/s);
+  it("refuses to run without 15–20 supplied cases, a matching freeze and a live model", () => {
+    const b = frozenRunBlockers([], false).join(" | ");
+    expect(b).toMatch(/must have 15–20 cases/);
+    expect(b).toMatch(/not frozen|changed after the freeze/);
+    expect(b).toMatch(/live model is required/);
   });
   it("case hash changes when cases change", () => {
     expect(casesHash(dev)).not.toBe(casesHash(dev.slice(1)));

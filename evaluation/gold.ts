@@ -67,10 +67,14 @@ export type EvalCase = z.infer<typeof EvalCaseSchema>;
 
 export class DatasetError extends Error {}
 
+/** Non-case files kept in a dataset folder. */
+export const CONTROL_FILES = new Set(["FREEZE.json"]);
+
 export function loadDataset(dir: string, split: "development" | "frozen"): EvalCase[] {
   let files: string[] = [];
   try {
-    files = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
+    // Case files only: the freeze record (FREEZE.json) lives alongside the frozen cases.
+    files = readdirSync(dir).filter((f) => f.endsWith(".json") && !CONTROL_FILES.has(f)).sort();
   } catch {
     return [];
   }

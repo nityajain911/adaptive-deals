@@ -25,9 +25,14 @@ describe("development set (synthetic, builder-authored)", () => {
 });
 
 describe("frozen test set stays separate and builder-free", () => {
-  it("contains no case files authored by the builder", () => {
-    expect(readdirSync(DATASET_DIRS.frozen).filter((f) => f.endsWith(".json"))).toEqual([]);
-    expect(loadDataset(DATASET_DIRS.frozen, "frozen")).toEqual([]);
+  it("contains no case authored by this builder and no reference extractions", () => {
+    const frozen = loadDataset(DATASET_DIRS.frozen, "frozen");
+    expect(readdirSync(DATASET_DIRS.frozen).filter((f) => f.endsWith(".json") && f !== "FREEZE.json")).toHaveLength(frozen.length);
+    for (const c of frozen) {
+      expect(c.split).toBe("frozen");
+      expect(c.referenceExtraction).toBeUndefined();
+      expect(c.labelledBy).not.toMatch(/Claude Code/);
+    }
   });
 
   it("the shared format rejects frozen cases with a reference extraction or the wrong split", () => {
@@ -39,5 +44,18 @@ describe("frozen test set stays separate and builder-free", () => {
       if (loaded[0].split === "frozen" && loaded[0].referenceExtraction) throw new DatasetError("frozen cases must not include a reference extraction");
     }).toThrow(DatasetError);
     expect(() => loadDataset(DATASET_DIRS.development, "frozen")).toThrow(/split is development/);
+  });
+});
+
+describe("dataset loader skips control files", () => {
+  it("does not treat FREEZE.json as a case", async () => {
+    const { mkdtempSync, writeFileSync, copyFileSync } = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const dir = mkdtempSync(path.join(os.tmpdir(), "frozen-"));
+    const src = DATASET_DIRS.development;
+    copyFileSync(path.join(src, "dev-01-english-variant.json"), path.join(dir, "dev-01-english-variant.json"));
+    writeFileSync(path.join(dir, "FREEZE.json"), JSON.stringify({ frozenAt: "x", caseIds: [], casesHash: "h" }));
+    expect(loadDataset(dir, "development").map((c) => c.id)).toEqual(["dev-01-english-variant"]);
   });
 });
