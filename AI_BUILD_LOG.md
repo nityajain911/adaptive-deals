@@ -342,6 +342,38 @@ Eval scripts now load `.env.local` (`--env-file-if-exists`).
 - Frozen guard: blocked (no cases, no freeze).
 - Key scan: the key appears in 0 files outside the git-ignored `.env.local`, and 0 times in git history.
 
+### 2026-10-01 · Freeze declared at `cc930e5` [Claude Code]
+
+**Prompt (applicant):** do not apply the Unicode-space validator change. Treat `cc930e5` as the final freeze of code, prompts, schemas and validators. No further tuning on the hero run.
+
+**Frozen:**
+- prompts `extract.v2`, `clarify.v1` and `explain.v3`, with their schemas, validators and hashes (table in the entry above);
+- commit `cc930e5`.
+
+The Unicode-space change to the literal-figure validator was **not applied**.
+
+**v3 outcome, recorded as the intended safety behaviour**
+- AI ranking accepted.
+- Approval ordering accepted without correction.
+- AI prose rejected because it broke the placeholder contract: it wrote the label term "Phase 1" (with U+202F) instead of `{X.label}`.
+- Deterministic code wording was used instead.
+- No unsafe or unverified commercial figure reached the merchant.
+
+**Audit runs preserved unchanged** (SHA-256):
+- `run-live-e1ddc008` (v1): `547b2855…bbce7eb`
+- `run-live-a727c9c8` (v2): `067c1e56…d066ee07`
+- `run-live-3f518779` (v3): `2d4d6c5b…7a441fc`
+
+**Frozen evaluation protocol (cases authored by another person; the builder authors and edits none):**
+1. The labeller imports 15–20 cases: `npm run eval:frozen -- --import <file.json>`.
+2. Validate: `npm run eval:frozen -- --validate-only`.
+3. Before the first model run, record the final prompt hashes and the case-set hash: `npm run eval:frozen -- --freeze --labelled-by "<name>"`.
+4. Run once with live Groq: `npm run eval:frozen`.
+5. Report the counts exactly, including misses.
+6. After seeing results, do not change prompts, schemas, validators, labels or cases.
+
+No product-code change is authorised unless the frozen runner reveals an execution defect, as opposed to a model-quality miss.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
