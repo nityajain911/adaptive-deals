@@ -44,7 +44,11 @@ Use bounded deterministic behaviour:
 
 - Demo buyer replies are pre-scripted and clearly labelled simulated.
 - Every reply retains its timestamp and `inReplyTo` notice or message reference.
-- Code recognises the supported `till` / `until` / `up to` / `upto` date phrase and normalises it from the reply's own timestamp.
+- Code recognises the supported English `till` / `until` / `up to` / `upto` date phrase and normalises it from the reply's own timestamp in the merchant timezone.
+- Resolve a named day of month to the next occurrence strictly after the reply date. A reply on 28 November saying `till the 20th` resolves to 20 December; inclusive `till` makes 21 December the earliest proposed debit.
+- A reply received on the named day itself is ambiguous between today and next month. Route it to merchant attention and create no amendment.
+- `up to ₹10K` is an amount, not a date. Route it to merchant attention.
+- `20 tak`, `till next week`, `till salary comes`, and any other expression without one safely supported date are known limitations. Route them to merchant attention.
 - If code cannot read one safe date, ask for the date and create no amendment.
 - “I paid” becomes a payment claim requiring Razorpay verification; it never changes the ledger.
 - “Okay” is acknowledgement only; it never accepts terms.
@@ -64,6 +68,7 @@ Do not label this deterministic interpretation as AI.
 - Add `Pause suggested replies`; while paused, accept inbound messages but create no new AI-authored outbound drafts.
 - Store source, timestamp, reply-to reference, state, author, and provenance for every conversation item.
 - Ensure buyer-facing payloads contain no contribution, cost, margin, cash-at-risk, or internal policy details.
+- Provide deterministic pre-scripted replies and an optional typed simulated reply. Typed replies use the same bounded code path in replay and live-run application states. `Run live` must not invoke a different reply interpreter.
 
 ### B. Standalone buyer proposal
 
@@ -90,6 +95,7 @@ Do not label this deterministic interpretation as AI.
 - The hero flow must accept a reply to a sent advance notice before the scheduled debit is submitted or failed.
 - Show `Change requested` after the qualifying buyer message.
 - Generate a `Draft amendment` only after the supported date is safely normalised and the revision is rechecked.
+- Generate the amendment explanation from code and verified state. Do not use or change `explain.v3`, and do not imply that AI read the payment reply.
 - Recheck buyer constraints, contribution, funding/cash-at-risk, and mandate fit.
 - Require merchant approval and buyer acceptance of the same new terms hash.
 - Keep the original scheduled attempt until both approvals exist.
@@ -120,6 +126,7 @@ After implementing the domain/state changes and their tests, stop and report:
 - the exact state sequence for preventive restructuring;
 - how a notice reply selects the collection line;
 - what happens for `cash tight`, `I paid`, `Okay`, and unsupported replies;
+- the month-rollover and same-day rules;
 - when the old attempt is removed;
 - the test results;
 - confirmation that prompts, frozen cases, frozen hashes, live runs, and results are unchanged.
@@ -132,6 +139,9 @@ At minimum, add meaningful tests proving:
 
 - a buyer reply must link to a sent notice and cannot predate it;
 - the supported date phrase uses the reply's timestamp;
+- a reply on 28 November saying `till the 20th` resolves to 20 December and proposes 21 December;
+- a reply received on the named day itself creates no amendment;
+- `up to ₹10K`, `20 tak`, `till next week`, and `till salary comes` need merchant attention and create no amendment;
 - an unsafe or ambiguous date creates no amendment;
 - `Okay` cannot accept an agreement or amendment;
 - `I paid` cannot change a payment, attempt, or ledger amount;
@@ -144,12 +154,21 @@ At minimum, add meaningful tests proving:
 - the failed-debit path still works;
 - the buyer proposal derives every amount and date from canonical terms;
 - AI/code/simulation attribution is accurate.
+- typed simulated replies behave the same in replay and live-run application states without making an external model call.
 
 After the UI phase, update the Playwright journey and screenshots for desktop and 390px mobile. Verify keyboard access, narrow-screen layout, and expanded/collapsed detail controls.
 
 ## Documentation and demo
 
 Update `DEMO_SCRIPT.md`, `ONE_PAGE_PRODUCT_NOTE.md`, `PRODUCT_DECISIONS.md`, `README.md`, and `AI_BUILD_LOG.md` to match the implemented experience and the 90-second storyboard in the addendum.
+
+In `PRODUCT_DECISIONS.md`, record the exact month-rollover, same-day ambiguity, inclusive-`till`, amount-versus-date, and unsupported-language rules. Identify code as the owner of this interpretation.
+
+Add this judgement to the product note and video narration in the applicant's voice, preserving its meaning:
+
+> We deliberately kept AI out of reading payment-change replies. The phrases are narrow and an error moves money, so code handles them and everything else goes to the merchant. A broader reply reader would be a separate AI task with its own evaluation.
+
+In the amendment scene, narrate that code read the supported date phrase and rechecked the agreement. Do not say or imply that AI interpreted the reply.
 
 State these limitations plainly:
 
@@ -159,6 +178,7 @@ State these limitations plainly:
 - Recurring payments remain simulated.
 - The earlier frozen evaluation covers its recorded prompts, not the complete new journey.
 - The frequency of commercial negotiation over WhatsApp remains an assumption to validate.
+- Supported payment-change language is deliberately narrow; Hinglish and imprecise relative-date replies require merchant attention.
 
 ## Final verification
 

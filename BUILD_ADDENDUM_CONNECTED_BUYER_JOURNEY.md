@@ -48,8 +48,11 @@ Do not introduce a new AI prompt in this round. For the deterministic demo:
 
 - The buyer chooses a pre-scripted simulated reply.
 - The reply is stored as buyer-authored, with its own timestamp and `inReplyTo` reference to a sent notice.
-- Code recognises the narrowly supported unavailability expression, preserves the exact phrase, and normalises it from the reply's own timestamp.
-- `till`, `until`, `up to`, or `upto` a stated day means unavailable through that day; the earliest proposed debit is the following day.
+- Code recognises the narrowly supported English unavailability expression, preserves the exact phrase, and normalises it from the reply's own timestamp in the merchant timezone.
+- A day of month is resolved to the next occurrence strictly after the reply date. Example: a reply on 28 November saying “till the 20th” resolves to 20 December.
+- If the reply is sent on the named day itself, the month is ambiguous. It needs merchant attention and creates no amendment.
+- `till`, `until`, `up to`, or `upto` a safely recognised date means unavailable through that date; the earliest proposed debit is the following day.
+- `up to` followed by an amount, such as “up to ₹10K”, is not a date and needs merchant attention.
 - If no safe supported date can be read, the system asks for the date and creates no amendment.
 
 Other reply types are handled conservatively:
@@ -60,6 +63,8 @@ Other reply types are handled conservatively:
 | “I paid” | Record **Payment claimed — verification required**; do not update payment status or the ledger |
 | “Okay” | Record acknowledgement only; do not accept terms or authorise collection |
 | Question or unsupported reply | Mark **Merchant attention needed**; do not infer a commercial change |
+
+Known unsupported expressions in this round include `20 tak`, `till next week`, `till salary comes`, and other dates without one safe day interpretation. They all need merchant attention and create no draft amendment.
 
 A future free-form reply interpreter must be a new versioned task such as `interpret_payment_reply.v1`, with its own schema, prompt, development set, injection tests, and recorded results. It must not alter or be presented as part of the earlier frozen evaluation.
 
@@ -84,6 +89,7 @@ Proposal, notice, payment, and amendment messages are code-authored from verifie
 - A proposal link appears only after the merchant approves the exact agreement version.
 - Internal contribution, costs, margins, cash-at-risk limits, and rejection logic never enter buyer-facing message payloads.
 - Buyer replies retain source, timestamp, and the message or notice they answer.
+- The deterministic demo offers pre-scripted replies. It may also accept a typed simulated reply; typed text goes through the same bounded code path and never gains broader interpretation from `Run live`.
 - “Okay” never accepts an agreement.
 - “I paid” never changes an attempt, payment-link status, collected amount, or ledger value.
 - A **Pause suggested replies** control stops new AI-authored outbound drafts while continuing to record inbound messages. Resuming suggestions is explicit.
@@ -137,7 +143,7 @@ The hero amendment happens before the scheduled debit fails:
 2. The buyer replies to that notice: “Cash is tight till the 20th.”
 3. The buyer conversation shows **Change requested**.
 4. Code reads the supported date phrase from the reply's own timestamp and proposes the earliest safe date.
-5. The merchant sees a **Draft amendment** with the source quote, date transformation, buyer checks, projected contribution, funding requirement, and mandate fit.
+5. The merchant sees a code-generated **Draft amendment** summary with the source quote, date transformation, buyer checks, projected contribution, funding requirement, and mandate fit.
 6. Merchant approval creates a new approved version.
 7. Buyer acceptance must match the new version's terms hash.
 8. Only then may the collection schedule be updated.
@@ -152,6 +158,7 @@ The hero amendment happens before the scheduled debit fails:
 - A failed attempt remains in history.
 - If the new date is outside buyer constraints, below seller policy, or outside the existing mandate, show the failed check or require fresh authorisation; do not present the revision as active.
 - The existing failed-debit amendment path remains supported and tested as a secondary path.
+- No amendment-scene copy may imply that AI interpreted the payment reply. Do not reuse `explain.v3` for the amendment. The summary is code-generated from verified state.
 
 ## 9. P1 — Applied merchant rules drawer
 
@@ -193,6 +200,12 @@ Do not build “What would need to change?” threshold search in this round.
 
 The main recording need not show a completed upfront payment. Payment creation and verified status are distinct events.
 
+The product note and video narration must state this judgement call in substance:
+
+> We deliberately kept AI out of reading payment-change replies. The phrases are narrow and an error moves money, so code handles them and everything else goes to the merchant. A broader reply reader would be a separate AI task with its own evaluation.
+
+AI remains visible in the Construct journey: constraint extraction, clarification wording, and recommendation explanation. The amendment narration says that **code** read the supported date phrase and rechecked the agreement.
+
 ## 12. Verification and evidence boundaries
 
 ### Frozen AI evaluation
@@ -206,6 +219,9 @@ The main recording need not show a completed upfront payment. Payment creation a
 
 - A reply must reference a sent notice and cannot predate it.
 - The supported unavailability phrase is normalised from the reply timestamp.
+- A 28 November reply saying “till the 20th” resolves to 20 December and proposes 21 December.
+- A reply received on the named day itself creates no amendment and needs merchant attention.
+- `up to ₹10K`, `20 tak`, `till next week`, and `till salary comes` create no amendment and need merchant attention.
 - An ambiguous or unsupported date creates no amendment.
 - “Okay” cannot accept an agreement or amendment.
 - “I paid” cannot change payment status, collection attempts, or ledger amounts.
@@ -216,6 +232,7 @@ The main recording need not show a completed upfront payment. Payment creation a
 - Failed-debit restructuring remains valid as a secondary path.
 - The standalone buyer proposal renders every amount and date from canonical terms.
 - AI/code attribution follows the actual output source.
+- Pre-scripted and typed simulated replies follow the same deterministic classification in replay and live-run application states, without an external model call.
 
 ### Release checks
 
