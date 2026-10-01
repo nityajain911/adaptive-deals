@@ -14,7 +14,7 @@ npm run reset:seed     # clean demo state in .data/
 npm run dev            # http://localhost:3000
 ```
 
-The app runs fully without credentials. It loads the bundled **Synthetic replay** and simulates payments.
+The app runs fully without credentials. After a reset it shows a committed **actual Groq run** (`data/demo-run.json` → `data/live-runs/`), replayed from its stored outputs, and simulates payments. Set `ADAPTIVE_DEALS_DEMO_RUN=synthetic` to show the hand-written **Synthetic replay** instead.
 
 ### Demo
 

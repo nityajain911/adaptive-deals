@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-pay-"));
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
 type Svc = typeof import("@/lib/service");
 let svc: Svc;
 beforeAll(async () => {

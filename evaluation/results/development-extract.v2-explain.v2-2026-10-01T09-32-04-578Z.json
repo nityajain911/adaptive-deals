@@ -1,0 +1,251 @@
+{
+  "split": "development",
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v2"
+  },
+  "counts": {
+    "cases": 16,
+    "correctlyExtractedFields": {
+      "x": 31,
+      "y": 35
+    },
+    "unsupportedExtractedFields": {
+      "x": 2,
+      "cases": 16
+    },
+    "requiredClarificationsAsked": {
+      "x": 6,
+      "y": 6
+    },
+    "requiredClarificationsMissed": {
+      "x": 0,
+      "y": 6
+    },
+    "unnecessaryClarificationsAsked": {
+      "x": 2,
+      "cases": 16
+    },
+    "failureStatesCorrectlyIdentified": {
+      "x": 8,
+      "y": 8
+    },
+    "failingOptionsPresentedAsApprovable": {
+      "x": 0,
+      "n": 90
+    }
+  },
+  "results": [
+    {
+      "id": "dev-01-english-variant",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-02-hinglish-partial-gst",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 2,
+      "clarificationsAsked": 2,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-03-gst-explicit",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-04-contradiction",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-05-prompt-injection",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 2,
+      "clarificationsAsked": 2,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-06-chatter",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-07-outside-template",
+      "fieldsExpected": 1,
+      "fieldsCorrect": 1,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-08-missing-budget",
+      "fieldsExpected": 0,
+      "fieldsCorrect": 0,
+      "unsupportedFields": 1,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-09-lakh-per-invoice",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 3,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-10-after-three-months",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-11-number-words",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 15
+    },
+    {
+      "id": "dev-12-quarter-label",
+      "fieldsExpected": 0,
+      "fieldsCorrect": 0,
+      "unsupportedFields": 1,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-13-latest-start",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 1,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-14-email-several-amounts",
+      "fieldsExpected": 3,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 1,
+      "failureStateExpected": false,
+      "failureStateCorrect": false,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-15-approval-only",
+      "fieldsExpected": 2,
+      "fieldsCorrect": 2,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 1,
+      "clarificationsAsked": 1,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    },
+    {
+      "id": "dev-16-hinglish-injection-discount",
+      "fieldsExpected": 1,
+      "fieldsCorrect": 1,
+      "unsupportedFields": 0,
+      "clarificationsRequired": 0,
+      "clarificationsAsked": 0,
+      "unnecessaryClarifications": 0,
+      "failureStateExpected": true,
+      "failureStateCorrect": true,
+      "approvableNonFeasible": 0,
+      "structuresGenerated": 0
+    }
+  ]
+}

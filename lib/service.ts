@@ -26,7 +26,7 @@ import { heroDeal } from "@/data/synthetic/hero-run";
 import { heroBuyer, heroDemoEvents, heroMerchant, HERO_DEAL_ID } from "@/data/synthetic/hero";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
-import { readJson, serialised, writeJsonAtomic } from "./store";
+import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -48,7 +48,8 @@ export interface DemoState {
   status: DealStatus;
   statusHistory: { at: string; from: DealStatus | null; to: DealStatus; reason: string }[];
   clockAdvances: ClockAdvance[];
-  run: { record: RunRecord; viewing: "replay" | "fresh" };
+  /** sourceRunId: the complete stored run whose outputs this demo replays or continues. */
+  run: { record: RunRecord; viewing: "replay" | "fresh"; sourceRunId?: string };
   agreements: AgreementVersion[];
   paymentLinks: PaymentLinkState[];
   mandate: (Mandate & { note: string }) | null;
@@ -73,6 +74,44 @@ export class ActionError extends Error {
 
 export function bundledSyntheticRun(): RunRecord {
   return JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8"));
+}
+
+const LIVE_RUN_ID = /^run-live-[a-f0-9]{8}$/;
+
+/** A committed record of an actual live run (audit trail), from `data/live-runs/`. */
+export function committedLiveRun(runId: string): RunRecord | null {
+  if (!LIVE_RUN_ID.test(runId)) return null;
+  try {
+    return JSON.parse(readFileSync(path.join(/*turbopackIgnore: true*/ process.cwd(), "data/live-runs", `${runId}.json`), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** A stored live run: this machine's `.data/runs/` first, then the committed audit records. */
+async function storedLiveRun(runId: string): Promise<RunRecord | null> {
+  if (!LIVE_RUN_ID.test(runId)) return null;
+  return (await readJson<RunRecord>(`runs/${runId}.json`)) ?? committedLiveRun(runId);
+}
+
+/**
+ * The run the demo shows after a reset: the run named in `data/demo-run.json` (an actual live
+ * run), unless ADAPTIVE_DEALS_DEMO_RUN overrides it ("synthetic" or a run ID). Falls back to the
+ * bundled synthetic replay when no live run is available, so the demo always runs credential-free.
+ */
+export function demoRunRecord(env: Record<string, string | undefined> = process.env): RunRecord {
+  const override = env.ADAPTIVE_DEALS_DEMO_RUN?.trim();
+  if (override === "synthetic") return bundledSyntheticRun();
+  let runId = override;
+  if (!runId) {
+    try {
+      runId = (JSON.parse(readFileSync(path.join(process.cwd(), "data/demo-run.json"), "utf8")) as { runId?: string }).runId;
+    } catch {
+      runId = undefined;
+    }
+  }
+  const live = runId ? committedLiveRun(runId) : null;
+  return live && live.kind === "live" && live.status === "complete" ? live : bundledSyntheticRun();
 }
 
 const clockOf = (s: Pick<DemoState, "clockAdvances">) => new SimulatedClock(DEMO_ANCHOR, s.clockAdvances);
@@ -103,7 +142,7 @@ const at10 = (date: string) => `${date}T10:00:00+05:30`;
 // ── Seed and load ────────────────────────────────────────────────────────────
 
 /** Fresh demo state at the start of the storyboard: the bundled synthetic run, before answers. */
-export async function seedState(record: RunRecord = bundledSyntheticRun(), viewing: "replay" | "fresh" = "replay"): Promise<DemoState> {
+export async function seedState(record: RunRecord = demoRunRecord(), viewing: "replay" | "fresh" = "replay"): Promise<DemoState> {
   const provider = new ReplayProvider(record.kind === "live" ? "recorded_replay" : "synthetic_replay", record.model, record.steps);
   const first = await runConstruct({ provider, kind: record.kind, runId: record.runId, clock: new FixedClock(), deal: heroDeal(), recordedAtWall: record.recordedAtWall });
   const s: DemoState = {
@@ -112,7 +151,7 @@ export async function seedState(record: RunRecord = bundledSyntheticRun(), viewi
     status: "stalled",
     statusHistory: [{ at: DEMO_ANCHOR, from: null, to: "stalled", reason: "Deal entered the workspace with a buyer conversation" }],
     clockAdvances: [],
-    run: { record: first.record, viewing },
+    run: { record: first.record, viewing, sourceRunId: record.runId },
     agreements: [],
     paymentLinks: [],
     mandate: null,
@@ -183,9 +222,22 @@ function providerForContinuation(s: DemoState): ModelProvider {
     const live = createLiveProvider();
     if (live) return live;
   }
-  // Synthetic runs continue from the bundled synthetic outputs; replays from their own run.
-  const pool = s.run.record.kind === "live" ? s.run.record.steps : bundledSyntheticRun().steps;
-  return new ReplayProvider(s.run.record.kind === "live" ? "recorded_replay" : "synthetic_replay", s.run.record.model, pool);
+  // Replays continue from the complete stored run they came from, never from another run.
+  return new ReplayProvider(s.run.record.kind === "live" ? "recorded_replay" : "synthetic_replay", s.run.record.model, sourceSteps(s));
+}
+
+function sourceSteps(s: DemoState) {
+  if (s.run.record.kind !== "live") return bundledSyntheticRun().steps;
+  const id = s.run.sourceRunId ?? s.run.record.runId;
+  return (committedLiveRunSync(id) ?? s.run.record).steps;
+}
+
+function committedLiveRunSync(runId: string): RunRecord | null {
+  try {
+    return JSON.parse(readFileSync(path.join(/*turbopackIgnore: true*/ DATA_DIR, "runs", `${runId}.json`), "utf8"));
+  } catch {
+    return committedLiveRun(runId);
+  }
 }
 
 export async function startLiveRun(): Promise<DemoState> {
@@ -205,8 +257,8 @@ export async function startLiveRun(): Promise<DemoState> {
 
 /** Load a previously stored live run as a replay ("Replay of an actual run"). */
 export async function replayStoredRun(runId: string): Promise<DemoState> {
-  if (!/^run-live-[a-f0-9]{8}$/.test(runId)) throw new ActionError("Unknown run", 404);
-  const record = await readJson<RunRecord>(`runs/${runId}.json`);
+  if (!LIVE_RUN_ID.test(runId)) throw new ActionError("Unknown run", 404);
+  const record = await storedLiveRun(runId);
   if (!record || record.kind !== "live") throw new ActionError("Only stored live runs can be replayed as actual runs", 404);
   return serialised(async () => {
     const s = await seedState(record, "replay");

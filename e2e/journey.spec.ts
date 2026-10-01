@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const SHOTS = "artifacts/ui-review";
@@ -29,10 +30,13 @@ test("five-view hero journey through the UI", async ({ page }) => {
 
   // 1. Deal workspace
   await page.goto("/workspace");
-  await expect(page.getByTestId("provenance")).toHaveText("Synthetic replay · run ID run-synthetic-hero-0001");
+  // The displayed demo run is the committed actual Groq run named in data/demo-run.json.
+  const demoRunId = JSON.parse(readFileSync("data/demo-run.json", "utf8")).runId as string;
+  await expect(page.getByTestId("provenance")).toHaveText(`Replay of an actual run · run ID ${demoRunId}`);
   const msg = page.getByTestId("message-msg-2");
   await expect(msg).toContainText("Only ₹50K left this quarter; new budget in April; anything above ₹60K needs MD approval.");
-  await expect(msg.locator("mark.evidence").first()).toHaveText("Only ₹50K left this quarter");
+  // The highlight is the run's own verified evidence quote (v2 live run quotes the whole sentence).
+  await expect(msg.locator("mark.evidence").first()).toContainText("Only ₹50K left this quarter");
   await expect(msg).toContainText("1 Oct 2026, 08:47 IST");
   await expect(page.getByTestId("constraint-budgetNow")).toContainText("₹50,000 available 1 Oct 2026 – 31 Dec 2026");
   await expect(page.getByTestId("constraint-amountsIncludeGst")).toContainText("Ambiguous");
@@ -43,9 +47,9 @@ test("five-view hero journey through the UI", async ({ page }) => {
 
   // 2. Clarification — answers entered through the form
   await page.getByRole("link", { name: /Clarification/ }).first().click();
-  await expect(page.getByTestId("question-clar-gst")).toContainText("Do both ₹50,000 and ₹60,000 include GST?");
+  await expect(page.getByTestId("question-clar-gst")).toContainText(/₹50,000 and ₹60,000 include GST\?/);
   await expect(page.getByTestId("why-clar-gst")).toContainText("options are feasible");
-  await expect(page.getByTestId("question-clar-approval")).toContainText("Is ₹60,000 the limit per payment or for the full contract?");
+  await expect(page.getByTestId("question-clar-approval")).toContainText(/₹60,000 .*per payment or .*(whole|full) contract\?/);
   await shot(page, "desktop-2-clarification-before");
   const gst = page.getByTestId("answer-clar-gst");
   await gst.getByLabel("Yes, both include GST").check();

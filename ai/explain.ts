@@ -2,7 +2,7 @@ import { formatDate } from "@/domain/dates";
 import { enforceApprovalOrder, type EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
 import { requestHash } from "./extract";
-import { PROMPTS } from "./prompts";
+import { PROMPTS, type PromptDefinition } from "./prompts";
 import type { StructuredRequest } from "./provider";
 import { ExplanationOutputSchema } from "./schemas";
 
@@ -51,8 +51,7 @@ export function aliasOptions(feasible: EvaluatedStructure[]): AliasedOption[] {
   return feasible.slice(0, ALIASES.length).map((x, i) => ({ alias: ALIASES[i], structureId: x.structure.id, label: x.structure.label, approval: x.approval, values: placeholderValues(x) }));
 }
 
-export function buildExplanationRequest(options: AliasedOption[]): StructuredRequest {
-  const prompt = PROMPTS.explain;
+export function buildExplanationRequest(options: AliasedOption[], prompt: PromptDefinition = PROMPTS.explain): StructuredRequest {
   const body = options
     .map((o) => {
       const facts = Object.entries(o.values)

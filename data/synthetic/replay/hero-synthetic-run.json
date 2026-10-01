@@ -8,9 +8,9 @@
   "provider": "synthetic_replay",
   "model": "none (synthetic outputs written by hand)",
   "promptVersions": {
-    "extract": "extract.v1",
+    "extract": "extract.v2",
     "clarify": "clarify.v1",
-    "explain": "explain.v1"
+    "explain": "explain.v2"
   },
   "inputs": {
     "dealId": "deal-hero",
@@ -76,9 +76,9 @@
   "steps": [
     {
       "task": "extract",
-      "promptVersion": "extract.v1",
-      "promptHash": "b9ee2f5fca78a3232ac0d23a55e473a3c903b90bd805508465cf9e6e7acb758c",
-      "inputHash": "7cdf27c95811fe22c1d95cb39fa58cb6c875567979e496313b5b2199a3a89d0c",
+      "promptVersion": "extract.v2",
+      "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+      "inputHash": "7fdd420df88b70e922ff325f028bc296a228ee4bd159e17d072029b4aa466f03",
       "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"msg-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:10:00+05:30\">\nSharing our annual proposal: website fixes, search marketing, social media and monthly reporting for ₹1,20,000 + GST. Happy to walk you through it.\n</message>\n<message id=\"msg-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nOnly ₹50K left this quarter; new budget in April; anything above ₹60K needs MD approval.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
@@ -159,9 +159,9 @@
     },
     {
       "task": "explain",
-      "promptVersion": "explain.v1",
-      "promptHash": "da31f9bf6049aae038c5d8235825fc39444c0706b186cb53ed540292f40bef0b",
-      "inputHash": "40c3d2af49beddf977bf296e201ea3da814066da262ee30d4d738cd07abac614",
+      "promptVersion": "explain.v2",
+      "promptHash": "2662f05bd2402c09721b4af7e33c47f6f102b8423ae3abd3f444ae3656e31e30",
+      "inputHash": "56f42a2e903500f1796e673be170fbb12d0a8cb119b994823dee7fb646c3cf06",
       "userContent": "Engine-feasible options (already checked against buyer constraints and seller policy):\n\nOption A: Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {A.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n    {A.approval} = Within buyer's approval limit\n    {A.total} = ₹46,020\n    {A.price_excl_gst} = ₹39,000\n    {A.payment_count} = 2\n    {A.largest_payment} = ₹23,010\n    {A.first_payment_date} = 1 Nov 2026\n    {A.last_payment_date} = 1 Dec 2026\n    {A.start_date} = 1 Nov 2026\n    {A.net_contribution} = ₹19,329.60\n    {A.net_contribution_pct} = 49.56%\n    {A.peak_funding} = ₹0\n    {A.peak_unpaid_value} = ₹9,500\n    {A.payment_1.total} = ₹23,010\n    {A.payment_1.date} = 1 Nov 2026\n    {A.payment_2.total} = ₹23,010\n    {A.payment_2.date} = 1 Dec 2026\n\nOption B: Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {B.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n    {B.approval} = Within buyer's approval limit\n    {B.total} = ₹46,020\n    {B.price_excl_gst} = ₹39,000\n    {B.payment_count} = 1\n    {B.largest_payment} = ₹46,020\n    {B.first_payment_date} = 1 Nov 2026\n    {B.last_payment_date} = 1 Nov 2026\n    {B.start_date} = 1 Nov 2026\n    {B.net_contribution} = ₹19,329.60\n    {B.net_contribution_pct} = 49.56%\n    {B.peak_funding} = ₹0\n    {B.peak_unpaid_value} = ₹0\n    {B.payment_1.total} = ₹46,020\n    {B.payment_1.date} = 1 Nov 2026\n\nOption C: Full annual scope · 30% at start, 70% in month 7\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {C.label} = Full annual scope · 30% at start, 70% in month 7\n    {C.approval} = Needs buyer's MD approval\n    {C.total} = ₹1,41,600\n    {C.price_excl_gst} = ₹1,20,000\n    {C.payment_count} = 2\n    {C.largest_payment} = ₹99,120\n    {C.first_payment_date} = 1 Nov 2026\n    {C.last_payment_date} = 1 May 2027\n    {C.start_date} = 1 Nov 2026\n    {C.net_contribution} = ₹60,168\n    {C.net_contribution_pct} = 50.14%\n    {C.peak_funding} = ₹0\n    {C.peak_unpaid_value} = ₹36,000\n    {C.payment_1.total} = ₹42,480\n    {C.payment_1.date} = 1 Nov 2026\n    {C.payment_2.total} = ₹99,120\n    {C.payment_2.date} = 1 May 2027\n\nOption D: Full annual scope from May 2027 · 12 monthly payments\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {D.label} = Full annual scope from May 2027 · 12 monthly payments\n    {D.approval} = Needs buyer's MD approval\n    {D.total} = ₹1,41,600\n    {D.price_excl_gst} = ₹1,20,000\n    {D.payment_count} = 12\n    {D.largest_payment} = ₹11,800\n    {D.first_payment_date} = 1 May 2027\n    {D.last_payment_date} = 1 Apr 2028\n    {D.start_date} = 1 May 2027\n    {D.net_contribution} = ₹60,168\n    {D.net_contribution_pct} = 50.14%\n    {D.peak_funding} = ₹5,750\n    {D.peak_unpaid_value} = ₹22,000\n    {D.payment_1.total} = ₹11,800\n    {D.payment_1.date} = 1 May 2027\n    {D.payment_2.total} = ₹11,800\n    {D.payment_2.date} = 1 Jun 2027\n    {D.payment_3.total} = ₹11,800\n    {D.payment_3.date} = 1 Jul 2027\n    {D.payment_4.total} = ₹11,800\n    {D.payment_4.date} = 1 Aug 2027\n    {D.payment_5.total} = ₹11,800\n    {D.payment_5.date} = 1 Sep 2027\n    {D.payment_6.total} = ₹11,800\n    {D.payment_6.date} = 1 Oct 2027\n    {D.payment_7.total} = ₹11,800\n    {D.payment_7.date} = 1 Nov 2027\n    {D.payment_8.total} = ₹11,800\n    {D.payment_8.date} = 1 Dec 2027\n    {D.payment_9.total} = ₹11,800\n    {D.payment_9.date} = 1 Jan 2028\n    {D.payment_10.total} = ₹11,800\n    {D.payment_10.date} = 1 Feb 2028\n    {D.payment_11.total} = ₹11,800\n    {D.payment_11.date} = 1 Mar 2028\n    {D.payment_12.total} = ₹11,800\n    {D.payment_12.date} = 1 Apr 2028\n\nRank them for the merchant and explain the trade-offs.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
@@ -173,11 +173,11 @@
           "C",
           "D"
         ],
-        "comparison": "Options A and B deliver the same Phase 1 scope — website fixes plus three months of search marketing and reporting — for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over two payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. Phase 1 has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Options C and D deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
+        "comparison": "Option A ({A.label}) and option B ({B.label}) cover the same scope for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. This smaller scope has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Option C ({C.label}) and option D ({D.label}) deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
         "option_notes": [
           {
             "option": "A",
-            "note": "Lower payments for the buyer; peak funding requirement {A.peak_funding}."
+            "note": "Smaller payments for the buyer; peak funding requirement {A.peak_funding}."
           },
           {
             "option": "B",
@@ -1074,12 +1074,12 @@
         "split_payment:plan=deposit_30",
         "deferred_start:start=2027-05-01,plan=monthly_12"
       ],
-      "comparisonTemplate": "Options A and B deliver the same Phase 1 scope — website fixes plus three months of search marketing and reporting — for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over two payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. Phase 1 has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Options C and D deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
-      "comparison": "Options A and B deliver the same Phase 1 scope — website fixes plus three months of search marketing and reporting — for ₹46,020, inside the current-quarter budget and within the buyer's approval limit. A spreads it over two payments on 1 Nov 2026 and 1 Dec 2026; B collects ₹46,020 at the start, so the seller carries no unpaid service value. Phase 1 has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Options C and D deliver the full annual scope and need the buyer's MD approval: C starts on 1 Nov 2026 with ₹42,480 now and ₹99,120 on 1 May 2027; D starts on 1 May 2027 with 12 monthly payments of ₹11,800.",
+      "comparisonTemplate": "Option A ({A.label}) and option B ({B.label}) cover the same scope for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. This smaller scope has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Option C ({C.label}) and option D ({D.label}) deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
+      "comparison": "Option A (Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments) and option B (Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start) cover the same scope for ₹46,020, inside the current-quarter budget and within the buyer's approval limit. A spreads it over payments on 1 Nov 2026 and 1 Dec 2026; B collects ₹46,020 at the start, so the seller carries no unpaid service value. This smaller scope has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Option C (Full annual scope · 30% at start, 70% in month 7) and option D (Full annual scope from May 2027 · 12 monthly payments) deliver the full annual scope and need the buyer's MD approval: C starts on 1 Nov 2026 with ₹42,480 now and ₹99,120 on 1 May 2027; D starts on 1 May 2027 with 12 monthly payments of ₹11,800.",
       "notes": [
         {
           "structureId": "phased_scope:scope=web-search-report-3m,plan=two_monthly",
-          "text": "Lower payments for the buyer; peak funding requirement ₹0."
+          "text": "Smaller payments for the buyer; peak funding requirement ₹0."
         },
         {
           "structureId": "phased_scope:scope=web-search-report-3m,plan=upfront",

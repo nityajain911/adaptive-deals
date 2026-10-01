@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { FixedClock } from "@/domain/clock";
 import { runConstruct, type RunOutcome } from "@/ai/orchestrator";
+import { KEY_VARS, readAiConfig } from "@/ai/config";
 import { PROMPTS, promptHash } from "@/ai/prompts";
 import type { ModelProvider } from "@/ai/provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
@@ -11,6 +12,9 @@ import { aggregate, scoreCase, type CaseResult, type MetricCounts } from "./metr
 import { goldComparable, runOracle } from "./oracle";
 
 export type EvalMode = "live_model" | "reference_extraction";
+
+/** The key variable the configured provider needs (GROQ_API_KEY or ANTHROPIC_API_KEY). */
+export const requiredKeyVar = (env: Record<string, string | undefined> = process.env) => KEY_VARS[readAiConfig(env).provider];
 
 export function observe(out: RunOutcome) {
   const structures = out.evaluation.result?.structures ?? [];
@@ -29,7 +33,7 @@ export async function runCases(cases: EvalCase[], mode: EvalMode, provider?: Mod
     let out: RunOutcome;
     if (mode === "reference_extraction") out = await runOracle(c);
     else {
-      if (!provider) throw new Error("A live model provider is required");
+      if (!provider) throw new Error(`A live model provider is required (set ${requiredKeyVar()})`);
       out = await runConstruct({ provider, kind: "live", runId: `eval-${c.id}`, clock: new FixedClock(), deal: { ...heroDeal(), dealId: c.id, messages: c.messages.map((m) => ({ ...m, dealId: c.id })) } });
     }
     results.push(scoreCase(c, observe(out)));
@@ -57,7 +61,7 @@ export function casesHash(cases: EvalCase[]): string {
 }
 
 /** Reasons a frozen run must not happen. Empty = allowed. */
-export function frozenRunBlockers(cases: EvalCase[], liveAvailable: boolean): string[] {
+export function frozenRunBlockers(cases: EvalCase[], liveAvailable: boolean, env: Record<string, string | undefined> = process.env): string[] {
   const out: string[] = [];
   if (cases.length < 15 || cases.length > 20) out.push(`Frozen set must have 15–20 cases supplied by another person (found ${cases.length})`);
   if (!existsSync(FREEZE_FILE)) out.push("Prompts are not frozen: run `npm run eval:frozen -- --freeze --labelled-by \"<name>\"` after importing cases");
@@ -66,6 +70,6 @@ export function frozenRunBlockers(cases: EvalCase[], liveAvailable: boolean): st
     if (JSON.stringify(f.promptHashes) !== JSON.stringify(currentPromptHashes())) out.push("Prompts changed since the freeze: a fresh, untouched test set is required");
     if (f.casesHash !== casesHash(cases)) out.push("Frozen cases changed after the freeze");
   }
-  if (!liveAvailable) out.push("A live model is required (ANTHROPIC_API_KEY); frozen results are never produced from replay or reference extractions");
+  if (!liveAvailable) out.push(`A live model is required (${requiredKeyVar(env)} for provider ${readAiConfig(env).provider}); frozen results are never produced from replay or reference extractions`);
   return out;
 }

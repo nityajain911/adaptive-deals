@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { canonicalJson } from "@/domain/agreement";
 import { buildConstraintProfile, type RawExtraction } from "@/domain/constraints";
 import type { ConstraintProfile, Message, ServicePackage } from "@/domain/types";
-import { neutraliseDelimiters, PROMPTS } from "./prompts";
+import { neutraliseDelimiters, PROMPTS, type PromptDefinition } from "./prompts";
 import { ExtractionOutputSchema, type ExtractionOutput } from "./schemas";
 import type { StructuredRequest } from "./provider";
 
@@ -10,8 +10,7 @@ export function requestHash(promptVersion: string, user: string): string {
   return createHash("sha256").update(canonicalJson({ promptVersion, user }), "utf8").digest("hex");
 }
 
-export function buildExtractionRequest(messages: Message[], packages: ServicePackage[]): StructuredRequest {
-  const prompt = PROMPTS.extract;
+export function buildExtractionRequest(messages: Message[], packages: ServicePackage[], prompt: PromptDefinition = PROMPTS.extract): StructuredRequest {
   const pkgLines = packages.map((p) => `- ${p.name} (id ${p.id})`).join("\n");
   const msgLines = messages
     .map((m) => `<message id="${m.id}" author="${m.author}" source="${m.source}" sent_at="${m.timestamp}">\n${neutraliseDelimiters(m.text)}\n</message>`)

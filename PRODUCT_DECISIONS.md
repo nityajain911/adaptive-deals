@@ -31,6 +31,10 @@ The Anthropic SDK provider remains available (`ADAPTIVE_DEALS_PROVIDER=anthropic
 
 Without the selected provider's key, "Run live" is unavailable and says why. The bundled synthetic replay is never presented as a live run.
 
+**Prompt versions:** a published prompt version is never edited; changes create a new version, and retired versions stay in `PROMPT_VERSIONS`. Every run records the versions and hashes it used, and replays rebuild requests with those versions. Current: `extract.v2`, `clarify.v1`, `explain.v2`.
+
+**Displayed demo run:** after a reset the demo shows the committed actual Groq run named in `data/demo-run.json` (`run-live-a727c9c8`), labelled "Replay of an actual run". `data/live-runs/` keeps every committed live run as an audit record, including the original v1 run `run-live-e1ddc008`. Without a committed live run, the bundled synthetic replay is used and labelled as such.
+
 **Run records and replay:** every run stores the run ID, kind, provider, model, prompt versions and prompt hashes, inputs (messages, policy, recorded answers), each step's exact request hash and raw output, the engine snapshot and what was displayed. A replay uses only the stored run's own outputs, keyed by exact request hash, and must reproduce the stored engine and display output byte for byte; otherwise it is refused. Labels:
 
 - `Synthetic replay · run ID …` for the bundled hand-written run;

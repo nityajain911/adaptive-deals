@@ -33,9 +33,9 @@ export const heroSyntheticClarificationOutput: ClarificationOutput = {
 export const heroSyntheticExplanationOutput: ExplanationOutput = {
   ranking: ["A", "B", "C", "D"],
   comparison:
-    "Options A and B deliver the same Phase 1 scope — website fixes plus three months of search marketing and reporting — for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over two payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. Phase 1 has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Options C and D deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
+    "Option A ({A.label}) and option B ({B.label}) cover the same scope for {A.total}, inside the current-quarter budget and within the buyer's approval limit. A spreads it over payments on {A.payment_1.date} and {A.payment_2.date}; B collects {B.total} at the start, so the seller carries no unpaid service value. This smaller scope has value on its own and is its own purchase; any later scope would be a new decision under the buyer's normal approval. Option C ({C.label}) and option D ({D.label}) deliver the full annual scope and need the buyer's MD approval: C starts on {C.start_date} with {C.payment_1.total} now and {C.payment_2.total} on {C.payment_2.date}; D starts on {D.start_date} with {D.payment_count} monthly payments of {D.largest_payment}.",
   option_notes: [
-    { option: "A", note: "Lower payments for the buyer; peak funding requirement {A.peak_funding}." },
+    { option: "A", note: "Smaller payments for the buyer; peak funding requirement {A.peak_funding}." },
     { option: "B", note: "Simplest collection: one payment link, no mandate needed." },
     { option: "C", note: "Full scope from the start; needs the buyer's MD approval before it can be accepted." },
     { option: "D", note: "Full scope but starts later; needs the buyer's MD approval." },

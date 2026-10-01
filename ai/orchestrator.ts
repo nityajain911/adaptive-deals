@@ -7,7 +7,8 @@ import type { ApprovalScope, ConstraintProfile, GstInclusion, Merchant, Message,
 import { buildClarificationRequest, interpretClarification, type ClarificationQuestion } from "./clarify";
 import { buildExplanationRequest, aliasOptions, interpretExplanation, type ExplanationResult } from "./explain";
 import { buildExtractionRequest, interpretExtraction } from "./extract";
-import { PROMPTS, promptHash } from "./prompts";
+import { promptFor, promptHash } from "./prompts";
+import type { AiTask } from "./schemas";
 import type { ModelProvider, ProviderResult, StructuredRequest } from "./provider";
 import { ReplayProvider } from "./replay-provider";
 import { profileCards, RUN_RECORD_SCHEMA, snapshotEvaluation, type RecordedAnswer, type RunKind, type RunRecord, type RunStep } from "./run-record";
@@ -45,10 +46,14 @@ export async function runConstruct(args: {
   previous?: RunRecord;
   recordedAtWall?: string | null;
   clockAdvances?: ClockAdvance[];
+  /** Prompt versions to use; defaults to a continued run's own versions, else the current ones. */
+  promptVersions?: Partial<Record<AiTask, string>>;
 }): Promise<RunOutcome> {
   const { deal, provider } = args;
   if (args.previous && args.previous.runId !== args.runId) throw new Error("A run can only be continued under its own run ID");
   const reuse = new Map((args.previous?.steps ?? []).map((s) => [s.inputHash, s]));
+  const versions = args.promptVersions ?? args.previous?.promptVersions;
+  const prompts = { extract: promptFor("extract", versions?.extract), clarify: promptFor("clarify", versions?.clarify), explain: promptFor("explain", versions?.explain) };
   const steps: RunStep[] = [];
   const engine: EngineInput = { merchant: deal.merchant, packages: deal.packages, templates: deal.templates };
 
@@ -78,7 +83,7 @@ export async function runConstruct(args: {
   };
 
   // 1. Extraction: AI returns raw text + evidence; code verifies and normalises.
-  const ex = await call(buildExtractionRequest(deal.messages, deal.packages));
+  const ex = await call(buildExtractionRequest(deal.messages, deal.packages, prompts.extract));
   const extraction = ex.raw === null ? null : interpretExtraction(ex.raw, { dealId: deal.dealId, messages: deal.messages, packages: deal.packages, timeZone: deal.merchant.timeZone });
   let profile: ConstraintProfile = extraction?.profile ?? interpretExtraction(null, { dealId: deal.dealId, messages: deal.messages, packages: deal.packages, timeZone: deal.merchant.timeZone }).profile;
   if (extraction && !extraction.accepted) {
@@ -94,7 +99,7 @@ export async function runConstruct(args: {
   const initial = evaluateDeal(profile, engine);
   let questions: ClarificationQuestion[] = [];
   if (initial.state === "ambiguous") {
-    const req = buildClarificationRequest(profile, initial.ambiguities);
+    const req = buildClarificationRequest(profile, initial.ambiguities, prompts.clarify);
     const cl = await call(req);
     const result = interpretClarification(cl.raw, profile, initial.ambiguities);
     questions = result.questions;
@@ -125,7 +130,7 @@ export async function runConstruct(args: {
   let explanation: ExplanationResult | null = null;
   if (final.state === "options_ready" && final.result) {
     const options = aliasOptions(final.result.feasible);
-    const exp = await call(buildExplanationRequest(options));
+    const exp = await call(buildExplanationRequest(options, prompts.explain));
     explanation = interpretExplanation(exp.raw, final.result.feasible);
     if (exp.raw !== null) {
       exp.step.issues = explanation.issues;
@@ -144,7 +149,7 @@ export async function runConstruct(args: {
     recordedAtWall: args.previous?.recordedAtWall ?? args.recordedAtWall ?? null,
     provider: meta?.provider ?? provider.name,
     model: meta?.model ?? provider.model,
-    promptVersions: { extract: PROMPTS.extract.version, clarify: PROMPTS.clarify.version, explain: PROMPTS.explain.version },
+    promptVersions: { extract: prompts.extract.version, clarify: prompts.clarify.version, explain: prompts.explain.version },
     inputs: { dealId: deal.dealId, messages: deal.messages, packageIds: deal.packages.map((p) => p.id), policy: deal.merchant.policy, answers },
     steps,
     engine: {

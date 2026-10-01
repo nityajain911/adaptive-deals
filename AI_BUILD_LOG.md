@@ -243,6 +243,61 @@ Checked against the Groq structured-outputs documentation: `openai/gpt-oss-120b`
 
 Eval scripts now load `.env.local` (`--env-file-if-exists`).
 
+### 2026-10-01 · Prompt v2 before freezing [Claude Code]
+
+**Prompt (applicant):**
+- bump to `extract.v2` (keep complete period phrases; GST evidence must contain the amounts it covers; report ambiguity when the amount-to-GST link is unclear);
+- bump to `explain.v2` (refer to options through placeholders including `{X.label}`; never restate figures from labels);
+- keep `clarify.v1`;
+- preserve the v1 run, rebuild the synthetic replay, make a fresh v2 live run the displayed demo, run the development set once, and clean up.
+
+**Built**
+- `ai/prompts.ts`: `extract.v2` and `explain.v2`. The retired `extract.v1` and `explain.v1` texts are kept, recovered byte for byte from git, in `PROMPT_VERSIONS`. The orchestrator now builds each request with the prompt versions recorded in the run.
+  - **Why:** without this, bumping a version would have made every older run unreplayable, because its request hashes would no longer match.
+  - A test checks that every committed live run's step `promptHash` equals a published version.
+- **Synthetic replay** rebuilt on `extract.v2` / `clarify.v1` / `explain.v2`. The hand-written comparison now names options through `{X.label}`. The byte-for-byte integrity tests pass.
+- **Committed audit records** in `data/live-runs/`:
+  - `run-live-e1ddc008` (v1), copied unchanged (identical SHA-256);
+  - `run-live-a727c9c8` (v2).
+
+  `data/demo-run.json` selects the v2 run as the displayed demo after a reset. `ADAPTIVE_DEALS_DEMO_RUN=synthetic` (or another run ID) overrides it.
+- **Bug fixed:** replaying a stored live run and then continuing the demo used only the replayed first half, so the explanation could not be found. The state now records `sourceRunId`, and continuation draws only from that complete run.
+- **Cleanup:**
+  - removed `playwright.review.config.ts` (it had been swept into an earlier commit);
+  - live-model messages are provider-aware (`GROQ_API_KEY` or `ANTHROPIC_API_KEY`) in `evaluation/runner.ts`, `scripts/run-dev-eval.ts` and the frozen README;
+  - live development runs now save their counts to `evaluation/results/`.
+
+**New live run `run-live-a727c9c8`** (Groq `openai/gpt-oss-120b`; `extract.v2`, `clarify.v1`, `explain.v2`)
+- **Extraction:** accepted. Groq now quotes the whole sentence as evidence for every field: verbatim and valid, but coarser highlights. GST was not flagged as ambiguous this time; code derived it, so both questions were still asked.
+- **Clarification:** AI wording accepted.
+- **Final engine result:** identical to the synthetic run.
+- **Explanation: rejected; code fallback for both ranking and text.** `explain.v2`'s "refer to each option through its placeholders, including `{A.label}`" led Groq to write `"{A.label}"` in `ranking` and `option`, which must be bare aliases. The schema rejected the whole output. The comparison also said "avoid MD approval", which the approval-bypass check rejects. **This is a regression caused by the v2 wording.**
+- The stored file holds extraction, clarification, answers, explanation and the final engine result, and it replays byte for byte.
+
+**Development evaluation (16 synthetic cases, live Groq, counts only; not a frozen result)**
+
+| Count | v1 (extract.v1 / explain.v1) | v2 (extract.v2 / explain.v2), official single run |
+| --- | --- | --- |
+| Correctly extracted fields | 29 of 35 | 31 of 35 |
+| Unsupported extracted fields | 2 across 16 cases | 2 across 16 cases |
+| Required clarifications asked | 4 of 6 | 6 of 6 |
+| Required clarifications missed | 2 of 6 | 0 of 6 |
+| Unnecessary clarifications asked | 1 across 16 cases | 2 across 16 cases |
+| Failure states correctly identified | 7 of 8 | 8 of 8 |
+| Failing options presented as approvable | 0 of 90 | 0 of 90 |
+
+- The v2 per-case differences come from the saved result file, with no reruns: dev-06, dev-11, dev-13 and dev-14 each scored 2 of 3 fields; dev-08 and dev-12 each had 1 unsupported field; dev-13 and dev-14 each had 1 unnecessary question.
+- **v1 provenance:** the v1 counts come from the earlier single run, recorded in the log above. Its result file was not saved, because saving was added in this change.
+- **Separate diagnostic evidence of run-to-run variation (v1):** dev-04 and dev-06 failed in the v1 evaluation but matched on a diagnostic re-run. They are not part of either official count.
+
+**Recommendation (not applied; the applicant decides before freezing):** `explain.v3`. State that `ranking` and `option` take bare aliases (`"A"`), and that placeholders belong only in `comparison` and `note`. Optionally, make `ranking` an enum of single-letter aliases so Groq's strict mode enforces it.
+
+**Verification:**
+- `npm test` 244/244 · typecheck clean · lint clean · `next build` clean · Playwright 4/4. Two e2e assertions were updated for the actual-run demo: the provenance label, and the highlight now containing rather than equalling the budget phrase.
+- Reference evaluation (no key): 35/35 fields, 0 of 120 approvable failures.
+- The frozen guard blocks the run: no cases, no freeze.
+- Key scan: the Groq key appears in no file other than the git-ignored `.env.local`. It is not in tracked files, git history, run records, results or screenshots.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

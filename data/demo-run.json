@@ -1,0 +1,4 @@
+{
+  "runId": "run-live-a727c9c8",
+  "note": "Displayed demo run after reset: an actual Groq run with prompts extract.v2, clarify.v1, explain.v2. Override with ADAPTIVE_DEALS_DEMO_RUN=synthetic or another run ID."
+}

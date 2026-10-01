@@ -6,7 +6,7 @@ import type { AmbiguityImpact } from "@/domain/engine";
 import { formatINR } from "@/domain/money";
 import type { AmountField, ConstraintProfile } from "@/domain/types";
 import { requestHash } from "./extract";
-import { PROMPTS } from "./prompts";
+import { PROMPTS, type PromptDefinition } from "./prompts";
 import type { StructuredRequest } from "./provider";
 import { ClarificationOutputSchema } from "./schemas";
 
@@ -41,8 +41,7 @@ const amountsOf = (p: ConstraintProfile): { field: AmountField; paise: number; d
     .filter((x): x is { field: AmountField; paise: number; display: string } => x !== null);
 
 /** Facts sent to the model: only decision-relevant ambiguities, with the engine's comparison. */
-export function buildClarificationRequest(profile: ConstraintProfile, impacts: AmbiguityImpact[]): StructuredRequest {
-  const prompt = PROMPTS.clarify;
+export function buildClarificationRequest(profile: ConstraintProfile, impacts: AmbiguityImpact[], prompt: PromptDefinition = PROMPTS.clarify): StructuredRequest {
   const amounts = amountsOf(profile);
   const facts = impacts
     .filter((a) => a.decisionRelevant)

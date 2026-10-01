@@ -8,6 +8,7 @@ import path from "node:path";
  * the API routes drive it. Every result is computed; nothing here is a UI constant.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-"));
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // this suite asserts the bundled synthetic run
 delete process.env.ANTHROPIC_API_KEY;
 delete process.env.GROQ_API_KEY;
 delete process.env.ADAPTIVE_DEALS_PROVIDER;
