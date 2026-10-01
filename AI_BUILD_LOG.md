@@ -212,6 +212,37 @@ Checked against the Groq structured-outputs documentation: `openai/gpt-oss-120b`
 
 **Verification:** `npm test` 238/238 · typecheck clean · lint clean.
 
+### 2026-10-01 · First live run on Groq [Claude Code]
+
+**Prompt (applicant):** "go ahead" (one live run plus the development evaluation, using the applicant's Groq key).
+
+**Live run `run-live-e1ddc008`** (Groq, `openai/gpt-oss-120b`, prompts v1)
+- **Extraction:** identical to the synthetic replay. All four fields were accepted with verbatim evidence, none were rejected, and both ambiguities were flagged.
+- **Clarification:** AI wording passed validation. It names both ₹50,000 and ₹60,000.
+- **Engine result:** byte-for-byte identical to the synthetic run.
+- **Explanation:** the model ranked B (single payment) before A, which it may do. It wrote "30%" literally, copied from an option label, so code rejected the comparison text and one note and showed code wording instead. The guardrail worked as designed.
+
+**Bug found and fixed:** the stored copy of a live run (`.data/runs/`) was written only after the first half. It is now rewritten when answers are recorded, so "Replay of an actual run" covers the whole run. The existing record was completed from the same run's state. Its replay passes the integrity check and is labelled "Replay of an actual run · run ID run-live-e1ddc008".
+
+**Development evaluation (live model, 16 synthetic cases, counts only)**
+- Correctly extracted fields: 29 of 35.
+- Unsupported extracted fields: 2 across 16 cases.
+- Required clarifications asked: 4 of 6; missed: 2 of 6.
+- Unnecessary clarifications asked: 1 across 16 cases.
+- Failure states correctly identified: 7 of 8.
+- Failing options presented as approvable: 0 of 90.
+
+**Diagnosis**
+- dev-04 and dev-06 passed on a re-run: run-to-run variation from a reasoning model, even at temperature 0.
+- dev-02: the model returned period "quarter" without "is", so code would not guess and the budget became unstated.
+- dev-11 and dev-14: the GST phrase was quoted without its amount, so under the explicit GST-coverage rule the basis stayed unconfirmed.
+
+**Proposed (not applied; awaiting the applicant):**
+- `extract.v2`: copy the full period phrase; a GST evidence quote must include the amount(s) it applies to.
+- `explain.v2`: refer to plans only through `{X.label}` and never restate label text containing digits.
+
+Eval scripts now load `.env.local` (`--env-file-if-exists`).
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

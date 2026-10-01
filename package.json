@@ -12,8 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "reset:seed": "tsx --conditions=react-server scripts/reset-seed.ts",
-    "eval": "tsx scripts/run-dev-eval.ts",
-    "eval:frozen": "tsx scripts/run-frozen-eval.ts",
+    "eval": "tsx --env-file-if-exists=.env.local scripts/run-dev-eval.ts",
+    "eval:frozen": "tsx --env-file-if-exists=.env.local scripts/run-frozen-eval.ts",
     "hero:report": "tsx scripts/hero-report.ts",
     "replay:build": "tsx scripts/build-synthetic-replay.ts"
   },

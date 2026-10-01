@@ -240,6 +240,8 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
     }));
     const out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
     s.run = { record: out.record, viewing: s.run.viewing };
+    // Keep the stored copy of a live run complete, so "Replay of an actual run" replays all of it.
+    if (out.record.kind === "live" && s.run.viewing === "fresh") await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
     for (const a of answers) event(s, "clarification_answered", `Answer recorded: ${a.answerText}`, "merchant", `Confirmed by buyer via ${a.confirmedByBuyerVia}`);
     setStatus(s, statusForEvaluation(out.evaluation), "Engine re-evaluated every template with the confirmed answers");
   });
