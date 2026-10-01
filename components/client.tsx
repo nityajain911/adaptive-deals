@@ -231,8 +231,11 @@ export function AcceptForm({ action, version, termsHash, needsAuthority }: { act
 /** A typed simulated buyer reply. It goes through the same code rules as scripted replies. */
 export function TypedReply({ targets }: { targets: { id: string; label: string }[] }) {
   const { run, pending, error } = useAction();
-  const [to, setTo] = useState(targets.at(-1)?.id ?? "");
+  // Targets change as messages are sent. Keep an explicit choice only while it is still a valid
+  // target; otherwise fall back to the latest one, so the shown option and the submitted id agree.
+  const [chosen, setChosen] = useState<string | null>(null);
   const [text, setText] = useState("");
+  const to = chosen && targets.some((t) => t.id === chosen) ? chosen : (targets.at(-1)?.id ?? "");
   if (!targets.length) return null;
   return (
     <form
@@ -248,7 +251,7 @@ export function TypedReply({ targets }: { targets: { id: string; label: string }
       <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
         <label className="text-[12px] font-medium text-muted sm:col-span-2">
           In reply to
-          <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink" value={to} onChange={(e) => setTo(e.target.value)}>
+          <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink" value={to} onChange={(e) => setChosen(e.target.value)}>
             {targets.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
@@ -260,7 +263,7 @@ export function TypedReply({ targets }: { targets: { id: string; label: string }
           Buyer message
           <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder="e.g. Cash is tight till the 20th." />
         </label>
-        <Button type="submit" variant="sim" className="self-end" disabled={pending || !text.trim()}>
+        <Button type="submit" variant="sim" className="self-end" disabled={pending || !text.trim() || !targets.some((t) => t.id === to)}>
           {pending ? "Sending…" : "Send as buyer"}
         </Button>
       </div>

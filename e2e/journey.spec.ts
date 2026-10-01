@@ -246,10 +246,77 @@ test("typed and unsupported replies change nothing; a second qualifying reply op
   await expect(page.getByTestId("change-request")).toHaveAttribute("data-state", "change_requested");
   await typed.getByLabel("Buyer message").fill("Actually till the 25th");
   await typed.getByRole("button", { name: "Send as buyer" }).click();
-  await expect(page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last()).toContainText("a change request is already open");
+  const dupBubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
+  await expect(dupBubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
+  await expect(dupBubble).toContainText("Change request chg-1 is already open"); // the reason recorded for this reply
   await expect(page.getByTestId("change-request-history").locator("li")).toHaveCount(1);
   await expect(page.getByTestId("code-reading")).toContainText("20 Dec 2026");
   await expect(page.getByTestId("events")).toContainText("Merchant attention needed: a change request is already open");
+});
+
+test("typed reply targets stay valid as messages appear (no reload, no dropdown change)", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await page.goto("/workspace");
+  await expect(page.getByTestId("typed-reply")).toHaveCount(0); // nothing has been sent yet
+  await page.getByTestId("send-clar-gst").click();
+  const form = page.getByTestId("typed-reply");
+  await expect(form).toBeVisible();
+  const select = form.getByLabel("In reply to");
+  const shownLabel = (await select.locator("option:checked").textContent())!;
+  const shownId = await select.inputValue();
+  expect(shownId).not.toBe("");
+  expect(shownLabel).toContain("Do the amounts");
+  await form.getByLabel("Buyer message").fill("Yes, both are with GST");
+  await form.getByRole("button", { name: "Send as buyer" }).click();
+  const reply = page.getByTestId("conversation").locator('[data-kind="buyer_reply"]').last();
+  await expect(reply).toContainText("Yes, both are with GST");
+  await expect(reply).toContainText("Reply to clarification question");
+  await expect(page.getByText("Unknown message")).toHaveCount(0);
+  await expect(form.getByRole("alert")).toHaveCount(0); // the form's own error slot (Next.js also renders an empty route announcer)
+  const s = JSON.parse(readFileSync(STORE, "utf8"));
+  const stored = s.conversation.at(-1);
+  const question = s.conversation.find((i: { id: string }) => i.id === stored.inReplyTo);
+  expect(stored.inReplyTo).toBe(shownId);
+  expect(question.refs.questionId).toBe("clar-gst");
+  expect(shownLabel).toContain(question.text.slice(0, 20));
+});
+
+test("date replies that cannot reschedule show merchant attention with the recorded reason", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  // After rescheduling: a reply to the original notice, whose payment was removed.
+  await reset(page);
+  await stepUntil(page, (s) => (s as unknown as { amendments: { state: string }[] }).amendments.some((a) => a.state === "active"));
+  await page.goto("/timeline");
+  const collections = await page.getByTestId("collections").textContent();
+  const form = page.getByTestId("typed-reply");
+  await form.getByLabel("In reply to").selectOption({ label: (await form.getByLabel("In reply to").locator("option", { hasText: "Advance notice" }).first().textContent())! });
+  await form.getByLabel("Buyer message").fill("Cash is tight till the 25th.");
+  await form.getByRole("button", { name: "Send as buyer" }).click();
+  let bubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
+  await expect(bubble).toContainText("Cash is tight till the 25th.");
+  await expect(bubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
+  await expect(bubble).toContainText("nothing to reschedule");
+  await expect(bubble).not.toContainText("already open");
+  await expect(page.getByTestId("collections")).toHaveText(collections!);
+
+  // After the payment succeeded.
+  await reset(page);
+  await stepUntil(page, (s) => (s as unknown as { conversation: { kind: string }[] }).conversation.some((i) => i.kind === "notice"));
+  await api(page, { action: "simulate", event: "debit_succeeded" });
+  await page.goto("/timeline");
+  const paid = await page.getByTestId("collections").textContent();
+  const ledger = await page.getByTestId("ledger").textContent();
+  await form.getByLabel("Buyer message").fill("Cash is tight till the 20th.");
+  await form.getByRole("button", { name: "Send as buyer" }).click();
+  bubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
+  await expect(bubble).toContainText("Cash is tight till the 20th.");
+  await expect(bubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
+  await expect(bubble).toContainText("already succeeded");
+  await expect(bubble).not.toContainText("already open");
+  await expect(page.getByTestId("collections")).toHaveText(paid!);
+  await expect(page.getByTestId("ledger")).toHaveText(ledger!);
+  await expect(page.getByTestId("restructuring")).toContainText("No change requested");
 });
 
 test("decline records the buyer's rejection and creates no payment setup", async ({ page }) => {

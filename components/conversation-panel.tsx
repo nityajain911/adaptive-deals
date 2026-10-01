@@ -2,11 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { MessageCircle, Pause, Play } from "lucide-react";
 import { CHANNEL_LABEL, STATE_LABEL, type ConversationItem } from "@/domain/conversation";
-import { CLASSIFICATION_LABEL } from "@/domain/replies";
 import type { Evidence, Message } from "@/domain/types";
 import { heroScriptedReplies } from "@/data/synthetic/hero";
 import type { DemoState } from "@/lib/service";
-import { activeVersionOf, changeRequestDisplay, pendingActions } from "@/lib/views";
+import { activeVersionOf, noticeReplyOutcome, pendingActions } from "@/lib/views";
 import { ActionButton, TypedReply } from "./client";
 import { fmtTime, highlighted } from "./evidence";
 import { Badge, Card, Pill, cx, type Tone } from "./ui";
@@ -136,7 +135,7 @@ export function ConversationPanel({ s, messages = [], evidence = [], scope = "al
             )}
           </div>
         ) : null}
-        <TypedReply targets={replyTargets.map((t) => ({ id: t.id, label: `${KIND_LABEL[t.kind]} · ${fmtTime(t.sentAt!)}` }))} />
+        <TypedReply targets={replyTargets.map((t) => ({ id: t.id, label: `${KIND_LABEL[t.kind]} · “${t.text.length > 48 ? `${t.text.slice(0, 48)}…` : t.text}” · ${fmtTime(t.sentAt!)}` }))} />
       </div>
     </Card>
   );
@@ -148,8 +147,7 @@ function ConversationBubble({ i, s, target, activeVersion }: { i: ConversationIt
   const scripts = outbound && i.sentAt ? heroScriptedReplies.filter((r) => r.context === i.kind && (!("questionId" in r) || r.questionId === i.refs.questionId)) : [];
   // A notice stays answerable while its collection attempt is still scheduled.
   const showScripts = i.kind === "notice" ? s.attempts.find((a) => a.id === i.refs.attemptId)?.status === "scheduled" : replies.length === 0;
-  const cr = s.changeRequests.find((c) => c.replyId === i.id);
-  const c = i.classification;
+  const outcome = !outbound && target?.kind === "notice" ? noticeReplyOutcome(i, s, activeVersion) : null;
   return (
     <li className={cx("max-w-[92%] rounded-2xl border px-4 py-3", outbound ? cx("ml-auto", i.sentAt ? "border-[#d6defe] bg-blue-weak" : "border-dashed border-[#9fb3ff] bg-surface") : "border-line bg-surface")} data-testid={`conv-${i.id}`} data-kind={i.kind}>
       <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
@@ -162,17 +160,11 @@ function ConversationBubble({ i, s, target, activeVersion }: { i: ConversationIt
       </div>
       <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
 
-      {!outbound && target?.kind === "notice" && c ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`classification-${i.id}`}>
-          {cr ? (
-            <ChangeRequestBadge label={changeRequestDisplay(cr, activeVersion).label} />
-          ) : (
-            <Badge tone={c.kind === "needs_attention" ? "amber" : c.kind === "change_requested" ? "blue" : "neutral"}>{CLASSIFICATION_LABEL[c.kind]}</Badge>
-          )}
-          {!cr && c.kind === "change_requested" ? <Badge tone="amber">Merchant attention: a change request is already open</Badge> : null}
+      {!outbound && target?.kind === "notice" && outcome ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`classification-${i.id}`} data-outcome={outcome.label}>
+          <Badge tone={outcome.tone}>{outcome.label}</Badge>
           <span className="text-muted">
-            Read by code (reply-rules.v1), not AI
-            {c.kind === "change_requested" ? ` · “${c.phrase}” → unavailable through ${c.unavailableUntil}, earliest debit ${c.earliestDebit}` : c.kind === "needs_attention" ? ` · ${c.detail}` : c.kind === "payment_claimed" ? " · payment status and ledger change only from a verified payment event" : " · accepts nothing and authorises nothing"}
+            Read by code (reply-rules.v1), not AI · {outcome.detail}
           </span>
         </div>
       ) : null}

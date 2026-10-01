@@ -37,6 +37,45 @@ export function actionableChangeRequests(requests: ChangeRequest[], agreements: 
   return active ? requests.filter((c) => c.state === "change_requested" && changeRequestDisplay(c, active.version).kind === "open") : [];
 }
 
+export interface ReplyOutcome {
+  label: string;
+  tone: "blue" | "green" | "red" | "amber" | "neutral";
+  detail: string;
+  changeRequestId: string | null;
+}
+
+export const NO_REQUEST_NEUTRAL = "No change request created; review the timeline for details.";
+
+/**
+ * What actually happened to a buyer reply to an advance notice. "Change requested" (or its later
+ * state) appears only when a request was created from this reply. Otherwise the reply needed
+ * merchant attention, and the reason shown is the one recorded at the time, when it can be linked
+ * reliably: the service records the reply's own event and, immediately after it in the same
+ * action, the refusal. If that link is not unique, neutral wording is used instead.
+ */
+export function noticeReplyOutcome(
+  reply: Pick<ConversationItem, "id" | "text" | "createdAt" | "inReplyTo" | "classification">,
+  s: { changeRequests: ChangeRequest[]; events: { kind: string; title: string; detail: string | null; at: string }[] },
+  activeVersion: number | null,
+): ReplyOutcome | null {
+  const c = reply.classification;
+  if (!c) return null;
+  if (c.kind === "payment_claimed") return { label: "Payment claimed — verification required", tone: "neutral", detail: "Payment status and the ledger change only from a verified payment event.", changeRequestId: null };
+  if (c.kind === "acknowledgement") return { label: "Acknowledgement only", tone: "neutral", detail: "Accepts nothing and authorises nothing.", changeRequestId: null };
+  if (c.kind === "needs_attention") return { label: "Merchant attention needed", tone: "amber", detail: c.detail, changeRequestId: null };
+  const cr = s.changeRequests.find((x) => x.replyId === reply.id);
+  if (cr) {
+    const d = changeRequestDisplay(cr, activeVersion);
+    return { label: d.label, tone: d.label === "Payment rescheduled" ? "green" : d.label === "Not restructured" ? "red" : d.kind === "stale" ? "neutral" : "blue", detail: `“${c.phrase}” → unavailable through ${c.unavailableUntil}, earliest debit ${c.earliestDebit}`, changeRequestId: cr.id };
+  }
+  const own = s.events
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.kind === "buyer_message" && e.at === reply.createdAt && e.title === `Buyer: “${reply.text}”` && !!reply.inReplyTo && (e.detail ?? "").includes(`reply to notice ${reply.inReplyTo}`));
+  const next = own.length === 1 ? s.events[own[0].i + 1] : undefined;
+  const reason = next && next.kind === "merchant_attention" && next.detail ? next.detail : NO_REQUEST_NEUTRAL;
+  return { label: "Merchant attention needed", tone: "amber", detail: reason, changeRequestId: null };
+}
+
 export interface PendingActions {
   draftsToSend: number;
   changeRequests: number;

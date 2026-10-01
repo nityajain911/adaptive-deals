@@ -568,6 +568,36 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 - Credential scan: only the existing fake test-key fixtures; `.env.local` is git-ignored.
 - No Groq call. No frozen evaluation rerun.
 
+### 2026-10-02 · UI review corrections: typed-reply target and notice-reply outcome [Claude Code]
+
+**Prompt (applicant):** fix two conversation defects before recording the demo.
+
+1. **Typed reply target.** `TypedReply` initialised its target once. If it first rendered with no targets, the form later appeared with an empty target, so the shown option and the submitted `inReplyTo` disagreed and the service answered "Unknown message".
+   - The target is now derived on every render: an explicit choice is kept while it is still valid, otherwise the latest target is used.
+   - Submission is disabled when no valid target exists.
+   - Options now show the message text, so the displayed question is identifiable.
+2. **Notice-reply outcome.** The bubble assumed that any date reply without a change request was a duplicate.
+   - `lib/views.ts` `noticeReplyOutcome` now shows **Change requested** (or its later state) only when a request was created from that reply.
+   - Otherwise it shows **Merchant attention needed** with the refusal recorded at the time. The service records the reply's own event and the refusal immediately after it in the same action; the link is used only when it is unique, else the neutral "No change request created; review the timeline for details."
+   - No service or domain change.
+
+**Tests:**
+- `tests/lib/reply-outcomes.test.ts` (6):
+  - duplicate while a request is open;
+  - reply to a notice whose payment was removed after rescheduling;
+  - reply after the payment succeeded;
+  - link uniqueness and the neutral fallback.
+  - Each case leaves payments unchanged.
+- Playwright (2 new, 1 updated):
+  - fresh workspace → send the first clarification → typed reply without touching the dropdown, linked to the shown question, no error. This test fails against the previous `TypedReply`.
+  - removed-payment and succeeded-payment replies show attention with the recorded reason, with collections and ledger unchanged.
+
+**Verification:**
+- `npm test` 328/328 · typecheck clean · lint clean · `next build` succeeds.
+- Playwright 10/10.
+- 44-file SHA-256 baseline matches; no diff in `ai/`, `evaluation/`, `data/`, `domain/` or `lib/service.ts`.
+- No Groq call.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
