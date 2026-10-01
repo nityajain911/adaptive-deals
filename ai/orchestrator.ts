@@ -185,8 +185,7 @@ export async function replayRun(record: RunRecord, deal: DealContext, clock: Clo
   if (record.inputs.dealId !== deal.dealId || canonicalJson(record.inputs.messages) !== canonicalJson(deal.messages)) {
     throw new ReplayIntegrityError("Stored run inputs do not match this deal");
   }
-  const outputs = new Map(record.steps.filter((s) => s.failure === null).map((s) => [s.inputHash, s.rawOutput]));
-  const provider = new ReplayProvider(record.kind === "live" ? "recorded_replay" : "synthetic_replay", record.model, outputs);
+  const provider = new ReplayProvider(record.kind === "live" ? "recorded_replay" : "synthetic_replay", record.model, record.steps);
   // The stored run is the only source of model output: its steps (including recorded failures)
   // are reused; any request it never made reaches the replay provider and is refused.
   let out: RunOutcome;

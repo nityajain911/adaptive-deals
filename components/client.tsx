@@ -1,0 +1,256 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition, type ReactNode } from "react";
+import { cx } from "./ui";
+
+type ActionBody = Record<string, unknown> & { action: string };
+
+export function useAction() {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const run = (body: ActionBody, after?: (result: unknown) => void) =>
+    start(async () => {
+      setError(null);
+      try {
+        const res = await fetch("/api/actions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const json = (await res.json()) as { ok: boolean; error?: string; result?: unknown };
+        if (!json.ok) {
+          setError(json.error ?? "Action failed");
+          return;
+        }
+        after?.(json.result);
+        router.refresh();
+      } catch {
+        setError("Network error");
+      }
+    });
+  return { run, pending, error };
+}
+
+const BTN = {
+  primary: "bg-blue text-white hover:bg-blue-ink border-blue",
+  secondary: "bg-surface text-ink border-line-strong hover:bg-surface-muted",
+  ghost: "bg-transparent text-blue border-transparent hover:bg-blue-weak",
+  danger: "bg-surface text-red border-[#f2c4bd] hover:bg-red-weak",
+  sim: "bg-violet-weak text-violet border-[#ddd5ff] hover:bg-[#e8e2ff]",
+} as const;
+
+export function Button({ variant = "secondary", className, children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof BTN }) {
+  return (
+    <button {...rest} className={cx("inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border px-3.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50", BTN[variant], className)}>
+      {children}
+    </button>
+  );
+}
+
+export function ErrorText({ error }: { error: string | null }) {
+  if (!error) return null;
+  return (
+    <p role="alert" className="mt-2 text-[13px] text-red">
+      {error}
+    </p>
+  );
+}
+
+/** A button bound to one server action. */
+export function ActionButton({ body, children, variant, confirm, testId, disabled }: { body: ActionBody; children: ReactNode; variant?: keyof typeof BTN; confirm?: string; testId?: string; disabled?: boolean }) {
+  const { run, pending, error } = useAction();
+  return (
+    <span className="inline-flex flex-col">
+      <Button
+        variant={variant}
+        disabled={pending || disabled}
+        data-testid={testId}
+        onClick={() => {
+          if (confirm && !window.confirm(confirm)) return;
+          run(body);
+        }}
+      >
+        {pending ? "Working…" : children}
+      </Button>
+      <ErrorText error={error} />
+    </span>
+  );
+}
+
+export function RoleSwitch() {
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const role = params.get("role") === "buyer" ? "buyer" : "merchant";
+  const opt = (r: "merchant" | "buyer", label: string, href: string) => (
+    <Link
+      href={href}
+      aria-current={role === r ? "page" : undefined}
+      data-testid={`role-${r}`}
+      className={cx("rounded-md px-3 py-1.5 text-[13px] font-semibold", role === r ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink")}
+    >
+      {label}
+    </Link>
+  );
+  return (
+    <nav aria-label="Role" className="inline-flex rounded-lg border border-line bg-[#eef0f3] p-0.5">
+      {opt("merchant", "Merchant", pathname === "/agreement" ? "/agreement" : pathname)}
+      {opt("buyer", "Demo buyer view", "/agreement?role=buyer")}
+    </nav>
+  );
+}
+
+export function DemoGuideButton({ view, role }: { view: string; role: "merchant" | "buyer" }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  return (
+    <span className="inline-flex flex-col">
+      <Button
+        variant="primary"
+        data-testid="demo-next"
+        disabled={pending}
+        onClick={() =>
+          run({ action: "demo_next" }, () => {
+            router.push(role === "buyer" ? `/${view}?role=buyer` : `/${view}`);
+          })
+        }
+      >
+        {pending ? "Working…" : "Do this step"}
+      </Button>
+      <ErrorText error={error} />
+    </span>
+  );
+}
+
+// ── Clarification answers ───────────────────────────────────────────────────
+
+export interface QuestionInput {
+  id: string;
+  question: string;
+  options: { value: string; label: string; answerText: string }[];
+}
+
+export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
+  const { run, pending, error } = useAction();
+  const [values, setValues] = useState<Record<string, { value: string; answerText: string; via: string }>>(() => Object.fromEntries(questions.map((q) => [q.id, { value: "", answerText: "", via: "" }])));
+  const complete = questions.every((q) => values[q.id].value && values[q.id].answerText.trim().length > 1 && values[q.id].via);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "record_answers", answers: questions.map((q) => ({ questionId: q.id, value: values[q.id].value, answerText: values[q.id].answerText, confirmedByBuyerVia: values[q.id].via })) });
+      }}
+      className="space-y-4"
+    >
+      {questions.map((q) => (
+        <fieldset key={q.id} className="rounded-xl border border-line p-4" data-testid={`answer-${q.id}`}>
+          <legend className="px-1 text-[13px] font-semibold text-ink">{q.question}</legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {q.options.map((o) => (
+              <label key={o.value} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px]", values[q.id].value === o.value ? "border-blue bg-blue-weak" : "border-line")}>
+                <input
+                  type="radio"
+                  name={`${q.id}-value`}
+                  value={o.value}
+                  checked={values[q.id].value === o.value}
+                  onChange={() => setValues((v) => ({ ...v, [q.id]: { ...v[q.id], value: o.value, answerText: o.answerText } }))}
+                />
+                {o.label}
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_200px]">
+            <label className="text-[12px] font-medium text-muted">
+              Answer as recorded
+              <input
+                className="mt-1 block w-full rounded-lg border border-line-strong px-3 py-2 text-[13px] text-ink"
+                value={values[q.id].answerText}
+                onChange={(e) => setValues((v) => ({ ...v, [q.id]: { ...v[q.id], answerText: e.target.value } }))}
+                required
+              />
+            </label>
+            <label className="text-[12px] font-medium text-muted">
+              Confirmed by buyer via
+              <select
+                className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink"
+                value={values[q.id].via}
+                onChange={(e) => setValues((v) => ({ ...v, [q.id]: { ...v[q.id], via: e.target.value } }))}
+                required
+              >
+                <option value="">Select channel</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">Email</option>
+                <option value="call">Call</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+      ))}
+      <div className="flex items-center gap-3">
+        <Button variant="primary" type="submit" disabled={!complete || pending} data-testid="record-answers">
+          {pending ? "Re-running engine…" : "Record answers and re-run engine"}
+        </Button>
+        <span className="text-[12px] text-muted">Answers are entered by the merchant and must be confirmed by the buyer.</span>
+      </div>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+// ── Approve and send ────────────────────────────────────────────────────────
+
+export function ApproveAndSend({ structureId, label }: { structureId: string; label: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  const [draft, setDraft] = useState<{ version: number; termsHash: string } | null>(null);
+  if (!draft)
+    return (
+      <span className="inline-flex flex-col">
+        <Button variant="primary" disabled={pending} data-testid={`prepare-${structureId}`} onClick={() => run({ action: "prepare_agreement", structureId }, (r) => setDraft(r as { version: number; termsHash: string }))}>
+          {pending ? "Preparing…" : "Approve and send"}
+        </Button>
+        <ErrorText error={error} />
+      </span>
+    );
+  return (
+    <div role="dialog" aria-label="Confirm approval" className="w-full rounded-xl border border-blue bg-blue-weak p-4 text-[13px]">
+      <div className="font-semibold text-ink">Approve version {draft.version} and send to the buyer?</div>
+      <div className="mt-1 text-ink-2">{label}</div>
+      <div className="mt-2 break-all font-mono text-[12px] text-ink-2" data-testid="draft-hash">
+        Terms hash (SHA-256): {draft.termsHash}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="primary" disabled={pending} data-testid="confirm-approve" onClick={() => run({ action: "approve_and_send", version: draft.version, termsHash: draft.termsHash }, () => router.push("/agreement"))}>
+          {pending ? "Approving…" : "Approve this exact version"}
+        </Button>
+        <Button onClick={() => setDraft(null)} disabled={pending}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorText error={error} />
+    </div>
+  );
+}
+
+export function AcceptForm({ action, version, termsHash, needsAuthority }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; needsAuthority: boolean }) {
+  const { run, pending, error } = useAction();
+  const [authority, setAuthority] = useState(false);
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(action === "accept_agreement" ? { action, version, termsHash, authorityConfirmed: authority } : { action, termsHash, authorityConfirmed: authority });
+      }}
+    >
+      {needsAuthority ? (
+        <label className="flex items-start gap-2 text-[13px] text-ink-2">
+          <input type="checkbox" className="mt-0.5" checked={authority} onChange={(e) => setAuthority(e.target.checked)} data-testid="authority" />
+          <span>I confirm I am authorised to purchase this scope on its own. It is a separate purchase with its own value, not part of a larger purchase split to avoid approval.</span>
+        </label>
+      ) : null}
+      <Button variant="primary" type="submit" disabled={pending || (needsAuthority && !authority)} data-testid="accept">
+        {pending ? "Accepting…" : "Accept these exact terms"}
+      </Button>
+      <ErrorText error={error} />
+    </form>
+  );
+}

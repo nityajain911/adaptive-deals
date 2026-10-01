@@ -121,6 +121,32 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 
 **Verification:** `npm test` 198/198 passed · `npm run typecheck` clean · `npm run lint` clean.
 
+### 2026-10-01 · Phase 3 — five views, store and service [Claude Code]
+
+**Read first:** the bundled Next.js 16.3.8 docs (`node_modules/next/dist/docs`) on layouts and pages, route handlers, the page `params`/`searchParams` Promises, `connection()` and `router.refresh()`.
+
+**Built**
+- `lib/store.ts`: a JSON store in `.data/` with atomic temp-file-plus-rename writes and serialised mutations.
+- `lib/service.ts`: every deal transition, each one running through domain functions:
+  - seed, answers, prepare, approve and send, accept;
+  - payments, behind the hash gate;
+  - simulated events, payment-link polling, amendment;
+  - failure-state scenarios, Run live, stored-run replay;
+  - a deterministic guided demo (`nextDemoStep`, `demoNext`).
+- `app/api/actions/route.ts`: one Zod-validated mutation endpoint.
+- The five views under `app/(deal)/`, with a Razorpay-dashboard visual language: black header, text wordmark, blue active tab, light canvas, white cards.
+- `npm run reset:seed`.
+- `integrations/razorpay/`: a test-key guard, a real test-mode payment-link client, and simulated payment-link and recurring adapters. These were needed by the Agreement view; Phase 4 adds their tests.
+
+**Seeding:** the seeded run is the bundled synthetic run's first half (extract + clarify). Recording the pinned answers continues that same run from its stored outputs. A service test confirms that the continued run equals the bundled run byte for byte, so it stays one continuous run.
+
+**Failures and fixes**
+- The Clarification view needed per-reading counts after answers were recorded, so they were added to the engine snapshot and the bundled replay was rebuilt.
+- `preview_start` uses the workspace root's `.claude/launch.json`, which belongs to the old Resolve repo. I added an `adaptive-deals` entry there (using `npm --prefix`) and left its existing entry untouched. **This modifies a tracked file in the parent repo.**
+- The production build warned that the parent folder's lockfile confused the Turbopack root, and that the runtime store's file access traced the whole project. Fixed with `turbopack.root` and `turbopackIgnore` on the store paths. The build is now warning-free.
+
+**Verification:** `npm test` 206/206 · typecheck clean · lint clean · `next build` clean · the full 12-step guided storyboard was run through the API, and every view returned 200.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

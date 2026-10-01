@@ -96,3 +96,50 @@ Enforced in `domain/amendment.ts` (`earliestDebitAfterUnavailableUntil`, `CASH_U
 ## Merchant policy values are configuration, not engine logic
 
 Limits such as the cash-at-risk limit, contribution floor and smallest instalment are merchant settings. The engine enforces whatever the merchant configures. The hero values and their reasons are in `FIXTURE_RATIONALE.md`.
+
+## View acceptance checklists
+
+Each item names where it is implemented. The Playwright smoke test (`e2e/journey.spec.ts`) asserts them.
+
+### 1. Deal workspace (`/workspace`)
+- [x] Source message, shown verbatim (`message-msg-2`)
+- [x] Message timestamp in IST and its source channel
+- [x] Evidence highlights: verified quote offsets rendered as `<mark>` in the message, plus a quote on each card
+- [x] Extracted constraints as cards with status, value, raw text, code transformation and confidence (`constraint-*`)
+- [x] Derived budget gap with both cited statements (`budget-gap`)
+- [x] Ambiguity status per field, with whether it changes the decision (`ambiguity-*`)
+- [x] The other three failure states are available from "Try another conversation" (`scenario-*`)
+
+### 2. Clarification (`/clarification`)
+- [x] Question, labelled AI wording or code wording (`question-clar-*`)
+- [x] Engine-derived "why it matters", plus feasible counts per reading (`why-clar-*`)
+- [x] Answer, entered by the merchant
+- [x] Confirmer and channel (the "Confirmed by buyer via" field is required), with the time (`recorded-clar-*`)
+- [x] GST-inclusive amounts derived for both stated amounts, with the reconciliation difference
+
+### 3. Decision (`/decision`)
+- [x] At least one computed rejection: one featured buyer-side and one seller-side, plus the full list with reasons (`featured-*-rejection`, `rejected-row`)
+- [x] Feasible structures, ranked with within-limit first (`feasible-*`)
+- [x] Buyer checks and seller checks with code-generated explanations
+- [x] Unpaid service value and funding requirement shown separately, with a cash-at-risk chart and table view
+- [x] AI comparison, with every figure filled by code (`ai-comparison`)
+- [x] Merchant action: Approve and send, which shows the exact terms hash before approval
+
+### 4. Agreement (`/agreement`, `/agreement?role=buyer`)
+- [x] Visible role switch: Merchant / Demo buyer view (`role-*`)
+- [x] Exact version and hash status, with a match indicator for approval and acceptance (`version-*`)
+- [x] GST-inclusive payment dates and amounts in the buyer proposal, plus "No additional financing charge added by the seller." (`no-financing`)
+- [x] Merchant approval and buyer acceptance against the same hash (`buyer-hash`, `accept`)
+- [x] Payment-link state (`payment-link`)
+- [x] Mandate limit, end date and status (`mandate`)
+- [x] Provenance labels: Simulated or Razorpay test mode; Demo buyer view; Synthetic data
+
+### 5. Deal timeline (`/timeline`)
+- [x] Three schedules: delivery, invoice and collection (`collections`)
+- [x] Ledger amounts kept separate (`ledger`)
+- [x] Failed-debit event in the event log and in the collection schedule (`events`)
+- [x] Mandate-fit result (`mandate-fit`)
+- [x] Both amendment approvals, merchant and buyer, in the amendment history (`amendment`)
+- [x] Internal retry removal: "Adaptive Deals retry removed; revised payment scheduled."
+- [x] Version history with hash checks (`version-history`)
+- [x] Close: metric definition, approval boundary, and the no-feasible example (`close`, `no-feasible-example`)

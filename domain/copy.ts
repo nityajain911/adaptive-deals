@@ -111,3 +111,25 @@ function outcomeWord(verdict: string, approval: string) {
 }
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Short, reader-facing names for check codes (lists and summaries). */
+export const SHORT_REASON: Partial<Record<string, string>> = {
+  BUDGET_EXCEEDS_CURRENT_PERIOD: "payments due this period exceed the current budget",
+  BUDGET_EXCEEDS_NEXT_BUDGET: "payments exceed the stated next budget",
+  PAYMENT_BEFORE_NEXT_BUDGET: "a payment falls before the next budget",
+  PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH: "a payment falls inside the next-budget month (day unknown)",
+  PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET: "payments fall after the period with no later budget stated",
+  START_AFTER_LATEST_START: "starts after the buyer's latest start",
+  START_DAY_UNKNOWN_IN_DEADLINE_MONTH: "starts inside the latest-start month (day unknown)",
+  REQUIRED_PACKAGE_EXCLUDED: "leaves out a required package",
+  CONTRIBUTION_BELOW_FLOOR: "net contribution below the seller's floor",
+  CASH_AT_RISK_ABOVE_LIMIT: "peak funding requirement above the cash-at-risk limit",
+  TENURE_ABOVE_MAX: "longer than the maximum tenure",
+  INSTALMENT_BELOW_MINIMUM: "an instalment below the minimum",
+  DISCOUNT_ABOVE_LIMIT: "discount above the limit",
+  SCOPE_NO_INDEPENDENT_VALUE: "phase has no independent value",
+  SCOPE_MISSING_DEPENDENCY: "package without its dependency",
+  SCOPE_PACKAGE_NOT_REMOVABLE: "removes a package that cannot be removed",
+  START_PACKAGE_NOT_DEFERRABLE: "defers a package that cannot be deferred",
+};
+export const shortReason = (code: string) => SHORT_REASON[code] ?? code.replace(/_/g, " ").toLowerCase();

@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --canvas: #f3f4f6;
+  --surface: #ffffff;
+  --surface-muted: #f8f9fb;
+  --border: #e3e6eb;
+  --border-strong: #cfd4dc;
+  --ink: #0b0f19;
+  --ink-2: #344054;
+  --muted: #667085;
+  --blue: #2d5bff;
+  --blue-ink: #1d47e6;
+  --blue-weak: #edf1ff;
+  --green: #0f7a55;
+  --green-weak: #e9f8f1;
+  --amber: #a15c07;
+  --amber-weak: #fff6e5;
+  --red: #b42318;
+  --red-weak: #fdf0ee;
+  --violet: #5b3fd1;
+  --violet-weak: #f2efff;
+  --header: #050505;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-blue: var(--blue);
+  --color-blue-ink: var(--blue-ink);
+  --color-blue-weak: var(--blue-weak);
+  --color-green: var(--green);
+  --color-green-weak: var(--green-weak);
+  --color-amber: var(--amber);
+  --color-amber-weak: var(--amber-weak);
+  --color-red: var(--red);
+  --color-red-weak: var(--red-weak);
+  --color-violet: var(--violet);
+  --color-violet-weak: var(--violet-weak);
+  --color-header: var(--header);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+mark.evidence {
+  background: #fff1c2;
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+  box-shadow: inset 0 -2px 0 #f2c94c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

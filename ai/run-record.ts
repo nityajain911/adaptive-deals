@@ -75,7 +75,7 @@ export interface EvaluationSnapshot {
   state: DealEvaluation["state"];
   missingRequired: string[];
   outsideTemplates: { kind: string; rawText: string; reason: string }[];
-  ambiguities: { field: string; decisionRelevant: boolean; readings: string[]; differingStructures: string[] }[];
+  ambiguities: { field: string; decisionRelevant: boolean; readings: string[]; differingStructures: string[]; feasibleCountByReading: Record<string, number>; withinLimitCountByReading: Record<string, number> }[];
   templatesEvaluated: string[];
   structures: StructureSummary[];
   feasibleOrder: string[];
@@ -170,7 +170,7 @@ export function snapshotEvaluation(e: DealEvaluation): EvaluationSnapshot {
     state: e.state,
     missingRequired: e.missingRequired,
     outsideTemplates: e.outsideTemplates.map((o) => ({ kind: o.kind, rawText: o.rawText, reason: o.reason })),
-    ambiguities: e.ambiguities.map((a) => ({ field: a.field, decisionRelevant: a.decisionRelevant, readings: a.readings, differingStructures: a.differences.map((d) => d.structureId) })),
+    ambiguities: e.ambiguities.map((a) => ({ field: a.field, decisionRelevant: a.decisionRelevant, readings: a.readings, differingStructures: a.differences.map((d) => d.structureId), feasibleCountByReading: a.feasibleCountByReading, withinLimitCountByReading: a.withinLimitCountByReading })),
     templatesEvaluated: r?.templatesEvaluated ?? [],
     structures: (r?.structures ?? []).map((x) => ({
       id: x.structure.id,

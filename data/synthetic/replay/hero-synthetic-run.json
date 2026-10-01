@@ -384,7 +384,15 @@
           ],
           "differingStructures": [
             "shorter_commitment:term_months=3,plan=upfront"
-          ]
+          ],
+          "feasibleCountByReading": {
+            "yes": 4,
+            "no": 5
+          },
+          "withinLimitCountByReading": {
+            "yes": 3,
+            "no": 4
+          }
         },
         {
           "field": "approvalScope",
@@ -395,7 +403,15 @@
           ],
           "differingStructures": [
             "deferred_start:start=2027-05-01,plan=monthly_12"
-          ]
+          ],
+          "feasibleCountByReading": {
+            "per_payment": 5,
+            "per_contract": 5
+          },
+          "withinLimitCountByReading": {
+            "per_payment": 4,
+            "per_contract": 3
+          }
         }
       ],
       "templatesEvaluated": [],
