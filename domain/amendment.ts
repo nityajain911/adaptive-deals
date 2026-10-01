@@ -1,5 +1,5 @@
 import { CollectionError, scheduleAttempt, transitionAttempt, type CollectionAttempt } from "./collections";
-import { compareDates, type CalendarDate } from "./dates";
+import { addDays, addMonthsToMonth, compareDates, startOfMonth, type CalendarDate, type DateValue } from "./dates";
 import { evaluateStructure, type EngineInput, type EvaluatedStructure } from "./engine";
 import { checkMandateFit, type Mandate, type MandateFit } from "./mandate";
 import type { Structure } from "./structures";
@@ -32,6 +32,14 @@ export interface Amendment {
 }
 
 export const RETRY_REMOVED_COPY = "Adaptive Deals retry removed; revised payment scheduled.";
+
+export const CASH_UNAVAILABLE_UNTIL_RULE =
+  "“Cash tight till <date>” means the buyer's cash is unavailable through that date, inclusive. The earliest revised debit is the next day (day precision) or the first day of the next month (month precision). Code computes it; the revision is then re-checked against buyer constraints, seller policy and the mandate.";
+
+/** Earliest debit date after a buyer says cash is unavailable until `until` (inclusive). */
+export function earliestDebitAfterUnavailableUntil(until: DateValue): CalendarDate {
+  return until.precision === "day" ? addDays(until.value, 1) : startOfMonth(addMonthsToMonth(until.value, 1));
+}
 
 export function rescheduleLine(s: Structure, lineId: string, newDate: CalendarDate): Structure {
   const line = s.payments.find((p) => p.id === lineId);

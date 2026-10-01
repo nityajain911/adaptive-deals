@@ -19,11 +19,13 @@ export const heroMerchant: Merchant = {
   policy: {
     gstRateBps: 1800,
     contributionFloor: { minPercentBps: 3500, minPaise: null, combine: "both" },
+    // One month of this client's average billing (₹1,20,000 / 12). See FIXTURE_RATIONALE.md.
     cashAtRiskLimitPaise: rupees(10_000),
     maxTenureMonths: 12,
     smallestInstalmentPaise: rupees(10_000),
     discountLimitBps: 0,
     paymentFeeBps: 200,
+    advanceNoticeDays: 3,
     internalRetryAfterDays: 3,
     mandateEndBufferMonths: 1,
   },

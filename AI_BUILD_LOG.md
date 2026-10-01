@@ -54,6 +54,22 @@ This log records how AI was used to build the prototype. Entries marked **[Claud
 
 **Verification:** `npm test` 114/114 passed · `npm run typecheck` clean · `npm run lint` clean.
 
+### 2026-10-01 · Phase 1 follow-up after applicant review [Claude Code]
+
+**Prompt (applicant):** before phase 2, confirm (1) the featured-rejection selection rule, (2) the full phase-1 test, typecheck and lint result and the commit hash, (3) the advance-notice event and why the revised date is 21 Dec, and (4) the cash-at-risk limit and its rationale.
+
+**Gap found:** the advance notice was not modelled. The fixture held its date but nothing used it, and the buyer's reply was not linked to a notice.
+
+**Fixes**
+- Added `domain/notices.ts`: notices are planned `advanceNoticeDays` before recurring debits, are simulated, and are sent only before the debit date. Replies carry `inReplyTo`.
+- The hero timeline test now runs: notice on 28 Nov → failed debit on 1 Dec → reply linked to the notice → revision.
+- Added the rule `earliestDebitAfterUnavailableUntil`: "till ‹date›" is inclusive, so the revised debit is the next day.
+- Made "fewest failed checks" the explicit first key of the featured-rejection rule, and added rule tests: order independence, the rule holds against every candidate, and the choice changes when the fixture changes.
+- Created `PRODUCT_DECISIONS.md` with the GST, featured-rejection, advance-notice and revised-date rules.
+- Rewrote the cash-at-risk rationale. The earlier text justified ₹10,000 only by the demo outcome it produces. It now states a policy principle (no more than one month of this client's average billing), explains why that is reasonable for a small agency, and discloses that the demo outcome depends on the value.
+
+**Verification:** `npm test` 122/122 passed · `npm run typecheck` clean · `npm run lint` clean.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

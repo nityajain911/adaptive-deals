@@ -93,15 +93,27 @@ function rankRejected(xs: EvaluatedStructure[]): EvaluatedStructure[] {
 export const failingChecks = (x: EvaluatedStructure) => [...x.buyerChecks, ...x.sellerChecks].filter((c) => c.status === "fail");
 
 /**
- * Featured rejections for the Decision view, chosen by rule from engine results:
- * - buyer: the full-scope structure rejected only by buyer checks with the smallest largest payment,
- *   then the earliest start (the most affordable-looking full deal the buyer still cannot carry out);
- * - seller: the structure rejected only by seller checks with the smallest largest payment.
+ * Featured rejections for the Decision view. Chosen by rule from engine results — never by
+ * structure ID — so a different fixture yields a different, still rule-consistent choice.
+ *
+ * Buyer-side featured rejection ("attractive but the buyer cannot carry it out"):
+ *   candidates: rejected, full scope, every failed check is a buyer check;
+ *   order: fewest failed checks → highest buyer appeal (smallest largest payment, incl. GST)
+ *          → earliest delivery start → structure id (stable final tie-break only).
+ * Seller-side featured rejection ("the buyer could pay this, the seller cannot afford it"):
+ *   candidates: rejected, every failed check is a seller check;
+ *   order: the same keys.
  */
 export function featuredRejections(r: EnumerationResult): { buyer: EvaluatedStructure | null; seller: EvaluatedStructure | null } {
   const onlySide = (x: EvaluatedStructure, side: "buyer" | "seller") => failingChecks(x).every((c) => c.side === side);
   const pick = (xs: EvaluatedStructure[]) =>
-    [...xs].sort((a, b) => maxPayment(a) - maxPayment(b) || a.structure.startDate.localeCompare(b.structure.startDate) || a.structure.id.localeCompare(b.structure.id))[0] ?? null;
+    [...xs].sort(
+      (a, b) =>
+        failingChecks(a).length - failingChecks(b).length ||
+        maxPayment(a) - maxPayment(b) ||
+        a.structure.startDate.localeCompare(b.structure.startDate) ||
+        a.structure.id.localeCompare(b.structure.id),
+    )[0] ?? null;
   return {
     buyer: pick(r.rejected.filter((x) => x.structure.scopeKind === "full" && onlySide(x, "buyer"))),
     seller: pick(r.rejected.filter((x) => onlySide(x, "seller"))),

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { activate, buyerAccept, createAgreementVersion, markSent, merchantApprove, type AgreementVersion } from "@/domain/agreement";
-import { applyCollectionUpdate, proposeReschedule, RETRY_REMOVED_COPY, transitionAmendment } from "@/domain/amendment";
+import { applyCollectionUpdate, earliestDebitAfterUnavailableUntil, proposeReschedule, RETRY_REMOVED_COPY, transitionAmendment } from "@/domain/amendment";
+import { planAdvanceNotice, recordReplyToNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
+import type { Message } from "@/domain/types";
 import { SimulatedClock, DEMO_ANCHOR } from "@/domain/clock";
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
-import { addDays, localDateOf, normaliseRelativeDate } from "@/domain/dates";
+import { localDateOf, normaliseRelativeDate } from "@/domain/dates";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { computeLedger } from "@/domain/ledger";
 import { createMandate, transitionMandate } from "@/domain/mandate";
@@ -30,17 +32,27 @@ describe("hero timeline: failed debit → buyer reply → approved amendment", (
     attempts = [...attempts, scheduleAttempt(attempts, { agreementId: v1.agreementId, agreementVersion: 1, scheduleLineId: p.id, dueDate: p.dueDate, amountPaise: p.totalPaise, prePaise: p.prePaise, gstPaise: p.gstPaise, origin: "agreement", method: p.method }, total, clock.now())];
   }
 
-  it("records every simulated time advance explicitly", () => {
+  let notice: AdvanceNotice;
+  let reply: Message;
+
+  it("records every simulated time advance explicitly, including the advance notice before the debit", () => {
     clock.advanceTo(EV.upfrontPaidAt, "Simulated: upfront payment-link paid");
     attempts = submitAttempt(attempts, attempts[0].id, total, clock.now());
     attempts = attempts.map((a) => (a.id === attempts[0].id ? transitionAttempt(a, "succeeded", clock.now(), "Simulated event: payment link paid", "pay_sim_1") : a));
+
+    notice = planAdvanceNotice(attempts[1], heroMerchant.policy);
+    expect(notice).toMatchObject({ scheduleLineId: "pay-2", dueDate: "2026-12-01", sendOn: "2026-11-28", amountPaise: 2_301_000, mode: "simulated" });
+    expect(() => sendAdvanceNotice(notice, clock, TZ)).toThrow(/due on 2026-11-28/); // still 1 Nov
+    clock.advanceTo(EV.advanceNoticeAt, "Simulated: Adaptive Deals advance notice sent");
+    notice = sendAdvanceNotice(notice, clock, TZ);
+    expect(notice.sentAt).toBe(EV.advanceNoticeAt);
 
     clock.advanceTo(EV.failedDebitAt, "Simulated: recurring debit fails");
     attempts = submitAttempt(attempts, attempts[1].id, total, clock.now());
     attempts = attempts.map((a) => (a.id === attempts[1].id ? transitionAttempt(a, "failed", clock.now(), "Simulated event: debit failed") : a));
     attempts = scheduleInternalRetry(attempts, attempts[1], heroMerchant.policy.internalRetryAfterDays, total, clock.now());
 
-    expect(clock.advances.map((a) => a.to)).toEqual([EV.upfrontPaidAt, EV.failedDebitAt]);
+    expect(clock.advances.map((a) => a.to)).toEqual([EV.upfrontPaidAt, EV.advanceNoticeAt, EV.failedDebitAt]);
     expect(clock.advances.every((a) => a.simulated)).toBe(true);
     expect(() => clock.advanceTo(EV.upfrontPaidAt, "backwards")).toThrow();
   });
@@ -54,14 +66,23 @@ describe("hero timeline: failed debit → buyer reply → approved amendment", (
     expect(ledger.fullyPaid).toBe(false);
   });
 
-  it("normalises 'till the 20th' from the reply's own timestamp, and the revision passes every check", () => {
-    const parsed = normaliseRelativeDate(EV.buyerReply.rawDate, EV.buyerReply.timestamp, TZ);
-    expect(parsed.ok && parsed.value).toEqual({ value: "2026-12-20", precision: "day" });
-    const newDate = addDays((parsed as { value: { value: string } }).value.value, 1);
-
+  it("records the buyer's message as a reply to the advance notice", () => {
     clock.advanceTo(EV.buyerReply.timestamp, "Simulated: buyer replies to advance notice");
-    let amendment = proposeReschedule({ id: "amd-1", from: v1, structure: chosen.structure, lineId: "pay-2", newDueDate: newDate, constraints, engine: input, mandate, trigger: "failed_debit", triggerRefs: [attempts[1].id, EV.buyerReply.id], at: clock.now() });
+    reply = recordReplyToNotice(notice, { id: EV.buyerReply.id, dealId: HERO_DEAL_ID, author: "buyer", text: EV.buyerReply.text, timestamp: EV.buyerReply.timestamp, source: EV.buyerReply.source });
+    expect(reply.inReplyTo).toBe(notice.id);
+    expect(reply.text).toContain(EV.buyerReply.evidenceQuote);
+    expect(() => recordReplyToNotice({ ...notice, sentAt: null }, reply)).toThrow(/not sent/);
+  });
+
+  it("normalises 'till the 20th' from the reply's own timestamp; revised debit is the next day and passes every check", () => {
+    const parsed = normaliseRelativeDate(EV.buyerReply.rawDate, reply.timestamp, TZ);
+    expect(parsed.ok && parsed.value).toEqual({ value: "2026-12-20", precision: "day" });
+    const newDate = earliestDebitAfterUnavailableUntil((parsed as { value: { value: string; precision: "day" } }).value);
+    expect(newDate).toBe("2026-12-21");
+
+    let amendment = proposeReschedule({ id: "amd-1", from: v1, structure: chosen.structure, lineId: "pay-2", newDueDate: newDate, constraints, engine: input, mandate, trigger: "failed_debit", triggerRefs: [attempts[1].id, notice.id, reply.id], at: clock.now() });
     expect(amendment.state).toBe("proposed");
+    expect(amendment.triggerRefs).toEqual([attempts[1].id, notice.id, reply.id]);
     expect(amendment.change).toEqual({ lineId: "pay-2", fromDueDate: "2026-12-01", toDueDate: "2026-12-21" });
     expect(amendment.revised.verdict).toBe("feasible");
     expect(amendment.mandateFit.fits).toBe(true);

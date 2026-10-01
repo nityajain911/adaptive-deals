@@ -23,6 +23,8 @@ export interface MerchantPolicy {
   discountLimitBps: number;
   /** Expected payment fee as bps of each customer-facing collection, borne by the seller. */
   paymentFeeBps: number;
+  /** Adaptive Deals sends its own notice this many days before each recurring debit. */
+  advanceNoticeDays: number;
   /** Day offset of an internal Adaptive Deals retry after a failed debit. */
   internalRetryAfterDays: number;
   /** Mandate end date = end of the month this many months after the last recurring debit. */
@@ -106,6 +108,8 @@ export interface Message {
   text: string;
   timestamp: string;
   source: "whatsapp" | "email";
+  /** Set when the message replies to something Adaptive Deals sent, e.g. an advance notice. */
+  inReplyTo?: string;
 }
 
 // ── Constraint profile ───────────────────────────────────────────────────────

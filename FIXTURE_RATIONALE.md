@@ -29,13 +29,35 @@ Totals: ₹1,20,000 price; ₹57,000 direct cost; gross contribution ₹63,000 (
 | --- | --- | --- |
 | GST rate | 18% | Standard rate for these services; GST per invoice line, half-up to the paise |
 | Contribution floor | 35% of accepted pre-GST price, net of fees | Percentage rule only (FP §11 lets the fixture choose) |
-| Cash-at-risk limit | ₹10,000 peak funding requirement | Low enough to reject a back-loaded 20/80 split (peak ₹10,500) and accept 30/70 (peak ₹0) |
+| Cash-at-risk limit | ₹10,000 peak funding requirement, per deal | See "Why ₹10,000 cash at risk" below |
 | Maximum tenure | 12 months | Matches an annual engagement |
 | Smallest instalment | ₹10,000 before GST | Keeps 12 monthly payments of the annual scope exactly at the minimum |
 | Discount limit | 0% | FP §7 default; templates use no discount |
 | Expected payment fee | 2% of each customer-facing collection | Illustrative gateway fee, borne by the seller |
+| Advance notice | 3 days before each recurring debit | Gives the buyer time to respond; the 1 Dec debit gets a notice on 28 Nov |
 | Internal retry | 3 days after a failed debit | Creates the Adaptive Deals retry that the amendment removes |
 | Mandate end buffer | End of the month after the last recurring debit | Gives a mandate end date that a short reschedule fits inside |
+
+## Why ₹10,000 cash at risk
+
+The cash-at-risk limit caps the **peak funding requirement**: the most of its own cash the agency will have spent on this client's direct delivery costs before the client's payments (excl. GST) catch up. It is a per-deal limit, not a firm-wide one.
+
+The fixture sets it at **₹10,000**. The principle behind it: **the agency will not fund more than one month of this client's average billing from its own cash** (₹1,20,000 ÷ 12 months = ₹10,000).
+
+Why that is reasonable for a small agency on this deal:
+
+- **Thin working capital.** A small agency pays freelancers, ad-tool licences and contractors monthly, often before the client pays. A cap tied to the client's own monthly billing keeps exposure on any one client proportionate to what that client is worth.
+- **Bounded loss.** If the client stops paying, the agency has lost at most about one month of that client's billing in unrecovered costs. It has not funded a quarter of delivery on credit.
+- **No expensive one-off work without prepayment.** The website fixes have a ₹12,000 direct cost up front. A ₹10,000 limit means the agency cannot start that work without receiving at least part of the money first. This is a common small-agency practice (a deposit before build work).
+- **Not lending.** Adaptive Deals is not a lending product (FP §5). A low cap stops a "payment plan" from becoming informal credit.
+
+**Disclosure:** the value is synthetic and also sits just below the peak of the 20/80 split (₹10,500 on 1 Apr 2027). That is what lets the demo show one structure the buyer could pay but the seller cannot afford. The result is sensitive to the setting:
+
+- at ₹10,500 or above, the 20/80 split becomes feasible (still labelled **Needs buyer's MD approval**), as `tests/domain/hero.test.ts` shows;
+- the 30/70 split peaks at ₹0;
+- the May-2027 deferred start peaks at ₹5,750.
+
+The product's claim is not that ₹10,000 is the right number. The claim is that whatever limit the merchant sets, the engine enforces it and shows why.
 
 ## Templates and parameter ranges (merchant-approved)
 
@@ -55,9 +77,9 @@ That is 15 structures in total, all evaluated.
 | Merchant proposal message | 2026-09-29 16:10 IST | Context only |
 | Buyer message | 2026-10-01 08:47 IST | "This quarter" → 1 Oct–31 Dec 2026; "April" → Apr 2027 (month precision); derived budget gap 1 Jan 2027 → Apr 2027 |
 | Upfront payment link paid | 2026-11-01 (simulated) | First instalment of the chosen Phase 1 |
-| Advance notice | 2026-11-28 (simulated, labelled) | FP §12: Adaptive Deals sends its own notice before each debit |
+| Advance notice | 2026-11-28 10:00 IST (simulated, labelled) | FP §12: Adaptive Deals sends its own notice 3 days before each debit |
 | Failed recurring debit | 2026-12-01 (simulated) | Triggers the amendment |
-| Buyer reply | 2026-12-01 11:05 IST, "cash tight till the 20th" | Normalised from the reply's own timestamp to 20 Dec 2026; revised debit on 21 Dec 2026, still inside the buyer's current-quarter budget and the mandate |
+| Buyer reply | 2026-12-01 11:05 IST, "cash tight till the 20th", recorded as a reply to the 28 Nov notice | Normalised from the reply's own timestamp to 20 Dec 2026. "Till" is inclusive, so the revised debit is 21 Dec 2026 (rule in PRODUCT_DECISIONS.md). That date is still inside the buyer's current-quarter budget and the mandate |
 
 The prompt's example simulated date (`2027-05-03`) is only an example. The hero's chosen agreement has its recurring debit in December 2026, so the simulated dates follow that schedule.
 
