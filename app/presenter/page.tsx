@@ -6,6 +6,7 @@ import { liveAvailability } from "@/ai/config";
 import { PROMPTS, promptHash } from "@/ai/prompts";
 import { ActionButton } from "@/components/client";
 import { fmtTime } from "@/components/evidence";
+import { AuditSections } from "@/components/audit/sections";
 import { OtherOutcomes } from "@/components/presenter/other-outcomes";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
@@ -24,8 +25,9 @@ export default async function PresenterPage() {
   const live = liveAvailability();
   const committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
   let integrity: string;
+  const outcome = await currentOutcome(s).catch(() => null);
   try {
-    await currentOutcome(s);
+    if (!outcome) throw new Error("the stored run could not be replayed");
     integrity = "Replay reproduces the stored run exactly.";
   } catch (e) {
     integrity = `Replay integrity failed: ${(e as Error).message}`;
@@ -141,6 +143,13 @@ export default async function PresenterPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Merchant audit (read-only, as the merchant sees it)" />
+        <div className="p-5">
+          {outcome ? <AuditSections s={s} out={outcome} /> : <p className="text-[13px] text-red">Unavailable: the stored run could not be replayed.</p>}
         </div>
       </Card>
 

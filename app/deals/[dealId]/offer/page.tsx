@@ -6,6 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import { PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
+import { OpenAudit } from "@/components/audit/audit-drawer";
 import { DontProceed } from "@/components/offer/dont-proceed";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { Card, Notice } from "@/components/ui";
@@ -77,9 +78,13 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   if (primaryId === "inspect_records") {
     return (
       <StageShell dealId={dealId} viewing="offer">
-        <Notice tone="amber" title="Saved deal records need review">
-          {s.reviewRequired} Approval, sending and buyer acceptance are blocked until the records are inspected. Use Reset demo to start again.
-        </Notice>
+        <Card className="space-y-3 p-5" data-testid="review-required">
+          <h2 className="text-[18px] font-semibold text-ink">Saved deal records need review</h2>
+          <p className="text-[13px] text-ink-2">{s.reviewRequired} Approval, sending and buyer acceptance are blocked: Adaptive Deals does not guess that a proposal was delivered.</p>
+          <OpenAudit section="history" primary>
+            Inspect records
+          </OpenAudit>
+        </Card>
       </StageShell>
     );
   }

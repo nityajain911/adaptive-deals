@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -243,75 +243,6 @@ export function DeclineButton({ version }: { version: number }) {
       </div>
       <ErrorText error={error} />
     </div>
-  );
-}
-
-// ── Applied merchant rules drawer ───────────────────────────────────────────
-
-const OPEN_RULE = "adaptive-deals:open-rule";
-
-/** Opens the rules drawer at one rule. Used next to each seller-side rejection. */
-export function RuleLink({ ruleId, children }: { ruleId: string; children: ReactNode }) {
-  return (
-    <button type="button" className="font-semibold text-blue underline-offset-2 hover:underline" onClick={() => window.dispatchEvent(new CustomEvent(OPEN_RULE, { detail: ruleId }))}>
-      {children}
-    </button>
-  );
-}
-
-/** A right-side drawer built on the native modal dialog (focus trap, Escape to close). */
-export function RulesDrawer({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [focusRule, setFocusRule] = useState<string | null>(null);
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      setFocusRule((e as CustomEvent<string>).detail ?? null);
-      ref.current?.showModal();
-    };
-    window.addEventListener(OPEN_RULE, onOpen);
-    return () => window.removeEventListener(OPEN_RULE, onOpen);
-  }, []);
-  useEffect(() => {
-    if (!focusRule) return;
-    const el = ref.current?.querySelector<HTMLElement>(`[data-rule="${focusRule}"]`);
-    el?.focus();
-    el?.scrollIntoView({ block: "center" });
-  }, [focusRule]);
-  return (
-    <>
-      <Button
-        onClick={() => {
-          setFocusRule(null);
-          ref.current?.showModal();
-        }}
-        data-testid="open-rules"
-        aria-haspopup="dialog"
-      >
-        Applied merchant rules
-      </Button>
-      <dialog
-        ref={ref}
-        aria-labelledby="rules-title"
-        data-testid="rules-drawer"
-        className="rules-drawer m-0 ml-auto h-full max-h-none w-full max-w-[440px] border-l border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/30"
-        onClose={() => setFocusRule(null)}
-        onClick={(e) => {
-          if (e.target === ref.current) ref.current?.close();
-        }}
-      >
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 id="rules-title" className="text-[16px] font-semibold">
-            Applied merchant rules
-          </h2>
-          <Button variant="ghost" onClick={() => ref.current?.close()} aria-label="Close applied merchant rules">
-            Close
-          </Button>
-        </div>
-        <div className="space-y-3 p-5" data-focus-rule={focusRule ?? undefined}>
-          {children}
-        </div>
-      </dialog>
-    </>
   );
 }
 

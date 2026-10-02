@@ -86,14 +86,16 @@ mark.evidence {
   }
 }
 
-/* Applied merchant rules drawer: a right-side modal dialog. */
-dialog.rules-drawer[open] {
+/* Read-only audit drawer: a right-side modal dialog, full screen on phones. */
+dialog.audit-drawer[open] {
   display: flex;
   flex-direction: column;
   height: 100dvh;
   overflow-y: auto;
 }
-.rule-item:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px var(--blue-weak);
+@media (max-width: 640px) {
+  dialog.audit-drawer[open] {
+    max-width: 100vw;
+    border-left: 0;
+  }
 }

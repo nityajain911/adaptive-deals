@@ -8,6 +8,7 @@ import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
 import { headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
 import { explanationAttribution } from "@/lib/views";
+import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
@@ -189,7 +190,12 @@ export function Rejections({ r }: { r: EnumerationResult }) {
               {failingChecks(x).map((c, i) => (
                 <li key={i}>
                   ✕ {explainCheck(c)}
-                  {c.side === "seller" && RULE_NAME[c.id] ? <span className="text-ink-2"> · Rule: {RULE_NAME[c.id]}</span> : null}
+                  {c.side === "seller" && RULE_NAME[c.id] ? (
+                    <span className="text-ink-2">
+                      {" "}
+                      · <OpenAudit section="rules">Rule: {RULE_NAME[c.id]}</OpenAudit>
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ul>
