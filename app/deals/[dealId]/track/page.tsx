@@ -32,6 +32,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const latestDelivered = delivered.at(-1);
   const shown = s.agreements.find((v) => v.version === (active?.version ?? latestDelivered?.version));
   const primary = progress.primaryAction;
+  const buyerVersion = progress.kind === "waiting_on_buyer" && progress.version ? progress.version : (shown?.version ?? 1);
 
   // Change request or amendment for the active version (stale earlier-version requests excluded).
   const openCr = active ? s.changeRequests.find((c) => (c.state === "change_requested" || c.state === "draft_amendment") && c.agreementVersion === active.version) : undefined;
@@ -65,8 +66,9 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
             {shown && progress.kind !== "action_required" && progress.kind !== "terminal" ? (
-              <Link href={proposalLinkOf(shown)} className="text-[13px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
-                Open buyer proposal (version {shown.version})
+              // While the buyer is asked to act, link the version they must act on (e.g. the revision).
+              <Link href={proposalLinkOf({ agreementId: shown.agreementId, version: buyerVersion })} className="text-[13px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
+                Open buyer proposal (version {buyerVersion})
               </Link>
             ) : null}
           </div>
