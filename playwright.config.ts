@@ -11,9 +11,7 @@ export default defineConfig({
   use: { baseURL: "http://localhost:3200", trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    // Turbopack's build worker cannot bind its internal local port in the managed executor.
-    // Webpack exercises the same production routes without that environment-only restriction.
-    command: "npx next build --webpack && npx next start -p 3200",
+    command: "npx next build && npx next start -p 3200",
     url: "http://localhost:3200/deals/hero",
     timeout: 300_000,
     reuseExistingServer: false,

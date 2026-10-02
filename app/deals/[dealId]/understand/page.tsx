@@ -19,11 +19,6 @@ const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   ],
 };
 
-const QUESTION_REASON: Record<string, string> = {
-  "clar-gst": "We need the GST basis for both amounts before comparing them with the buyer's budget and approval limit.",
-  "clar-approval": "We need to know whether the limit applies to each payment or to the whole contract.",
-};
-
 /** Stage 1 · Understand the buyer (spec §4). */
 export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
   const { dealId } = await props.params;
@@ -122,7 +117,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                       {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
                     </div>
                     <p className="mt-2 text-[14px] font-medium text-ink">{q.question}</p>
-                    <p className="mt-1 text-[12px] text-muted">Why it matters: {QUESTION_REASON[q.id] ?? q.whyItMatters}</p>
+                    <p className="mt-1 text-[12px] text-muted">Why it matters: {q.whyItMatters}</p>
                     {reply ? (
                       <div className="mt-2 text-[13px] text-ink-2">
                         Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>

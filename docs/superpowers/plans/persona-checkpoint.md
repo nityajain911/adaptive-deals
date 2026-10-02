@@ -60,6 +60,13 @@ Trust prompts:
 - Can you tell where the buyer constraints came from?
 - Would you send both questions as written? What makes you hesitate?
 
+**Candidate copy change to test only after the reviewer sees the current wording:**
+
+- GST question: “We need the GST basis for both amounts before comparing them with the buyer's budget and approval limit.”
+- Approval-limit question: “We need to know whether the limit applies to each payment or to the whole contract.”
+
+Ask whether the shorter wording is easier to act on and whether it removes useful decision evidence. Do not change the product copy unless the applicant approves it from the recorded feedback.
+
 ### Persona 2 · Commercial decision
 
 **Name and role:** [Applicant to fill]  
@@ -144,4 +151,3 @@ Approve only copy wording, ordering, or visibility changes to elements that alre
 | Decision | Source comment | Exact correction | Accepted? |
 |---|---|---|---|
 | | | | |
-
