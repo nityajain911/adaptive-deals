@@ -27,7 +27,7 @@ import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, hero
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
-import { decisionFingerprint, deliveryKey, isDelivered, type DeliveryRecord, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
+import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
 import { attemptDelivery } from "./delivery";
 import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
 import {
@@ -536,6 +536,62 @@ export async function sendQuestions(): Promise<DemoState> {
   });
 }
 
+// ── Closures, handled messages, interpretation (spec §3.3) ────────────────────
+
+const CLOSABLE: DealStatus[] = ["options_ready", "approved", "no_feasible_structure", "outside_templates"];
+
+/** Supported normalised values per clarification question; anything else needs the buyer's words to change. */
+const SUPPORTED_VALUES: Record<string, string[]> = { "clar-gst": ["yes", "no"], "clar-approval": ["per_contract", "per_payment"] };
+
+/** The merchant closes the deal from the Offer stage. Keeps every draft, approval and attempt. */
+export async function closeByMerchant(reason: MerchantCloseReason, note?: string): Promise<DemoState> {
+  return mutate((s) => {
+    if (!CLOSABLE.includes(s.status)) {
+      throw new ActionError(s.deliveries.some((d) => d.deliveredAt) ? "Don't proceed is not available after the proposal was sent" : `The deal cannot be closed from ${s.status}`);
+    }
+    if (!(reason in MERCHANT_CLOSE_REASONS)) throw new ActionError("Unknown reason");
+    const version = s.selectedOption?.draftVersion ?? null;
+    const trimmed = note?.trim() || null;
+    setStatus(s, "merchant_rejected", `Merchant: ${MERCHANT_CLOSE_REASONS[reason]}`);
+    event(s, "merchant_closed", "Closed in Adaptive Deals", "merchant", MERCHANT_CLOSE_REASONS[reason] + (trimmed ? ` · ${trimmed}` : ""));
+    outcome(s, { type: "merchant_closed", reasonCode: reason, note: trimmed, actor: "merchant", version, source: { kind: "event", id: s.events.at(-1)!.id } });
+  });
+}
+
+/** Records that the merchant addressed a buyer message outside the prototype. Changes nothing else. */
+export async function markMessageHandled(messageId: string, note?: string): Promise<DemoState> {
+  return mutate((s) => {
+    const m = s.conversation.find((i) => i.id === messageId);
+    const target = m?.inReplyTo ? s.conversation.find((i) => i.id === m.inReplyTo) : null;
+    if (!m || m.direction !== "inbound" || target?.kind !== "notice") throw new ActionError("Only a buyer reply to a notice can be marked handled");
+    if (s.handledMessages.some((h) => h.messageId === messageId)) throw new ActionError("This message is already marked handled");
+    const trimmed = note?.trim() || null;
+    s.handledMessages.push({ messageId, handledAt: clockOf(s).now(), actor: "merchant", note: trimmed });
+    event(s, "message_handled", "Buyer message marked handled", "merchant", trimmed);
+  });
+}
+
+/**
+ * The merchant interprets an unsupported clarification reply. Code verifies only that the quote is a
+ * verbatim part of the buyer's message and the value is supported; the reading is merchant judgement.
+ */
+export async function interpretClarificationReply(messageId: string, value: string, quote: string): Promise<DemoState> {
+  return mutate((s) => {
+    if (s.status !== "clarifying") throw new ActionError("Answers can only be interpreted while clarifying");
+    const i = s.conversation.findIndex((x) => x.id === messageId);
+    const m = s.conversation[i];
+    const q = m?.inReplyTo ? s.conversation.find((x) => x.id === m.inReplyTo) : null;
+    if (!m || m.direction !== "inbound" || q?.kind !== "clarification" || !q.refs.questionId) throw new ActionError("Only a buyer reply to a clarification can be interpreted");
+    if (m.refs.answerValue) throw new ActionError("This reply already carries its answer");
+    if (!(SUPPORTED_VALUES[q.refs.questionId] ?? []).includes(value)) throw new ActionError("Choose a supported value for this question");
+    const t = quote.trim();
+    if (!t || !m.text.includes(t)) throw new ActionError("The supporting words must be a verbatim part of the buyer's message");
+    s.interpretations.push({ messageId, questionId: q.refs.questionId, value, quote: t, actor: "merchant", at: clockOf(s).now() });
+    s.conversation[i] = { ...m, refs: { ...m.refs, answerValue: value } };
+    event(s, "merchant_interpretation", "Merchant interpreted the buyer's reply", "merchant", `“${t}” → ${value} (merchant judgement)`);
+  });
+}
+
 function schedulePayments(s: DemoState, v: AgreementVersion) {
   const total = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
   for (const p of v.terms.paymentSchedule) {
@@ -742,7 +798,9 @@ export async function adoptRepliesAsAnswers(): Promise<DemoState> {
     const reply = [...s.conversation].reverse().find((i) => i.inReplyTo === draft.id);
     if (!reply) throw new ActionError(`Waiting for the buyer's reply to “${q.question}”`);
     if (!reply.refs.answerValue) throw new ActionError(`Record the answer to “${q.question}” manually: typed replies are not interpreted`);
-    return { questionId: q.id, value: reply.refs.answerValue, answerText: reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
+    // An interpreted reply is recorded with the merchant-selected verbatim quote (merchant judgement).
+    const quote = s.interpretations.find((x) => x.messageId === reply.id)?.quote;
+    return { questionId: q.id, value: reply.refs.answerValue, answerText: quote ?? reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
   });
   return recordAnswers(inputs);
 }
@@ -754,20 +812,24 @@ export async function requestChange(version: number, text: string): Promise<Demo
     if (!v || v.status !== "sent") throw new ActionError("Only a sent proposal can receive a change request");
     const proposal = [...s.conversation].reverse().find((i) => (i.kind === "proposal" || i.kind === "amendment") && i.refs.agreementVersion === version);
     if (!proposal) throw new ActionError("No proposal message for this version");
-    applyBuyerReply(s, { inReplyTo: proposal.id, text, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
+    const item = applyBuyerReply(s, { inReplyTo: proposal.id, text, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
     event(s, "change_request_received", `Buyer requested a change to version ${version}`, "buyer_demo", "Terms are unchanged; the merchant decides how to respond.");
+    // The buyer's message is the source evidence; the outcome links to it rather than copying it.
+    outcome(s, { type: "buyer_requested_change", reasonCode: null, note: null, actor: "buyer", version, source: { kind: "message", id: item.id } });
   });
 }
 
 /** Buyer declines a sent proposal. No payment setup is created. */
-export async function declineAgreement(version: number): Promise<DemoState> {
+export async function declineAgreement(version: number, reason?: BuyerDeclineReason): Promise<DemoState> {
   return mutate((s) => {
     const i = s.agreements.findIndex((x) => x.version === version && x.status === "sent");
     if (i < 0) throw new ActionError("No sent proposal to decline");
     if (s.amendments.some((a) => a.toVersion === version)) throw new ActionError("Declining a revision is not supported in this prototype; request a change instead");
     s.agreements[i] = buyerReject(s.agreements[i], "Buyer (Demo buyer view)", clockOf(s));
     const proposal = [...s.conversation].reverse().find((x) => x.kind === "proposal" && x.refs.agreementVersion === version);
-    if (proposal) applyBuyerReply(s, { inReplyTo: proposal.id, text: "Declined the proposal", at: clockOf(s).now(), scripted: false, kind: "decline", source: "buyer_proposal_page" });
+    if (reason !== undefined && !(reason in BUYER_DECLINE_REASONS)) throw new ActionError("Unknown decline reason");
+    const item = proposal ? applyBuyerReply(s, { inReplyTo: proposal.id, text: "Declined the proposal", at: clockOf(s).now(), scripted: false, kind: "decline", source: "buyer_proposal_page" }) : null;
+    outcome(s, { type: "buyer_declined", reasonCode: reason ?? null, note: null, actor: "buyer", version, source: item ? { kind: "message", id: item.id } : null });
     setStatus(s, "buyer_rejected", `Buyer declined version ${version}`);
     event(s, "buyer_declined", `Buyer declined version ${version}`, "buyer_demo", "No payment setup was created.");
   });

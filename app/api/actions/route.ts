@@ -5,6 +5,7 @@ import { ClarificationError } from "@/domain/constraints";
 import { ConversationError } from "@/domain/conversation";
 import { AnswerError, ReplayIntegrityError } from "@/ai/orchestrator";
 import * as svc from "@/lib/service";
+import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 
 /**
  * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
@@ -53,7 +54,10 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("adopt_replies") }),
   // Buyer proposal page (demo buyer view).
   z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500) }),
-  z.object({ action: z.literal("decline"), version: z.number().int().positive() }),
+  z.object({ action: z.literal("decline"), version: z.number().int().positive(), reason: z.enum(Object.keys(BUYER_DECLINE_REASONS) as [BuyerDeclineReason, ...BuyerDeclineReason[]]).optional() }),
+  z.object({ action: z.literal("close_by_merchant"), reason: z.enum(Object.keys(MERCHANT_CLOSE_REASONS) as [MerchantCloseReason, ...MerchantCloseReason[]]), note: z.string().max(300).optional() }),
+  z.object({ action: z.literal("mark_message_handled"), messageId: z.string().max(40), note: z.string().max(300).optional() }),
+  z.object({ action: z.literal("interpret_reply"), messageId: z.string().max(40), value: z.string().max(20), quote: z.string().min(1).max(300) }),
 ]);
 
 export async function POST(request: Request) {
@@ -159,7 +163,16 @@ export async function POST(request: Request) {
         await svc.requestChange(a.version, a.text);
         break;
       case "decline":
-        await svc.declineAgreement(a.version);
+        await svc.declineAgreement(a.version, a.reason);
+        break;
+      case "close_by_merchant":
+        await svc.closeByMerchant(a.reason, a.note);
+        break;
+      case "mark_message_handled":
+        await svc.markMessageHandled(a.messageId, a.note);
+        break;
+      case "interpret_reply":
+        await svc.interpretClarificationReply(a.messageId, a.value, a.quote);
         break;
     }
     return Response.json({ ok: true, result });
