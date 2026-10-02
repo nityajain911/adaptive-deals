@@ -1,0 +1,145 @@
+import Link from "next/link";
+import { ConversationThread } from "@/components/conversation-thread";
+import { InterpretForm, PrimaryActionButton } from "@/components/client";
+import { StageShell } from "@/components/deal/stage-shell";
+import { fmtTime } from "@/components/evidence";
+import { Badge, Card } from "@/components/ui";
+import { loadDeal, stageHref } from "@/lib/deal-page";
+import { originalProposal } from "@/lib/offer-copy";
+import { blockingLines } from "@/lib/understand-copy";
+
+const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  "clar-gst": [
+    { value: "yes", label: "Includes GST" },
+    { value: "no", label: "Excludes GST" },
+  ],
+  "clar-approval": [
+    { value: "per_contract", label: "Per contract" },
+    { value: "per_payment", label: "Per payment" },
+  ],
+};
+
+/** Stage 1 · Understand the buyer (spec §4). */
+export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
+  const { dealId } = await props.params;
+  const { s, out, progress } = await loadDeal(dealId);
+  const current = progress.stages.understand === "current";
+  const r = s.run.record;
+  const lines = blockingLines(out.profile, originalProposal());
+  const evidence = r.engine.profile.filter((f) => f.evidence.length);
+  const answers = r.inputs.answers;
+  const confirmedAt = answers.map((a) => a.answeredAt).sort().at(-1) ?? null;
+  const offerVersion = s.selectedOption?.draftVersion ?? s.agreements.at(-1)?.version ?? null;
+  const primary = current ? progress.primaryAction : null;
+
+  const questions = r.displayed.questions.map((q) => {
+    const draft = s.conversation.find((i) => i.kind === "clarification" && i.refs.questionId === q.id) ?? null;
+    const reply = draft ? ([...s.conversation].reverse().find((i) => i.inReplyTo === draft.id) ?? null) : null;
+    const answer = answers.find((a) => a.questionId === q.id) ?? null;
+    return { q, draft, reply, answer };
+  });
+
+  const evidenceDetails = (
+    <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence">
+      <summary className="cursor-pointer text-[13px] font-semibold text-ink">See evidence</summary>
+      <ul className="mt-2 space-y-2 pb-2 text-[12px] text-ink-2">
+        <li>
+          <span className="font-semibold text-ink">Original annual proposal</span> · Source: synthetic deal fixture · ₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600
+        </li>
+        {evidence.map((f) => (
+          <li key={f.key}>
+            <span className="font-semibold text-ink">{f.label}</span> · Source: simulated WhatsApp conversation · {f.evidence.map((e) => `“${e.quote}”`).join(" ")}
+            {f.confirmedBy ? ` · confirmed in a clarification reply` : ""}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+
+  if (!current) {
+    return (
+      <StageShell dealId={dealId} viewing="understand">
+        <Card className="p-5" data-testid="understand-settled">
+          <div className="text-[15px] font-semibold text-ink">
+            Buyer constraints confirmed{offerVersion ? ` for offer version ${offerVersion}` : ""}
+            {confirmedAt ? ` · ${fmtTime(confirmedAt)}` : ""}
+          </div>
+          <p className="mt-1 text-[13px] text-muted">Buyer constraints confirmed from the conversation.</p>
+          <Link href={stageHref(dealId, progress.stage)} className="mt-2 inline-block text-[13px] font-semibold text-blue hover:underline">
+            Go to the current stage →
+          </Link>
+          <details className="mt-3 rounded-xl border border-line px-4 py-2">
+            <summary className="cursor-pointer text-[13px] font-semibold text-ink">Details</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-ink-2">
+              {lines.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+            {questions.length ? (
+              <dl className="mt-3 space-y-2 text-[13px]">
+                {questions.map(({ q, answer }) => (
+                  <div key={q.id}>
+                    <dt className="font-semibold text-ink">{q.question}</dt>
+                    <dd className="text-ink-2">{answer ? `“${answer.answerText}”` : "Not answered"}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {evidenceDetails}
+          </details>
+        </Card>
+      </StageShell>
+    );
+  }
+
+  return (
+    <StageShell dealId={dealId} viewing="understand">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <div className="space-y-5">
+          <Card className="p-5" data-testid="blocking-card">
+            <h2 className="text-[16px] font-semibold text-ink">What&apos;s blocking this deal</h2>
+            <ul className="mt-2 space-y-1.5 text-[14px] text-ink">
+              {lines.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+            {evidenceDetails}
+          </Card>
+
+          {questions.length ? (
+            <Card className="p-5" data-testid="questions-card">
+              <h2 className="text-[16px] font-semibold text-ink">{questions.length === 1 ? "Confirm one detail" : `Confirm ${questions.length === 2 ? "two" : questions.length} details`}</h2>
+              <ol className="mt-3 space-y-3">
+                {questions.map(({ q, draft, reply }, qi) => (
+                  <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
+                    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                      <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{q.wording === "ai" ? "Suggested by AI" : "Drafted by code"}</Badge>
+                      {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
+                    </div>
+                    <p className="mt-2 text-[14px] font-medium text-ink">{q.question}</p>
+                    <p className="mt-1 text-[12px] text-muted">Why it matters: {q.whyItMatters}</p>
+                    {reply ? (
+                      <div className="mt-2 text-[13px] text-ink-2">
+                        Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>
+                        {reply.refs.answerValue ? <span className="text-muted"> · ready to use</span> : null}
+                        {!reply.refs.answerValue && primary?.id === "interpret_reply" ? <InterpretForm messageId={reply.id} buyerText={reply.text} options={INTERPRET_OPTIONS[q.id] ?? []} primary={qi === questions.findIndex((x) => x.reply && !x.reply.refs.answerValue)} /> : null}
+                      </div>
+                    ) : draft?.sentAt ? (
+                      <p className="mt-2 text-[13px] text-muted">Waiting for the buyer.</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-4">
+                {primary?.id === "send_questions" ? <PrimaryActionButton body={{ action: "send_questions" }}>{primary.label}</PrimaryActionButton> : null}
+                {primary?.id === "use_answers" ? <PrimaryActionButton body={{ action: "adopt_replies" }} onDone={stageHref(dealId, "offer")}>{primary.label}</PrimaryActionButton> : null}
+                {progress.kind === "waiting_on_buyer" ? <p className="text-[13px] font-medium text-ink-2" data-testid="waiting">Waiting for the buyer.</p> : null}
+              </div>
+            </Card>
+          ) : null}
+        </div>
+        <ConversationThread s={s} scope="understand" opening={r.inputs.messages} />
+      </div>
+    </StageShell>
+  );
+}

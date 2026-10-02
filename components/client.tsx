@@ -406,3 +406,61 @@ export function RulesDrawer({ children }: { children: ReactNode }) {
     </>
   );
 }
+
+// ── Merchant stages ─────────────────────────────────────────────────────────
+
+/** The stage's single primary action (data-testid="primary-action"). */
+export function PrimaryActionButton({ body, children, onDone }: { body: ActionBody; children: ReactNode; onDone?: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  return (
+    <span className="inline-flex flex-col">
+      <Button variant="primary" className="min-h-10 px-4 text-[14px]" disabled={pending} data-testid="primary-action" onClick={() => run(body, () => (onDone ? router.push(onDone) : undefined))}>
+        {pending ? "Working…" : children}
+      </Button>
+      <ErrorText error={error} />
+    </span>
+  );
+}
+
+/**
+ * The merchant interprets a buyer reply the code could not read. Only supported values; the
+ * supporting words must be copied verbatim from the buyer's message (checked by code).
+ */
+export function InterpretForm({ messageId, buyerText, options, primary = false }: { messageId: string; buyerText: string; options: { value: string; label: string }[]; primary?: boolean }) {
+  const { run, pending, error } = useAction();
+  const [value, setValue] = useState("");
+  const [quote, setQuote] = useState("");
+  return (
+    <form
+      className="mt-2 space-y-2 rounded-xl border border-line bg-surface-muted p-3"
+      data-testid={`interpret-${messageId}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "interpret_reply", messageId, value, quote });
+      }}
+    >
+      <p className="text-[13px] text-ink">
+        Buyer wrote: <span className="font-medium">“{buyerText}”</span>
+      </p>
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">What did the buyer confirm?</legend>
+        {options.map((o) => (
+          <label key={o.value} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px]", value === o.value ? "border-blue bg-blue-weak" : "border-line bg-surface")}>
+            <input type="radio" name={`v-${messageId}`} value={o.value} checked={value === o.value} onChange={() => setValue(o.value)} />
+            {o.label}
+          </label>
+        ))}
+      </fieldset>
+      <label className="block text-[12px] font-medium text-muted">
+        Supporting words, copied exactly from the buyer&apos;s message
+        <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink" value={quote} maxLength={300} onChange={(e) => setQuote(e.target.value)} />
+      </label>
+      <p className="text-[12px] text-muted">Code checks these words appear in the buyer&apos;s message. Whether they support the value is your judgement, and is recorded as such.</p>
+      <Button type="submit" variant={primary ? "primary" : "secondary"} data-testid={primary ? "primary-action" : undefined} disabled={pending || !value || !quote.trim()}>
+        {pending ? "Recording…" : "Interpret buyer's reply"}
+      </Button>
+      <ErrorText error={error} />
+    </form>
+  );
+}
