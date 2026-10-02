@@ -684,6 +684,52 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 - Credential scan clean. No Groq calls.
 - Dev-server walkthrough at 1440 px of every stage and state. No horizontal scroll at 390 px on every stage, the preview and both buyer versions.
 
+### 2026-10-03 · Merchant decision redesign, Phase 3: demo controls, presenter page, audit drawer [Claude Code]
+
+**Applicant decision:** the preventive path is the canonical guided storyboard. The earlier insertion of a failed debit into the main story is withdrawn; the failed-debit path remains a secondary presenter scenario with its permanent test. The upfront payment is part of the canonical demo sequence only, not a domain policy. Plan Task 13 corrected in `923ad11`.
+
+**Built:**
+- **`lib/demo-steps.ts`:** the canonical storyboard.
+  - Merchant and buyer steps only navigate and instruct.
+  - System steps are executable: pay the upfront link, confirm the mandate, "Advance simulated date to 28 Nov 2026" (its own recorded clock move), send the notice.
+  - The guided demo never offers a failed debit.
+  - `replyContext` offers the scripted replies only for the message awaiting a reply.
+- **`runSystemStep`** (service) refuses any non-system ID ("Not a system step"), and refuses the notice steps until the buyer's setup is complete. The old `nextDemoStep`/`demoNext`, which executed merchant decisions, were removed.
+- **Demo bar** (`components/demo-bar.tsx`), outside the merchant and buyer frames:
+  - labelled "Demo controls · simulated", with the simulated date and the step type (Merchant action, Buyer action, Simulated event);
+  - the Simulated buyer reply control (scripts or typed text, through the same code rules);
+  - an overflow menu with Reset, Open presenter page and Hide demo controls (per browser, via `useSyncExternalStore`).
+- **`/presenter`:**
+  - Run live (states a new external call and a new run ID) and replay of committed runs (no call);
+  - all labelled simulations, the failed-debit secondary scenario, Fail next send (one-shot, resettable), Pause AI suggestions with its exact effect;
+  - Other outcomes; run record, replay integrity, prompt hashes vs `FREEZE.json`;
+  - the full event log, raw records, and the merchant audit rendered read-only.
+- **Audit drawer** (`components/audit/*`, `lib/audit.ts`), read-only:
+  - evidence with a truthful source per item;
+  - applied merchant rules from configuration;
+  - approval, acceptance and delivery history;
+  - calculation provenance;
+  - who did what, specific to this run (the code fallback is credited to code);
+  - schedules, with offsets, hashes and keys under advanced details.
+  - Native modal dialog, full screen on phones. Opened from Audit details, seller-side "Rule:" links and Inspect records. The old rules drawer was removed.
+
+**Defect fixed:** while the buyer must accept a revision, the Track link pointed to version 1. It now follows the version reported by `dealProgress`.
+
+**Tests added:**
+- `tests/lib/demo-steps.test.ts` (8): merchant steps navigate only; non-system IDs refused; buyer steps open the buyer page; buyer-setup gate; explicit recorded time; the full canonical storyboard step sequence with no failed debit; reply control.
+- `tests/lib/presenter.test.ts`: live-run isolation, using a fake provider.
+- `tests/lib/audit.test.ts` (5): source labels, attribution under the code fallback and under AI prose, rules from configuration, no forms, buttons or action endpoints on a real deal state.
+
+**Browser checks (dev server):**
+- **Canonical journey:** merchant decisions in the product, buyer acceptances on the buyer page, replies and labelled system events from the bar, ending at "Payment rescheduled to 21 Dec 2026 · agreement version 2".
+- **The same journey with the demo bar hidden:** every merchant decision completed through product buttons only.
+- **Audit drawer:** focus trapped, Escape closes, focus returns, the Rule link opens the rules section, full width at 390 px with no overflow.
+
+**Verification:**
+- 402/402 tests · typecheck clean · lint clean · `next build` succeeds.
+- Frozen assets 44/44. Protected paths unchanged (the only domain change remains `domain/state.ts`).
+- Credential scan clean. No Groq calls.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
