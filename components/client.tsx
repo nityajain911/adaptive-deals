@@ -163,41 +163,6 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
   );
 }
 
-// ── Approve and send ────────────────────────────────────────────────────────
-
-export function ApproveAndSend({ structureId, label }: { structureId: string; label: string }) {
-  const router = useRouter();
-  const { run, pending, error } = useAction();
-  const [draft, setDraft] = useState<{ version: number; termsHash: string } | null>(null);
-  if (!draft)
-    return (
-      <span className="inline-flex flex-col">
-        <Button variant="primary" disabled={pending} data-testid={`prepare-${structureId}`} onClick={() => run({ action: "prepare_agreement", structureId }, (r) => setDraft(r as { version: number; termsHash: string }))}>
-          {pending ? "Preparing…" : "Approve and send"}
-        </Button>
-        <ErrorText error={error} />
-      </span>
-    );
-  return (
-    <div role="dialog" aria-label="Confirm approval" className="w-full rounded-xl border border-blue bg-blue-weak p-4 text-[13px]">
-      <div className="font-semibold text-ink">Approve version {draft.version} and send to the buyer?</div>
-      <div className="mt-1 text-ink-2">{label}</div>
-      <div className="mt-2 break-all font-mono text-[12px] text-ink-2" data-testid="draft-hash">
-        Terms hash (SHA-256): {draft.termsHash}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="primary" disabled={pending} data-testid="confirm-approve" onClick={() => run({ action: "approve_and_send", version: draft.version, termsHash: draft.termsHash }, () => router.push("/agreement"))}>
-          {pending ? "Approving…" : "Approve this exact version"}
-        </Button>
-        <Button onClick={() => setDraft(null)} disabled={pending}>
-          Cancel
-        </Button>
-      </div>
-      <ErrorText error={error} />
-    </div>
-  );
-}
-
 export function AcceptForm({ action, version, termsHash, needsAuthority }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; needsAuthority: boolean }) {
   const { run, pending, error } = useAction();
   const [authority, setAuthority] = useState(false);
@@ -459,6 +424,49 @@ export function InterpretForm({ messageId, buyerText, options, primary = false }
       <p className="text-[12px] text-muted">Code checks these words appear in the buyer&apos;s message. Whether they support the value is your judgement, and is recorded as such.</p>
       <Button type="submit" variant={primary ? "primary" : "secondary"} data-testid={primary ? "primary-action" : undefined} disabled={pending || !value || !quote.trim()}>
         {pending ? "Recording…" : "Interpret buyer's reply"}
+      </Button>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+/** Opens a collapsed card (<details id=…>) and scrolls to it. Used as the Track Now card's primary action. */
+export function RevealButton({ targetId, children }: { targetId: string; children: ReactNode }) {
+  return (
+    <Button
+      variant="primary"
+      className="min-h-10 px-4 text-[14px]"
+      data-testid="primary-action"
+      onClick={() => {
+        const el = document.getElementById(targetId);
+        if (el instanceof HTMLDetailsElement) el.open = true;
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        el?.querySelector<HTMLElement>("summary, button, a")?.focus();
+      }}
+    >
+      {children}
+    </Button>
+  );
+}
+
+/** Records that the merchant handled a buyer message outside the prototype. Changes nothing else. */
+export function MarkHandledForm({ messageId }: { messageId: string }) {
+  const { run, pending, error } = useAction();
+  const [note, setNote] = useState("");
+  return (
+    <form
+      className="mt-2 flex flex-wrap items-end gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "mark_message_handled", messageId, note: note.trim() || undefined });
+      }}
+    >
+      <label className="min-w-[200px] flex-1 text-[12px] font-medium text-muted">
+        Handling note (optional)
+        <input className="mt-1 block w-full rounded-lg border border-line-strong px-3 py-1.5 text-[13px] text-ink" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <Button type="submit" disabled={pending} data-testid={`mark-handled-${messageId}`}>
+        {pending ? "Saving…" : "Mark as handled"}
       </Button>
       <ErrorText error={error} />
     </form>

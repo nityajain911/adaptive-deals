@@ -31,8 +31,6 @@ const Action = z.discriminatedUnion("action", [
       .min(1)
       .max(3),
   }),
-  z.object({ action: z.literal("prepare_agreement"), structureId: z.string().max(200) }),
-  z.object({ action: z.literal("approve_and_send"), version: z.number().int().positive(), termsHash: Hash }),
   // Split approval and delivery (spec §3.3).
   z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("review_buyer_proposal") }),
@@ -88,19 +86,6 @@ export async function POST(request: Request) {
       case "record_answers":
         await svc.recordAnswers(a.answers);
         break;
-      // Temporary bridge for the pre-redesign decision view; removed in plan Task 11.
-      case "prepare_agreement": {
-        await svc.selectOption(a.structureId);
-        const v = await svc.reviewBuyerProposal();
-        result = { version: v.version, termsHash: v.termsHash };
-        break;
-      }
-      case "approve_and_send": {
-        await svc.approveDraft(a.version, a.termsHash);
-        const r = await svc.sendProposal(a.version);
-        result = { delivered: r.delivered, failureReason: r.failureReason };
-        break;
-      }
       case "select_option":
         await svc.selectOption(a.structureId);
         break;
