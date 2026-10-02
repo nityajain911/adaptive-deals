@@ -5,7 +5,6 @@ import path from "node:path";
 import { assertBuyerSafe } from "@/domain/conversation";
 import { formatINR } from "@/domain/money";
 import { localDateOf } from "@/domain/dates";
-import { readJson, writeJsonAtomic } from "@/lib/store";
 import { driveTo } from "../helpers/drive";
 
 /**
@@ -264,6 +263,8 @@ describe("one open change request per payment under an agreement version", () =>
 
   it("a stale earlier-version request never blocks a valid request for the active version", async () => {
     // A stale version-1 request for the same line, as a store saved before this guard could hold.
+    // Dynamic import: the store reads ADAPTIVE_DEALS_DATA_DIR when first loaded (see test-isolation.test.ts).
+    const { readJson, writeJsonAtomic } = await import("@/lib/store");
     const raw = (await readJson<Awaited<ReturnType<Svc["getState"]>>>(svc.STORE_FILE))!;
     const done = raw.changeRequests[0];
     raw.changeRequests.unshift({ ...done, id: "chg-stale", state: "change_requested", amendmentId: null, agreementVersion: 1, history: [done.history[0]] });
