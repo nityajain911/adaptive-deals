@@ -640,6 +640,50 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 - Credential scan clean. No Groq or network call: new suites stub `fetch` and assert it was not called.
 - The two pre-existing modified screenshots are untouched.
 
+### 2026-10-03 · Merchant decision redesign: Phase 1 follow-up and Phase 2 (three stages, preview) [Claude Code]
+
+**Phase 1 follow-up (applicant correction):**
+- The upfront payment is required in the hero sequence.
+- The test helper now pays the upfront link before the mandate, and supports the preventive and failed-debit paths.
+- The permanent walkthrough asserts the exact headline sequence for both. Both end at "Up to date · next payment ₹23,010 on 21 Dec 2026".
+- Plan Task 13 corrected: a required `pay_upfront_link` step, a dated `fail_debit` step on the demo bar, and buyer-setup gate tests.
+- **Open applicant decision:** the applicant's sequence places the failed debit before the buyer's reply. Under the unchanged amendment rules that path is `after_failed_debit`, not preventive. Which path is the canonical demo storyboard is to be decided before Phase 3.
+
+**Built (Phase 2):**
+- `lib/offer-copy.ts`: template headlines chosen by code, the original annual proposal (₹1,20,000 + 18% GST = ₹1,41,600 from the fixture), and the "achieves" and "changes" lines (₹95,580 only on a matching GST basis).
+- `components/proposal-content.tsx`: buyer content shared by the buyer page and the merchant preview.
+- **Routes:**
+  - `/deals/[dealId]` redirects to the current stage; unknown IDs return 404.
+  - `understand`, `offer`, `offer/preview` and `track` pages, each rendering `StageShell` with its own literal stage (a page cannot pass state up to its layout).
+  - Status banner and stage tracker from `dealProgress`.
+- **Understand:** blocking lines with GST basis, quarter end, month precision and per-contract scope; questions with one batch send; Use these answers; Interpret buyer's reply (verbatim-quote form); compact conversation.
+- **Offer:**
+  - the recommendation with one primary action, **Review buyer proposal**;
+  - rules result line, with economics and applied rules collapsed;
+  - what the offer achieves and what changes; source-accurate attribution;
+  - Compare alternatives (select only eligible options); Don't proceed (stable reason codes); Why other options didn't fit (collapsed); success measure line;
+  - the retry, stale, no-feasible, outside-templates, closed and settled states.
+- **Preview:** "Preview · Not sent to the buyer", Approve and send to buyer, Back to offer, collapsed version and hash. A failed delivery returns to Offer with Retry sending.
+- **Track:**
+  - Now card from `dealProgress`;
+  - payment schedule ("21 Dec 2026 (was 1 Dec 2026)", "Retry scheduled for …") with collapsed payment details;
+  - change card with what changes and what stays the same, rechecks, and collection truth from recorded attempts;
+  - buyer messages needing a reply, with Mark as handled;
+  - scoped conversation.
+- **Legacy routes:** `/workspace`, `/clarification`, `/decision`, `/agreement` and `/timeline` redirect through `/deals/hero`. `/agreement?role=buyer` opens the latest delivered proposal.
+- **Removed:** the five old pages and their layout, the step nav, the old conversation panel, the funding chart, and the approve-and-send bridge.
+
+**Deviation:** a new `components/conversation-thread.tsx` replaced the old conversation panel instead of modifying it in place. The old panel was deleted with the old pages, so the outcome is the same.
+
+**Defect found and fixed:** `tests/lib/connected-journey.test.ts` statically imported `@/lib/store`. That import ran before the suite set its data directory, so every `npm test` run overwrote the developer's running demo store `.data/`. It is now a dynamic import, with a guard test (`tests/lib/test-isolation.test.ts`). Verified by hashing `.data/store.json` before and after a full run.
+
+**Verification:**
+- 388/388 tests · typecheck clean · lint clean · `next build` succeeds.
+- Frozen assets 44/44 (Git objects at `c907d1d` plus the recorded `FREEZE_PACK.md` hash).
+- Protected paths unchanged; the only domain change remains `domain/state.ts`.
+- Credential scan clean. No Groq calls.
+- Dev-server walkthrough at 1440 px of every stage and state. No horizontal scroll at 390 px on every stage, the preview and both buyer versions.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
