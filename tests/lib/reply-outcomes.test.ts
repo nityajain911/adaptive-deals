@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { ConversationItem } from "@/domain/conversation";
 import { activeVersionOf, NO_REQUEST_NEUTRAL, noticeReplyOutcome } from "@/lib/views";
+import { driveTo } from "../helpers/drive";
 
 /**
  * The status shown for a buyer's reply to an advance notice must be what actually happened:
@@ -28,7 +29,7 @@ const payment = (s: State) => JSON.stringify({ attempts: s.attempts, paymentLink
 const outcomeOf = (s: State, reply: ConversationItem) => noticeReplyOutcome(reply, s, activeVersionOf(s.agreements)?.version ?? null)!;
 async function toFirstNotice() {
   await svc.resetToSeed();
-  for (let i = 0; i < 12 && !(await svc.getState()).conversation.some((x) => x.kind === "notice"); i++) await svc.demoNext();
+  await driveTo(svc, (s) => s.conversation.some((x) => x.kind === "notice"));
   return (await svc.getState()).conversation.find((x) => x.kind === "notice")!;
 }
 
@@ -51,7 +52,7 @@ describe("truthful outcome of a date reply to a notice", () => {
   });
 
   it("a reply to a notice whose payment was removed after rescheduling: attention, with the recorded reason", async () => {
-    for (let i = 0; i < 6 && (await svc.getState()).amendments.at(-1)?.state !== "active"; i++) await svc.demoNext();
+    await driveTo(svc, (s) => s.amendments.at(-1)?.state === "active");
     let s = await svc.getState();
     const oldNotice = s.conversation.find((x) => x.kind === "notice")!;
     expect(s.attempts.find((a) => a.id === oldNotice.refs.attemptId)!.status).toBe("removed");

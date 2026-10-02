@@ -39,16 +39,20 @@ describe("hero journey through the service", () => {
     expect(JSON.parse(JSON.stringify(s.run.record))).toEqual(svc.bundledSyntheticRun());
   });
 
-  it("refuses to prepare an agreement from a rejected structure", async () => {
-    await expect(svc.prepareAgreement("split_payment:plan=monthly_12")).rejects.toThrow(/rejected section/);
+  it("refuses to select a rejected structure for preparation", async () => {
+    // Updated for the split approval flow (spec §3.3): selection replaces prepareAgreement.
+    await expect(svc.selectOption("split_payment:plan=monthly_12")).rejects.toThrow(/cannot be selected/);
   });
 
   it("approve and send requires the exact draft hash; buyer must accept the same hash", async () => {
     const s0 = await svc.getState();
     const top = (await svc.currentOutcome(s0)).evaluation.result!.feasible[0].structure.id;
-    const draft = await svc.prepareAgreement(top);
-    await expect(svc.approveAndSend(1, "0".repeat(64))).rejects.toThrow(/does not match/);
-    const sent = await svc.approveAndSend(1, draft.termsHash);
+    // Updated for the split approval flow (spec §3.3): select → draft → approve → send.
+    await svc.selectOption(top);
+    const draft = await svc.reviewBuyerProposal();
+    await expect(svc.approveDraft(1, "0".repeat(64))).rejects.toThrow(/does not match/);
+    expect((await svc.approveDraft(1, draft.termsHash)).status).toBe("approved");
+    const sent = (await svc.sendProposal(1)).state;
     expect(sent.status).toBe("sent");
     await expect(svc.acceptAgreement(1, "f".repeat(64), true)).rejects.toThrow(/does not match/);
     await expect(svc.acceptAgreement(1, draft.termsHash, false)).rejects.toThrow(/authority/);

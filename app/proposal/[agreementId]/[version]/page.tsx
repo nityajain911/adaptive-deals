@@ -9,6 +9,7 @@ import { cx } from "@/components/ui";
 import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
 import { AGREEMENT_ID, proposalLink } from "@/lib/service";
+import { isDelivered } from "@/lib/deal-records";
 import { parseVersionSegment, proposalView } from "@/lib/views";
 
 export const metadata = { title: "Proposal · Pinecone Media Works" };
@@ -24,7 +25,8 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const { s } = await loadPage();
   const v = s.agreements.find((x) => x.agreementId === agreementId && x.version === version);
   // A proposal link exists only once the merchant has approved and sent this exact version.
-  if (!v || v.status === "draft" || v.status === "merchant_approved") notFound();
+  // Buyer access opens only after a successful delivery of this exact version (spec §5.5).
+  if (!v || !isDelivered(s.deliveries, v.version)) notFound();
 
   const view = proposalView(v, heroPackages, heroMerchant.policy);
   const amendment = s.amendments.find((a) => a.toVersion === v.version);

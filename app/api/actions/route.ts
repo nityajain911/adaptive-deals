@@ -32,6 +32,12 @@ const Action = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("prepare_agreement"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("approve_and_send"), version: z.number().int().positive(), termsHash: Hash }),
+  // Split approval and delivery (spec §3.3).
+  z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
+  z.object({ action: z.literal("review_buyer_proposal") }),
+  z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
+  z.object({ action: z.literal("retry_send"), version: z.number().int().positive() }),
+  z.object({ action: z.literal("send_questions") }),
   z.object({ action: z.literal("accept_agreement"), version: z.number().int().positive(), termsHash: Hash, authorityConfirmed: z.boolean() }),
   z.object({ action: z.literal("simulate"), event: z.enum(["payment_link_paid", "mandate_confirmed", "advance_notice", "debit_failed", "debit_succeeded", "buyer_reply"]) }),
   z.object({ action: z.literal("check_payment_link") }),
@@ -78,13 +84,40 @@ export async function POST(request: Request) {
       case "record_answers":
         await svc.recordAnswers(a.answers);
         break;
+      // Temporary bridge for the pre-redesign decision view; removed in plan Task 11.
       case "prepare_agreement": {
-        const v = await svc.prepareAgreement(a.structureId);
+        await svc.selectOption(a.structureId);
+        const v = await svc.reviewBuyerProposal();
         result = { version: v.version, termsHash: v.termsHash };
         break;
       }
-      case "approve_and_send":
-        await svc.approveAndSend(a.version, a.termsHash);
+      case "approve_and_send": {
+        await svc.approveDraft(a.version, a.termsHash);
+        const r = await svc.sendProposal(a.version);
+        result = { delivered: r.delivered, failureReason: r.failureReason };
+        break;
+      }
+      case "select_option":
+        await svc.selectOption(a.structureId);
+        break;
+      case "review_buyer_proposal": {
+        const v = await svc.reviewBuyerProposal();
+        result = { version: v.version };
+        break;
+      }
+      case "approve_and_send_draft": {
+        await svc.approveDraft(a.version, a.termsHash);
+        const r = await svc.sendProposal(a.version);
+        result = { delivered: r.delivered, failureReason: r.failureReason };
+        break;
+      }
+      case "retry_send": {
+        const r = await svc.sendProposal(a.version);
+        result = { delivered: r.delivered, failureReason: r.failureReason };
+        break;
+      }
+      case "send_questions":
+        await svc.sendQuestions();
         break;
       case "accept_agreement":
         await svc.acceptAgreement(a.version, a.termsHash, a.authorityConfirmed);

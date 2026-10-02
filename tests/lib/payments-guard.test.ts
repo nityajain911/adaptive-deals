@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { driveTo } from "../helpers/drive";
 
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-pay-"));
 process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
@@ -14,7 +15,7 @@ beforeAll(async () => {
 async function toSent() {
   await svc.resetToSeed();
   // Guided steps: send questions → buyer replies → answers → approve and send.
-  for (let i = 0; i < 6 && (await svc.getState()).status !== "sent"; i++) await svc.demoNext();
+  await driveTo(svc, (s) => s.status === "sent");
   return (await svc.getState()).agreements[0];
 }
 

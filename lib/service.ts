@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { activate, assertPaymentsUnlocked, buyerAccept, buyerReject, createAgreementVersion, markSent, merchantApprove, type AgreementVersion } from "@/domain/agreement";
+import { activate, AgreementError, assertPaymentsUnlocked, buyerAccept, buyerReject, createAgreementVersion, markSent, merchantApprove, termsHash as computeTermsHash, type AgreementVersion } from "@/domain/agreement";
 import { applyCollectionUpdate, proposeReschedule, transitionAmendment, type Amendment } from "@/domain/amendment";
 import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/domain/clock";
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
@@ -27,7 +27,8 @@ import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, hero
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
-import type { DeliveryRecord, HandledMessage, Interpretation, OutcomeRecord, SelectedOption } from "./deal-records";
+import { decisionFingerprint, deliveryKey, isDelivered, type DeliveryRecord, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
+import { attemptDelivery } from "./delivery";
 import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
 import {
   amendmentMessageText,
@@ -368,33 +369,170 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
 
 // ── Decision and agreement ───────────────────────────────────────────────────
 
-export async function prepareAgreement(structureId: string): Promise<AgreementVersion> {
-  let created: AgreementVersion | null = null;
-  await mutate(async (s) => {
-    if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
-    const out = await currentOutcome(s);
-    const x = out.evaluation.result?.structures.find((e) => e.structure.id === structureId);
-    if (!x) throw new ActionError("Unknown structure", 404);
-    if (!x.approvable) throw new ActionError("Only engine-feasible structures can be approved; this one is in the rejected section");
-    s.agreements = s.agreements.filter((v) => v.status !== "draft");
-    created = createAgreementVersion({ agreementId: AGREEMENT_ID, version: 1, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: heroBuyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
-    s.agreements.push(created);
-  });
-  return created!;
+// Approval is split from delivery (spec §3.3): select → draft → approve → send.
+
+async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: EvaluatedStructure[] }> {
+  const out = await currentOutcome(s);
+  const r = out.evaluation.result;
+  return { out, eligible: r ? r.structures.filter((x) => x.approvable) : [] };
 }
 
-export async function approveAndSend(version: number, termsHash: string): Promise<DemoState> {
-  return mutate((s) => {
+function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: 1, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: heroBuyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
+}
+
+/** The fingerprint the selected option would have now, from the unchanged engine. */
+export async function currentFingerprint(s: DemoState): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
+  const { eligible } = await eligibleOf(s);
+  const ids = eligible.map((x) => x.structure.id);
+  const sel = eligible.find((x) => x.structure.id === s.selectedOption?.structureId);
+  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel).terms) : null };
+}
+
+/** Stale: the decision changed since selection, or the selected option is no longer eligible. */
+export async function isDraftStale(s: DemoState): Promise<boolean> {
+  if (!s.selectedOption) return false;
+  const cur = await currentFingerprint(s);
+  return cur.fingerprint === null || cur.fingerprint !== s.selectedOption.fingerprint;
+}
+
+function assertNoReview(s: DemoState) {
+  if (s.reviewRequired) throw new ActionError(`Saved deal records need review: ${s.reviewRequired}`);
+}
+
+function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">) {
+  s.outcomes.push({ id: `out-${s.outcomes.length + 1}`, at: clockOf(s).now(), dealId: s.dealId, ...rec });
+}
+
+async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }) {
+  assertNoReview(s);
+  if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
+  const { eligible } = await eligibleOf(s);
+  const x = eligible.find((e) => e.structure.id === structureId);
+  if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
+  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x).terms);
+  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint) return; // same and still valid: no-op
+  s.agreements = s.agreements.filter((v) => v.status !== "draft");
+  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null };
+  // Opening the recommended option automatically is not attributed to the merchant.
+  if (opts.explicit) outcome(s, { type: "option_selected", reasonCode: null, note: null, actor: "merchant", version: null, source: { kind: "action", id: structureId } });
+}
+
+/** The merchant explicitly chose this option ("Select this offer"). */
+export async function selectOption(structureId: string): Promise<DemoState> {
+  return mutate((s) => applySelection(s, structureId, { explicit: true }));
+}
+
+/** Prepare (or reuse) the unsent draft for the selected option; selects the recommendation if needed. */
+export async function reviewBuyerProposal(): Promise<AgreementVersion> {
+  let draft: AgreementVersion | null = null;
+  await mutate(async (s) => {
+    assertNoReview(s);
+    if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
+    if (!s.selectedOption || (await isDraftStale(s))) {
+      const { out, eligible } = await eligibleOf(s);
+      const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
+      const top = keep ?? out.explanation?.order[0] ?? eligible[0]?.structure.id;
+      if (!top) throw new ActionError("No engine-eligible option to review");
+      if (keep) s.selectedOption = null; // force a fresh fingerprint for the kept option
+      await applySelection(s, top, { explicit: false });
+    }
+    const existing = s.agreements.find((v) => v.status === "draft" && v.version === s.selectedOption!.draftVersion);
+    if (existing) {
+      draft = existing;
+      return;
+    }
+    const { eligible } = await eligibleOf(s);
+    const x = eligible.find((e) => e.structure.id === s.selectedOption!.structureId)!;
+    s.agreements = s.agreements.filter((v) => v.status !== "draft");
+    draft = draftFor(s, x);
+    s.agreements.push(draft);
+    s.selectedOption = { ...s.selectedOption!, draftVersion: draft.version };
+  });
+  return draft!;
+}
+
+/** Merchant approves the exact draft they previewed. Sends nothing. */
+export async function approveDraft(version: number, presentedHash: string): Promise<DemoState> {
+  return mutate(async (s) => {
+    assertNoReview(s);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "draft");
-    if (i < 0) throw new ActionError("No draft agreement version to approve");
-    const approved = merchantApprove(s.agreements[i], termsHash, "Merchant (Pinecone Media Works)", clockOf(s));
-    s.agreements[i] = markSent(approved);
+    if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected draft");
+    if (await isDraftStale(s)) throw new ActionError("The offer changed since this preview was opened (stale draft); review the updated proposal");
+    try {
+      s.agreements[i] = merchantApprove(s.agreements[i], presentedHash, "Merchant (Pinecone Media Works)", clockOf(s));
+    } catch (e) {
+      if (e instanceof AgreementError) throw new ActionError(e.message);
+      throw e;
+    }
     setStatus(s, "approved", `Merchant approved version ${version}`);
-    setStatus(s, "sent", "Proposal sent to the buyer (Demo buyer view)");
-    event(s, "merchant_approved", `Merchant approved version ${version}`, "merchant", `Terms hash ${termsHash}`);
-    // The proposal link exists only now, after the merchant approved this exact version.
+    event(s, "merchant_approved", `Merchant approved version ${version}`, "merchant", `Terms hash ${presentedHash}`);
+  });
+}
+
+/**
+ * Deliver an approved proposal (simulated channel) under the version's stable idempotency key.
+ * Preconditions are checked on every send and retry. Buyer access opens only on success.
+ */
+export async function sendProposal(version: number): Promise<{ state: DemoState; delivered: boolean; failureReason: string | null }> {
+  let delivered = false;
+  let failureReason: string | null = null;
+  const state = await mutate(async (s) => {
+    if (isDelivered(s.deliveries, version)) {
+      delivered = true; // already delivered: return the recorded success, never deliver twice
+      return;
+    }
+    assertNoReview(s);
+    if (s.status !== "approved") throw new ActionError(`The deal is not open for sending (deal is ${s.status})`);
+    const i = s.agreements.findIndex((v) => v.version === version && v.status === "merchant_approved");
+    if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected, approved proposal");
+    if (await isDraftStale(s)) throw new ActionError("The offer changed since approval (stale draft); review the updated proposal");
     const v = s.agreements[i];
-    sendCode(s, "proposal", proposalMessageText(v.terms, v.version, proposalLink(v)), { agreementVersion: v.version });
+    if (v.merchantApproval?.termsHash !== computeTermsHash(v.terms)) throw new ActionError("Merchant approval does not match the current terms");
+    const key = deliveryKey(v.agreementId, version);
+    let rec = s.deliveries.find((d) => d.version === version);
+    if (!rec) {
+      rec = { version, idempotencyKey: key, kind: "proposal", attempts: [], deliveredAt: null, reference: null };
+      s.deliveries.push(rec);
+    }
+    const attemptId = `${key}_a${rec.attempts.length + 1}`;
+    const r = await attemptDelivery("proposal");
+    if (!r.ok) {
+      rec.attempts.push({ attemptId, at: clockOf(s).now(), status: "failed", failureReason: r.reason });
+      failureReason = r.reason;
+      event(s, "proposal_delivery_failed", `Proposal version ${version} not delivered`, "simulated", r.reason);
+      return;
+    }
+    s.agreements[i] = markSent(v);
+    const msg = sendCode(s, "proposal", proposalMessageText(v.terms, v.version, proposalLink(v)), { agreementVersion: v.version });
+    rec.attempts.push({ attemptId, at: clockOf(s).now(), status: "sent", failureReason: null });
+    rec.deliveredAt = clockOf(s).now();
+    rec.reference = msg.id;
+    setStatus(s, "sent", "Proposal delivered to the buyer (simulated channel)");
+    event(s, "proposal_delivered", `Proposal version ${version} delivered`, "simulated", key);
+    delivered = true;
+  });
+  return { state, delivered, failureReason };
+}
+
+/** The merchant sends every unsent clarification draft as one atomic batch. */
+export async function sendQuestions(): Promise<DemoState> {
+  return mutate((s) => {
+    const drafts = s.conversation.filter((i) => i.kind === "clarification" && !i.sentAt);
+    if (!drafts.length) throw new ActionError("No questions to send");
+    const at = clockOf(s).now();
+    const sent = drafts.map((d) => {
+      try {
+        return merchantSend(d, at);
+      } catch (e) {
+        if (e instanceof ConversationError) throw new ActionError(e.message);
+        throw e;
+      }
+    });
+    for (const d of sent) {
+      s.conversation[s.conversation.findIndex((x) => x.id === d.id)] = d;
+      event(s, "clarification_sent", "Approved and sent by merchant", "merchant", d.text);
+    }
   });
 }
 
@@ -715,7 +853,10 @@ export async function approveAmendment(termsHash: string): Promise<DemoState> {
     event(s, "merchant_approved", `Merchant approved revision (version ${a.toVersion})`, "merchant", `Terms hash ${termsHash}`);
     const v2 = s.agreements[i];
     const line = v2.terms.paymentSchedule.find((l) => l.id === a.change.lineId)!;
-    sendCode(s, "amendment", amendmentMessageText({ fromDate: a.change.fromDueDate, toDate: a.change.toDueDate, amountPaise: line.totalPaise, version: v2.version, link: proposalLink(v2) }), { agreementVersion: v2.version, amendmentId: a.id });
+    const amendmentMsg = sendCode(s, "amendment", amendmentMessageText({ fromDate: a.change.fromDueDate, toDate: a.change.toDueDate, amountPaise: line.totalPaise, version: v2.version, link: proposalLink(v2) }), { agreementVersion: v2.version, amendmentId: a.id });
+    // Same delivery-access gate as the initial proposal (spec §5.5). Amendment delivery always succeeds here.
+    const key = deliveryKey(v2.agreementId, v2.version);
+    s.deliveries.push({ version: v2.version, idempotencyKey: key, kind: "amendment", attempts: [{ attemptId: `${key}_a1`, at: clockOf(s).now(), status: "sent", failureReason: null }], deliveredAt: clockOf(s).now(), reference: amendmentMsg.id });
   });
 }
 
@@ -824,10 +965,10 @@ export async function demoNext(): Promise<{ state: DemoState; step: DemoStep | n
       next = await adoptRepliesAsAnswers();
       break;
     case "approve": {
-      const top = (await currentOutcome(s)).explanation?.order[0];
-      if (!top) throw new ActionError("No feasible option to approve");
-      const draft = await prepareAgreement(top);
-      next = await approveAndSend(draft.version, draft.termsHash);
+      // Temporary bridge until the demo steps are rewritten (plan Task 13).
+      const draft = await reviewBuyerProposal();
+      await approveDraft(draft.version, draft.termsHash);
+      next = (await sendProposal(draft.version)).state;
       break;
     }
     case "accept": {

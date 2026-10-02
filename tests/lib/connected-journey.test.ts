@@ -6,6 +6,7 @@ import { assertBuyerSafe } from "@/domain/conversation";
 import { formatINR } from "@/domain/money";
 import { localDateOf } from "@/domain/dates";
 import { readJson, writeJsonAtomic } from "@/lib/store";
+import { driveTo } from "../helpers/drive";
 
 /**
  * Connected buyer journey through the service and real store. Uses the default displayed demo
@@ -73,12 +74,14 @@ describe("connected buyer journey (live-run application state)", () => {
     ]);
   });
 
-  it("a proposal link exists only after merchant approval; “Okay” accepts nothing", async () => {
+  it("a proposal link exists only after a successful delivery; “Okay” accepts nothing", async () => {
+    // Updated for the split approval flow (spec §3.3, §5.5): the gate moved from approval to delivery.
     expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false);
-    const top = (await svc.currentOutcome(await S())).explanation!.order[0];
-    const draft = await svc.prepareAgreement(top);
+    const draft = await svc.reviewBuyerProposal();
     expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false);
-    await svc.approveAndSend(draft.version, draft.termsHash);
+    await svc.approveDraft(draft.version, draft.termsHash);
+    expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false); // approved, not yet delivered
+    await svc.sendProposal(draft.version);
     const proposal = await item((i) => i.kind === "proposal");
     expect(proposal).toMatchObject({ state: "sent_by_adaptive_deals", author: "code", refs: { agreementVersion: 1 } });
     expect(proposal.text).toContain("/proposal/agr-hero/v1");
@@ -189,7 +192,7 @@ describe("typed replies use the same bounded path in replay and live-run states"
     if (demoRun) process.env.ADAPTIVE_DEALS_DEMO_RUN = demoRun;
     else delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
     await svc.resetToSeed();
-    for (let i = 0; i < 10 && !(await S()).conversation.some((x) => x.kind === "notice"); i++) await svc.demoNext();
+    await driveTo(svc, (x) => x.conversation.some((i) => i.kind === "notice"));
     const notice = (await S()).conversation.find((x) => x.kind === "notice")!;
     const out: string[] = [];
     for (const text of ["Cash is tight till the 20th.", "I paid", "okay", "20 tak"]) {
@@ -214,7 +217,7 @@ describe("typed replies use the same bounded path in replay and live-run states"
 describe("one open change request per payment under an agreement version", () => {
   const toNotice = async () => {
     await svc.resetToSeed();
-    for (let i = 0; i < 12 && !(await S()).conversation.some((x) => x.kind === "notice"); i++) await svc.demoNext();
+    await driveTo(svc, (x) => x.conversation.some((i) => i.kind === "notice"));
     return (await S()).conversation.find((x) => x.kind === "notice")!;
   };
   /** Terms, attempts (the collection ledger), links, mandate, amendments, notices, status and change requests. */
@@ -250,7 +253,7 @@ describe("one open change request per payment under an agreement version", () =>
     expect(await material()).toBe(before);
     expect(s.events.at(-1)!.title).toBe("Merchant attention needed: a change request is already open");
 
-    for (let i = 0; i < 4 && (await S()).amendments[0].state !== "active"; i++) await svc.demoNext();
+    await driveTo(svc, (x) => x.amendments[0]?.state === "active");
     s = await S();
     expect(s.changeRequests).toHaveLength(1);
     expect(s.changeRequests[0].history.map((h) => h.state)).toEqual(["change_requested", "draft_amendment", "payment_rescheduled"]);
@@ -289,7 +292,7 @@ describe("one open change request per payment under an agreement version", () =>
 describe("decline", () => {
   it("records buyer rejection and creates no payment setup", async () => {
     await svc.resetToSeed();
-    for (let i = 0; i < 6 && (await S()).status !== "sent"; i++) await svc.demoNext();
+    await driveTo(svc, (x) => x.status === "sent");
     const s = await svc.declineAgreement(1);
     expect(s.status).toBe("buyer_rejected");
     expect(s.agreements[0]).toMatchObject({ status: "buyer_rejected", buyerAcceptance: null });
