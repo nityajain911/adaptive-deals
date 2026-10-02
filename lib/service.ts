@@ -27,6 +27,8 @@ import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, hero
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
+import type { DeliveryRecord, HandledMessage, Interpretation, OutcomeRecord, SelectedOption } from "./deal-records";
+import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
 import {
   amendmentMessageText,
   codeMessage,
@@ -82,6 +84,17 @@ export interface DemoState {
   /** While true, no new AI-authored outbound drafts are created; inbound replies still arrive. */
   suggestionsPaused: boolean;
   changeRequests: ChangeRequest[];
+  // ── Merchant-decision redesign (store schema 2; see lib/migrate.ts) ──
+  schemaVersion: number;
+  /** When the stalled deal entered Adaptive Deals; opens the 90-day measurement window. */
+  eligibleAt: string;
+  selectedOption: SelectedOption | null;
+  deliveries: DeliveryRecord[];
+  outcomes: OutcomeRecord[];
+  handledMessages: HandledMessage[];
+  interpretations: Interpretation[];
+  /** Set by migration when saved history cannot be inferred safely; blocks dependent actions. */
+  reviewRequired: string | null;
 }
 
 export class ActionError extends Error {
@@ -187,18 +200,18 @@ export async function seedState(record: RunRecord = demoRunRecord(), viewing: "r
     conversation: [],
     suggestionsPaused: false,
     changeRequests: [],
+    schemaVersion: STORE_SCHEMA_VERSION,
+    eligibleAt: DEMO_ANCHOR,
+    selectedOption: null,
+    deliveries: [],
+    outcomes: [],
+    handledMessages: [],
+    interpretations: [],
+    reviewRequired: null,
   };
   event(s, "run_loaded", record.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", record.kind === "live" ? "live_model" : "synthetic_replay", `Run ${record.runId}`);
   setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
   draftMissingClarifications(s);
-  return s;
-}
-
-/** Older stores predate the conversation; fill the new fields without touching anything else. */
-function withDefaults(s: DemoState): DemoState {
-  s.conversation ??= [];
-  s.suggestionsPaused ??= false;
-  s.changeRequests ??= [];
   return s;
 }
 
@@ -223,10 +236,10 @@ function sendCode(s: DemoState, kind: Parameters<typeof codeMessage>[0]["kind"],
 
 export async function getState(): Promise<DemoState> {
   const s = await readJson<DemoState>(STORE_FILE);
-  if (s) return withDefaults(s);
+  if (s) return migrateState(s);
   return serialised(async () => {
     const again = await readJson<DemoState>(STORE_FILE);
-    if (again) return again;
+    if (again) return migrateState(again);
     const seeded = await seedState();
     await writeJsonAtomic(STORE_FILE, seeded);
     return seeded;
@@ -235,7 +248,7 @@ export async function getState(): Promise<DemoState> {
 
 async function mutate(fn: (s: DemoState) => Promise<void> | void): Promise<DemoState> {
   return serialised(async () => {
-    const s = withDefaults((await readJson<DemoState>(STORE_FILE)) ?? (await seedState()));
+    const s = migrateState((await readJson<DemoState>(STORE_FILE)) ?? (await seedState()));
     await fn(s);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
