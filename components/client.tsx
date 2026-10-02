@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
+import { BUYER_DECLINE_REASONS, type BuyerDeclineReason } from "@/lib/reason-codes";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -221,9 +222,32 @@ export function RequestChangeForm({ version }: { version: number }) {
   );
 }
 
+export function DeclineReasonSelect({ value, onChange, disabled = false }: { value: BuyerDeclineReason | ""; onChange: (value: BuyerDeclineReason | "") => void; disabled?: boolean }) {
+  return (
+    <label className="block text-[12px] font-medium text-ink-2">
+      Reason (optional)
+      <select
+        className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink"
+        value={value}
+        onChange={(e) => onChange(e.target.value as BuyerDeclineReason | "")}
+        disabled={disabled}
+        data-testid="decline-reason"
+      >
+        <option value="">Prefer not to say</option>
+        {Object.entries(BUYER_DECLINE_REASONS).map(([code, label]) => (
+          <option key={code} value={code}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function DeclineButton({ version }: { version: number }) {
   const { run, pending, error } = useAction();
   const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState<BuyerDeclineReason | "">("");
   if (!confirming)
     return (
       <Button variant="ghost" className="w-full text-ink-2" onClick={() => setConfirming(true)} data-testid="decline">
@@ -233,8 +257,9 @@ export function DeclineButton({ version }: { version: number }) {
   return (
     <div role="group" aria-label="Confirm decline" className="space-y-2 rounded-xl border border-[#f6cfc9] bg-red-weak p-3 text-[13px]">
       <div className="font-semibold text-ink">Decline version {version}? No payment will be set up.</div>
+      <DeclineReasonSelect value={reason} onChange={setReason} disabled={pending} />
       <div className="flex gap-2">
-        <Button variant="danger" onClick={() => run({ action: "decline", version })} disabled={pending} data-testid="confirm-decline">
+        <Button variant="danger" onClick={() => run({ action: "decline", version, reason: reason || undefined })} disabled={pending} data-testid="confirm-decline">
           {pending ? "Declining…" : "Yes, decline"}
         </Button>
         <Button onClick={() => setConfirming(false)} disabled={pending}>

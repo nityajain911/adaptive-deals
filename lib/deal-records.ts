@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { canonicalJson, termsHash, type CanonicalTerms } from "@/domain/agreement";
+export { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS } from "./reason-codes";
+export type { BuyerDeclineReason, MerchantCloseReason } from "./reason-codes";
 
 /**
  * Additive deal records for the merchant-decision redesign (spec §3.2). Records reference
@@ -61,23 +63,6 @@ export interface Interpretation {
   actor: "merchant";
   at: string;
 }
-
-export const MERCHANT_CLOSE_REASONS = {
-  contribution_too_low: "Margin or contribution too low",
-  scope_not_worth_delivering: "Scope not worth delivering",
-  buyer_unlikely: "Buyer unlikely to proceed",
-  handled_elsewhere: "Will handle outside Adaptive Deals",
-  other: "Other",
-} as const;
-export type MerchantCloseReason = keyof typeof MERCHANT_CLOSE_REASONS;
-
-export const BUYER_DECLINE_REASONS = {
-  budget: "Budget or timing doesn't work",
-  scope: "Scope isn't what we need",
-  approval: "Couldn't get internal approval",
-  other: "Other",
-} as const;
-export type BuyerDeclineReason = keyof typeof BUYER_DECLINE_REASONS;
 
 /** Deterministic: sorted eligible option IDs plus the selected option's canonical terms hash. */
 export function decisionFingerprint(eligibleIds: string[], selectedTerms: CanonicalTerms): string {

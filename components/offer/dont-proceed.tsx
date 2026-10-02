@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, ErrorText, useAction } from "../client";
-import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
+import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/reason-codes";
 import { cx } from "../ui";
 
 const TITLES = {

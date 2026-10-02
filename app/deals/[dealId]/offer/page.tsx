@@ -7,6 +7,7 @@ import { PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { OpenAudit } from "@/components/audit/audit-drawer";
+import { ClosedSummary } from "@/components/offer/closed-summary";
 import { DontProceed } from "@/components/offer/dont-proceed";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { Card, Notice } from "@/components/ui";
@@ -62,13 +63,16 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   // Closed in Offer before any successful send (outcome summary arrives in plan Task 17).
   if (st === "closed") {
     const rec = [...s.outcomes].reverse().find((o) => o.type === "merchant_closed");
+    const draftVersion = s.selectedOption?.draftVersion;
+    const draft = (draftVersion ? s.agreements.find((v) => v.version === draftVersion) : null) ?? s.agreements.at(-1) ?? null;
     return (
       <StageShell dealId={dealId} viewing="offer">
-        <Card className="p-5" data-testid="offer-closed">
-          <div className="text-[15px] font-semibold text-ink">Closed in Adaptive Deals{rec?.reasonCode ? ` · ${MERCHANT_CLOSE_REASONS[rec.reasonCode as MerchantCloseReason]}` : ""}</div>
-          {rec?.note ? <p className="mt-1 text-[13px] text-ink-2">“{rec.note}”</p> : null}
-          <p className="mt-1 text-[12px] text-muted">{rec ? fmtTime(rec.at) : ""} · nothing was sent to the buyer.</p>
-        </Card>
+        <ClosedSummary
+          proposedTotalPaise={draft?.terms.pricing.totalPaise ?? null}
+          reason={rec?.reasonCode ? MERCHANT_CLOSE_REASONS[rec.reasonCode as MerchantCloseReason] : null}
+          note={rec?.note ?? null}
+          closedAt={rec?.at ?? null}
+        />
       </StageShell>
     );
   }
