@@ -95,3 +95,19 @@ describe("recommendation attribution follows the actual output source", () => {
     expect(explanationAttribution(null)).toBe("Explanation written by code · all figures calculated by the engine");
   });
 });
+
+describe("shared proposal content (spec §5.6)", () => {
+  it("renders every canonical amount and date, and no merchant-only information", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { ProposalContent } = await import("@/components/proposal-content");
+    const v = version(1, "sent");
+    const view = proposalView(v, heroPackages, heroMerchant.policy);
+    const html = renderToStaticMarkup(ProposalContent({ view, nextHeading: "After you accept", nextSteps: view.nextSteps }));
+    for (const p of v.terms.paymentSchedule) {
+      expect(html).toContain(formatINR(p.totalPaise));
+      expect(html).toContain(formatDate(p.dueDate.value));
+    }
+    expect(html).toContain(formatINR(v.terms.pricing.totalPaise));
+    expect(html).not.toMatch(/contribution|cash-at-risk|funding|margin|floor|rejected|recommend/i);
+  });
+});
