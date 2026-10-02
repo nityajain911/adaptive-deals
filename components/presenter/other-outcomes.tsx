@@ -1,8 +1,8 @@
 import { shortReason } from "@/domain/copy";
 import type { RunRecord } from "@/ai/run-record";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
-import { ActionButton } from "./client";
-import { Badge, Card, CardHeader, Label, Notice, Pill } from "./ui";
+import { ActionButton } from "../client";
+import { Badge, Card, CardHeader, Label, Notice, Pill } from "../ui";
 
 /** Code-drafted question for each missing required fact (no AI; fixed wording). */
 const MISSING_QUESTION: Record<string, string> = {
