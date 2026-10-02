@@ -77,7 +77,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           ) : null}
         </Card>
 
-        {cr ? <AmendmentCard s={s} cr={cr} a={amendment} open={primary?.id === "review_revised_terms"} /> : null}
+        {cr ? <AmendmentCard s={s} cr={cr} a={amendment} open={primary?.id === "review_revised_terms" || primary?.id === "draft_revised_terms"} /> : null}
 
         {attention.length ? (
           <details id="attention-card" open={primary?.id === "review_buyer_message"} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="attention-card">
