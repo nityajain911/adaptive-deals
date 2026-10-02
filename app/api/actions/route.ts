@@ -5,6 +5,7 @@ import { ClarificationError } from "@/domain/constraints";
 import { ConversationError } from "@/domain/conversation";
 import { AnswerError, ReplayIntegrityError } from "@/ai/orchestrator";
 import * as svc from "@/lib/service";
+import { SYSTEM_STEPS, type SystemStepId } from "@/lib/demo-steps";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 
 /**
@@ -14,7 +15,7 @@ import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason,
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
 const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reset") }),
-  z.object({ action: z.literal("demo_next") }),
+  z.object({ action: z.literal("demo_system_step"), stepId: z.enum(SYSTEM_STEPS as unknown as [SystemStepId, ...SystemStepId[]]) }),
   z.object({ action: z.literal("run_live") }),
   z.object({ action: z.literal("replay_run"), runId: z.string().max(40) }),
   z.object({
@@ -45,10 +46,9 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept_amendment"), termsHash: Hash, authorityConfirmed: z.boolean() }),
   z.object({ action: z.literal("run_scenario"), scenarioId: z.string().max(40).nullable() }),
   // Simulated conversation. Buyer replies (scripted or typed) go through code's bounded rules only.
-  z.object({ action: z.literal("send_clarification"), itemId: z.string().max(40) }),
   z.object({ action: z.literal("set_suggestions_paused"), paused: z.boolean() }),
-  z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40) }),
-  z.object({ action: z.literal("buyer_reply_typed"), inReplyTo: z.string().max(40), text: z.string().trim().min(1).max(500) }),
+  // Simulated buyer reply: a pre-scripted reply or typed text, both read by the same code rules.
+  z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
   // Buyer proposal page (demo buyer view).
   z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500) }),
@@ -74,8 +74,8 @@ export async function POST(request: Request) {
       case "reset":
         await svc.resetToSeed();
         break;
-      case "demo_next":
-        result = { step: (await svc.demoNext()).step };
+      case "demo_system_step":
+        await svc.runSystemStep(a.stepId);
         break;
       case "run_live":
         await svc.startLiveRun();
@@ -129,17 +129,11 @@ export async function POST(request: Request) {
       case "run_scenario":
         await svc.runScenario(a.scenarioId);
         break;
-      case "send_clarification":
-        await svc.sendClarification(a.itemId);
-        break;
       case "set_suggestions_paused":
         await svc.setSuggestionsPaused(a.paused);
         break;
       case "buyer_reply":
-        await svc.buyerReply({ inReplyTo: a.inReplyTo, scriptId: a.scriptId });
-        break;
-      case "buyer_reply_typed":
-        await svc.buyerReply({ inReplyTo: a.inReplyTo, text: a.text });
+        await svc.buyerReply({ inReplyTo: a.inReplyTo, scriptId: a.scriptId, text: a.text });
         break;
       case "adopt_replies":
         await svc.adoptRepliesAsAnswers();

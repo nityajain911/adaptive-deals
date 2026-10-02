@@ -6,7 +6,7 @@ import { localDateOf } from "@/domain/dates";
 import { provenanceLabel } from "@/ai/run-record";
 import { liveAvailability } from "@/ai/config";
 import { heroMerchant } from "@/data/synthetic/hero";
-import { currentOutcome, getState, nextDemoStep } from "./service";
+import { currentOutcome, getState } from "./service";
 
 /** Everything a view needs, read once per request from the store and re-derived by the engine. */
 export const loadPage = cache(async () => {
@@ -21,7 +21,6 @@ export const loadPage = cache(async () => {
     today: localDateOf(clock.now(), heroMerchant.timeZone),
     simulatedDate: clock.isSimulated,
     provenance: provenanceLabel(s.run.record, s.run.viewing),
-    next: nextDemoStep(s),
     live: liveAvailability(),
   };
 });

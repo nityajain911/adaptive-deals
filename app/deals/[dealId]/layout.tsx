@@ -1,12 +1,15 @@
+import { DemoBarServer } from "@/components/demo-bar-server";
 import { MerchantHeader } from "@/components/merchant-header";
 
 /**
  * Merchant deal layout: header and page chrome only. A page cannot pass state up to its layout,
  * so each stage page renders its own <StageShell viewing="…"> (status banner and stage tracker).
  */
-export default function DealLayout({ children }: LayoutProps<"/deals/[dealId]">) {
+export default async function DealLayout({ children, params }: LayoutProps<"/deals/[dealId]">) {
+  const { dealId } = await params;
   return (
     <>
+      <DemoBarServer dealId={dealId} />
       <MerchantHeader />
       <main id="main" className="flex-1">
         {children}

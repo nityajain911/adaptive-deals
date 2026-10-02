@@ -75,19 +75,6 @@ export function ActionButton({ body, children, variant, confirm, testId, disable
   );
 }
 
-export function DemoGuideButton({ href }: { href: string }) {
-  const router = useRouter();
-  const { run, pending, error } = useAction();
-  return (
-    <span className="inline-flex flex-col">
-      <Button variant="primary" data-testid="demo-next" disabled={pending} onClick={() => run({ action: "demo_next" }, () => router.push(href))}>
-        {pending ? "Working…" : "Do this step"}
-      </Button>
-      <ErrorText error={error} />
-    </span>
-  );
-}
-
 // ── Clarification answers ───────────────────────────────────────────────────
 
 export interface QuestionInput {
@@ -192,50 +179,6 @@ export function AcceptForm({ action, version, termsHash, needsAuthority }: { act
 }
 
 // ── Simulated conversation ──────────────────────────────────────────────────
-
-/** A typed simulated buyer reply. It goes through the same code rules as scripted replies. */
-export function TypedReply({ targets }: { targets: { id: string; label: string }[] }) {
-  const { run, pending, error } = useAction();
-  // Targets change as messages are sent. Keep an explicit choice only while it is still a valid
-  // target; otherwise fall back to the latest one, so the shown option and the submitted id agree.
-  const [chosen, setChosen] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const to = chosen && targets.some((t) => t.id === chosen) ? chosen : (targets.at(-1)?.id ?? "");
-  if (!targets.length) return null;
-  return (
-    <form
-      className="mt-4 rounded-xl border border-dashed border-[#ddd5ff] bg-violet-weak/40 p-3"
-      data-testid="typed-reply"
-      onSubmit={(e) => {
-        e.preventDefault();
-        run({ action: "buyer_reply_typed", inReplyTo: to, text }, () => setText(""));
-      }}
-    >
-      <div className="text-[12px] font-semibold text-violet">Type a simulated buyer reply</div>
-      <p className="mt-0.5 text-[12px] text-ink-2">Read by the same code rules as the scripted replies (reply-rules.v1). No AI reads it, in replay or after Run live.</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <label className="text-[12px] font-medium text-muted sm:col-span-2">
-          In reply to
-          <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink" value={to} onChange={(e) => setChosen(e.target.value)}>
-            {targets.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-[12px] font-medium text-muted">
-          Buyer message
-          <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder="e.g. Cash is tight till the 20th." />
-        </label>
-        <Button type="submit" variant="sim" className="self-end" disabled={pending || !text.trim() || !targets.some((t) => t.id === to)}>
-          {pending ? "Sending…" : "Send as buyer"}
-        </Button>
-      </div>
-      <ErrorText error={error} />
-    </form>
-  );
-}
 
 // ── Buyer proposal actions ──────────────────────────────────────────────────
 

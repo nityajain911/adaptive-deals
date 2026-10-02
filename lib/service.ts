@@ -30,6 +30,7 @@ import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
 import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
 import { attemptDelivery } from "./delivery";
 import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
+import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
 import { noticeReplyOutcome } from "./views";
 import { computeLedger } from "@/domain/ledger";
 import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
@@ -47,7 +48,7 @@ import {
   type ConversationItem,
 } from "@/domain/conversation";
 import { CLASSIFICATION_LABEL } from "@/domain/replies";
-import { ChangeRequestAlreadyOpenError, createChangeRequest, openChangeRequestFor, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
+import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -1024,99 +1025,30 @@ export async function runScenario(id: string | null): Promise<DemoState> {
   });
 }
 
-// ── Guided demo (deterministic storyboard) ──────────────────────────────────
+// ── Demo system steps (spec §8.1; plan Task 13) ──────────────────────────────
 
-export interface DemoStep {
-  id: string;
-  window: string;
-  view: "workspace" | "clarification" | "decision" | "agreement" | "timeline";
-  title: string;
-  role: "merchant" | "buyer";
-}
-
-/** The next storyboard step for the current state. Pure: derived from stored state only. */
-export function nextDemoStep(s: DemoState): DemoStep | null {
-  const amendment = s.amendments.at(-1);
-  const drafts = s.conversation.filter((i) => i.kind === "clarification");
-  const unsent = drafts.filter((i) => !i.sentAt);
-  const unanswered = drafts.filter((i) => i.sentAt && !s.conversation.some((r) => r.inReplyTo === i.id));
-  const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice");
-  const active = activeVersion(s);
-  const openChange = active ? openChangeRequestFor(s.changeRequests, active.version)?.state === "change_requested" : false;
-  if (s.status === "clarifying" && drafts.length && unsent.length) return { id: "send", window: "15–19 s", view: "workspace", title: "Merchant sends the drafted questions", role: "merchant" };
-  if (s.status === "clarifying" && unanswered.length) return { id: "replies", window: "19–23 s", view: "workspace", title: "Simulated buyer replies to both questions", role: "merchant" };
-  if (s.status === "clarifying") return { id: "answers", window: "23–27 s", view: "workspace", title: "Use the buyer's replies as the confirmed answers", role: "merchant" };
-  if (s.status === "options_ready") return { id: "approve", window: "27–48 s", view: "decision", title: "Approve and send the recommended structure", role: "merchant" };
-  if (s.status === "sent" && !amendment) return { id: "accept", window: "48–62 s", view: "agreement", title: "Buyer accepts the exact version", role: "buyer" };
-  if (s.status === "active" && s.mandate?.status === "pending") return { id: "mandate", window: "62–64 s", view: "timeline", title: "Simulate: mandate registration confirmed", role: "merchant" };
-  if (s.status === "active" && !amendment && !noticeItem) return { id: "notice", window: "64–67 s", view: "timeline", title: "Simulate: Adaptive Deals sends its advance notice", role: "merchant" };
-  if (s.status === "active" && !amendment && noticeItem && !s.conversation.some((r) => r.inReplyTo === noticeItem.id)) return { id: "reply", window: "67–70 s", view: "workspace", title: "Simulated buyer reply: “Cash is tight till the 20th.”", role: "merchant" };
-  if (s.status === "active" && openChange) return { id: "propose", window: "70–74 s", view: "timeline", title: "Draft the amendment and recheck the agreement", role: "merchant" };
-  if (amendment?.state === "proposed") return { id: "amend_approve", window: "74–78 s", view: "timeline", title: "Merchant approves the revised version", role: "merchant" };
-  if (amendment?.state === "merchant_approved") return { id: "amend_accept", window: "78–82 s", view: "agreement", title: "Buyer accepts the revised version", role: "buyer" };
-  if (s.status === "active" && amendment?.state === "active" && s.scenario?.id !== "scenario-no-feasible") return { id: "close", window: "82–90 s", view: "timeline", title: "Close: no-feasible boundary and the primary metric", role: "merchant" };
-  return null;
-}
-
-/** Perform the next storyboard step with the pinned synthetic inputs. */
-export async function demoNext(): Promise<{ state: DemoState; step: DemoStep | null }> {
-  const s = await getState();
-  const step = nextDemoStep(s);
-  if (!step) return { state: s, step: null };
-  let next: DemoState = s;
-  switch (step.id) {
-    case "send":
-      for (const d of s.conversation.filter((x) => x.kind === "clarification" && !x.sentAt)) next = await sendClarification(d.id);
-      break;
-    case "replies":
-      for (const d of s.conversation.filter((x) => x.kind === "clarification" && x.sentAt && !s.conversation.some((r) => r.inReplyTo === x.id))) {
-        const script = heroScriptedReplies.find((r) => r.context === "clarification" && r.questionId === d.refs.questionId);
-        if (!script) throw new ActionError(`No scripted reply for ${d.refs.questionId}`);
-        next = await buyerReply({ inReplyTo: d.id, scriptId: script.id });
-      }
-      break;
-    case "answers":
-      next = await adoptRepliesAsAnswers();
-      break;
-    case "approve": {
-      // Temporary bridge until the demo steps are rewritten (plan Task 13).
-      const draft = await reviewBuyerProposal();
-      await approveDraft(draft.version, draft.termsHash);
-      next = (await sendProposal(draft.version)).state;
-      break;
+/**
+ * Execute one labelled system event from the demo bar. Merchant and buyer decisions are never
+ * executable here. The notice steps are refused until the buyer's setup (upfront link, mandate)
+ * is complete; every clock move is recorded in the state and the run record.
+ */
+export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
+  if (!(SYSTEM_STEPS as readonly string[]).includes(id)) throw new ActionError("Not a system step");
+  if (id === "pay_upfront_link") return simulate("payment_link_paid");
+  if (id === "confirm_mandate") return simulate("mandate_confirmed");
+  return mutate((s) => {
+    const setupIncomplete = s.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled") || s.mandate?.status !== "confirmed";
+    if (setupIncomplete) throw new ActionError("Buyer setup is not complete: the upfront link must be paid and the mandate confirmed first");
+    const n = s.notices.find((x) => !x.sentAt && s.attempts.find((a) => a.id === x.attemptId)?.status === "scheduled");
+    if (!n) throw new ActionError("No advance notice is due");
+    if (id === "advance_to_notice") {
+      advanceTo(s, at10(n.sendOn), "Simulated: advance to the scheduled advance-notice date");
+      return;
     }
-    case "accept": {
-      const v = s.agreements.find((x) => x.status === "sent")!;
-      next = await acceptAgreement(v.version, v.termsHash, v.terms.conditions.includes("buyer_confirms_authority_for_phase_scope"));
-      break;
-    }
-    case "mandate":
-      next = await simulate("mandate_confirmed");
-      break;
-    case "notice":
-      next = await simulate("advance_notice");
-      break;
-    case "reply": {
-      const noticeItem = [...s.conversation].reverse().find((i) => i.kind === "notice")!;
-      next = await buyerReply({ inReplyTo: noticeItem.id, scriptId: "notice-cash-tight" });
-      break;
-    }
-    case "propose":
-      next = await proposeAmendment();
-      break;
-    case "amend_approve": {
-      const v = s.agreements.find((x) => x.status === "draft")!;
-      next = await approveAmendment(v.termsHash);
-      break;
-    }
-    case "amend_accept": {
-      const v = s.agreements.find((x) => x.status === "sent")!;
-      next = await acceptAmendment(v.termsHash, v.terms.conditions.includes("buyer_confirms_authority_for_phase_scope"));
-      break;
-    }
-    case "close":
-      next = await runScenario("scenario-no-feasible");
-      break;
-  }
-  return { state: next, step };
+    if (Date.parse(clockOf(s).now()) < Date.parse(at10(n.sendOn))) throw new ActionError(`Advance the simulated date to ${n.sendOn} first`);
+    const sent = sendAdvanceNotice(n, clockOf(s), heroMerchant.timeZone);
+    s.notices = s.notices.map((x) => (x.id === n.id ? sent : x));
+    event(s, "advance_notice_sent", `Advance notice sent for ${n.dueDate}`, "simulated", sent.text);
+    sendCode(s, "notice", noticeMessageText(sent), { noticeId: sent.id, attemptId: sent.attemptId });
+  });
 }
