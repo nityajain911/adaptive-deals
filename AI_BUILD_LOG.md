@@ -598,6 +598,48 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 - 44-file SHA-256 baseline matches; no diff in `ai/`, `evaluation/`, `data/`, `domain/` or `lib/service.ts`.
 - No Groq call.
 
+### 2026-10-03 · Merchant decision redesign, Phase 1: state, migration, delivery, dealProgress [Claude Code]
+
+**Prompt (applicant):** execute Phase 1 of `docs/superpowers/plans/2026-10-02-merchant-decision-redesign.md` (spec at `c907d1d`, plan at `de6d2d9`) inline, then stop at the Phase 1 gate. Branch: `redesign/merchant-decision`.
+
+**Built (no UI changes yet):**
+- `domain/state.ts`: two transitions, `no_feasible_structure → merchant_rejected` and `outside_templates → merchant_rejected`. This is the only domain change.
+- `lib/deal-records.ts`: record types, stable reason codes, a deterministic decision fingerprint (sorted option IDs + canonical terms hash), delivery identity.
+- `lib/migrate.ts`: store schema 2.
+  - Deterministic and idempotent; infers `eligibleAt`, selection and deliveries only from existing records.
+  - Ambiguity sets `reviewRequired`; history is never rewritten.
+- `lib/presenter-store.ts`, `lib/delivery.ts`: a one-shot, presenter-only send-failure flag stored outside the deal state. It applies to initial proposals only.
+- `lib/service.ts`: the approve-and-send step is split.
+  - **Selection:** `selectOption` (an explicit merchant choice, recorded once) and automatic selection (not attributed to the merchant).
+  - **Drafting and approval:** `reviewBuyerProposal` prepares or reuses the draft; `approveDraft` checks the hash and sends nothing.
+  - **Sending:** `sendProposal` re-checks its preconditions on every send and retry, records attempts under a stable idempotency key, and returns a recorded success on repeats.
+  - **Amendments:** amendment delivery is recorded through the same gate.
+  - **New actions:** `sendQuestions` (atomic batch), `closeByMerchant`, `markMessageHandled`, `interpretClarificationReply` (verbatim-quote check; merchant judgement), buyer decline reasons, and a `requestChange` outcome linked to the buyer's message.
+- `lib/progress.ts` + `progressFacts`/`progressOf`: one exhaustive derivation of stage, status and next action. Unmapped Track states throw instead of falling back.
+- **Buyer route:** gated by successful delivery.
+- **Actions route:** new actions added. `prepare_agreement` and `approve_and_send` are kept as a temporary bridge to the new functions until the Offer stage replaces the old decision view (plan Task 11).
+
+**Deviation from the plan:** `tests/helpers/drive.ts` was created in Task 4, not Task 3. It calls functions that only exist from Task 4, so creating it in Task 3 would have failed the typecheck. The retry-after-close test moved from Task 4 to Task 5, where `closeByMerchant` exists.
+
+**Existing tests updated, and why:**
+- `tests/lib/service-journey.test.ts`:
+  - "refuses to prepare an agreement from a rejected structure" now uses `selectOption`;
+  - "approve and send requires the exact draft hash" now runs select → draft → approve → send.
+  - **Reason:** approval and delivery are separate transitions (spec §3.3).
+- `tests/lib/connected-journey.test.ts`:
+  - "a proposal link exists only after merchant approval" becomes "…only after a successful delivery". The gate moved to delivery (spec §5.5).
+  - Its guided-demo loops became `driveTo`, because the guided step will stop making merchant decisions (spec §8.1).
+  - Its two stale-request checks moved from `nextDemoStep` to `progressOf`, because actionability now comes from `dealProgress`.
+- `tests/lib/payments-guard.test.ts`, `tests/lib/reply-outcomes.test.ts`: guided-demo loops became `driveTo`, for the same reason.
+
+**Verification:**
+- `npm test` 369/369 · typecheck clean · lint clean · `next build` succeeds.
+- Frozen assets 44/44: 43 matched against Git objects at `c907d1d`, and `../FREEZE_PACK.md` against its recorded hash.
+- Prompt hashes equal `FREEZE.json`.
+- No diff in protected paths.
+- Credential scan clean. No Groq or network call: new suites stub `fetch` and assert it was not called.
+- The two pre-existing modified screenshots are untouched.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
