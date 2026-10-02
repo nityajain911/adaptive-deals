@@ -1,440 +1,380 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import type { DemoState } from "@/lib/service";
 
 const SHOTS = "artifacts/ui-review";
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 const STORE = path.join(".data-e2e", "store.json");
-const demoRunId = JSON.parse(readFileSync("data/demo-run.json", "utf8")).runId as string;
-const demoRun = JSON.parse(readFileSync(`data/live-runs/${demoRunId}.json`, "utf8"));
+const PRESENTER = path.join(".data-e2e", "presenter.json");
 
-async function api(page: Page, data: Record<string, unknown>) {
-  const r = await page.request.post("/api/actions", { data });
-  const json = await r.json();
-  expect(json.ok, JSON.stringify(json)).toBe(true);
+type StoredState = DemoState & Record<string, unknown>;
+
+async function api(page: Page, data: Record<string, unknown>, ok = true) {
+  const response = await page.request.post("/api/actions", { data });
+  const json = (await response.json()) as { ok: boolean; error?: string; result?: unknown };
+  expect(json.ok, JSON.stringify(json)).toBe(ok);
   return json;
 }
+
+const state = () => JSON.parse(readFileSync(STORE, "utf8")) as StoredState;
+const save = (s: StoredState) => writeFileSync(STORE, JSON.stringify(s, null, 2) + "\n");
 const reset = (page: Page) => api(page, { action: "reset" });
-async function stepUntil(page: Page, done: (s: { status: string }) => boolean, max = 14) {
-  for (let i = 0; i < max; i++) {
-    const s = JSON.parse(readFileSync(STORE, "utf8"));
-    if (done(s)) return;
-    await api(page, { action: "demo_next" });
-  }
-}
-async function shot(page: Page, name: string) {
-  await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
-}
+const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
+
 async function noHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow, "horizontal page overflow").toBeLessThanOrEqual(1);
 }
-async function act(button: Locator, until: () => Promise<void>) {
-  await button.click();
-  await until();
+
+function clarification(id: string) {
+  return state().conversation.find((m) => m.kind === "clarification" && m.refs?.questionId === id)!;
+}
+
+async function prepareOptions(page: Page) {
+  await reset(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  expect(state().status).toBe("options_ready");
+}
+
+async function prepareDraft(page: Page) {
+  await prepareOptions(page);
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  expect(draft).toBeTruthy();
+  return draft;
+}
+
+async function prepareSent(page: Page) {
+  const draft = await prepareDraft(page);
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  expect(state().status).toBe("sent");
+  return state().agreements.find((a) => a.version === draft.version)!;
+}
+
+async function prepareAccepted(page: Page) {
+  const agreement = await prepareSent(page);
+  await api(page, { action: "accept_agreement", version: agreement.version, termsHash: agreement.termsHash, authorityConfirmed: true });
+  expect(state().status).toBe("active");
+  return state().agreements.find((a) => a.version === agreement.version)!;
+}
+
+async function expectStage(page: Page, stage: "understand" | "offer" | "track", headline: RegExp | string, primary?: RegExp | string) {
+  await expect(page.getByTestId("status-headline")).toContainText(headline);
+  await expect(page.getByTestId("stage-tracker").locator(`[data-stage="${stage}"]`)).toHaveAttribute("aria-current", "step");
+  const actions = page.getByTestId("primary-action");
+  await expect(actions).toHaveCount(primary ? 1 : 0);
+  if (primary) await expect(actions).toContainText(primary);
+}
+
+async function clickPrimary(page: Page) {
+  const before = (await page.getByTestId("status-headline").textContent()) ?? "";
+  await page.getByTestId("primary-action").click();
+  await page.waitForFunction((text) => (document.querySelector('[data-testid="status-headline"]')?.textContent ?? "") !== text || location.pathname.endsWith("/preview"), before);
+}
+
+async function toggleDetails(page: Page, testIds: string[]) {
+  for (const testId of testIds) {
+    const details = page.getByTestId(testId);
+    const summary = details.locator(":scope > summary");
+    await expect(summary).toBeVisible();
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(details).toHaveAttribute("open", "");
+    await page.keyboard.press("Space");
+    await expect(details).not.toHaveAttribute("open", "");
+  }
+}
+
+function asV1(s: StoredState) {
+  const copy = structuredClone(s) as Record<string, unknown>;
+  for (const key of ["schemaVersion", "eligibleAt", "selectedOption", "deliveries", "outcomes", "handledMessages", "interpretations", "reviewRequired"]) delete copy[key];
+  return copy as StoredState;
 }
 
 test.describe.configure({ mode: "serial" });
 
-test("connected journey: conversation → decision → buyer proposal → preventive restructuring", async ({ page }) => {
+test("90-second storyboard follows the three-stage preventive journey", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reset(page);
+  await page.goto("/deals/hero");
 
-  // 0–27 s · Conversation: evidence, AI drafts the merchant must send, simulated replies.
-  await page.goto("/workspace");
-  await expect(page.getByTestId("provenance")).toHaveText(`Replay of an actual run · run ID ${demoRunId}`);
-  const conv = page.getByTestId("conversation");
-  await expect(conv).toContainText("WhatsApp simulated · buyer replies selected by the demo operator");
-  const msg = page.getByTestId("message-msg-2");
-  await expect(msg).toContainText("Only ₹50K left this quarter; new budget in April; anything above ₹60K needs MD approval.");
-  await expect(msg.locator("mark.evidence").first()).toContainText("Only ₹50K left this quarter");
-  await expect(page.getByTestId("constraint-budgetNow")).toContainText("₹50,000 available 1 Oct 2026 – 31 Dec 2026");
-  await expect(page.getByTestId("budget-gap")).toContainText("No additional budget from 1 Jan 2027 until Apr 2027");
-  await expect(conv.locator('[data-kind="clarification"]')).toHaveCount(2);
-  await expect(conv.locator('[data-kind="clarification"]').first()).toContainText("Suggested by AI");
-  await expect(page.getByTestId("pending-actions")).toHaveText("2 pending actions");
-  await expect(page.getByTestId("run-live")).toBeDisabled();
-  await shot(page, "desktop-1-conversation");
+  await expectStage(page, "understand", "Confirm two details", "Send 2 questions to buyer");
+  await shot(page, "desktop-1-understand");
+  await clickPrimary(page);
+  await expectStage(page, "understand", "Waiting for the buyer", undefined);
 
-  await act(page.getByTestId("pause-suggestions"), () => expect(conv).toContainText("Suggested replies are paused"));
-  await act(page.getByTestId("pause-suggestions"), () => expect(conv).not.toContainText("Suggested replies are paused"));
-  await expect(conv.locator('[data-kind="clarification"]')).toHaveCount(2);
+  await page.getByTestId("demo-reply-choice").selectOption("clar-gst-yes");
+  await page.getByTestId("demo-reply-send").click();
+  await expect(page.getByTestId("demo-reply-choice")).toHaveValue("clar-approval-contract");
+  await page.getByTestId("demo-reply-send").click();
+  await expectStage(page, "understand", "The buyer answered", "Use these answers");
+  await clickPrimary(page);
 
-  await act(page.getByTestId("send-clar-gst"), () => expect(page.getByTestId("send-clar-gst")).toHaveCount(0));
-  await act(page.getByTestId("send-clar-approval"), () => expect(page.getByTestId("send-clar-approval")).toHaveCount(0));
-  await expect(conv.locator('[data-kind="clarification"]').first()).toContainText("Approved and sent by merchant");
-  await act(page.getByTestId("script-clar-gst-yes"), () => expect(conv).toContainText("Scripted answer value: yes"));
-  await act(page.getByTestId("script-clar-approval-contract"), () => expect(conv).toContainText("Scripted answer value: per_contract"));
-  await expect(conv.locator('[data-kind="buyer_reply"]').first()).toContainText("Received from buyer");
-  await shot(page, "desktop-2-conversation-answered");
-  await act(page.getByTestId("adopt-replies"), () => expect(page.getByText("Deal status: options ready")).toBeVisible());
+  await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
+  await expect(page.getByTestId("recommendation")).toContainText("Recommended");
+  await shot(page, "desktop-2-offer");
+  await clickPrimary(page);
+  await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
+  await expect(page.getByTestId("preview-frame")).toContainText("Not sent");
+  await expect(page.getByTestId("primary-action")).toHaveText("Approve and send to buyer");
+  await shot(page, "desktop-3-preview");
 
-  await page.goto("/clarification");
-  await expect(page.getByTestId("recorded-clar-gst")).toContainText("Confirmed by buyer via WhatsApp");
-  await expect(page.getByText("₹42,372.88")).toBeVisible();
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expectStage(page, "track", "Waiting for the buyer to review offer version 1", undefined);
+  await shot(page, "desktop-5-track-waiting");
+  await page.getByTestId("open-buyer-proposal").click();
+  await expect(page.getByTestId("buyer-view")).toBeVisible();
+  await shot(page, "desktop-4-buyer-proposal");
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  await page.getByTestId("back-to-merchant").click();
 
-  // 27–48 s · Recommended-first decision.
+  await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-step")).toContainText("authorises the mandate");
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-step")).toContainText("Advance simulated date");
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-step")).toContainText("Send scheduled advance notice");
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-reply-choice")).toHaveValue("notice-cash-tight");
+  await page.getByTestId("demo-reply-send").click();
+  await expectStage(page, "track", /can't pay until after 20 Dec 2026/, "Draft revised terms");
+  await clickPrimary(page);
+  await expectStage(page, "track", "Review the revised terms", "Review revised terms");
+  await expect(page.getByTestId("amendment-card")).toContainText("Read by code, not AI");
+  await shot(page, "desktop-6-amendment");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("amendment-card")).toHaveAttribute("open", "");
+  await page.getByTestId("approve-revised-terms").click();
+  await expectStage(page, "track", "Waiting for the buyer to accept the revised terms", undefined);
+  await page.getByTestId("open-buyer-proposal").click();
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  await page.getByTestId("back-to-merchant").click();
+  await expect(page.getByTestId("amendment-settled")).toContainText("Payment rescheduled to 21 Dec 2026");
+  await expectStage(page, "track", /next payment ₹23,010 on 21 Dec 2026/, undefined);
+  await shot(page, "desktop-7-rescheduled");
+});
+
+test("the complete journey works with demo controls hidden", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await page.goto("/deals/hero/understand");
+  await page.getByTestId("demo-menu").click();
+  await page.getByTestId("hide-demo-controls").click();
+  await expect(page.getByTestId("demo-bar")).toHaveCount(0);
+
+  await clickPrimary(page);
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await page.reload();
+  await clickPrimary(page);
+  await clickPrimary(page);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/track$/);
+  await page.getByTestId("open-buyer-proposal").click();
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
+  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
+  await api(page, { action: "demo_system_step", stepId: "send_notice" });
+  const notice = state().conversation.findLast((m) => m.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, scriptId: "notice-cash-tight" });
+  await page.goto("/deals/hero/track");
+  await clickPrimary(page);
+  await page.getByTestId("primary-action").click();
+  await page.getByTestId("approve-revised-terms").click();
+  await page.getByTestId("open-buyer-proposal").click();
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("amendment-settled")).toBeVisible();
+  await expect(page.getByTestId("demo-bar")).toHaveCount(0);
+});
+
+test("demo Next navigates to merchant decisions but never approves them", async ({ page }) => {
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("demo-next-link")).toHaveText("Go there");
+  await page.getByTestId("demo-next-link").click();
+  expect(state().agreements.filter((a) => a.merchantApproval)).toHaveLength(0);
+  await expect(page.getByTestId("primary-action")).toHaveText("Review buyer proposal");
+});
+
+test("advance date and send notice are two explicit system steps", async ({ page }) => {
+  await prepareAccepted(page);
+  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
+  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("demo-next")).toContainText("Advance simulated date to 28 Nov 2026");
+  const advancesBefore = state().clockAdvances.length;
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-next")).toContainText("Send scheduled advance notice");
+  expect(state().clockAdvances).toHaveLength(advancesBefore + 1);
+  expect(state().notices.filter((n) => n.sentAt)).toHaveLength(0);
+  await page.getByTestId("demo-next").click();
+  await expect(page.getByTestId("demo-reply")).toBeVisible();
+  expect(state().notices.filter((n) => n.sentAt)).toHaveLength(1);
+});
+
+test("stale preview is blocked and a failed send remains retryable", async ({ page }) => {
+  const draft = await prepareDraft(page);
+  const stale = state();
+  stale.selectedOption!.fingerprint = "stale-review";
+  save(stale);
+  const refused = await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash }, false);
+  expect(refused.error).toMatch(/changed|stale|review/i);
+  expect(state().deliveries ?? []).toHaveLength(0);
+
+  const fresh = await prepareDraft(page);
+  writeFileSync(PRESENTER, JSON.stringify({ failNextSend: true }, null, 2) + "\n");
+  await page.goto("/deals/hero/offer/preview");
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expectStage(page, "offer", "Approved · not yet sent", "Retry sending");
+  const hidden = await page.request.get(`/proposal/agr-hero/v${fresh.version}`);
+  expect(hidden.status()).toBe(404);
+  await clickPrimary(page);
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expectStage(page, "track", "Waiting for the buyer to review", undefined);
+});
+
+test("legacy routes redirect to the domain-derived current stage", async ({ page }) => {
+  await reset(page);
+  for (const route of ["/workspace", "/clarification", "/decision", "/agreement", "/timeline"]) {
+    await page.goto(route);
+    await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  }
+  await prepareOptions(page);
   await page.goto("/decision");
-  const rec = page.getByTestId("recommendation");
-  await expect(rec).toContainText("Recommended");
-  await expect(rec).toContainText("Projected contribution");
-  await expect(rec).toContainText("Peak funding requirement");
-  await expect(rec).toContainText("Within buyer's approval limit");
-  await expect(rec).toContainText("Not included");
-  const attribution = demoRun.displayed.explanation.source.text === "ai" ? "Explanation written by AI · all figures calculated by the engine" : "Explanation written by code (AI wording did not pass validation) · all figures calculated by the engine";
-  await expect(page.getByTestId("attribution")).toContainText(attribution);
-  await expect(page.getByTestId("featured-buyer-rejection")).toContainText("fall before the buyer's next budget (Apr 2027)");
-  await expect(page.getByTestId("featured-seller-rejection")).toContainText("above the ₹10,000 cash-at-risk limit");
-  await expect(page.getByTestId("alternatives").locator(":scope > li")).toHaveCount(3);
-  await expect(page.getByTestId("rejected-row").first()).toBeHidden(); // behind View details
-  await shot(page, "desktop-3-decision");
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+});
 
-  // Rules drawer from a seller-side rejection: opens at the binding rule; Escape closes it.
-  await page.getByTestId("featured-seller-rejection").getByRole("button", { name: "Cash-at-risk limit" }).click();
-  const drawer = page.getByTestId("rules-drawer");
+test("v1 stores migrate only when delivery evidence supports the saved state", async ({ page }) => {
+  await prepareAccepted(page);
+  const accepted = asV1(state());
+  save(accepted);
+  await page.goto("/deals/hero");
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expectStage(page, "track", /Buyer accepted/, undefined);
+
+  const inconsistent = asV1(state());
+  inconsistent.status = "sent";
+  inconsistent.agreements = inconsistent.agreements.map((a) => ({ ...a, status: "sent", buyerAcceptance: null }));
+  inconsistent.conversation = inconsistent.conversation.filter((m) => m.kind !== "proposal");
+  save(inconsistent);
+  await page.goto("/deals/hero");
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("status-headline")).toContainText("Saved deal records need review");
+  await expect(page.getByTestId("primary-action")).toHaveText("Inspect records");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("audit-drawer")).toBeVisible();
+  const blocked = await api(page, { action: "approve_and_send_draft", version: 1, termsHash: inconsistent.agreements[0].termsHash }, false);
+  expect(blocked.error).toContain("need review");
+});
+
+test("merchant audit shows sources and attribution without presenter controls", async ({ page }) => {
+  await reset(page);
+  await page.goto("/deals/hero/understand");
+  await page.getByTestId("audit-details").click();
+  const drawer = page.getByTestId("audit-drawer");
   await expect(drawer).toBeVisible();
-  await expect(drawer.locator('[data-rule="cash_at_risk"]')).toBeFocused();
-  await expect(drawer).toContainText("₹10,000");
-  await expect(drawer).toContainText("35% of the accepted price");
-  await shot(page, "desktop-3b-rules-drawer");
+  await expect(drawer).toContainText(/Source|Evidence/);
+  await expect(drawer).toContainText(/AI|code fallback|engine/i);
+  await expect(page.getByText("Run live", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Fail next send", { exact: false })).toHaveCount(0);
+});
+
+test("Other outcomes live on the presenter page only", async ({ page }) => {
+  await reset(page);
+  await page.goto("/deals/hero/understand");
+  await expect(page.getByTestId("other-outcomes")).toHaveCount(0);
+  await expect(page.getByText("Other outcomes", { exact: true })).toHaveCount(0);
+  await page.goto("/presenter");
+  await expect(page.getByTestId("other-outcomes")).toBeVisible();
+});
+
+test("390px layouts remain focused and free of horizontal overflow", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await reset(page);
+  await page.goto("/deals/hero/understand");
+  await noHorizontalScroll(page);
+  await shot(page, "mobile-1-understand");
+  await page.getByTestId("audit-details").click();
+  const drawerBox = await page.getByTestId("audit-drawer").boundingBox();
+  expect(drawerBox?.width).toBe(390);
+  await page.keyboard.press("Escape");
+
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await noHorizontalScroll(page);
+  await shot(page, "mobile-2-offer");
+  await page.getByTestId("primary-action").click();
+  await noHorizontalScroll(page);
+  await page.getByTestId("primary-action").click();
+  await page.getByTestId("open-buyer-proposal").click();
+  await noHorizontalScroll(page);
+  await shot(page, "mobile-3-buyer-proposal");
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await page.getByTestId("back-to-merchant").click();
+  await expect(page.getByTestId("status-banner")).toBeVisible();
+  await expect(page.getByTestId("payment-schedule")).toBeVisible();
+  await noHorizontalScroll(page);
+  await shot(page, "mobile-4-track");
+});
+
+test("stage links, audit drawer and disclosures work from the keyboard", async ({ page }) => {
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  const understand = page.getByTestId("stage-tracker").locator('[data-stage="understand"]');
+  await understand.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/understand$/);
+  await page.getByTestId("go-to-current").focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/offer$/);
+
+  const opener = page.getByTestId("audit-details");
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  const drawer = page.getByTestId("audit-drawer");
+  await expect(drawer).toBeVisible();
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => document.querySelector('[data-testid="audit-drawer"]')?.contains(document.activeElement))).toBe(true);
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
+  await expect(opener).toBeFocused();
 
-  // Expanded/collapsed details.
-  const alt = page.getByTestId("alternative-1").locator(":scope > details");
-  await alt.locator(":scope > summary").click();
-  await expect(alt).toHaveAttribute("open", "");
-  await expect(alt).toContainText("Seller checks");
-  await alt.locator(":scope > summary").click();
-  await expect(alt).not.toHaveAttribute("open", "");
-  await page.getByTestId("view-details").locator(":scope > summary").click();
-  await expect(page.getByTestId("rejected-row")).toHaveCount(10);
-  await expect(page.getByTestId("view-details")).toContainText("Rule:");
-
-  await rec.getByRole("button", { name: "Approve and send" }).click();
-  const hash = (await page.getByTestId("draft-hash").textContent())!.replace(/.*: /, "").trim();
-  expect(hash).toMatch(/^[0-9a-f]{64}$/);
-  await page.getByTestId("confirm-approve").click();
-  await expect(page).toHaveURL(/\/agreement$/);
-  await expect(page.getByTestId("version-1")).toContainText("sent");
-  await expect(page.getByTestId("proposal-link-1")).toHaveText("/proposal/agr-hero/v1");
-
-  // 48–62 s · Standalone buyer proposal: no merchant chrome inside the buyer frame.
-  await page.getByTestId("open-buyer-view").click();
-  await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
-  await expect(page.getByTestId("demo-bar")).toContainText("Demo control");
-  const frame = page.getByTestId("buyer-frame");
-  for (const t of ["demo-guide", "run-live", "reset", "provenance", "pending-actions"]) await expect(page.getByTestId(t)).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Products" })).toHaveCount(0);
-  await expect(frame).not.toContainText(/Deal status|contribution|cash-at-risk|funding|run ID/i);
-  await expect(page.getByTestId("buyer-total")).toHaveText("₹46,020");
-  await expect(page.getByTestId("buyer-payments")).toContainText("1 Dec 2026");
-  await expect(page.getByTestId("excluded")).toContainText("Social media");
-  await expect(page.getByTestId("no-financing")).toHaveText("No additional financing charge added by the seller.");
-  await expect(page.getByTestId("agreement-details")).not.toHaveAttribute("open", "");
-  await expect(page.getByTestId("buyer-hash")).toBeHidden();
-  await page.getByTestId("agreement-details").locator(":scope > summary").click();
-  await expect(page.getByTestId("buyer-hash")).toHaveText(hash);
-  await shot(page, "desktop-4-buyer-proposal");
-
-  await page.getByTestId("request-change").click();
-  await page.getByLabel("What would you like changed?").fill("Could the second payment move to 15 December?");
-  await page.getByTestId("send-change-request").click();
-  await expect(page.getByTestId("buyer-change-requests")).toContainText("Could the second payment move to 15 December?");
-  await expect(page.getByTestId("buyer-total")).toHaveText("₹46,020"); // terms unchanged
-
-  await expect(page.getByTestId("accept")).toBeDisabled();
-  await page.getByTestId("authority").check();
-  await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
-  await expect(page.getByTestId("buyer-actions")).toHaveCount(0);
-
-  await page.getByTestId("back-to-merchant").click();
-  await expect(page.getByTestId("version-1")).toContainText("Approval and acceptance hashes match");
-  await expect(page.getByTestId("payment-link")).toContainText("Simulated");
-  await expect(page.getByTestId("mandate")).toContainText("₹23,010");
-
-  // 62–82 s · Advance notice → buyer timing constraint → draft amendment → two approvals.
-  await page.goto("/timeline");
-  const events = page.getByTestId("events");
-  await act(page.getByRole("button", { name: "Confirm mandate" }), () => expect(events).toContainText("Mandate registration confirmed"));
-  await act(page.getByTestId("sim-advance-notice"), () => expect(events).toContainText("Advance notice sent for 2026-12-01"));
-  const after = page.getByTestId("conversation-after");
-  await expect(after.locator('[data-kind="notice"]')).toContainText("Written by code from verified state");
-  await act(page.getByTestId("script-notice-cash-tight"), () => expect(page.getByTestId("change-request")).toHaveAttribute("data-state", "change_requested"));
-  await expect(page.getByTestId("code-reading")).toContainText("unavailable through 20 Dec 2026 (inclusive) → earliest debit 21 Dec 2026");
-  await expect(page.getByTestId("code-reading")).toContainText("not AI");
-  await expect(page.getByTestId("restructuring")).not.toContainText(/AI interpreted|AI read/);
-  await expect(page.getByTestId("pending-actions")).toHaveText("1 pending action");
-  await shot(page, "desktop-5-change-requested");
-
-  await act(page.getByTestId("propose-amendment"), () => expect(page.getByTestId("amendment-summary")).toContainText("from 1 Dec 2026 to 21 Dec 2026"));
-  await expect(page.getByTestId("mandate-fit")).toContainText("Fits the existing mandate");
-  await expect(page.getByTestId("amendment")).toContainText("Buyer checks (rechecked)");
-  await expect(page.getByTestId("amendment")).toContainText("Projected contribution");
-  await expect(page.getByTestId("collection-status")).toContainText("kept until the merchant and the buyer approve the same new terms hash");
-  await act(page.getByTestId("approve-amendment"), () => expect(page.getByTestId("awaiting-buyer")).toBeVisible());
-  await expect(page.getByTestId("collection-status")).toContainText("scheduled");
-  await page.getByTestId("awaiting-buyer").click();
-  await expect(page).toHaveURL(/\/proposal\/agr-hero\/v2$/);
-  await expect(page.getByTestId("revision-summary")).toContainText("moves from 1 Dec 2026 to 21 Dec 2026");
-  await expect(page.getByTestId("buyer-payments")).toContainText("21 Dec 2026");
-  await expect(page.getByTestId("next-steps")).toContainText("debited on 21 Dec 2026 under your existing authorisation, instead of 1 Dec 2026");
-  await expect(page.getByTestId("next-steps")).not.toContainText("payment link");
-  await expect(page.getByTestId("decline")).toHaveCount(0);
-  await page.getByTestId("authority").check();
-  await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
-
-  await page.goto("/timeline");
-  await expect(page.getByTestId("change-request")).toHaveAttribute("data-state", "payment_rescheduled");
-  await expect(page.getByTestId("payment-rescheduled")).toContainText("₹23,010 will now be debited on 21 Dec 2026 under version 2");
-  await expect(page.getByTestId("collection-status")).toContainText("removed");
-  await expect(page.getByTestId("version-history")).toContainText("superseded");
-  await expect(page.getByTestId("pending-actions")).toHaveText("No pending actions");
-  await shot(page, "desktop-6-payment-rescheduled");
-
-  await page.goto("/proposal/agr-hero/v1");
-  await expect(page.getByTestId("buyer-status")).toContainText("replaced by version 2");
-
-  // 82–90 s · Other outcomes and close.
-  await page.goto("/workspace");
-  await page.getByTestId("scenario-no-feasible").click();
-  await expect(page.getByTestId("scenario-result")).toContainText("Engine state: No feasible deal");
-  await expect(page.getByTestId("next-action")).toContainText("binding checks");
-  await shot(page, "desktop-7-other-outcomes");
-  await page.goto("/timeline");
-  await expect(page.getByTestId("no-feasible-example")).toContainText("none passes");
-  await expect(page.getByTestId("close")).toContainText("Realised contribution within 90 days");
+  await toggleDetails(page, ["see-economics", "compare-alternatives", "why-not-others"]);
+  await page.getByTestId("primary-action").click();
+  await toggleDetails(page, ["preview-agreement-details"]);
+  await page.getByTestId("primary-action").click();
+  await page.getByTestId("open-buyer-proposal").click();
+  await toggleDetails(page, ["agreement-details"]);
 });
 
-test("other outcomes give bounded next actions", async ({ page }) => {
+test("initial Offer viewport keeps rejections and funding detail collapsed", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await page.goto("/workspace");
-  await page.getByTestId("scenario-insufficient").click();
-  await expect(page.getByTestId("next-action")).toContainText("How much budget do you have available now");
-  await page.getByTestId("scenario-outside").click();
-  await expect(page.getByTestId("next-action")).toContainText("Hand over to the merchant");
-  await page.getByTestId("scenario-no-feasible").click();
-  await page.getByTestId("close-outcome").click();
-  await expect(page.getByTestId("scenario-result")).toHaveCount(0);
-});
-
-test("typed and unsupported replies change nothing; a second qualifying reply opens no second request", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await stepUntil(page, (s) => (s as unknown as { conversation: { kind: string }[] }).conversation.some((i) => i.kind === "notice"));
-  await page.goto("/timeline");
-  const ledgerBefore = await page.getByTestId("ledger").textContent();
-  const typed = page.getByTestId("typed-reply");
-  for (const [text, label] of [
-    ["20 tak paisa nahi hai", "Merchant attention needed"],
-    ["I paid", "Payment claimed — verification required"],
-    ["Okay", "Acknowledgement only"],
-    ["up to ₹10K this month", "Merchant attention needed"],
-  ] as const) {
-    await typed.getByLabel("Buyer message").fill(text);
-    await typed.getByRole("button", { name: "Send as buyer" }).click();
-    await expect(page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last()).toContainText(label);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("recommendation")).toBeVisible();
+  await expect(page.getByTestId("featured-buyer-rejection")).toBeHidden();
+  await expect(page.getByTestId("featured-seller-rejection")).toBeHidden();
+  const fundingLabels = page.getByText("Peak funding requirement", { exact: false });
+  let visibleFundingLabels = 0;
+  for (let i = 0; i < (await fundingLabels.count()); i++) {
+    if (await fundingLabels.nth(i).isVisible()) visibleFundingLabels++;
   }
-  await expect(page.getByTestId("ledger")).toHaveText(ledgerBefore!);
-  await expect(page.getByTestId("restructuring")).toContainText("No change requested");
-
-  await page.getByTestId("script-notice-cash-tight").click();
-  await expect(page.getByTestId("change-request")).toHaveAttribute("data-state", "change_requested");
-  await typed.getByLabel("Buyer message").fill("Actually till the 25th");
-  await typed.getByRole("button", { name: "Send as buyer" }).click();
-  const dupBubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
-  await expect(dupBubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
-  await expect(dupBubble).toContainText("Change request chg-1 is already open"); // the reason recorded for this reply
-  await expect(page.getByTestId("change-request-history").locator("li")).toHaveCount(1);
-  await expect(page.getByTestId("code-reading")).toContainText("20 Dec 2026");
-  await expect(page.getByTestId("events")).toContainText("Merchant attention needed: a change request is already open");
-});
-
-test("typed reply targets stay valid as messages appear (no reload, no dropdown change)", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await page.goto("/workspace");
-  await expect(page.getByTestId("typed-reply")).toHaveCount(0); // nothing has been sent yet
-  await page.getByTestId("send-clar-gst").click();
-  const form = page.getByTestId("typed-reply");
-  await expect(form).toBeVisible();
-  const select = form.getByLabel("In reply to");
-  const shownLabel = (await select.locator("option:checked").textContent())!;
-  const shownId = await select.inputValue();
-  expect(shownId).not.toBe("");
-  expect(shownLabel).toContain("Do the amounts");
-  await form.getByLabel("Buyer message").fill("Yes, both are with GST");
-  await form.getByRole("button", { name: "Send as buyer" }).click();
-  const reply = page.getByTestId("conversation").locator('[data-kind="buyer_reply"]').last();
-  await expect(reply).toContainText("Yes, both are with GST");
-  await expect(reply).toContainText("Reply to clarification question");
-  await expect(page.getByText("Unknown message")).toHaveCount(0);
-  await expect(form.getByRole("alert")).toHaveCount(0); // the form's own error slot (Next.js also renders an empty route announcer)
-  const s = JSON.parse(readFileSync(STORE, "utf8"));
-  const stored = s.conversation.at(-1);
-  const question = s.conversation.find((i: { id: string }) => i.id === stored.inReplyTo);
-  expect(stored.inReplyTo).toBe(shownId);
-  expect(question.refs.questionId).toBe("clar-gst");
-  expect(shownLabel).toContain(question.text.slice(0, 20));
-});
-
-test("date replies that cannot reschedule show merchant attention with the recorded reason", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  // After rescheduling: a reply to the original notice, whose payment was removed.
-  await reset(page);
-  await stepUntil(page, (s) => (s as unknown as { amendments: { state: string }[] }).amendments.some((a) => a.state === "active"));
-  await page.goto("/timeline");
-  const collections = await page.getByTestId("collections").textContent();
-  const form = page.getByTestId("typed-reply");
-  await form.getByLabel("In reply to").selectOption({ label: (await form.getByLabel("In reply to").locator("option", { hasText: "Advance notice" }).first().textContent())! });
-  await form.getByLabel("Buyer message").fill("Cash is tight till the 25th.");
-  await form.getByRole("button", { name: "Send as buyer" }).click();
-  let bubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
-  await expect(bubble).toContainText("Cash is tight till the 25th.");
-  await expect(bubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
-  await expect(bubble).toContainText("nothing to reschedule");
-  await expect(bubble).not.toContainText("already open");
-  await expect(page.getByTestId("collections")).toHaveText(collections!);
-
-  // After the payment succeeded.
-  await reset(page);
-  await stepUntil(page, (s) => (s as unknown as { conversation: { kind: string }[] }).conversation.some((i) => i.kind === "notice"));
-  await api(page, { action: "simulate", event: "debit_succeeded" });
-  await page.goto("/timeline");
-  const paid = await page.getByTestId("collections").textContent();
-  const ledger = await page.getByTestId("ledger").textContent();
-  await form.getByLabel("Buyer message").fill("Cash is tight till the 20th.");
-  await form.getByRole("button", { name: "Send as buyer" }).click();
-  bubble = page.getByTestId("conversation-after").locator('[data-kind="buyer_reply"]').last();
-  await expect(bubble).toContainText("Cash is tight till the 20th.");
-  await expect(bubble.locator("[data-outcome]")).toHaveAttribute("data-outcome", "Merchant attention needed");
-  await expect(bubble).toContainText("already succeeded");
-  await expect(bubble).not.toContainText("already open");
-  await expect(page.getByTestId("collections")).toHaveText(paid!);
-  await expect(page.getByTestId("ledger")).toHaveText(ledger!);
-  await expect(page.getByTestId("restructuring")).toContainText("No change requested");
-});
-
-test("decline records the buyer's rejection and creates no payment setup", async ({ page }) => {
-  await page.setViewportSize(MOBILE);
-  await reset(page);
-  await stepUntil(page, (s) => s.status === "sent");
-  await page.goto("/proposal/agr-hero/v1");
-  await page.getByTestId("decline").click();
-  await page.getByTestId("confirm-decline").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("No payment has been set up");
-  await noHorizontalScroll(page);
-  await shot(page, "mobile-6-buyer-declined");
-  await page.goto("/agreement");
-  await expect(page.getByTestId("version-1")).toContainText("Declined by the buyer");
-  await expect(page.getByTestId("payment-link")).toContainText("Created after the buyer accepts");
-});
-
-test("a stale change request from an earlier version is shown as superseded and is not actionable", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await stepUntil(page, (s) => (s as unknown as { amendments: { state: string }[] }).amendments.some((a) => a.state === "active"));
-  const s = JSON.parse(readFileSync(STORE, "utf8"));
-  const done = s.changeRequests[0];
-  s.changeRequests.unshift({ ...done, id: "chg-stale", state: "change_requested", amendmentId: null, agreementVersion: 1, history: [done.history[0]] });
-  writeFileSync(STORE, JSON.stringify(s));
-  await page.goto("/timeline");
-  const history = page.getByTestId("change-request-history");
-  await expect(history.locator("li", { hasText: "chg-stale" })).toContainText("Superseded by agreement version 2");
-  await expect(page.getByTestId("pending-actions")).toHaveText("No pending actions");
-  await expect(page.getByTestId("propose-amendment")).toHaveCount(0);
-  await expect(page.getByTestId("change-request")).toHaveAttribute("data-state", "payment_rescheduled");
-});
-
-test("guided demo runs the storyboard deterministically", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await page.goto("/workspace");
-  for (let i = 0; i < 12; i++) {
-    await expect(page.getByTestId("demo-next")).toBeEnabled();
-    const before = (await page.getByTestId("demo-step").textContent())!;
-    await page.getByTestId("demo-next").click();
-    // Buyer steps open the standalone proposal; merchant steps move the guide to the next step.
-    await page.waitForFunction(
-      (prev) => location.pathname.startsWith("/proposal/") || (document.querySelector('[data-testid="demo-step"]')?.textContent ?? "") !== prev,
-      before,
-    );
-    if (page.url().includes("/proposal/")) {
-      await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
-      await page.getByTestId("back-to-merchant").click();
-      await expect(page.getByTestId("demo-guide")).toBeVisible();
-    }
-    if (i < 11) await expect(page.getByTestId("demo-step")).not.toHaveText(before);
-  }
-  await expect(page.getByTestId("demo-guide")).toContainText("Storyboard complete");
-});
-
-test("keyboard: drawer, details and buyer actions are reachable and operable", async ({ page }) => {
-  await page.setViewportSize(DESKTOP);
-  await reset(page);
-  await stepUntil(page, (s) => s.status === "options_ready");
-  await page.goto("/decision");
-  await page.getByTestId("open-rules").focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByTestId("rules-drawer")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByTestId("rules-drawer")).toBeHidden();
-  await expect(page.getByTestId("open-rules")).toBeFocused();
-  const details = page.getByTestId("view-details");
-  await details.locator(":scope > summary").focus();
-  await page.keyboard.press("Enter");
-  await expect(details).toHaveAttribute("open", "");
-  await page.keyboard.press("Enter");
-  await expect(details).not.toHaveAttribute("open", "");
-  const alt = page.getByTestId("alternative-1").locator(":scope > details");
-  await alt.locator(":scope > summary").focus();
-  await page.keyboard.press("Space");
-  await expect(alt).toHaveAttribute("open", "");
-
-  await stepUntil(page, (s) => s.status === "sent");
-  await page.goto("/proposal/agr-hero/v1");
-  const ad = page.getByTestId("agreement-details");
-  await ad.locator(":scope > summary").focus();
-  await page.keyboard.press("Enter");
-  await expect(ad).toHaveAttribute("open", "");
-  await page.getByTestId("authority").focus();
-  await page.keyboard.press("Space");
-  await expect(page.getByTestId("authority")).toBeChecked();
-  await page.keyboard.press("Tab");
-  await expect(page.getByTestId("accept")).toBeFocused();
-});
-
-test("mobile 390×844: merchant views and the buyer proposal without horizontal scroll", async ({ page }) => {
-  await page.setViewportSize(MOBILE);
-  await reset(page);
-  await page.goto("/workspace");
-  await noHorizontalScroll(page);
-  await shot(page, "mobile-1-conversation");
-  await stepUntil(page, (s) => s.status === "sent");
-  for (const [p, name] of [
-    ["/decision", "mobile-2-decision"],
-    ["/agreement", "mobile-3-agreement-merchant"],
-    ["/proposal/agr-hero/v1", "mobile-4-buyer-proposal"],
-  ] as const) {
-    await page.goto(p);
-    await expect(page.locator("h1")).toBeVisible();
-    await noHorizontalScroll(page);
-    await shot(page, name);
-  }
-  await expect(page.getByTestId("accept")).toBeVisible();
-  const box = await page.getByTestId("accept").boundingBox();
-  expect(box!.height).toBeGreaterThanOrEqual(44); // comfortable touch target
-  await stepUntil(page, (s) => (s as unknown as { amendments: { state: string }[] }).amendments.some((a) => a.state === "merchant_approved"));
-  await page.goto("/proposal/agr-hero/v2");
-  await noHorizontalScroll(page);
-  await shot(page, "mobile-5-buyer-revision");
-  await stepUntil(page, (s) => (s as unknown as { amendments: { state: string }[] }).amendments.some((a) => a.state === "active"));
-  await page.goto("/timeline");
-  await noHorizontalScroll(page);
-  await expect(page.getByTestId("payment-rescheduled")).toBeVisible();
-  await shot(page, "mobile-7-timeline-rescheduled");
+  expect(visibleFundingLabels).toBe(0);
 });

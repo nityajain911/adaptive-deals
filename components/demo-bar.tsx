@@ -74,7 +74,7 @@ export function DemoBar({
             Simulated date: {simulatedDate}
           </span>
         ) : null}
-        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2" data-testid="demo-step">
+        <span className="flex w-full min-w-0 flex-none flex-wrap items-center gap-2 sm:w-auto sm:flex-1" data-testid="demo-step">
           {step ? (
             <>
               <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/80">{TYPE_LABEL[step.type]}</span>
