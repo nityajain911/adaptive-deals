@@ -29,6 +29,9 @@ import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay"
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
 import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
 import { attemptDelivery } from "./delivery";
+import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
+import { noticeReplyOutcome } from "./views";
+import { computeLedger } from "@/domain/ledger";
 import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
 import {
   amendmentMessageText,
@@ -534,6 +537,55 @@ export async function sendQuestions(): Promise<DemoState> {
       event(s, "clarification_sent", "Approved and sent by merchant", "merchant", d.text);
     }
   });
+}
+
+// ── Current stage and required action (spec §3.4) ─────────────────────────────
+
+/** Facts for `dealProgress`, read from stored state and the replayed engine result. */
+export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
+  const out = await currentOutcome(s);
+  const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
+  const clar = s.conversation.filter((i) => i.kind === "clarification");
+  const active = activeVersion(s);
+  const handled = new Set(s.handledMessages.map((h) => h.messageId));
+  const attention = s.conversation.filter((i) => {
+    if (i.direction !== "inbound" || handled.has(i.id)) return false;
+    if (s.conversation.find((x) => x.id === i.inReplyTo)?.kind !== "notice") return false;
+    const o = noticeReplyOutcome(i, s, active?.version ?? null);
+    return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
+  });
+  const scheduled = s.attempts.filter((a) => a.status === "scheduled").sort((p, q) => compareDates(p.dueDate, q.dueDate));
+  const submitted = s.attempts.some((a) => a.status === "submitted");
+  const retry = s.attempts.find((a) => a.status === "scheduled" && a.origin === "internal_retry");
+  let fullyPaid = false;
+  if (active) {
+    const x = await structureForVersion(s, active);
+    fullyPaid = computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), heroMerchant.timeZone), timeZone: heroMerchant.timeZone }).fullyPaid;
+  }
+  const cr = active ? s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === active.version) : undefined;
+  const crAttempt = cr ? s.attempts.find((a) => a.id === cr.attemptId) : undefined;
+  const lastAttempt = s.deliveries.find((d) => d.version === s.selectedOption?.draftVersion)?.attempts.at(-1);
+  return {
+    engineState: out.evaluation.state,
+    draftStale: s.status === "options_ready" ? await isDraftStale(s) : false,
+    fullyPaid,
+    questionCountUnsent: s.status === "clarifying" ? clar.filter((d) => !d.sentAt).length : 0,
+    unansweredQuestions: s.status === "clarifying" ? clar.filter((d) => d.sentAt && !replyTo(d.id)).length : 0,
+    repliesNeedInterpretation: s.status === "clarifying" ? clar.filter((d) => replyTo(d.id) && !replyTo(d.id)!.refs.answerValue).length : 0,
+    attentionMessages: attention.length,
+    nextPayment: scheduled[0] ? { amountPaise: scheduled[0].amountPaise, dueDate: scheduled[0].dueDate } : null,
+    pendingDebit: submitted ? "submitted" : retry ? { retryOn: retry.dueDate } : null,
+    buyerSetup: {
+      linkUnpaid: s.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled"),
+      mandatePending: s.mandate?.status === "pending",
+    },
+    changeRequestDetail: cr && crAttempt ? { unavailableUntil: cr.unavailableUntil, lineDueDate: crAttempt.dueDate } : null,
+    lastFailure: lastAttempt?.status === "failed" ? lastAttempt.failureReason : null,
+  };
+}
+
+export async function progressOf(s: DemoState): Promise<DealProgress> {
+  return dealProgress(s, await progressFacts(s));
 }
 
 // ── Closures, handled messages, interpretation (spec §3.3) ────────────────────

@@ -268,7 +268,8 @@ describe("one open change request per payment under an agreement version", () =>
     const done = raw.changeRequests[0];
     raw.changeRequests.unshift({ ...done, id: "chg-stale", state: "change_requested", amendmentId: null, agreementVersion: 1, history: [done.history[0]] });
     await writeJsonAtomic(svc.STORE_FILE, raw);
-    expect(svc.nextDemoStep(await S())?.id).not.toBe("propose"); // the stale request is not actionable
+    // Updated: actionability is asserted through dealProgress, not the guided demo step (plan Task 6).
+    expect((await svc.progressOf(await S())).primaryAction?.id).not.toBe("draft_revised_terms"); // the stale request is not actionable
 
     let s = await svc.simulate("advance_notice");
     const notice = s.conversation.filter((i) => i.kind === "notice").at(-1)!;
@@ -278,7 +279,7 @@ describe("one open change request per payment under an agreement version", () =>
     const fresh = s.changeRequests.find((c) => c.agreementVersion === 2)!;
     expect(fresh).toMatchObject({ scheduleLineId: "pay-2", state: "change_requested", unavailableUntil: "2026-12-24", earliestDebit: "2026-12-25" });
     expect(s.events.at(-1)!.title).toBe("Change requested");
-    expect(svc.nextDemoStep(s)?.id).toBe("propose");
+    expect((await svc.progressOf(s)).primaryAction?.id).toBe("draft_revised_terms");
 
     s = await svc.proposeAmendment();
     expect(s.amendments).toHaveLength(2);
