@@ -32,9 +32,30 @@
 - **Persona suggestions are out of scope:** optional closure reasons, moving the ₹95,580 comparison, changing the outcome card's prominence.
 - **Verification at the end of every phase:**
   - `npm test`, `npx tsc --noEmit`, `npm run lint`;
-  - the immutable-asset check (`shasum -a 256 -c <baseline>` over the 44 files; baseline in the session scratchpad, regenerated from `c907d1d` if missing);
+  - the immutable-asset check: **44/44**, derived from Git objects and never from the working tree.
+    - 43 repository files are listed in `docs/superpowers/plans/frozen-assets.txt`. Each must match the same file at commit `c907d1d`:
+      ```bash
+      fail=0; for f in $(cat docs/superpowers/plans/frozen-assets.txt); do a=$(git show c907d1d:"$f" | shasum -a 256 | cut -d' ' -f1); b=$(shasum -a 256 "$f" | cut -d' ' -f1); [ "$a" = "$b" ] || { echo "CHANGED $f"; fail=1; }; done; echo "repo assets: $(wc -l < docs/superpowers/plans/frozen-assets.txt) checked, fail=$fail"
+      ```
+    - The 44th, `../FREEZE_PACK.md`, lies outside the repository and was never committed. It is compared against its recorded baseline hash `93cd3770ca7e33a37fd34f9acbbf941ffd3f39e414ce6033d9ac96a0449eab4b`, the value captured before this round, not regenerated: `shasum -a 256 ../FREEZE_PACK.md`.
   - `git diff --stat c907d1d -- ai evaluation data domain/replies.ts domain/restructure.ts domain/amendment.ts domain/collections.ts domain/agreement.ts domain/engine.ts domain/checks.ts domain/economics.ts domain/ledger.ts domain/conversation.ts` must be empty.
+- **Screenshots:** the two screenshots already modified in the working tree (`artifacts/ui-review/desktop-5-change-requested.png`, `artifacts/ui-review/desktop-7-other-outcomes.png`) are never staged, deleted or overwritten. New review images use new filenames only. No phase runs the old Playwright suite, which writes those names.
+- **Pitch:** `DEMO_SCRIPT.md` is the pitch narration. Its "Say" column is the 90-second voice-over. No separate pitch artifact exists.
 - Commit after each task. End every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+---
+
+## Review Focus
+
+The five highest-risk scenarios. A reviewer should read these tests first at each gate.
+
+| # | Risk | What could go wrong | Owning tests |
+|---|---|---|---|
+| 1 | Migration ambiguity | A saved store is guessed into "delivered" or "accepted", or history is rewritten | `tests/lib/migrate.test.ts`: "fails safely when a sent version has no delivery evidence", "never rewrites history and runs once", "infers delivery for a sent, accepted hero state"; `tests/lib/progress.test.ts`: "migration review state blocks with Inspect records"; e2e Task 18 test 7 |
+| 2 | Stale send retry | A retry after reselection or closure delivers an old proposal, or a repeat send delivers twice | `tests/lib/delivery-flow.test.ts`: "an old retry cannot send after the merchant reselects or closes", "a failed send keeps the approval … retries idempotently", "selecting another option invalidates the previous draft" |
+| 3 | Delivery-gated buyer access | The buyer page opens before a successful delivery, or a version-2 amendment page never opens | `tests/lib/delivery-flow.test.ts`: "a failed send … opens no buyer access", "an amendment's delivery is recorded when its message is sent"; e2e Task 18 test 5 (404 before delivery) |
+| 4 | Metric cutoff | Costs keep accruing after day 90 while cash is cut off; incomplete data is presented as final | `tests/lib/outcome.test.ts`: "eligibleAt sets the window", "after day 90, later cash and costs are both excluded", "discloses refunds, estimated fees and committed costs" |
+| 5 | Demo controls performing merchant decisions | Next demo step approves, sends or accepts on the merchant's or buyer's behalf | `tests/lib/demo-steps.test.ts`: "merchant steps only navigate", "the system endpoint refuses decisions"; e2e Task 18 test 3 ("Next never approves") and test 2 (bar hidden) |
 
 ---
 
@@ -435,7 +456,8 @@ export async function driveTo(svc: typeof Svc, stop: Stop, max = 20): Promise<S>
 **Interfaces:**
 - Consumes: Task 2 (`decisionFingerprint`, `deliveryKey`, `isDelivered`) and Task 3 (state fields).
 - Produces:
-  - `selectOption(structureId: string): Promise<DemoState>`
+  - `selectOption(structureId: string): Promise<DemoState>`: the merchant's **explicit** choice from **Select this offer**. Records an `option_selected` outcome (actor `merchant`) only when the choice differs from the current selection. Re-selecting the current option is a no-op: no record, no draft invalidation.
+  - internal `applySelection(s, structureId, { explicit: boolean })`: shared by `selectOption` (explicit) and `reviewBuyerProposal` (automatic: no outcome record, because opening the recommended option is not attributed to the merchant)
   - `sendQuestions(): Promise<DemoState>`: atomic batch send of every unsent clarification draft (moved here from Task 5, because `tests/helpers/drive.ts` and this task's tests need it).
   - `reviewBuyerProposal(): Promise<AgreementVersion>`: selects the top recommendation if nothing is selected; prepares or reuses the draft; idempotent.
   - `approveDraft(version: number, termsHash: string): Promise<DemoState>`
@@ -515,6 +537,17 @@ describe("select → draft → approve → send (spec §3.3)", () => {
     const again = await svc.sendProposal(1);
     expect(again.state.deliveries[0].attempts).toHaveLength(2); // no duplicate delivery
     expect(again.state.conversation.filter((i) => i.kind === "proposal")).toHaveLength(1);
+  });
+  it("opening the recommended option is not a merchant choice; explicit selection is recorded once", async () => {
+    await toOptions();
+    await svc.reviewBuyerProposal();
+    expect((await svc.getState()).outcomes.filter((o) => o.type === "option_selected")).toEqual([]);
+    const out = await svc.currentOutcome(await svc.getState());
+    const alt = out.explanation!.order[1];
+    await svc.selectOption(alt);
+    await svc.selectOption(alt); // same option again: no duplicate, no invalidation
+    const recs = (await svc.getState()).outcomes.filter((o) => o.type === "option_selected");
+    expect(recs).toEqual([expect.objectContaining({ actor: "merchant", source: { kind: "action", id: alt } })]);
   });
   it("selecting another option invalidates the previous draft; failing options cannot be selected", async () => {
     await toOptions();
@@ -619,17 +652,22 @@ function assertNoReview(s: DemoState) {
   if (s.reviewRequired) throw new ActionError(`Saved deal records need review: ${s.reviewRequired}`);
 }
 
+async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }) {
+  assertNoReview(s);
+  if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
+  const { eligible } = await eligibleOf(s);
+  const x = eligible.find((e) => e.structure.id === structureId);
+  if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
+  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftTermsFor(s, x).terms);
+  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint) return; // same, still valid: no-op
+  s.agreements = s.agreements.filter((v) => v.status !== "draft");
+  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null };
+  if (opts.explicit) s.outcomes.push({ id: `out-${s.outcomes.length + 1}`, type: "option_selected", reasonCode: null, note: null, actor: "merchant", at: clockOf(s).now(), dealId: s.dealId, version: null, source: { kind: "action", id: structureId } });
+}
+
+/** The merchant explicitly chose this option ("Select this offer"). */
 export async function selectOption(structureId: string): Promise<DemoState> {
-  return mutate(async (s) => {
-    assertNoReview(s);
-    if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
-    const { eligible } = await eligibleOf(s);
-    const x = eligible.find((e) => e.structure.id === structureId);
-    if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
-    s.agreements = s.agreements.filter((v) => v.status !== "draft");
-    s.selectedOption = { structureId, fingerprint: decisionFingerprint(eligible.map((e) => e.structure.id), draftTermsFor(s, x).terms), selectedAt: clockOf(s).now(), draftVersion: null };
-    s.outcomes.push({ id: `out-${s.outcomes.length + 1}`, type: "option_selected", reasonCode: null, note: null, actor: "merchant", at: clockOf(s).now(), dealId: s.dealId, version: null, source: { kind: "action", id: structureId } });
-  });
+  return mutate((s) => applySelection(s, structureId, { explicit: true }));
 }
 
 export async function reviewBuyerProposal(): Promise<AgreementVersion> {
@@ -640,7 +678,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
     const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
     const top = keep ?? (await currentOutcome(s)).explanation?.order[0] ?? eligible[0]?.structure.id;
     if (!top) throw new ActionError("No engine-eligible option to review");
-    await selectOption(top);
+    await mutate((st) => applySelection(st, top, { explicit: false })); // automatic: not a merchant choice
   }
   let draft: AgreementVersion | null = null;
   await mutate(async (st) => {
@@ -1317,6 +1355,8 @@ it("renders only buyer-safe canonical content (spec §5.6)", () => {
   - `stageHref(dealId, stage)`, giving `/deals/${dealId}/${stage}`;
   - `<StageTracker progress />`, an ordered list with `aria-current="step"` on the current stage and a status word per stage;
   - `<StatusBanner progress viewing />`: the actor tag + headline, and **Go to current stage →** when `viewing !== progress.stage`.
+  - `<StageShell dealId viewing>{children}</StageShell>` (`components/deal/stage-shell.tsx`, server): renders the deal title, `StatusBanner`, `StageTracker` and the Audit details entry, then `children`.
+- **Layout decision:** a page cannot pass `viewing` up to its parent layout. So `app/deals/[dealId]/layout.tsx` renders only the merchant header, the demo-bar slot and `<main>`. Each stage page (`understand`, `offer`, `offer/preview`, `track`) renders `<StageShell dealId viewing="…">` itself, with its own literal stage. This is server-rendered and needs no client route hook. Each page calls `loadDeal` (React `cache`), so the store is read once per request.
 
 - [ ] **Step 1: Read the Next.js docs listed at the start of Phase 2.**
 - [ ] **Step 2: Implement `lib/deal-page.ts`**
@@ -1343,7 +1383,30 @@ export const loadDeal = cache(async (dealId: string) => {
 export const stageHref = (dealId: string, stage: "understand" | "offer" | "track") => `/deals/${dealId}/${stage}`;
 ```
 
-- [ ] **Step 3: Implement the layout.** Header + frame (deal title, banner, tracker, Audit details placeholder button disabled until Task 15, footer) wrapping `children`. Stage pages pass `viewing` to the banner through a prop on each page, not the layout.
+- [ ] **Step 3: Implement the layout and the stage shell.**
+  - `layout.tsx`: `MerchantHeader`, then `<main id="main">{children}</main>`, then the footer "Synthetic data · fictional merchant and buyer". The demo bar is added in Task 13.
+  - `components/deal/stage-shell.tsx`:
+
+```tsx
+import { loadDeal } from "@/lib/deal-page";
+import { StageTracker } from "./stage-tracker";
+import { StatusBanner } from "./status-banner";
+import type { StageId } from "@/lib/progress";
+
+export async function StageShell({ dealId, viewing, children }: { dealId: string; viewing: StageId; children: React.ReactNode }) {
+  const { progress } = await loadDeal(dealId);
+  return (
+    <div className="mx-auto w-full max-w-[1200px] px-3 py-4 sm:px-6 sm:py-6">
+      <h1 className="text-[22px] font-bold tracking-tight text-ink sm:text-[26px]">Kestrel Lane Clinics · Annual digital marketing</h1>
+      <StatusBanner progress={progress} viewing={viewing} dealId={dealId} />
+      <StageTracker progress={progress} dealId={dealId} />
+      <div className="mt-5">{children}</div>
+    </div>
+  );
+}
+```
+
+  The Audit details entry is a disabled placeholder button until Task 15.
 - [ ] **Step 4: Implement `app/deals/[dealId]/page.tsx`:** `const { dealId } = await props.params; const { progress } = await loadDeal(dealId); redirect(stageHref(dealId, progress.stage));`
 - [ ] **Step 5: Run `npx next typegen && npx tsc --noEmit`.** In the dev server, open `/deals/hero`: it redirects to `/deals/hero/understand`. `/deals/nope` returns 404.
 - [ ] **Step 6: Commit** with message `Add deal frame, stage tracker and current-stage redirect`.
@@ -1762,7 +1825,7 @@ describe("outcome metric (spec §7.2)", () => {
 
 **Files:**
 - Modify: `e2e/journey.spec.ts` (rewrite), `playwright.config.ts` (unchanged unless a timeout needs raising)
-- Screenshots: `artifacts/ui-review/` (delete obsolete ones; new names below)
+- Screenshots: `artifacts/ui-review/`, new filenames only (below). Delete nothing. In particular, never touch the two pre-existing modified files `desktop-5-change-requested.png` and `desktop-7-other-outcomes.png`; obsolete images are left for the applicant to remove.
 
 **Tests (spec §10.2), one `test()` each:**
 1. **The 90-second storyboard driven by the demo bar.** At each beat, assert the banner headline, the stage tracker's current stage and the single `primary-action`. Screenshots: `desktop-1-understand`, `desktop-2-offer`, `desktop-3-preview`, `desktop-4-buyer-proposal`, `desktop-5-track-waiting`, `desktop-6-amendment`, `desktop-7-rescheduled`.
@@ -1788,6 +1851,19 @@ describe("outcome metric (spec §7.2)", () => {
 - [ ] **Step 2: Stop the dev server, run `npx playwright test`,** and fix the product (not the tests) until 12/12 pass.
 - [ ] **Step 3: Visually review every screenshot.** Commit with message `Rewrite browser journey for the three-stage merchant flow`.
 
+### Task 18b: Persona trust and comprehension checkpoint (stop for the applicant)
+
+**No product code in this task.** Run it after Task 18 passes and before any documentation or recording.
+
+- [ ] **Step 1: Prepare a review pack** in `docs/superpowers/plans/persona-checkpoint.md`:
+  - links to the Task 18 screenshots for each storyboard beat (desktop and 390 px);
+  - the spec §1.2 six questions;
+  - per persona, which beats to review and the trust questions to ask.
+  - The applicant names the five personas; the agent does not invent persona results.
+- [ ] **Step 2: Stop and hand the pack to the applicant.** They run the persona review, recording counts and verbatim comments, no percentages, and decide which final copy or usability corrections to make.
+- [ ] **Step 3: Apply only the corrections the applicant approves.** Copy wording, ordering and visibility of existing elements are in scope. Persona feature suggestions are not (no new features in this build). Re-run Task 18's suite after any change.
+- [ ] **Step 4: Commit any approved corrections,** with message `Apply persona checkpoint corrections`, listing each correction and its source comment.
+
 ### Task 19: Documentation and release checks
 
 **Files:**
@@ -1795,7 +1871,7 @@ describe("outcome metric (spec §7.2)", () => {
 - Create: `scripts/check-release.ts` and `package.json` script `"check:release": "tsx scripts/check-release.ts"`
 
 **Content:**
-- **Demo script:** the six-beat storyboard (spec §11), naming only controls visible in the built flow.
+- **Demo script = pitch narration:** the six-beat storyboard (spec §11). The "Say" column is the 90-second voice-over, naming only controls visible in the built flow. There is no separate pitch artifact to update.
 - **Product note:**
   - replace the "Validation plan" item 2 (obtain and run the frozen set) with the completed frozen evaluation: 20 cases authored with Codex at the applicant's direction (agent-authored, non-independent), the prompts `extract.v2`, `clarify.v1` and `explain.v3`, and the recorded counts from `AI_BUILD_LOG.md`;
   - distinguish the provisional contribution from the intended metric;
@@ -1806,13 +1882,19 @@ describe("outcome metric (spec §7.2)", () => {
 - **Build log:**
   - append an entry listing each phase, every updated test and its reason, verification results, and the unfamiliar-user protocol (results left for the applicant);
   - leave the `[APPLICANT]` sections untouched.
-- **`scripts/check-release.ts`:**
-  - exit 1 if any `[APPLICANT]` placeholder remains in `ONE_PAGE_PRODUCT_NOTE.md`;
-  - exit 1 if any merchant-facing component contains the banned phrases "revenue recovered", "cash recovered", "guaranteed contribution" or "confirmed via WhatsApp" (grep `app/deals`, `components/{deal,understand,offer,track,outcome-card.tsx,proposal-content.tsx}`).
-  - The script is expected to fail until the applicant completes their sections; report that state honestly.
+- **`scripts/check-release.ts`**, two modes (two release gates):
+  - **Checks:**
+    - (a) remaining `[APPLICANT]` placeholders in `ONE_PAGE_PRODUCT_NOTE.md` and `AI_BUILD_LOG.md`;
+    - (b) banned phrases ("revenue recovered", "cash recovered", "guaranteed contribution", "confirmed via WhatsApp") in merchant-facing code (`app/deals`, `components/{deal,understand,offer,track,outcome-card.tsx,proposal-content.tsx}`) and in `DEMO_SCRIPT.md`;
+    - (c) the factual product-note sections no longer mention obtaining or running the frozen set as future work.
+  - **`npm run check:release -- --build`, the build-completion gate:** exits 0 when (b) and (c) pass. Remaining `[APPLICANT]` placeholders are listed as "awaiting applicant" and do not fail this gate; nothing else may fail it.
+  - **`npm run check:release -- --submission`, the submission-readiness gate:** exits 0 only when (a), (b) and (c) all pass. It must pass after the applicant completes their sections and before submission.
 
 - [ ] **Step 1: Update the docs.**
-- [ ] **Step 2: Implement `check-release.ts` and run it.** Expect a failure listing the remaining `[APPLICANT]` placeholders, and no banned-phrase hits.
+- [ ] **Step 2: Implement `check-release.ts` and run both modes.**
+  - `--build` must exit 0. Its output lists the `[APPLICANT]` placeholders awaiting the applicant.
+  - `--submission` is expected to exit 1 for exactly those placeholders, and for nothing else.
+  - Report both results.
 - [ ] **Step 3: Final verification:**
   - `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npx playwright test`;
   - immutable-asset check (44/44), prompt hashes equal to `FREEZE.json`, empty protected diff;
@@ -1845,5 +1927,5 @@ describe("outcome metric (spec §7.2)", () => {
 | §8.2 presenter, live-run isolation | 14 |
 | §8.3 audit drawer | 15 |
 | §9 migration | 3 (review state in 6) |
-| §10 verification | Each task, 18, 19 |
+| §10 verification | Each task, 18, 18b, 19 |
 | §11 docs, release check | 19 |
