@@ -1575,8 +1575,8 @@ it("a failed line with an active retry shows the retry as its status", () => {
 ```ts
 export type DemoStepType = "merchant" | "buyer" | "system";
 export interface DemoStep { id: string; type: DemoStepType; label: string; href: string; systemAction: SystemStepId | null }
-export type SystemStepId = "advance_to_notice" | "send_notice" | "confirm_mandate" | "pay_upfront_link";
-export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: string): DemoStep | null;
+export type SystemStepId = "pay_upfront_link" | "confirm_mandate" | "advance_to_notice" | "send_notice" | "fail_debit";
+export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: string, opts?: { storyboard?: "preventive" | "failed_debit" }): DemoStep | null;
 export function replyContext(s: DemoState): { inReplyTo: string; label: string; scripts: { id: string; text: string }[] } | null;
 ```
 
@@ -1584,10 +1584,16 @@ export function replyContext(s: DemoState): { inReplyTo: string; label: string; 
 - **Merchant steps** (`send_questions`, `use_answers`, `review_buyer_proposal`, `retry_sending`, `draft_revised_terms`, `review_revised_terms`, `review_buyer_message`): `systemAction: null`, label "Next: …", href to the stage.
 - **Buyer acceptance:** `type: "buyer"`, href to the delivered proposal link.
 - **Clarification and notice replies** go through `replyContext` (the Simulated buyer reply control), not Next.
-- **System steps:**
-  - `advance_to_notice` (label "Advance simulated date to 28 Nov 2026"; calls `advanceClock` to the notice's `sendOn` at 10:00);
-  - then `send_notice` (label "Send scheduled advance notice"; `simulate("advance_notice")`, which must not advance the clock further, since it is already there);
-  - `confirm_mandate`; `pay_upfront_link` (optional).
+- **System steps, in the required order after buyer acceptance** (corrected by the applicant in the Phase 1 follow-up):
+  1. `pay_upfront_link` (**required**; label "Simulate: buyer pays the upfront link on 1 Nov 2026"; `simulate("payment_link_paid")`, which records its clock advance).
+  2. `confirm_mandate` (label "Simulate: buyer authorises the mandate").
+  3. Track now reads "Up to date · next payment ₹23,010 on 1 Dec 2026."
+  4. `advance_to_notice` (label "Advance simulated date to 28 Nov 2026"; calls `advanceClock` to the notice's `sendOn` at 10:00).
+  5. `send_notice` (label "Send scheduled advance notice"; `simulate("advance_notice")`, which must not advance the clock further, since it is already there).
+  6. `fail_debit`, a guided step **reachable from the demo bar without opening `/presenter`**. Its label discloses the simulated date ("Simulate failed debit on 1 Dec 2026"). It calls `simulate("debit_failed")`, which records its own clock advance.
+     - Offered only on the failed-debit storyboard. Whether this or the preventive path (buyer replies to the notice before any debit) is the canonical demo storyboard is an open applicant decision, to be settled before this task starts. Both are covered by `tests/lib/progress-journey.test.ts`. Under the unchanged amendment rules, the failed-debit path records `after_failed_debit`, not `preventive`.
+- **Buyer-setup gate:** `nextDemoStep` never offers `advance_to_notice`, `send_notice` or `fail_debit` while the upfront link is unpaid or the mandate is pending, and `runSystemStep` refuses them with `ActionError("Buyer setup is not complete")`.
+- **Clock visibility:** every clock movement is recorded in `clockAdvances` and in the run record (`s.run.record.clockAdvances`). The demo bar shows the current simulated date after any advance.
 - `runSystemStep` throws `ActionError("Not a system step")` for any other ID.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1603,8 +1609,30 @@ describe("demo steps never perform merchant or buyer decisions (spec §8.1)", ()
   it("the system endpoint refuses decisions", async () => {
     for (const id of ["send_questions", "review_buyer_proposal", "approve_and_send", "accept", "approve_revised_terms"]) await expect(svc.runSystemStep(id as never)).rejects.toThrow(/Not a system step/);
   });
+  it("cannot reach the notice or failed-debit scene while buyer setup is incomplete", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (x) => x.status === "active"); // accepted: link unpaid, mandate pending
+    let s = await svc.getState();
+    expect(nextDemoStep(s, await svc.progressOf(s), "hero")!.systemAction).toBe("pay_upfront_link");
+    for (const id of ["advance_to_notice", "send_notice", "fail_debit"] as const) await expect(svc.runSystemStep(id)).rejects.toThrow(/Buyer setup is not complete/);
+    s = await svc.runSystemStep("pay_upfront_link");
+    expect(nextDemoStep(s, await svc.progressOf(s), "hero")!.systemAction).toBe("confirm_mandate");
+    for (const id of ["advance_to_notice", "send_notice", "fail_debit"] as const) await expect(svc.runSystemStep(id)).rejects.toThrow(/Buyer setup is not complete/);
+    s = await svc.runSystemStep("confirm_mandate");
+    expect(nextDemoStep(s, await svc.progressOf(s), "hero")!.systemAction).toBe("advance_to_notice");
+  });
+  it("the failed-debit step discloses its simulated date and records the clock move", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (x) => x.conversation.some((i) => i.kind === "notice"));
+    const s0 = await svc.getState();
+    const step = nextDemoStep(s0, await svc.progressOf(s0), "hero", { storyboard: "failed_debit" })!;
+    expect([step.systemAction, step.label]).toEqual(["fail_debit", "Simulate failed debit on 1 Dec 2026"]);
+    const s = await svc.runSystemStep("fail_debit");
+    expect(s.clockAdvances.at(-1)!.to).toBe("2026-12-01T10:00:00+05:30");
+    expect(s.run.record.clockAdvances.at(-1)!.to).toBe("2026-12-01T10:00:00+05:30");
+  });
   it("time advancement is its own recorded step before the notice", async () => {
-    await driveTo(svc, (x) => x.status === "active" && x.mandate?.status === "confirmed");
+    await driveTo(svc, (x) => x.status === "active" && x.mandate?.status === "confirmed"); // helper pays the upfront link first
     let s = await svc.getState();
     expect(nextDemoStep(s, await svc.progressOf(s), "hero")!.systemAction).toBe("advance_to_notice");
     s = await svc.runSystemStep("advance_to_notice");
