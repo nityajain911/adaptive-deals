@@ -207,7 +207,18 @@ export function Rejections({ r }: { r: EnumerationResult }) {
             {[...r.rejected, ...r.needsInformation].map((x) => (
               <li key={x.structure.id} className="py-1.5" data-testid="rejected-row">
                 <span className="font-semibold text-ink">{x.structure.label}</span>
-                <span className="text-red"> · {[...new Set(failingChecks(x).map((c) => explainCheck(c)))].slice(0, 1).join("")}</span>
+                <span className={x.verdict === "needs_information" ? "text-amber" : "text-red"}>
+                  {" · "}
+                  {[
+                    ...new Set(
+                      [...x.buyerChecks, ...x.sellerChecks]
+                        .filter((c) => c.status === "fail" || c.status === "needs_information")
+                        .map((c) => explainCheck(c)),
+                    ),
+                  ]
+                    .slice(0, 1)
+                    .join("")}
+                </span>
               </li>
             ))}
           </ul>

@@ -102,6 +102,9 @@ describe("connected buyer journey (live-run application state)", () => {
     await svc.acceptAgreement(1, v.termsHash, true);
     await svc.simulate("mandate_confirmed");
     const s = await svc.simulate("advance_notice");
+    const acceptance = s.outcomes.find((o) => o.type === "buyer_accepted" && o.version === 1);
+    expect(acceptance).toMatchObject({ actor: "buyer", reasonCode: null, note: null, source: { kind: "event" } });
+    expect(s.events.find((e) => e.id === acceptance?.source?.id)).toMatchObject({ kind: "buyer_accepted", title: "Buyer accepted version 1" });
     expect(s.conversation.find((i) => i.kind === "payment")).toMatchObject({ author: "code" });
     expect(s.conversation.find((i) => i.kind === "notice")).toMatchObject({ author: "code", state: "sent_by_adaptive_deals", refs: { noticeId: s.notices[0].id } });
   });
@@ -145,6 +148,9 @@ describe("connected buyer journey (live-run application state)", () => {
     expect(s.attempts.find((x) => x.id === original.id)!.status).toBe("scheduled");
 
     s = await svc.acceptAmendment(v2.termsHash, true);
+    const revisionAcceptance = s.outcomes.find((o) => o.type === "buyer_accepted" && o.version === 2);
+    expect(revisionAcceptance).toMatchObject({ actor: "buyer", reasonCode: null, note: null, source: { kind: "event" } });
+    expect(s.events.find((e) => e.id === revisionAcceptance?.source?.id)).toMatchObject({ kind: "buyer_accepted", title: "Buyer accepted revision (version 2)" });
     expect(s.attempts.find((x) => x.id === original.id)!.status).toBe("removed");
     const pay2 = s.attempts.filter((x) => x.scheduleLineId === "pay-2" && x.status === "scheduled");
     expect(pay2).toHaveLength(1);

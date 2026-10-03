@@ -197,6 +197,7 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await page.getByTestId("open-buyer-proposal").click();
   await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
+  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("amendment-settled")).toBeVisible();
   await expect(page.getByTestId("demo-bar")).toHaveCount(0);

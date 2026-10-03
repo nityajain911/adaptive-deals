@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant } from "@/data/synthetic/hero";
-import { contextLine, Recommendation, SuccessMeasure } from "@/components/offer/recommendation";
+import { contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 /** Spec §5.1: one primary action; rejection and funding detail collapsed in the initial view. */
@@ -28,5 +28,16 @@ describe("recommendation card", () => {
   });
   it("success measure names the target metric", () => {
     expect(renderToStaticMarkup(SuccessMeasure())).toContain("Success measure: realised contribution from this deal within 90 days.");
+  });
+});
+
+describe("rejection and needs-information reasons", () => {
+  it("shows the engine's needs-information explanation instead of an empty reason", () => {
+    const result = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput());
+    expect(result.needsInformation).not.toHaveLength(0);
+    const html = renderToStaticMarkup(Rejections({ r: result }));
+
+    expect(html).toContain("we need the day the new budget opens");
+    expect(html).not.toMatch(/<span class="text-red"> · <\/span>/);
   });
 });

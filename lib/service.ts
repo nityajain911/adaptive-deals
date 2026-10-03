@@ -666,6 +666,7 @@ export async function acceptAgreement(version: number, termsHash: string, author
     s.agreements[i] = buyerAccept(s.agreements[i], termsHash, "Buyer (Demo buyer view)", clockOf(s), { authorityConfirmed });
     setStatus(s, "accepted", `Buyer accepted version ${version}`);
     event(s, "buyer_accepted", `Buyer accepted version ${version}`, "buyer_demo", `Terms hash ${termsHash}${authorityConfirmed ? " · authority for this scope confirmed" : ""}`);
+    outcome(s, { type: "buyer_accepted", reasonCode: null, note: null, actor: "buyer", version, source: { kind: "event", id: s.events.at(-1)!.id } });
     s.agreements[i] = activate(s.agreements[i]);
     const v = s.agreements[i];
 
@@ -983,6 +984,7 @@ export async function acceptAmendment(termsHash: string, authorityConfirmed: boo
     s.agreements[i] = buyerAccept(s.agreements[i], termsHash, "Buyer (Demo buyer view)", clockOf(s), { authorityConfirmed });
     a = transitionAmendment(a, "buyer_accepted", clockOf(s).now());
     event(s, "buyer_accepted", `Buyer accepted revision (version ${a.toVersion})`, "buyer_demo", `Terms hash ${termsHash}`);
+    outcome(s, { type: "buyer_accepted", reasonCode: null, note: null, actor: "buyer", version: a.toVersion, source: { kind: "event", id: s.events.at(-1)!.id } });
 
     const v2 = s.agreements[i];
     assertPaymentsUnlocked(v2);
