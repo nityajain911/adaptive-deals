@@ -49,6 +49,18 @@ describe("truthful outcome of a date reply to a notice", () => {
     expect(o.changeRequestId).toBeNull();
     expect(o.detail).toMatch(/Change request chg-1 is already open/);
     expect(payment(s)).toBe(before);
+    expect((await svc.progressOf(s)).rule).toBe("track.conflicting_evidence");
+    const reviewed = await svc.reviewWork("message", dup.id, "follow_up_pending", "Waiting for the buyer's corrected date");
+    expect((await svc.progressFacts(reviewed)).workItems).toContainEqual(expect.objectContaining({ kind: "follow_up_pending", note: "Waiting for the buyer's corrected date" }));
+    expect((await svc.progressOf(reviewed)).rule).toBe("track.change_request");
+    const resolved = await svc.reviewWork("message", dup.id, "handled_outside", "Resolved on a call");
+    expect((await svc.progressOf(resolved)).rule).toBe("track.change_request");
+  });
+
+  it("an acknowledgement creates no work item", async () => {
+    const notice = await toFirstNotice();
+    const s = await svc.buyerReply({ inReplyTo: notice.id, text: "Okay" });
+    expect((await svc.progressFacts(s)).workItems).toEqual([]);
   });
 
   it("a reply to a notice whose payment was removed after rescheduling: attention, with the recorded reason", async () => {

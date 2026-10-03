@@ -5,6 +5,8 @@ import type { ExplanationResult } from "@/ai/explain";
 import { formatINR } from "@/domain/money";
 import type { ChangeRequest } from "@/domain/restructure";
 import type { MerchantPolicy, ServicePackage } from "@/domain/types";
+import type { CollectionAttempt } from "@/domain/collections";
+import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
 
 /**
  * Pure view derivations shared by the merchant and buyer pages. Nothing here changes state;
@@ -12,6 +14,109 @@ import type { MerchantPolicy, ServicePackage } from "@/domain/types";
  */
 
 export const activeVersionOf = (agreements: AgreementVersion[]) => [...agreements].reverse().find((v) => v.status === "active") ?? null;
+
+export type UnresolvedWorkKind = "buyer_request" | "conflicting_evidence" | "not_restructured" | "follow_up_pending";
+
+export interface UnresolvedWorkItem {
+  kind: UnresolvedWorkKind;
+  sourceKind: WorkSourceKind;
+  sourceId: string;
+  version: number;
+  text: string;
+  detail: string;
+  occurredAt: string;
+  note: string | null;
+  dateAmbiguity: boolean;
+}
+
+type WorkState = {
+  agreements: AgreementVersion[];
+  deliveries: DeliveryRecord[];
+  conversation: ConversationItem[];
+  changeRequests: ChangeRequest[];
+  attempts: CollectionAttempt[];
+  handledMessages: HandledMessage[];
+  workDispositions: WorkDisposition[];
+  events: { kind: string; title: string; detail: string | null; at: string }[];
+};
+
+const resolving = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside";
+
+/** Current-version buyer work which still needs an explicit merchant disposition. */
+export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
+  const activeVersion = activeVersionOf(s.agreements)?.version ?? null;
+  const deliveredVersion = s.deliveries.filter((d) => d.deliveredAt !== null).at(-1)?.version ?? null;
+  const currentVersion = deliveredVersion ?? activeVersion;
+  if (currentVersion === null) return [];
+  const dispositionFor = (sourceKind: WorkSourceKind, sourceId: string) => [...s.workDispositions].reverse().find((d) => d.sourceKind === sourceKind && d.sourceId === sourceId);
+  const applyDisposition = (item: UnresolvedWorkItem): UnresolvedWorkItem | null => {
+    const d = dispositionFor(item.sourceKind, item.sourceId);
+    if (d && resolving(d.kind)) return null;
+    if (d?.kind === "follow_up_pending") return { ...item, kind: "follow_up_pending", note: d.note, occurredAt: d.at };
+    return item;
+  };
+  const out: UnresolvedWorkItem[] = [];
+
+  for (const message of s.conversation) {
+    if (message.direction !== "inbound" || message.kind !== "change_request" || message.refs.agreementVersion !== currentVersion) continue;
+    const item = applyDisposition({
+      kind: "buyer_request",
+      sourceKind: "message",
+      sourceId: message.id,
+      version: currentVersion,
+      text: message.text,
+      detail: "The buyer requested a change. The current proposal remains unchanged until the merchant decides what to do.",
+      occurredAt: message.createdAt,
+      note: null,
+      dateAmbiguity: false,
+    });
+    if (item) out.push(item);
+  }
+
+  for (const request of s.changeRequests) {
+    if (request.agreementVersion !== activeVersion || request.state !== "not_restructured") continue;
+    const reply = s.conversation.find((m) => m.id === request.replyId);
+    const item = applyDisposition({
+      kind: "not_restructured",
+      sourceKind: "change_request",
+      sourceId: request.id,
+      version: request.agreementVersion,
+      text: reply?.text ?? request.phrase,
+      detail: "The requested date did not pass the confirmed checks. The original payment remains scheduled.",
+      occurredAt: request.history.at(-1)?.at ?? request.createdAt,
+      note: null,
+      dateAmbiguity: false,
+    });
+    if (item) out.push(item);
+  }
+
+  for (const message of s.conversation) {
+    if (message.direction !== "inbound" || !message.inReplyTo || message.classification?.kind === "acknowledgement") continue;
+    const target = s.conversation.find((m) => m.id === message.inReplyTo);
+    if (target?.kind !== "notice" || !target.refs.attemptId) continue;
+    const attempt = s.attempts.find((a) => a.id === target.refs.attemptId);
+    if (!attempt || attempt.agreementVersion !== activeVersion) continue;
+    const ownsRequest = s.changeRequests.some((r) => r.replyId === message.id);
+    const handled = s.handledMessages.find((h) => h.messageId === message.id);
+    const isConflict = message.classification?.kind === "change_requested" && !ownsRequest;
+    if (!isConflict && !handled) continue;
+    const outcome = noticeReplyOutcome(message, s, activeVersion);
+    const item = applyDisposition({
+      kind: handled ? "follow_up_pending" : "conflicting_evidence",
+      sourceKind: "message",
+      sourceId: message.id,
+      version: activeVersion!,
+      text: message.text,
+      detail: outcome?.detail ?? NO_REQUEST_NEUTRAL,
+      occurredAt: handled?.handledAt ?? message.createdAt,
+      note: handled?.note ?? null,
+      dateAmbiguity: message.classification?.kind === "needs_attention" && /date|day|month|week/i.test(message.classification.detail),
+    });
+    if (item) out.push(item);
+  }
+
+  return out.sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+}
 
 // ── Change requests ─────────────────────────────────────────────────────────
 

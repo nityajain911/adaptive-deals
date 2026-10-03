@@ -371,3 +371,31 @@ export function MarkHandledForm({ messageId }: { messageId: string }) {
     </form>
   );
 }
+
+/** Bounded merchant decisions for one unresolved buyer work item. None changes terms or payments. */
+export function ReviewWorkForm({ sourceKind, sourceId }: { sourceKind: "message" | "change_request"; sourceId: string }) {
+  const { run, pending, error } = useAction();
+  const [note, setNote] = useState("");
+  const send = (disposition: "keep_current_terms" | "handled_outside" | "follow_up_pending") =>
+    run({ action: "review_work", sourceKind, sourceId, disposition, note: note.trim() || undefined });
+  return (
+    <div className="mt-3 space-y-2">
+      <label className="block text-[12px] font-medium text-muted">
+        Decision note (optional)
+        <input className="mt-1 block w-full rounded-lg border border-line-strong px-3 py-1.5 text-[13px] text-ink" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="primary" disabled={pending} onClick={() => send("keep_current_terms")} data-testid={`keep-current-${sourceId}`}>
+          Keep current terms
+        </Button>
+        <Button disabled={pending} onClick={() => send("handled_outside")} data-testid={`handled-outside-${sourceId}`}>
+          Handle outside Adaptive Deals
+        </Button>
+        <Button disabled={pending} onClick={() => send("follow_up_pending")} data-testid={`follow-up-${sourceId}`}>
+          Follow-up still pending
+        </Button>
+      </div>
+      <ErrorText error={error} />
+    </div>
+  );
+}

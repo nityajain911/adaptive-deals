@@ -95,6 +95,11 @@ describe("connected buyer journey (live-run application state)", () => {
     const s = await svc.requestChange(1, "Could the first payment move to 15 November?");
     expect(s.agreements[0]).toEqual(before);
     expect(s.conversation.at(-1)).toMatchObject({ kind: "change_request", source: "buyer_proposal_page", inReplyTo: (await item((i) => i.kind === "proposal")).id, refs: { agreementVersion: 1 } });
+    expect((await svc.progressOf(s))).toMatchObject({ rule: "track.buyer_request", primaryAction: { label: "Review buyer request" } });
+    const request = s.conversation.at(-1)!;
+    const reviewed = await svc.reviewWork("message", request.id, "keep_current_terms", "Buyer chose to keep the original offer");
+    expect(reviewed.agreements[0]).toEqual(before);
+    expect((await svc.progressOf(reviewed)).rule).toBe("track.sent_awaiting_buyer");
   });
 
   it("acceptance of the exact version sets up payment; notice is code-authored", async () => {

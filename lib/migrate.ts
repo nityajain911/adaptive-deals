@@ -7,7 +7,7 @@ import type { DemoState } from "./service";
  * infers new fields only where existing records prove them. It never rewrites history and never
  * invents a delivery, acceptance or option; ambiguity sets `reviewRequired` instead.
  */
-export const STORE_SCHEMA_VERSION = 2;
+export const STORE_SCHEMA_VERSION = 3;
 
 const SENT_OR_LATER = new Set(["sent", "accepted", "active", "superseded", "buyer_rejected"]);
 
@@ -17,6 +17,7 @@ export function migrateState(raw: unknown): DemoState {
   s.conversation ??= [];
   s.suggestionsPaused ??= false;
   s.changeRequests ??= [];
+  s.workDispositions ??= [];
   if (s.schemaVersion === STORE_SCHEMA_VERSION) return s;
 
   s.eligibleAt ??= s.statusHistory?.[0]?.at ?? DEMO_ANCHOR;

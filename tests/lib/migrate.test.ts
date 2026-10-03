@@ -16,6 +16,26 @@ describe("migrateState (spec §9)", () => {
     expect(s.schemaVersion).toBe(STORE_SCHEMA_VERSION);
     expect(s.eligibleAt).toBe("2026-10-01T09:00:00+05:30");
     expect([s.selectedOption, s.deliveries, s.outcomes, s.reviewRequired]).toEqual([null, [], [], null]);
+    expect(s.workDispositions).toEqual([]);
+  });
+  it("adds work dispositions to a schema-2 store without treating handled messages as resolved", () => {
+    const handled = [{ messageId: "reply-1", handledAt: "2026-12-01T11:00:00+05:30", actor: "merchant", note: "Called buyer" }];
+    const raw = base({
+      schemaVersion: 2,
+      eligibleAt: "2026-10-01T09:00:00+05:30",
+      selectedOption: null,
+      deliveries: [],
+      outcomes: [],
+      handledMessages: handled,
+      interpretations: [],
+      reviewRequired: null,
+    });
+    const s = migrateState(raw);
+    expect(s.schemaVersion).toBe(3);
+    expect(s.handledMessages).toEqual(handled);
+    expect(s.workDispositions).toEqual([]);
+    const snapshot = JSON.stringify(s);
+    expect(JSON.stringify(migrateState(JSON.parse(snapshot)))).toBe(snapshot);
   });
   it("infers delivery for a sent, accepted hero state, so it stays in Track", () => {
     const s = migrateState(base({ status: "active", agreements: [agreement(1, "active")], conversation: [proposalMsg(1)] }));

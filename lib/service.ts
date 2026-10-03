@@ -27,11 +27,11 @@ import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, hero
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
-import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption } from "./deal-records";
+import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
 import { attemptDelivery } from "./delivery";
 import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
 import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
-import { noticeReplyOutcome } from "./views";
+import { noticeReplyOutcome, unresolvedWork } from "./views";
 import { computeLedger } from "@/domain/ledger";
 import { migrateState, STORE_SCHEMA_VERSION } from "./migrate";
 import {
@@ -97,6 +97,7 @@ export interface DemoState {
   deliveries: DeliveryRecord[];
   outcomes: OutcomeRecord[];
   handledMessages: HandledMessage[];
+  workDispositions: WorkDisposition[];
   interpretations: Interpretation[];
   /** Set by migration when saved history cannot be inferred safely; blocks dependent actions. */
   reviewRequired: string | null;
@@ -211,6 +212,7 @@ export async function seedState(record: RunRecord = demoRunRecord(), viewing: "r
     deliveries: [],
     outcomes: [],
     handledMessages: [],
+    workDispositions: [],
     interpretations: [],
     reviewRequired: null,
   };
@@ -548,9 +550,10 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
   const clar = s.conversation.filter((i) => i.kind === "clarification");
   const active = activeVersion(s);
+  const resolved = new Set(s.workDispositions.filter((d) => d.kind === "keep_current_terms" || d.kind === "handled_outside").filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
   const attention = s.conversation.filter((i) => {
-    if (i.direction !== "inbound" || handled.has(i.id)) return false;
+    if (i.direction !== "inbound" || handled.has(i.id) || resolved.has(i.id)) return false;
     if (s.conversation.find((x) => x.id === i.inReplyTo)?.kind !== "notice") return false;
     const o = noticeReplyOutcome(i, s, active?.version ?? null);
     return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
@@ -566,6 +569,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const cr = active ? s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === active.version) : undefined;
   const crAttempt = cr ? s.attempts.find((a) => a.id === cr.attemptId) : undefined;
   const lastAttempt = s.deliveries.find((d) => d.version === s.selectedOption?.draftVersion)?.attempts.at(-1);
+  const workItems = unresolvedWork(s);
   return {
     engineState: out.evaluation.state,
     draftStale: s.status === "options_ready" ? await isDraftStale(s) : false,
@@ -574,6 +578,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
     unansweredQuestions: s.status === "clarifying" ? clar.filter((d) => d.sentAt && !replyTo(d.id)).length : 0,
     repliesNeedInterpretation: s.status === "clarifying" ? clar.filter((d) => replyTo(d.id) && !replyTo(d.id)!.refs.answerValue).length : 0,
     attentionMessages: attention.length,
+    workItems,
     nextPayment: scheduled[0] ? { amountPaise: scheduled[0].amountPaise, dueDate: scheduled[0].dueDate } : null,
     pendingDebit: submitted ? "submitted" : retry ? { retryOn: retry.dueDate } : null,
     buyerSetup: {
@@ -621,6 +626,27 @@ export async function markMessageHandled(messageId: string, note?: string): Prom
     const trimmed = note?.trim() || null;
     s.handledMessages.push({ messageId, handledAt: clockOf(s).now(), actor: "merchant", note: trimmed });
     event(s, "message_handled", "Buyer message marked handled", "merchant", trimmed);
+  });
+}
+
+/** Records the merchant's bounded decision for one current buyer work item. */
+export async function reviewWork(sourceKind: WorkSourceKind, sourceId: string, disposition: WorkDispositionKind, note?: string): Promise<DemoState> {
+  return mutate((s) => {
+    const item = unresolvedWork(s).find((w) => w.sourceKind === sourceKind && w.sourceId === sourceId);
+    if (!item) throw new ActionError("This work item is stale, unknown or already resolved");
+    if (!(["keep_current_terms", "handled_outside", "follow_up_pending"] as WorkDispositionKind[]).includes(disposition)) throw new ActionError("Unknown work disposition");
+    const trimmed = note?.trim() || null;
+    s.workDispositions.push({
+      id: `work-${s.workDispositions.length + 1}`,
+      sourceKind,
+      sourceId,
+      kind: disposition,
+      note: trimmed,
+      actor: "merchant",
+      at: clockOf(s).now(),
+    });
+    const title = disposition === "keep_current_terms" ? "Current terms kept" : disposition === "handled_outside" ? "Buyer request handled outside Adaptive Deals" : "Follow-up still pending";
+    event(s, "work_reviewed", title, "merchant", trimmed);
   });
 }
 

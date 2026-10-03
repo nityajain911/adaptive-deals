@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dealProgress, type ProgressFacts } from "@/lib/progress";
+import type { UnresolvedWorkItem } from "@/lib/views";
 
 /** Spec §3.4: one exhaustive derivation of stage, status and next action. */
 const facts = (over: Partial<ProgressFacts> = {}): ProgressFacts => ({
@@ -10,6 +11,7 @@ const facts = (over: Partial<ProgressFacts> = {}): ProgressFacts => ({
   unansweredQuestions: 0,
   repliesNeedInterpretation: 0,
   attentionMessages: 0,
+  workItems: [],
   nextPayment: null,
   pendingDebit: null,
   buyerSetup: { linkUnpaid: false, mandatePending: false },
@@ -20,6 +22,18 @@ const facts = (over: Partial<ProgressFacts> = {}): ProgressFacts => ({
 const delivered = [{ version: 1, idempotencyKey: "k", kind: "proposal" as const, attempts: [], deliveredAt: "2026-10-01T09:23:00+05:30", reference: "conv-5" }];
 const mk = (over: Record<string, unknown> = {}) => ({ status: "options_ready", deliveries: [], agreements: [], amendments: [], changeRequests: [], reviewRequired: null, selectedOption: null, ...over }) as never;
 const active = [{ version: 1, status: "active" }];
+const work = (kind: UnresolvedWorkItem["kind"], over: Partial<UnresolvedWorkItem> = {}): UnresolvedWorkItem => ({
+  kind,
+  sourceKind: kind === "not_restructured" ? "change_request" : "message",
+  sourceId: "reply-1",
+  version: 1,
+  text: "Could we change this?",
+  detail: "Buyer asked for a change.",
+  occurredAt: "2026-12-01T11:05:00+05:30",
+  note: null,
+  dateAmbiguity: false,
+  ...over,
+});
 
 describe("stage precedence", () => {
   it("a delivered deal is Track even if historical fields are unresolved", () => {
@@ -79,6 +93,16 @@ describe("Track precedence is exhaustive (rows 1–10)", () => {
     expect(T({}, { fullyPaid: true }).headline).toBe("All scheduled payments collected.");
     expect(T({}, { fullyPaid: true }).kind).toBe("informational");
     expect(T({ status: "completed" }, {}).stages.track).toBe("completed");
+  });
+  it("puts current buyer work ahead of waiting and amendment states in the documented order", () => {
+    expect(T({ status: "sent" }, { workItems: [work("buyer_request")] }).rule).toBe("track.buyer_request");
+    expect(T({ status: "sent" }, { workItems: [work("buyer_request")] }).primaryAction?.label).toBe("Review buyer request");
+    expect(T({ status: "amending", amendments: [{ state: "merchant_approved", toVersion: 2 }] }, { workItems: [work("buyer_request", { version: 2 })] }).rule).toBe("track.buyer_request");
+    expect(T({}, { workItems: [work("conflicting_evidence")] }).rule).toBe("track.conflicting_evidence");
+    expect(T({ changeRequests: [{ state: "change_requested", agreementVersion: 1 }] }, { workItems: [work("conflicting_evidence")], changeRequestDetail: { unavailableUntil: "2026-12-20", lineDueDate: "2026-12-01" } }).rule).toBe("track.conflicting_evidence");
+    expect(T({}, { workItems: [work("not_restructured")] }).headline).toBe("The requested date does not fit the confirmed limits. The original payment remains scheduled. Review with the buyer.");
+    const pending = T({}, { workItems: [work("follow_up_pending", { note: "Buyer will call tomorrow", occurredAt: "2026-12-02T09:00:00+05:30" })] });
+    expect([pending.rule, pending.kind, pending.primaryAction?.label]).toEqual(["track.follow_up_pending", "action_required", "Review follow-up"]);
   });
   it("never falls back silently", () => {
     expect(() => T({}, {})).toThrow(/unmapped Track state/);

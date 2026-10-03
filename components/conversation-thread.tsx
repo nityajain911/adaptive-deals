@@ -60,6 +60,7 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
     const outbound = i.direction === "outbound";
     const target = i.inReplyTo ? byId.get(i.inReplyTo) : null;
     const outcome = !outbound && target?.kind === "notice" ? noticeReplyOutcome(i, s, activeV) : null;
+    const disposition = !outbound ? [...s.workDispositions].reverse().find((d) => d.sourceKind === "message" && d.sourceId === i.id) : null;
     return (
       <li key={i.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", outbound ? cx("ml-auto", i.sentAt ? "border-[#d6defe] bg-blue-weak" : "border-dashed border-[#9fb3ff] bg-surface") : "border-line bg-surface")} data-testid={`thread-${i.id}`} data-kind={i.kind}>
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
@@ -73,6 +74,12 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
             <Badge tone={outcome.tone}>{outcome.label}</Badge>
             <span className="text-muted">Read by code (reply-rules.v1), not AI · {outcome.detail}</span>
+          </div>
+        ) : null}
+        {disposition ? (
+          <div className="mt-2 text-[12px] text-muted" data-testid={`disposition-${i.id}`}>
+            Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : "Follow-up still pending"}
+            {disposition.note ? ` · ${disposition.note}` : ""}
           </div>
         ) : null}
       </li>

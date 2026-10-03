@@ -54,6 +54,20 @@ export interface HandledMessage {
   note: string | null;
 }
 
+export type WorkSourceKind = "message" | "change_request";
+export type WorkDispositionKind = "keep_current_terms" | "handled_outside" | "follow_up_pending";
+
+/** A merchant's explicit resolution or follow-up decision for one buyer work item. */
+export interface WorkDisposition {
+  id: string;
+  sourceKind: WorkSourceKind;
+  sourceId: string;
+  kind: WorkDispositionKind;
+  note: string | null;
+  actor: "merchant";
+  at: string;
+}
+
 /** A merchant's interpretation of an unsupported clarification reply (merchant judgement, not AI). */
 export interface Interpretation {
   messageId: string;

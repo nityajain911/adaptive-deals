@@ -1,6 +1,7 @@
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import type { DemoState } from "./service";
+import type { UnresolvedWorkItem } from "./views";
 
 /**
  * One pure derivation of the deal's current stage, status and next action (spec §3.4).
@@ -22,6 +23,9 @@ export type PrimaryActionId =
   | "mark_handled_outside"
   | "review_revised_terms"
   | "draft_revised_terms"
+  | "review_buyer_request"
+  | "review_conflicting_evidence"
+  | "review_follow_up"
   | "review_buyer_message"
   | "inspect_records";
 
@@ -46,6 +50,7 @@ export interface ProgressFacts {
   unansweredQuestions: number;
   repliesNeedInterpretation: number;
   attentionMessages: number;
+  workItems: UnresolvedWorkItem[];
   nextPayment: { amountPaise: number; dueDate: string } | null;
   pendingDebit: "submitted" | { retryOn: string } | null;
   buyerSetup: { linkUnpaid: boolean; mandatePending: boolean };
@@ -106,12 +111,20 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     const a = s.amendments.at(-1);
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);
+    const buyerRequest = f.workItems.find((w) => w.kind === "buyer_request");
+    if (buyerRequest) return act("track", "track.buyer_request", "The buyer requested a change. Review it before the deal continues.", "review_buyer_request", "Review buyer request", buyerRequest.version);
     if (a?.state === "proposed") return act("track", "track.amendment_merchant", "The buyer asked to move a payment. Review the revised terms.", "review_revised_terms", "Review revised terms", a.toVersion);
     if (a?.state === "merchant_approved") return info("track", "track.amendment_buyer", "waiting_on_buyer", "buyer", "Waiting for the buyer to accept the revised terms.", a.toVersion);
+    const conflict = f.workItems.find((w) => w.kind === "conflicting_evidence");
+    if (conflict) return act("track", "track.conflicting_evidence", "The buyer sent new information that conflicts with an open request. Review it before changing the payment.", "review_conflicting_evidence", "Review buyer message", conflict.version);
     const cr = s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === activeV);
     if (cr && f.changeRequestDetail) {
       return act("track", "track.change_request", `The buyer can't pay until after ${formatDate(f.changeRequestDetail.unavailableUntil)}. Draft revised terms.`, "draft_revised_terms", "Draft revised terms", activeV);
     }
+    const failed = f.workItems.find((w) => w.kind === "not_restructured");
+    if (failed) return act("track", "track.not_restructured", "The requested date does not fit the confirmed limits. The original payment remains scheduled. Review with the buyer.", "review_follow_up", "Review with buyer", failed.version);
+    const followUp = f.workItems.find((w) => w.kind === "follow_up_pending");
+    if (followUp) return act("track", "track.follow_up_pending", followUp.note ? `Follow-up still pending · ${followUp.note}` : "Follow-up with the buyer is still pending.", "review_follow_up", "Review follow-up", followUp.version);
     if (f.attentionMessages > 0) {
       const one = f.attentionMessages === 1;
       return act("track", "track.attention", one ? "A buyer message needs your reply." : `${f.attentionMessages} buyer messages need your reply.`, "review_buyer_message", one ? "Review buyer message" : `Review ${f.attentionMessages} buyer messages`, activeV);

@@ -58,6 +58,13 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("decline"), version: z.number().int().positive(), reason: z.enum(Object.keys(BUYER_DECLINE_REASONS) as [BuyerDeclineReason, ...BuyerDeclineReason[]]).optional() }),
   z.object({ action: z.literal("close_by_merchant"), reason: z.enum(Object.keys(MERCHANT_CLOSE_REASONS) as [MerchantCloseReason, ...MerchantCloseReason[]]), note: z.string().max(300).optional() }),
   z.object({ action: z.literal("mark_message_handled"), messageId: z.string().max(40), note: z.string().max(300).optional() }),
+  z.object({
+    action: z.literal("review_work"),
+    sourceKind: z.enum(["message", "change_request"]),
+    sourceId: z.string().max(40),
+    disposition: z.enum(["keep_current_terms", "handled_outside", "follow_up_pending"]),
+    note: z.string().max(300).optional(),
+  }),
   z.object({ action: z.literal("interpret_reply"), messageId: z.string().max(40), value: z.string().max(20), quote: z.string().min(1).max(300) }),
 ]);
 
@@ -155,6 +162,9 @@ export async function POST(request: Request) {
         break;
       case "mark_message_handled":
         await svc.markMessageHandled(a.messageId, a.note);
+        break;
+      case "review_work":
+        await svc.reviewWork(a.sourceKind, a.sourceId, a.disposition, a.note);
         break;
       case "interpret_reply":
         await svc.interpretClarificationReply(a.messageId, a.value, a.quote);

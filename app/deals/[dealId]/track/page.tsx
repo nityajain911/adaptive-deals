@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { computeLedger } from "@/domain/ledger";
 import { formatINR } from "@/domain/money";
-import { MarkHandledForm, PrimaryActionButton, RevealButton } from "@/components/client";
+import { MarkHandledForm, PrimaryActionButton, RevealButton, ReviewWorkForm } from "@/components/client";
 import { ConversationThread } from "@/components/conversation-thread";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
@@ -13,7 +13,7 @@ import type { Structure } from "@/domain/structures";
 import { loadDeal } from "@/lib/deal-page";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 import { outcomeSummary } from "@/lib/outcome";
-import { activeVersionOf, noticeReplyOutcome } from "@/lib/views";
+import { activeVersionOf, noticeReplyOutcome, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
 import { scheduleRows } from "@/lib/track-copy";
 
@@ -36,6 +36,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const latestDelivered = delivered.at(-1);
   const shown = s.agreements.find((v) => v.version === (active?.version ?? latestDelivered?.version));
   const primary = progress.primaryAction;
+  const workItems = unresolvedWork(s);
   const buyerVersion = progress.kind === "waiting_on_buyer" && progress.version ? progress.version : (shown?.version ?? 1);
 
   // Change request or amendment for the active version (stale earlier-version requests excluded).
@@ -94,6 +95,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
+            {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId="buyer-work-card">{primary.label}</RevealButton> : null}
             {shown && progress.kind !== "action_required" && progress.kind !== "terminal" ? (
               // While the buyer is asked to act, link the version they must act on (e.g. the revision).
               <Link href={proposalLinkOf({ agreementId: shown.agreementId, version: buyerVersion })} className="text-[13px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
@@ -107,6 +109,24 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             </p>
           ) : null}
         </Card>
+
+        {workItems.length ? (
+          <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
+            <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">Buyer work needing a decision ({workItems.length})</summary>
+            <ul className="divide-y divide-line border-t border-line">
+              {workItems.map((item) => (
+                <li key={`${item.sourceKind}-${item.sourceId}`} className="px-5 py-4 text-[13px]" data-testid={`work-${item.sourceId}`}>
+                  <div className="font-medium text-ink">Buyer: “{item.text}”</div>
+                  <div className="mt-1 text-ink-2">{item.detail}</div>
+                  {item.note ? <div className="mt-1 text-ink-2">Follow-up note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
+                  <div className="mt-1 text-ink-2">Safe next step: {item.dateAmbiguity ? "Ask the buyer for one exact date." : "Review the buyer's request and agree the next step."}</div>
+                  <p className="mt-1 text-[12px] text-muted">These choices record your decision only. Terms, payments and the ledger stay unchanged.</p>
+                  <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
 
         {cr ? <AmendmentCard s={s} cr={cr} a={amendment} open={primary?.id === "review_revised_terms" || primary?.id === "draft_revised_terms"} /> : null}
 
