@@ -1,34 +1,23 @@
 import { computeEconomics, expectedFee } from "@/domain/economics";
-import { addDays, compareDates, localDateOf } from "@/domain/dates";
+import { compareDates, localDateOf } from "@/domain/dates";
 import { sum } from "@/domain/money";
 import type { Structure } from "@/domain/structures";
 import type { MerchantPolicy } from "@/domain/types";
 import type { DemoState } from "./service";
+import { measurementCutoff } from "./financial-view";
+export { measurementCutoff } from "./financial-view";
 
 export interface OutcomeSummary {
   proposedTotalPaise: number | null;
   acceptedTotalPaise: number | null;
   collected: { totalPaise: number; prePaise: number };
   provisionalContributionPaise: number;
+  fullContractForecastContributionPaise: number | null;
   window: "in_progress" | "ended";
   data: "incomplete";
   label: string;
   disclosures: string[];
   inputs: { cashPrePaise: number; estimatedFeesPaise: number; costsIncurredPaise: number; cutoff: string };
-}
-
-function addCalendarDaysToIso(iso: string, days: number): string {
-  if (Number.isNaN(Date.parse(iso))) throw new Error(`Invalid timestamp "${iso}"`);
-  const match = /^(\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))$/.exec(iso);
-  if (!match) throw new Error(`Timestamp must be an ISO instant with an explicit timezone: "${iso}"`);
-  return `${addDays(match[1], days)}${match[2]}`;
-}
-
-export function measurementCutoff(eligibleAt: string, now: string): { cutoff: string; windowEnded: boolean } {
-  if (Number.isNaN(Date.parse(now))) throw new Error(`Invalid timestamp "${now}"`);
-  const windowEnd = addCalendarDaysToIso(eligibleAt, 90);
-  const windowEnded = Date.parse(now) >= Date.parse(windowEnd);
-  return { cutoff: windowEnded ? windowEnd : now, windowEnded };
 }
 
 function succeededAt(a: DemoState["attempts"][number]): string | null {
@@ -77,6 +66,7 @@ export function outcomeSummary(args: {
     acceptedTotalPaise: acceptedAgreement?.terms.pricing.totalPaise ?? null,
     collected,
     provisionalContributionPaise: collected.prePaise - estimatedFeesPaise - costsIncurredPaise,
+    fullContractForecastContributionPaise: acceptedStructure ? computeEconomics(acceptedStructure, policy).netContributionPaise : null,
     window: windowEnded ? "ended" : "in_progress",
     data: "incomplete",
     label: `${windowEnded ? "Window ended" : "Window in progress"} · incomplete inputs`,
@@ -84,6 +74,7 @@ export function outcomeSummary(args: {
       "Refund data is not modelled in this prototype. No refund amount has been assumed.",
       `Estimated payment fees at configured rate (${policy.paymentFeeBps / 100}%) — not an actual settled Razorpay fee record.`,
       "Includes modelled costs incurred up to the measurement cutoff. Irrevocably committed future costs are not modelled.",
+      "Modelled from planned service dates; actual delivery is not recorded.",
     ],
     inputs: { cashPrePaise: collected.prePaise, estimatedFeesPaise, costsIncurredPaise, cutoff },
   };

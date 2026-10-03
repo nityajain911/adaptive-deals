@@ -1,6 +1,7 @@
 import { fmtTime } from "@/components/evidence";
 import { Badge, Card, Stat } from "@/components/ui";
 import { formatINR } from "@/domain/money";
+import { formatDate } from "@/domain/dates";
 import type { OutcomeSummary } from "@/lib/outcome";
 
 export const LEARNING_POLICY =
@@ -18,7 +19,7 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Outcome and learning</div>
-          <h2 className="mt-1 text-[17px] font-semibold text-ink">Provisional contribution from modelled inputs</h2>
+          <h2 className="mt-1 text-[17px] font-semibold text-ink">Provisional through {formatDate(summary.inputs.cutoff.slice(0, 10))}</h2>
         </div>
         <Badge tone="amber">{summary.label}</Badge>
       </div>
@@ -31,10 +32,16 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
       </p>
       <p className="mt-2 text-[12px] text-ink-2">Target metric: realised contribution within 90 days per eligible stalled deal.</p>
 
+      {summary.fullContractForecastContributionPaise !== null ? (
+        <div className="mt-3 max-w-sm">
+          <Stat label="Full-contract forecast" value={formatINR(summary.fullContractForecastContributionPaise)} hint="Based on the accepted structure's planned service dates" />
+        </div>
+      ) : null}
+
       <div className="mt-4 grid gap-2 md:grid-cols-3">
         <Stat label="Initial offer sent" value={summary.proposedTotalPaise === null ? "Not sent" : formatINR(summary.proposedTotalPaise)} hint="Including GST" />
         <Stat label="Current accepted contract" value={summary.acceptedTotalPaise === null ? "Not accepted" : formatINR(summary.acceptedTotalPaise)} hint="Including GST" />
-        <Stat label="Payments recorded in Adaptive Deals" value={formatINR(summary.collected.totalPaise)} hint={`${formatINR(summary.collected.prePaise)} excl. GST`} />
+        <Stat label="Payments recorded within the 90-day window" value={formatINR(summary.collected.totalPaise)} hint={`${formatINR(summary.collected.prePaise)} excl. GST`} />
       </div>
 
       <div className="mt-4 space-y-2">

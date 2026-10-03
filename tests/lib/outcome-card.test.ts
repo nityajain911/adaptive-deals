@@ -11,6 +11,7 @@ const summary: OutcomeSummary = {
   acceptedTotalPaise: 4_602_000,
   collected: { totalPaise: 2_301_000, prePaise: 1_950_000 },
   provisionalContributionPaise: 1_103_980,
+  fullContractForecastContributionPaise: 1_932_960,
   window: "in_progress",
   data: "incomplete",
   label: "Window in progress · incomplete inputs",
@@ -18,6 +19,7 @@ const summary: OutcomeSummary = {
     "Refund data is not modelled in this prototype. No refund amount has been assumed.",
     "Estimated payment fees at configured rate (2%) — not an actual settled Razorpay fee record.",
     "Includes modelled costs incurred up to the measurement cutoff. Irrevocably committed future costs are not modelled.",
+    "Modelled from planned service dates; actual delivery is not recorded.",
   ],
   inputs: {
     cashPrePaise: 1_950_000,
@@ -37,11 +39,14 @@ describe("Outcome and learning card", () => {
 
   it("keeps the decision-level values visible and names initial versus current terms", () => {
     expect(html).toContain("Outcome and learning");
-    expect(html).toContain("Provisional contribution from modelled inputs");
+    expect(html).toContain("Provisional through 28 Nov 2026");
     expect(html).toContain("₹11,039.80");
     expect(html).toContain("Initial offer sent");
     expect(html).toContain("Current accepted contract");
-    expect(html).toContain("Payments recorded in Adaptive Deals");
+    expect(html).toContain("Payments recorded within the 90-day window");
+    expect(html).toContain("Full-contract forecast");
+    expect(html).toContain("Modelled from planned service dates; actual delivery is not recorded.");
+    expect(html).toContain("Measurement cutoff");
     expect(html).toContain("₹23,010");
     expect(html).toContain("₹19,500 excl. GST");
   });

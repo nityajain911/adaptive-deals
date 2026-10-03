@@ -166,6 +166,7 @@ describe("outcome metric (spec §7.2)", () => {
       "Refund data is not modelled in this prototype. No refund amount has been assumed.",
       "Estimated payment fees at configured rate (2%) — not an actual settled Razorpay fee record.",
       "Includes modelled costs incurred up to the measurement cutoff. Irrevocably committed future costs are not modelled.",
+      "Modelled from planned service dates; actual delivery is not recorded.",
     ]);
     expect(JSON.stringify(o)).not.toMatch(/Refunds: ₹0/);
   });

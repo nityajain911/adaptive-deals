@@ -7,6 +7,7 @@ import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
+import { ContractFinancialCard } from "@/components/track/contract-financial-card";
 import { Card, Stat } from "@/components/ui";
 import { heroMerchant } from "@/data/synthetic/hero";
 import type { Structure } from "@/domain/structures";
@@ -16,6 +17,7 @@ import { outcomeSummary } from "@/lib/outcome";
 import { activeVersionOf, noticeReplyOutcome, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
 import { scheduleRows } from "@/lib/track-copy";
+import { contractFinancialView } from "@/lib/financial-view";
 
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
@@ -71,6 +73,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     now,
     timeZone: heroMerchant.timeZone,
   });
+  const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
   const outcomeSignals: OutcomeSignal[] = s.outcomes.map((o) => {
     let label: string;
     if (o.type === "buyer_accepted") label = `Buyer accepted version ${o.version}`;
@@ -109,6 +112,8 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             </p>
           ) : null}
         </Card>
+
+        {financial ? <ContractFinancialCard view={financial} /> : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
@@ -172,7 +177,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                 </li>
               ))}
             </ul>
-            {ledger ? (
+            {ledger && financial?.state === "accepted" ? (
               <details className="mt-3 rounded-xl border border-line px-4 py-2">
                 <summary className="cursor-pointer text-[13px] font-semibold text-blue">Payment details</summary>
                 <div className="grid grid-cols-2 gap-2 py-2 md:grid-cols-5">
