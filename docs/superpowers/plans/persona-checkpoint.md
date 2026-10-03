@@ -1,10 +1,12 @@
 # Persona trust and comprehension checkpoint
 
 **Date:** 3 October 2026  
-**Build under review:** `7118d98`  
+**Build under review:** `d525ce1`  
 **Purpose:** test whether the redesigned product explains one useful decision at a time before the submission story and product note are finalised.
 
 This is a review worksheet, not a source of product claims. The applicant names the five reviewers or role personas and records what each person actually says. Record counts and verbatim comments; do not convert a five-person review into percentages.
+
+**Attribution briefing:** the AI proposes the clarification question wording. Code writes each “Why it matters” explanation from the engine's comparison of how the possible answers change feasible options. Keep those two roles separate when briefing reviewers.
 
 ## Review setup
 
@@ -66,6 +68,26 @@ Trust prompts:
 - Approval-limit question: “We need to know whether the limit applies to each payment or to the whole contract.”
 
 Ask whether the shorter wording is easier to act on and whether it removes useful decision evidence. Do not change the product copy unless the applicant approves it from the recorded feedback.
+
+## Internal agency-founder walkthrough (not counted in the five-person review)
+
+An agency-founder role-play completed the full preventive journey. It is useful for finding hypotheses and defects, but it is not independent user evidence and must not be added to the result counts above.
+
+Two confirmed defects from that walkthrough were fixed in `d525ce1`:
+
+- Initial and amended buyer acceptances are now stored as outcome records linked to their acceptance events.
+- A structure needing information now shows the engine's explanation instead of an empty reason.
+
+Test these candidate corrections with the assigned reviewers before changing the product:
+
+1. Surface the best full-scope alternative and the contribution given up by choosing the recommendation.
+2. Explain why the recommended two-payment offer ranks above the otherwise identical upfront-payment offer.
+3. Keep the outcome card quiet until acceptance, then show projected contribution beside the provisional figure.
+4. Show the exact outgoing WhatsApp proposal message in the merchant preview.
+5. Move implementation language such as structure counts, validation fallback and terms hashes into Audit details.
+6. Rename payment “Balance” to “Still to collect”.
+
+Potential roadmap items, outside this build: a stalled-deal list, follow-up for the April 2027 budget, offer editing, viewed/nudge/expiry signals, buyer counter-proposals, GST invoices and settlement visibility.
 
 ### Persona 2 · Commercial decision
 
