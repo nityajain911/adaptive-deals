@@ -28,6 +28,39 @@ async function toOptions() {
 }
 
 describe("select → draft → approve → send", () => {
+  it("blocks a stale offer until the merchant reviews newer buyer evidence, then requires a fresh preview", async () => {
+    await toOptions();
+    const original = await svc.reviewBuyerProposal();
+    const q = (await svc.getState()).conversation.find((m) => m.kind === "clarification" && m.refs.questionId === "clar-gst")!;
+    const withCorrection = await svc.buyerReply({ inReplyTo: q.id, text: "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal." });
+    const correction = withCorrection.conversation.at(-1)!;
+    expect((await svc.progressOf(withCorrection))).toMatchObject({ rule: "offer.new_evidence", headline: "Review newer buyer evidence before sending this offer." });
+    await expect(svc.reviewBuyerProposal()).rejects.toThrow(/newer buyer evidence/);
+    await expect(svc.approveDraft(original.version, original.termsHash)).rejects.toThrow(/newer buyer evidence/);
+
+    const reviewed = await svc.reviewWork("message", correction.id, "keep_current_terms", "Buyer confirmed the original ₹50,000 budget on a call");
+    expect(reviewed.deliveries).toEqual([]);
+    await expect(svc.approveDraft(original.version, original.termsHash)).rejects.toThrow(/stale draft|review the updated proposal/i);
+    const refreshed = await svc.reviewBuyerProposal();
+    expect(refreshed.termsHash).toBe(original.termsHash);
+    expect((await svc.getState()).selectedOption!.evidenceMessageIds).toContain(correction.id);
+  });
+
+  it("handling newer evidence outside Adaptive Deals changes no terms, collections or delivery", async () => {
+    await toOptions();
+    const original = await svc.reviewBuyerProposal();
+    const before = await svc.getState();
+    const q = before.conversation.find((m) => m.kind === "clarification" && m.refs.questionId === "clar-gst")!;
+    const withCorrection = await svc.buyerReply({ inReplyTo: q.id, text: "Correction: please do not send this proposal." });
+    const correction = withCorrection.conversation.at(-1)!;
+    const reviewed = await svc.reviewWork("message", correction.id, "handled_outside", "Moved to a custom contract process");
+    expect(reviewed.agreements).toEqual(before.agreements);
+    expect(reviewed.attempts).toEqual(before.attempts);
+    expect(reviewed.deliveries).toEqual([]);
+    expect(reviewed.conversation.some((m) => m.kind === "proposal")).toBe(false);
+    expect(original.status).toBe("draft");
+  });
+
   it("preview and approval use the same canonical hash; approval sends nothing", async () => {
     await toOptions();
     const v = await svc.reviewBuyerProposal();
@@ -116,6 +149,19 @@ describe("select → draft → approve → send", () => {
     expect(s.conversation.find((i) => i.id === rec.reference)?.kind).toBe("amendment");
     expect((await presenter.readPresenterFlags()).failNextSend).toBe(true); // untouched
     await presenter.setFailNextSend(false);
+  });
+
+  it("a conflicting second notice date blocks amendment drafting until the merchant keeps the first request", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (s) => s.conversation.some((m) => m.kind === "notice"));
+    const notice = (await svc.getState()).conversation.find((m) => m.kind === "notice")!;
+    await svc.buyerReply({ inReplyTo: notice.id, text: "Cash is tight till the 20th." });
+    const conflicted = await svc.buyerReply({ inReplyTo: notice.id, text: "Actually, cash is tight till the 25th." });
+    const second = conflicted.conversation.at(-1)!;
+    await expect(svc.proposeAmendment()).rejects.toThrow(/buyer evidence|buyer request/);
+    await svc.reviewWork("message", second.id, "keep_current_terms", "Use the first requested date");
+    const s = await svc.proposeAmendment();
+    expect(s.amendments[0].change.toDueDate).toBe("2026-12-21");
   });
 
   it("made no network or model call", () => {

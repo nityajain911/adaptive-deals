@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
 import { StageShell } from "@/components/deal/stage-shell";
 import { PreviewActions } from "@/components/offer/preview-actions";
+import { EvidenceReview } from "@/components/offer/evidence-review";
 import { ProposalContent } from "@/components/proposal-content";
 import { Notice } from "@/components/ui";
 import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
@@ -18,6 +19,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
   const v = s.agreements.find((a) => a.version === s.selectedOption?.draftVersion && a.status === "draft");
   if (!v || progress.stage !== "offer") redirect(stageHref(dealId, progress.stage));
   const stale = progress.primaryAction?.id === "review_updated_proposal";
+  const newEvidence = progress.primaryAction?.id === "review_new_evidence";
   const view = proposalView(v, heroPackages, heroMerchant.policy);
   return (
     <StageShell dealId={dealId} viewing="offer">
@@ -26,13 +28,14 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
           Preview · Not sent to the buyer
         </div>
         {stale ? <Notice tone="amber" title="The offer changed since you reviewed it.">Go back to the offer and review the updated proposal.</Notice> : null}
+        {newEvidence ? <EvidenceReview s={s} /> : null}
         <article className="rounded-2xl bg-surface p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08),0_0_0_1px_var(--border)]" aria-label="Buyer proposal preview">
           <div className="mb-4 text-[13px] text-muted">
             {heroMerchant.name} · for {heroBuyer.name}
           </div>
           <ProposalContent view={view} nextHeading="After you accept" nextSteps={view.nextSteps} />
         </article>
-        {stale ? null : <PreviewActions dealId={dealId} version={v.version} termsHash={v.termsHash} />}
+        {stale || newEvidence ? null : <PreviewActions dealId={dealId} version={v.version} termsHash={v.termsHash} />}
         <details className="rounded-xl border border-line bg-surface px-4 py-2" data-testid="preview-agreement-details">
           <summary className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
             <Lock aria-hidden className="h-3.5 w-3.5 text-muted" /> Agreement details

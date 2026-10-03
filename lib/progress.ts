@@ -18,6 +18,7 @@ export type PrimaryActionId =
   | "send_missing_question"
   | "review_buyer_proposal"
   | "review_updated_proposal"
+  | "review_new_evidence"
   | "retry_sending"
   | "close_in_adaptive_deals"
   | "mark_handled_outside"
@@ -51,6 +52,7 @@ export interface ProgressFacts {
   repliesNeedInterpretation: number;
   attentionMessages: number;
   workItems: UnresolvedWorkItem[];
+  unreviewedDecisionEvidence: number;
   nextPayment: { amountPaise: number; dueDate: string } | null;
   pendingDebit: "submitted" | { retryOn: string } | null;
   buyerSetup: { linkUnpaid: boolean; mandatePending: boolean };
@@ -144,6 +146,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
 
   // 2–3. Offer, including closure before any successful send.
   if (s.status === "merchant_rejected") return info("offer", "offer.closed", "terminal", null, "Closed in Adaptive Deals.", latest);
+  if (f.unreviewedDecisionEvidence > 0) return act("offer", "offer.new_evidence", "Review newer buyer evidence before sending this offer.", "review_new_evidence", "Review buyer evidence", latest);
   if (s.status === "approved") return act("offer", "offer.approved_unsent", "Approved · not yet sent to the buyer.", "retry_sending", "Retry sending", latest, f.lastFailure);
   if (f.engineState === "options_ready") {
     return f.draftStale

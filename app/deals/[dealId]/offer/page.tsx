@@ -9,6 +9,7 @@ import { fmtTime } from "@/components/evidence";
 import { OpenAudit } from "@/components/audit/audit-drawer";
 import { ClosedSummary } from "@/components/offer/closed-summary";
 import { DontProceed } from "@/components/offer/dont-proceed";
+import { EvidenceReview } from "@/components/offer/evidence-review";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
@@ -144,6 +145,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   return (
     <StageShell dealId={dealId} viewing="offer">
       <div className="space-y-4">
+        {primaryId === "review_new_evidence" ? <EvidenceReview s={s} /> : null}
         {primaryId === "review_updated_proposal" ? <Notice tone="amber" title="The offer changed since you reviewed it.">Review the updated proposal before sending.</Notice> : null}
         <Recommendation
           x={x}
@@ -152,9 +154,11 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           context={context}
           primary={
             <>
-              <PrimaryActionButton body={{ action: "review_buyer_proposal" }} onDone={preview}>
-                {label}
-              </PrimaryActionButton>
+              {primaryId === "review_new_evidence" ? null : (
+                <PrimaryActionButton body={{ action: "review_buyer_proposal" }} onDone={preview}>
+                  {label}
+                </PrimaryActionButton>
+              )}
               <DontProceed />
             </>
           }

@@ -12,6 +12,7 @@ const facts = (over: Partial<ProgressFacts> = {}): ProgressFacts => ({
   repliesNeedInterpretation: 0,
   attentionMessages: 0,
   workItems: [],
+  unreviewedDecisionEvidence: 0,
   nextPayment: null,
   pendingDebit: null,
   buyerSetup: { linkUnpaid: false, mandatePending: false },
@@ -71,6 +72,10 @@ describe("Understand and Offer rows", () => {
     expect([retry.primaryAction?.id, retry.blockingReason]).toEqual(["retry_sending", "Simulated delivery failure"]);
     expect(dealProgress(mk({ status: "no_feasible_structure" }), facts({ engineState: "no_feasible_deal" })).headline).toBe("No offer fits both the buyer's confirmed limits and your current rules.");
     expect(dealProgress(mk({ status: "outside_templates" }), facts({ engineState: "outside_templates" })).primaryAction?.label).toBe("Mark as handled outside Adaptive Deals");
+  });
+  it("newer buyer evidence blocks the offer before stale-draft handling", () => {
+    const p = dealProgress(mk(), facts({ draftStale: true, unreviewedDecisionEvidence: 1 }));
+    expect([p.rule, p.headline, p.primaryAction?.label]).toEqual(["offer.new_evidence", "Review newer buyer evidence before sending this offer.", "Review buyer evidence"]);
   });
 });
 

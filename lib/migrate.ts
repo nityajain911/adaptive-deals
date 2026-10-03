@@ -18,6 +18,7 @@ export function migrateState(raw: unknown): DemoState {
   s.suggestionsPaused ??= false;
   s.changeRequests ??= [];
   s.workDispositions ??= [];
+  if (s.selectedOption) s.selectedOption.evidenceMessageIds ??= [];
   if (s.schemaVersion === STORE_SCHEMA_VERSION) return s;
 
   s.eligibleAt ??= s.statusHistory?.[0]?.at ?? DEMO_ANCHOR;
@@ -53,7 +54,7 @@ export function migrateState(raw: unknown): DemoState {
     const v1 = s.agreements.filter((a) => a.version === 1);
     const ids = new Set(v1.map((a) => a.structureId));
     // "migrated" never equals a computed fingerprint, so a migrated draft must be reviewed again.
-    s.selectedOption = v1.length >= 1 && ids.size === 1 ? { structureId: v1[0].structureId, fingerprint: "migrated", selectedAt: v1[0].createdAt, draftVersion: v1[0].status === "draft" ? 1 : null } : null;
+    s.selectedOption = v1.length >= 1 && ids.size === 1 ? { structureId: v1[0].structureId, fingerprint: "migrated", selectedAt: v1[0].createdAt, draftVersion: v1[0].status === "draft" ? 1 : null, evidenceMessageIds: [] } : null;
   }
 
   s.schemaVersion = STORE_SCHEMA_VERSION;

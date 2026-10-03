@@ -251,6 +251,7 @@ describe("one open change request per payment under an agreement version", () =>
     expect(await material()).toBe(before);
     expect(s.events.at(-1)).toMatchObject({ kind: "merchant_attention", title: "Merchant attention needed: a change request is already open" });
     expect(s.events.at(-1)!.detail).toMatch(/chg-1 is already open.*did not replace the requested date/);
+    await svc.reviewWork("message", replies[1].id, "keep_current_terms", "Use the first requested date");
   });
 
   it("a further reply while the draft awaits approvals is also refused; the hero flow then completes unchanged", async () => {

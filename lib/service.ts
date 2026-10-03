@@ -49,6 +49,7 @@ import {
 } from "@/domain/conversation";
 import { CLASSIFICATION_LABEL } from "@/domain/replies";
 import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
+import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision-evidence";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -399,11 +400,16 @@ export async function currentFingerprint(s: DemoState): Promise<{ fingerprint: s
 export async function isDraftStale(s: DemoState): Promise<boolean> {
   if (!s.selectedOption) return false;
   const cur = await currentFingerprint(s);
-  return cur.fingerprint === null || cur.fingerprint !== s.selectedOption.fingerprint;
+  const evidence = decisionEvidenceSnapshot(s);
+  return cur.fingerprint === null || cur.fingerprint !== s.selectedOption.fingerprint || JSON.stringify(evidence) !== JSON.stringify(s.selectedOption.evidenceMessageIds);
 }
 
 function assertNoReview(s: DemoState) {
   if (s.reviewRequired) throw new ActionError(`Saved deal records need review: ${s.reviewRequired}`);
+}
+
+function assertNoNewDecisionEvidence(s: DemoState) {
+  if (unreviewedDecisionEvidence(s).length) throw new ActionError("Review newer buyer evidence before continuing this commercial decision");
 }
 
 function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">) {
@@ -417,9 +423,10 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
   const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x).terms);
-  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint) return; // same and still valid: no-op
+  const evidenceMessageIds = decisionEvidenceSnapshot(s);
+  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) return; // same and still valid: no-op
   s.agreements = s.agreements.filter((v) => v.status !== "draft");
-  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null };
+  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null, evidenceMessageIds };
   // Opening the recommended option automatically is not attributed to the merchant.
   if (opts.explicit) outcome(s, { type: "option_selected", reasonCode: null, note: null, actor: "merchant", version: null, source: { kind: "action", id: structureId } });
 }
@@ -434,6 +441,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
   let draft: AgreementVersion | null = null;
   await mutate(async (s) => {
     assertNoReview(s);
+    assertNoNewDecisionEvidence(s);
     if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
     if (!s.selectedOption || (await isDraftStale(s))) {
       const { out, eligible } = await eligibleOf(s);
@@ -462,6 +470,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
 export async function approveDraft(version: number, presentedHash: string): Promise<DemoState> {
   return mutate(async (s) => {
     assertNoReview(s);
+    assertNoNewDecisionEvidence(s);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "draft");
     if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected draft");
     if (await isDraftStale(s)) throw new ActionError("The offer changed since this preview was opened (stale draft); review the updated proposal");
@@ -489,6 +498,7 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
       return;
     }
     assertNoReview(s);
+    assertNoNewDecisionEvidence(s);
     if (s.status !== "approved") throw new ActionError(`The deal is not open for sending (deal is ${s.status})`);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "merchant_approved");
     if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected, approved proposal");
@@ -579,6 +589,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
     repliesNeedInterpretation: s.status === "clarifying" ? clar.filter((d) => replyTo(d.id) && !replyTo(d.id)!.refs.answerValue).length : 0,
     attentionMessages: attention.length,
     workItems,
+    unreviewedDecisionEvidence: unreviewedDecisionEvidence(s).length,
     nextPayment: scheduled[0] ? { amountPaise: scheduled[0].amountPaise, dueDate: scheduled[0].dueDate } : null,
     pendingDebit: submitted ? "submitted" : retry ? { retryOn: retry.dueDate } : null,
     buyerSetup: {
@@ -633,7 +644,8 @@ export async function markMessageHandled(messageId: string, note?: string): Prom
 export async function reviewWork(sourceKind: WorkSourceKind, sourceId: string, disposition: WorkDispositionKind, note?: string): Promise<DemoState> {
   return mutate((s) => {
     const item = unresolvedWork(s).find((w) => w.sourceKind === sourceKind && w.sourceId === sourceId);
-    if (!item) throw new ActionError("This work item is stale, unknown or already resolved");
+    const evidence = sourceKind === "message" ? unreviewedDecisionEvidence(s).find((m) => m.id === sourceId) : null;
+    if (!item && !evidence) throw new ActionError("This work item is stale, unknown or already resolved");
     if (!(["keep_current_terms", "handled_outside", "follow_up_pending"] as WorkDispositionKind[]).includes(disposition)) throw new ActionError("Unknown work disposition");
     const trimmed = note?.trim() || null;
     s.workDispositions.push({
@@ -946,6 +958,9 @@ export const unavailableUntilPhrase = (text: string) => UNAVAILABLE_UNTIL.exec(t
  */
 export async function proposeAmendment(): Promise<DemoState> {
   return mutate(async (s) => {
+    assertNoNewDecisionEvidence(s);
+    const blocking = unresolvedWork(s).find((w) => w.kind === "buyer_request" || w.kind === "conflicting_evidence" || w.kind === "follow_up_pending");
+    if (blocking) throw new ActionError("Review the newer buyer request before drafting revised terms");
     if (s.status !== "active") throw new ActionError(`Amendments start from an active agreement (deal is ${s.status})`);
     const v = activeVersion(s)!;
     // Only a request under the active version; a stale earlier-version request never blocks it.
@@ -987,6 +1002,7 @@ export async function proposeAmendment(): Promise<DemoState> {
 
 export async function approveAmendment(termsHash: string): Promise<DemoState> {
   return mutate((s) => {
+    assertNoNewDecisionEvidence(s);
     const a = s.amendments.at(-1);
     if (!a || a.state !== "proposed") throw new ActionError("No proposed revision");
     const i = s.agreements.findIndex((v) => v.version === a.toVersion && v.status === "draft");

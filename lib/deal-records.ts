@@ -13,6 +13,8 @@ export interface SelectedOption {
   fingerprint: string;
   selectedAt: string;
   draftVersion: number | null;
+  /** Buyer-message evidence reviewed when this commercial option was selected. */
+  evidenceMessageIds: string[];
 }
 
 export interface DeliveryAttempt {
