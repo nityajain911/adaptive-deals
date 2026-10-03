@@ -22,6 +22,13 @@ const HEADLINES: Record<TemplateType, (x: EvaluatedStructure) => string> = {
 
 export const headlineFor = (x: EvaluatedStructure): string => HEADLINES[x.structure.template](x);
 
+/** Accurate code fallback when validated AI wording is unavailable for this exact option. */
+export function whyOffer(x: EvaluatedStructure): string {
+  const payments = x.structure.payments.length === 1 ? "one payment" : `${x.structure.payments.length} payments`;
+  if (x.approval === "requires_approval") return `It fits the buyer's confirmed budget and timing through ${payments}, requires the buyer's MD approval, and passes your rules.`;
+  return `It fits the buyer's confirmed budget, timing and approval limit through ${payments}, and passes your rules.`;
+}
+
 /**
  * The deal's original annual proposal: the fixture's full scope at list price, with GST by the same
  * per-line half-up rule the engine uses. Context only; not an engine alternative, never counted as value.

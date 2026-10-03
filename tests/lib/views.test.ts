@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCanonicalTerms, deriveMandateTerms, type AgreementVersion } from "@/domain/agreement";
+import { buildCanonicalTerms, createAgreementVersion, deriveMandateTerms, type AgreementVersion } from "@/domain/agreement";
+import { FixedClock } from "@/domain/clock";
 import { interpretations } from "@/domain/constraints";
 import { formatDate } from "@/domain/dates";
 import { enumerateAndEvaluate } from "@/domain/engine";
@@ -83,6 +84,12 @@ describe("buyer proposal is derived from canonical terms", () => {
     expect(parseVersionSegment("v1")).toBe(1);
     expect(parseVersionSegment("v12")).toBe(12);
     for (const bad of ["1", "v0", "v-1", "v1.5", "vx", "V1", "v01"]) expect(parseVersionSegment(bad)).toBeNull();
+  });
+  it("exposes the exact authority reason from canonical conditions", () => {
+    const requires = feasible().find((x) => x.approval === "requires_approval")!;
+    const v = createAgreementVersion({ agreementId: "a", version: 1, evaluated: requires, dealId: "d", merchantId: "m", buyerId: "b", policy: heroMerchant.policy, clock: new FixedClock() });
+    expect(proposalView(v, heroPackages, heroMerchant.policy).authorityReason).toBe("required_approval");
+    expect(proposalView(version(1, "sent"), heroPackages, heroMerchant.policy).authorityReason).toBe("phase_scope");
   });
 });
 

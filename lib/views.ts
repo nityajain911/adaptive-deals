@@ -231,6 +231,7 @@ export interface ProposalView {
   delivery: { from: string; to: string; lines: number };
   nextSteps: string[];
   authorityRequired: boolean;
+  authorityReason: "phase_scope" | "required_approval" | null;
 }
 
 const monthLabel = (ym: string) => formatDate(`${ym}-01`).replace(/^1 /, "");
@@ -273,7 +274,8 @@ export function proposalView(v: Pick<AgreementVersion, "version" | "terms">, pac
     recurring: t.mandate && recurringLines.length ? { perDebitLimitPaise: t.mandate.perDebitLimitPaise, endDate: formatDate(t.mandate.endDate.value), debitCount: recurringLines.length, noticeDays: policy.advanceNoticeDays } : null,
     delivery: { from: monthLabel(t.deliverySchedule[0].month.value), to: monthLabel(t.deliverySchedule.at(-1)!.month.value), lines: t.deliverySchedule.length },
     nextSteps,
-    authorityRequired: t.conditions.includes("buyer_confirms_authority_for_phase_scope"),
+    authorityRequired: t.conditions.includes("buyer_confirms_authority_for_phase_scope") || t.conditions.includes("buyer_attests_required_approval"),
+    authorityReason: t.conditions.includes("buyer_attests_required_approval") ? "required_approval" : t.conditions.includes("buyer_confirms_authority_for_phase_scope") ? "phase_scope" : null,
   };
 }
 

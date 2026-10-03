@@ -91,9 +91,11 @@ export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = 
         </section>
       ) : null}
 
-      {view.authorityRequired ? (
+      {view.authorityReason ? (
         <section aria-label="Approval requirement" className="rounded-xl border border-line px-4 py-3 text-[13px] text-ink-2" data-testid="authority-requirement">
-          Accepting requires confirming you are authorised to purchase this scope on its own.
+          {view.authorityReason === "required_approval"
+            ? "Accepting requires confirming the required internal approval has been obtained. Adaptive Deals does not verify the approver's identity."
+            : "Accepting requires confirming you are authorised to purchase this standalone scope."}
         </section>
       ) : null}
 

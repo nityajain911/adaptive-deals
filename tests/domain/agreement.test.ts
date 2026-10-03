@@ -101,4 +101,16 @@ describe("merchant approval and buyer acceptance must carry the same hash", () =
     expect(v.terms.conditions).toContain("buyer_confirms_authority_for_phase_scope");
     expect(() => buyerAccept(sent, v.termsHash, "buyer", clock, { authorityConfirmed: false })).toThrow(/authority/);
   });
+
+  it("preserves the engine's required-approval condition in canonical terms and acceptance", () => {
+    const evaluated = result.feasible.find((x) => x.approval === "requires_approval")!;
+    const v = make(evaluated);
+    expect(v.terms.conditions).toContain("buyer_attests_required_approval");
+    const sent = markSent(merchantApprove(v, v.termsHash, "merchant", clock));
+    expect(() => buyerAccept(sent, v.termsHash, "buyer", clock, { authorityConfirmed: false })).toThrow(/required internal approval/);
+  });
+
+  it("does not add the MD-attestation condition to a within-limit option", () => {
+    expect(make(result.feasible.find((x) => x.approval === "within_limit")!).terms.conditions).not.toContain("buyer_attests_required_approval");
+  });
 });

@@ -151,7 +151,7 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
   );
 }
 
-export function AcceptForm({ action, version, termsHash, needsAuthority }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; needsAuthority: boolean }) {
+export function AcceptForm({ action, version, termsHash, authorityReason }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null }) {
   const { run, pending, error } = useAction();
   const [authority, setAuthority] = useState(false);
   return (
@@ -162,13 +162,13 @@ export function AcceptForm({ action, version, termsHash, needsAuthority }: { act
         run(action === "accept_agreement" ? { action, version, termsHash, authorityConfirmed: authority } : { action, termsHash, authorityConfirmed: authority });
       }}
     >
-      {needsAuthority ? (
+      {authorityReason ? (
         <label className="flex items-start gap-2 text-[13px] text-ink-2">
           <input type="checkbox" className="mt-0.5" checked={authority} onChange={(e) => setAuthority(e.target.checked)} data-testid="authority" />
-          <span>I confirm I am authorised to purchase this scope on its own. It is a separate purchase with its own value, not part of a larger purchase split to avoid approval.</span>
+          <span>{authorityReason === "required_approval" ? "I confirm the required internal approval has been obtained. Adaptive Deals does not verify the approver's identity." : "I confirm I am authorised to purchase this standalone scope."}</span>
         </label>
       ) : null}
-      <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (needsAuthority && !authority)} data-testid="accept">
+      <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (!!authorityReason && !authority)} data-testid="accept">
         {pending ? "Accepting…" : action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal"}
       </Button>
       <p className="text-center text-[11px] text-muted">

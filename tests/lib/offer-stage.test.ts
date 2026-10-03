@@ -11,7 +11,7 @@ const top = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0
 
 describe("recommendation card", () => {
   const html = renderToStaticMarkup(
-    Recommendation({ x: top(), exp: null, policy: heroMerchant.policy, context: contextLine(5_000_000, 6_000_000, true), primary: null }),
+    Recommendation({ x: top(), exp: null, policy: heroMerchant.policy, context: contextLine(5_000_000, 6_000_000, true), primary: null, presentation: "recommended" }),
   );
   it("keeps the GST basis and per-contract scope in the context line", () => {
     expect(contextLine(5_000_000, 6_000_000, true)).toBe("Original annual proposal: ₹1,41,600 including GST. The buyer has ₹50,000 including GST this quarter. Contracts above ₹60,000 including GST require MD approval.");
@@ -25,6 +25,15 @@ describe("recommendation card", () => {
   it("uses forecast language only", () => {
     expect(html).toContain("Projected contribution");
     expect(html).not.toMatch(/recovered|guaranteed|Realised contribution/i);
+  });
+  it("distinguishes an engine recommendation from an option selected by the merchant", () => {
+    expect(html).toContain("Recommended offer");
+    const annual = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible.find((x) => x.approval === "requires_approval")!;
+    const selected = renderToStaticMarkup(Recommendation({ x: annual, exp: null, policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "merchant_selected" }));
+    expect(selected).toContain("Selected by you");
+    expect(selected).not.toContain("Recommended offer");
+    expect(selected).toContain("requires the buyer&#x27;s MD approval");
+    expect(selected).not.toContain("fits the buyer&#x27;s confirmed budget, timing and approval limit");
   });
   it("success measure names the target metric", () => {
     expect(renderToStaticMarkup(SuccessMeasure())).toContain("Success measure: realised contribution from this deal within 90 days.");

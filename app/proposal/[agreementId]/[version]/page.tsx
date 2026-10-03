@@ -85,7 +85,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         {/* 8. Actions */}
         {v.status === "sent" ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
-            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} version={v.version} termsHash={v.termsHash} needsAuthority={view.authorityRequired} />
+            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} />
             <RequestChangeForm version={v.version} />
             {amendment ? <p className="text-center text-[12px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : <DeclineButton version={v.version} />}
           </section>

@@ -6,7 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
-import { headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
+import { headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
 import { explanationAttribution } from "@/lib/views";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
@@ -33,7 +33,7 @@ export function contextLine(budgetPaise: number | null, limitPaise: number | nul
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, exp, policy, context, primary }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode }) {
+export function Recommendation({ x, exp, policy, context, primary, presentation }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected" }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const summary = offerSummary(x, originalProposal(), policy.gstRateBps);
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
@@ -44,7 +44,7 @@ export function Recommendation({ x, exp, policy, context, primary }: { x: Evalua
   return (
     <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation">
       <div className="border-b border-line px-5 py-4">
-        <Badge tone="blue">Recommended offer</Badge>
+        <Badge tone="blue">{presentation === "merchant_selected" ? "Selected by you" : "Recommended offer"}</Badge>
         <h2 className="mt-2 text-[22px] font-bold tracking-tight text-ink" data-testid="offer-headline">
           {headlineFor(x)}
         </h2>
@@ -134,9 +134,9 @@ export function Recommendation({ x, exp, policy, context, primary }: { x: Evalua
       </div>
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
         <span className="font-semibold text-ink">Why this offer: </span>
-        <span className="text-ink-2">{aiNote ?? "It fits the buyer's confirmed budget, timing and approval limit, and passes your rules. Options within the approval limit are ranked first."}</span>
+        <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
         <div className="mt-1 text-[12px] text-muted" data-testid="attribution">
-          {explanationAttribution(exp?.source ?? null)}
+          {explanationAttribution(aiNote ? (exp?.source ?? null) : null)}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>

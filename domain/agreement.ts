@@ -127,7 +127,7 @@ export function createAgreementVersion(args: {
   if (!args.evaluated.approvable) {
     throw new AgreementError(`Structure ${args.evaluated.structure.id} is ${args.evaluated.verdict}; only feasible structures can become agreements`);
   }
-  const terms = buildCanonicalTerms({
+  const baseTerms = buildCanonicalTerms({
     dealId: args.dealId,
     merchantId: args.merchantId,
     buyerId: args.buyerId,
@@ -135,6 +135,9 @@ export function createAgreementVersion(args: {
     gstRateBps: args.policy.gstRateBps,
     mandate: deriveMandateTerms(args.evaluated.structure, args.policy),
   });
+  const conditions = new Set(baseTerms.conditions);
+  if (args.evaluated.approval === "requires_approval") conditions.add("buyer_attests_required_approval");
+  const terms: CanonicalTerms = { ...baseTerms, conditions: [...conditions].sort() };
   return {
     agreementId: args.agreementId,
     version: args.version,
@@ -169,6 +172,9 @@ export function markSent(v: AgreementVersion): AgreementVersion {
 export function buyerAccept(v: AgreementVersion, presentedHash: string, by: string, clock: Clock, opts: { authorityConfirmed: boolean }): AgreementVersion {
   if (v.status !== "sent") throw new AgreementError(`Cannot accept a ${v.status} agreement version`);
   assertHashCurrent(v, presentedHash);
+  if (v.terms.conditions.includes("buyer_attests_required_approval") && !opts.authorityConfirmed) {
+    throw new AgreementError("The buyer must confirm that the required internal approval has been obtained");
+  }
   if (v.terms.conditions.includes("buyer_confirms_authority_for_phase_scope") && !opts.authorityConfirmed) {
     throw new AgreementError("The buyer must confirm authority to purchase this phase scope");
   }

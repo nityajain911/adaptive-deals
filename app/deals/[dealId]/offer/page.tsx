@@ -142,6 +142,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const p = out.profile;
   const context = contextLine(p.budgetNow.value?.amountPaise ?? null, p.approvalLimit.value?.amountPaise ?? null, p.approvalScope.status === "stated" && p.approvalScope.value === "per_contract");
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
+  const explicitlySelected = s.outcomes.some((o) => o.type === "option_selected" && o.source?.kind === "action" && o.source.id === x.structure.id);
   return (
     <StageShell dealId={dealId} viewing="offer">
       <div className="space-y-4">
@@ -152,6 +153,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           exp={out.explanation}
           policy={policy}
           context={context}
+          presentation={explicitlySelected ? "merchant_selected" : "recommended"}
           primary={
             <>
               {primaryId === "review_new_evidence" ? null : (
