@@ -69,26 +69,6 @@ Trust prompts:
 
 Ask whether the shorter wording is easier to act on and whether it removes useful decision evidence. Do not change the product copy unless the applicant approves it from the recorded feedback.
 
-## Internal agency-founder walkthrough (not counted in the five-person review)
-
-An agency-founder role-play completed the full preventive journey. It is useful for finding hypotheses and defects, but it is not independent user evidence and must not be added to the result counts above.
-
-Two confirmed defects from that walkthrough were fixed in `d525ce1`:
-
-- Initial and amended buyer acceptances are now stored as outcome records linked to their acceptance events.
-- A structure needing information now shows the engine's explanation instead of an empty reason.
-
-Test these candidate corrections with the assigned reviewers before changing the product:
-
-1. Surface the best full-scope alternative and the contribution given up by choosing the recommendation.
-2. Explain why the recommended two-payment offer ranks above the otherwise identical upfront-payment offer.
-3. Keep the outcome card quiet until acceptance, then show projected contribution beside the provisional figure.
-4. Show the exact outgoing WhatsApp proposal message in the merchant preview.
-5. Move implementation language such as structure counts, validation fallback and terms hashes into Audit details.
-6. Rename payment “Balance” to “Still to collect”.
-
-Potential roadmap items, outside this build: a stalled-deal list, follow-up for the April 2027 budget, offer editing, viewed/nudge/expiry signals, buyer counter-proposals, GST invoices and settlement visibility.
-
 ### Persona 2 · Commercial decision
 
 **Name and role:** [Applicant to fill]  
@@ -173,3 +153,23 @@ Approve only copy wording, ordering, or visibility changes to elements that alre
 | Decision | Source comment | Exact correction | Accepted? |
 |---|---|---|---|
 | | | | |
+
+## Internal agency-founder walkthrough (not counted in the five-person review)
+
+An agency-founder role-play completed the full preventive journey. It is useful for finding hypotheses and defects, but it is not independent user evidence and must not be added to the result counts above.
+
+Two confirmed defects from that walkthrough were fixed in `d525ce1`:
+
+- Initial and amended buyer acceptances are now stored as outcome records linked to their acceptance events.
+- A structure needing information now shows the engine's explanation instead of an empty reason.
+
+Test these candidate corrections with the assigned reviewers before changing the product:
+
+1. Surface the best full-scope alternative conditionally: “If the buyer's MD approves the full annual scope: projected contribution ₹60,168.”
+2. Explain why the recommended two-payment offer ranks above the otherwise identical upfront-payment offer.
+3. Keep the outcome card quiet until acceptance, then show projected contribution beside the provisional figure.
+4. Show the exact outgoing WhatsApp proposal message in the merchant preview.
+5. Move implementation language such as structure counts, validation fallback and terms hashes into Audit details.
+6. Rename payment “Balance” to “Still to collect”.
+
+Potential roadmap items, outside this build: a stalled-deal list, follow-up for the April 2027 budget, offer editing, viewed/nudge/expiry signals, buyer counter-proposals, GST invoices and settlement visibility.
