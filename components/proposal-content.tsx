@@ -1,5 +1,7 @@
 import { CalendarClock, CircleCheck, Repeat } from "lucide-react";
+import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
+import type { AmendmentDifference } from "@/lib/amendment-diff";
 import type { ProposalView } from "@/lib/views";
 import { cx } from "./ui";
 
@@ -8,9 +10,37 @@ import { cx } from "./ui";
  * buyer page and the merchant preview so both show exactly the same scope, totals, dates, mandate
  * requirement and consequences. Contains no actions and no merchant-only information.
  */
-export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = null }: { view: ProposalView; nextHeading: string; nextSteps: string[]; changedLineId?: string | null }) {
+export function AmendmentDifferences({ differences }: { differences: AmendmentDifference[] }) {
+  const paymentDates = differences.filter((d) => d.category === "payment_date" && d.changed);
+  const invoiceDates = differences.filter((d) => d.category === "planned_invoice_date" && d.changed);
+  const amount = differences.find((d) => d.category === "amount");
+  const scope = differences.find((d) => d.category === "scope");
+  const service = differences.find((d) => d.category === "service_period");
+  const mandate = differences.find((d) => d.category === "mandate");
+  return (
+    <section aria-label="Changes in this revision" className="rounded-xl border border-[#d6defe] bg-blue-weak px-4 py-3 text-[13px]" data-testid="amendment-differences">
+      <h2 className="font-semibold text-ink">What this revision changes</h2>
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-2">
+        {paymentDates.map((d) => (
+          <li key={`payment-${d.lineId}`}>Payment date revised: {formatDate(d.before!)} → {formatDate(d.after!)}.</li>
+        ))}
+        {invoiceDates.map((d) => (
+          <li key={`invoice-${d.lineId}`}>Planned invoice date revised (not an issued invoice): {formatDate(d.before!)} → {formatDate(d.after!)}.</li>
+        ))}
+        {amount ? <li>{amount.changed ? "The agreed amount changes; review the full terms below." : "Agreed amount unchanged."}</li> : null}
+        {scope && service && !scope.changed && !service.changed ? <li>Agreed scope and service months unchanged.</li> : null}
+        {scope?.changed ? <li>Agreed scope changes; review the full terms below.</li> : null}
+        {service?.changed ? <li>Service months change; review the full terms below.</li> : null}
+        {mandate ? <li>{mandate.qualifier === "still_fits" && !mandate.changed ? "Existing mandate still fits." : "Recurring authorisation changes; review the full terms below."}</li> : null}
+      </ul>
+    </section>
+  );
+}
+
+export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [] }: { view: ProposalView; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[] }) {
   return (
     <div className="space-y-5" data-testid="proposal-content">
+      {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} /> : null}
       <section aria-labelledby="scope">
         <h2 id="scope" className="text-[13px] font-semibold uppercase tracking-wide text-muted">
           What&apos;s included

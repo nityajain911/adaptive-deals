@@ -8,6 +8,7 @@ import { formatINR } from "@/domain/money";
 import type { ChangeRequest } from "@/domain/restructure";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { actionableChangeRequests, changeRequestDisplay, explanationAttribution, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
+import { amendmentDiff } from "@/lib/amendment-diff";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 const feasible = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible;
@@ -116,5 +117,19 @@ describe("shared proposal content (spec §5.6)", () => {
     }
     expect(html).toContain(formatINR(v.terms.pricing.totalPaise));
     expect(html).not.toMatch(/contribution|cash-at-risk|funding|margin|floor|rejected|recommend/i);
+  });
+  it("shows the complete amendment difference on merchant and buyer content", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { AmendmentDifferences } = await import("@/components/proposal-content");
+    const from = version(1, "active").terms;
+    const to = structuredClone(from);
+    to.paymentSchedule[1].dueDate.value = "2026-12-21";
+    to.invoiceSchedule[1].invoiceDate.value = "2026-12-21";
+    const html = renderToStaticMarkup(AmendmentDifferences({ differences: amendmentDiff(from, to) }));
+    expect(html).toContain("Payment date revised");
+    expect(html).toContain("Planned invoice date revised (not an issued invoice)");
+    expect(html).toContain("Agreed scope and service months unchanged");
+    expect(html).toContain("Existing mandate still fits");
+    expect(html).not.toContain("everything else stays unchanged");
   });
 });

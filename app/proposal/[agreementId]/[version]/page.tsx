@@ -12,6 +12,7 @@ import { loadPage } from "@/lib/page-data";
 import { AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered } from "@/lib/deal-records";
 import { parseVersionSegment, proposalView } from "@/lib/views";
+import { amendmentDiff } from "@/lib/amendment-diff";
 
 export const metadata = { title: "Proposal · Pinecone Media Works" };
 
@@ -34,6 +35,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const previous = v.supersedes ? s.agreements.find((x) => x.version === v.supersedes) : null;
   const changedLine = amendment ? v.terms.paymentSchedule.find((p) => p.id === amendment.change.lineId) : null;
   const previousLine = amendment && previous ? previous.terms.paymentSchedule.find((p) => p.id === amendment.change.lineId) : null;
+  const differences = amendment && previous ? amendmentDiff(previous.terms, v.terms) : [];
   const replacement = v.status === "superseded" ? s.agreements.find((x) => x.supersedes === v.version && x.status !== "draft" && x.status !== "merchant_approved") : null;
   const myRequests = s.conversation.filter((i) => i.kind === "change_request" && i.refs.agreementVersion === v.version);
   // A revision changes one line; onboarding steps (link, mandate set-up) already happened.
@@ -43,7 +45,6 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
           amendment.mandateFit.fits
             ? `The ${formatINR(changedLine.totalPaise)} payment is debited on ${formatDate(changedLine.dueDate.value)} under your existing authorisation, instead of ${formatDate(previousLine.dueDate.value)}.`
             : `The ${formatINR(changedLine.totalPaise)} payment moves to ${formatDate(changedLine.dueDate.value)}; you will be asked for a fresh recurring authorisation.`,
-          "Every other payment, the scope and the total stay exactly as before.",
           "Until you accept, your current agreement and its schedule stay in place.",
         ]
       : view.nextSteps;
@@ -67,7 +68,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         </h1>
         {amendment && changedLine && previousLine ? (
           <p className="mt-1 text-[14px] leading-6 text-ink-2" data-testid="revision-summary">
-            The {formatINR(changedLine.totalPaise)} payment moves from <strong>{formatDate(previousLine.dueDate.value)}</strong> to <strong>{formatDate(changedLine.dueDate.value)}</strong>. The amount and everything else are unchanged.
+            Review the payment, planned invoice date and unchanged terms below before accepting this revision.
           </p>
         ) : null}
         <StatusBanner status={v.status} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} replacementVersion={replacement?.version ?? null} />
@@ -75,7 +76,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
 
       <div className="space-y-5 px-5 py-5">
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} nextHeading={v.status === "sent" ? "After you accept" : "What happens next"} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} />
+        <ProposalContent view={view} nextHeading={v.status === "sent" ? "After you accept" : "What happens next"} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
         {link ? (
           <p className="-mt-3 text-[12px] text-muted" data-testid="buyer-payment-link">
             Payment link {link.id} · {formatINR(link.amountPaise)} · {link.status === "paid" ? "paid" : "awaiting payment"} ({link.mode === "simulated" ? "simulated" : "Razorpay test mode"})

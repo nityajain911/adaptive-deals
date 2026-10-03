@@ -7,7 +7,9 @@ import type { ChangeRequest } from "@/domain/restructure";
 import type { DemoState } from "@/lib/service";
 import { proposalLinkOf } from "@/lib/track-links";
 import { collectionTruth } from "@/lib/track-copy";
+import { amendmentDiff } from "@/lib/amendment-diff";
 import { ActionButton } from "../client";
+import { AmendmentDifferences } from "../proposal-content";
 import { Checks } from "../structure-card";
 import { Badge } from "../ui";
 
@@ -18,6 +20,7 @@ import { Badge } from "../ui";
 export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequest; a: Amendment | null; open: boolean }) {
   const reply = s.conversation.find((i) => i.id === cr.replyId);
   const toV: AgreementVersion | undefined = a ? s.agreements.find((v) => v.version === a.toVersion) : undefined;
+  const fromV: AgreementVersion | undefined = a ? s.agreements.find((v) => v.version === a.fromVersion) : undefined;
   const line = a ? a.revised.structure.payments.find((p) => p.id === a.change.lineId) : null;
   const done = cr.state === "payment_rescheduled" && a?.state === "active";
   if (done && a && line) {
@@ -42,23 +45,7 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
         </div>
         {a && line ? (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-[#d6defe] bg-blue-weak p-3 text-[13px]" data-testid="what-changes">
-                <div className="font-semibold text-ink">What changes</div>
-                <p className="mt-1 text-ink-2">
-                  The {formatINR(line.totalPaise)} payment moves from {formatDate(a.change.fromDueDate)} to {formatDate(a.change.toDueDate)}.
-                </p>
-              </div>
-              <div className="rounded-xl border border-line p-3 text-[13px]" data-testid="what-stays">
-                <div className="font-semibold text-ink">What stays the same</div>
-                <ul className="mt-1 list-disc pl-5 text-ink-2">
-                  <li>The amount ({formatINR(line.totalPaise)}) and the scope</li>
-                  <li>The total ({formatINR(a.revised.structure.payments.reduce((t, p) => t + p.totalPaise, 0))} including GST)</li>
-                  <li>Every other payment date</li>
-                  <li>{a.mandateFit.fits ? "The existing mandate (the new date fits it)" : "Not the mandate: a fresh authorisation is required"}</li>
-                </ul>
-              </div>
-            </div>
+            {fromV && toV ? <AmendmentDifferences differences={amendmentDiff(fromV.terms, toV.terms)} /> : null}
             <p className="text-[13px] font-medium text-green">Rechecked: {a.revised.verdict === "feasible" ? "passes the buyer's limits and your rules." : "does not pass every check."}</p>
             <details className="rounded-xl border border-line px-4 py-2">
               <summary className="cursor-pointer text-[13px] font-semibold text-blue">See rechecks</summary>
