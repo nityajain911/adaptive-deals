@@ -1,0 +1,152 @@
+{
+  "totals": {
+    "successfulPaise": 4602000,
+    "contractPaise": 4602000
+  },
+  "attempts": [
+    {
+      "agreementId": "agr-hero",
+      "agreementVersion": 1,
+      "scheduleLineId": "pay-1",
+      "dueDate": "2026-11-01",
+      "amountPaise": 2301000,
+      "prePaise": 1950000,
+      "gstPaise": 351000,
+      "origin": "agreement",
+      "method": "payment_link",
+      "id": "att-pay-1-1-v1",
+      "idempotencyKey": "ad_agr-hero_v1_pay-1_1",
+      "status": "succeeded",
+      "razorpayId": "pay_sim_pay-1",
+      "history": [
+        {
+          "at": "2026-10-01T09:22:00+05:30",
+          "status": "scheduled",
+          "note": "agreement"
+        },
+        {
+          "at": "2026-11-01T10:00:00+05:30",
+          "status": "submitted",
+          "note": "submitted"
+        },
+        {
+          "at": "2026-11-01T10:00:00+05:30",
+          "status": "succeeded",
+          "note": "Simulated event: payment link paid"
+        }
+      ]
+    },
+    {
+      "agreementId": "agr-hero",
+      "agreementVersion": 1,
+      "scheduleLineId": "pay-2",
+      "dueDate": "2026-12-01",
+      "amountPaise": 2301000,
+      "prePaise": 1950000,
+      "gstPaise": 351000,
+      "origin": "agreement",
+      "method": "recurring_debit",
+      "id": "att-pay-2-1-v1",
+      "idempotencyKey": "ad_agr-hero_v1_pay-2_1",
+      "status": "failed",
+      "razorpayId": null,
+      "history": [
+        {
+          "at": "2026-10-01T09:22:00+05:30",
+          "status": "scheduled",
+          "note": "agreement"
+        },
+        {
+          "at": "2026-12-01T10:00:00+05:30",
+          "status": "submitted",
+          "note": "submitted"
+        },
+        {
+          "at": "2026-12-01T10:00:00+05:30",
+          "status": "failed",
+          "note": "Simulated event: debit failed"
+        }
+      ]
+    },
+    {
+      "agreementId": "agr-hero",
+      "agreementVersion": 1,
+      "scheduleLineId": "pay-2",
+      "dueDate": "2026-12-04",
+      "amountPaise": 2301000,
+      "prePaise": 1950000,
+      "gstPaise": 351000,
+      "origin": "internal_retry",
+      "method": "recurring_debit",
+      "id": "att-pay-2-2-v1",
+      "idempotencyKey": "ad_agr-hero_v1_pay-2_2",
+      "status": "removed",
+      "razorpayId": null,
+      "history": [
+        {
+          "at": "2026-12-01T10:00:00+05:30",
+          "status": "scheduled",
+          "note": "internal_retry"
+        },
+        {
+          "at": "2026-12-01T10:00:00+05:30",
+          "status": "removed",
+          "note": "Adaptive Deals retry removed; revised payment scheduled."
+        }
+      ]
+    },
+    {
+      "agreementId": "agr-hero",
+      "agreementVersion": 2,
+      "scheduleLineId": "pay-2",
+      "dueDate": "2026-12-21",
+      "amountPaise": 2301000,
+      "prePaise": 1950000,
+      "gstPaise": 351000,
+      "origin": "amendment",
+      "method": "recurring_debit",
+      "id": "att-pay-2-3-v2",
+      "idempotencyKey": "ad_agr-hero_v2_pay-2_3",
+      "status": "succeeded",
+      "razorpayId": "pay_sim_pay-2",
+      "history": [
+        {
+          "at": "2026-12-01T10:00:00+05:30",
+          "status": "scheduled",
+          "note": "amendment"
+        },
+        {
+          "at": "2026-12-21T10:00:00+05:30",
+          "status": "submitted",
+          "note": "submitted"
+        },
+        {
+          "at": "2026-12-21T10:00:00+05:30",
+          "status": "succeeded",
+          "note": "Simulated event: debit succeeded"
+        }
+      ]
+    }
+  ],
+  "mandate": {
+    "id": "mdt_sim_agrherov1",
+    "agreementId": "agr-hero",
+    "agreementVersion": 1,
+    "method": "emandate",
+    "perDebitLimitPaise": 2301000,
+    "endDate": "2027-01-31",
+    "status": "confirmed",
+    "mode": "simulated",
+    "note": "Simulated: Razorpay Recurring Payments needs a recurring-enabled test account, a customer, an authorisation payment and the buyer's bank or UPI approval. None of that can be exercised in this local prototype, so mandate registration and debits are simulated with labelled events."
+  },
+  "versions": [
+    {
+      "version": 1,
+      "status": "superseded"
+    },
+    {
+      "version": 2,
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+Skip to content
+Show demo controls
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Up to date
+Up to date · next payment ₹23,010 on 1 Dec 2026.
+✓
+Understand the buyer
+Done
+✓
+Review the offer
+Done
+3
+Track the deal
+Current
+NOW
+Up to date · next payment ₹23,010 on 1 Dec 2026.
+Open buyer proposal (version 1)
+
+Offer version 1 delivered · 1 Oct 2026, 09:22 IST · simulated channel · link /proposal/agr-hero/v1
+
+Payment schedule · version 1
+1 Nov 2026Payment link
+₹23,010 Paid
+1 Dec 2026Recurring debit
+₹23,010 Scheduled
+Payment details
+OUTCOME AND LEARNING
+Provisional contribution from modelled inputs
+Window in progress · incomplete inputs
+₹4,789.80
+
+This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype.
+
+Target metric: realised contribution within 90 days per eligible stalled deal.
+
+INITIAL OFFER SENT
+₹46,020
+Including GST
+CURRENT ACCEPTED CONTRACT
+₹46,020
+Including GST
+PAYMENTS RECORDED IN ADAPTIVE DEALS
+₹23,010
+₹19,500 excl. GST
+How this was calculated
+What happened in this deal
+How outcomes improve recommendations
+Conversation since the offer
+WhatsApp simulated · buyer replies selected by the demo operator
+Proposal
+Sent by Adaptive Deals
+1 Oct 2026, 09:22 IST
+
+Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1
+
+Payment
+Sent by Adaptive Deals
+1 Oct 2026, 09:22 IST
+
+Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11
+
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

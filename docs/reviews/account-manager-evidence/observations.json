@@ -1,0 +1,3449 @@
+[
+  {
+    "name": "01-start",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": [
+      "Confirm two details before we can recommend an offer."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Send 2 questions to buyer"
+    ],
+    "answers": [],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [],
+    "conversationTail": [
+      {
+        "id": "conv-1",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "suggested_by_ai",
+        "author": "ai",
+        "text": "Do the amounts of ₹50,000 and ₹60,000 include GST?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "suggested_by_ai",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "02-partial-reply",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": [
+      "Waiting for the buyer to answer."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [],
+    "conversationTail": [
+      {
+        "id": "conv-1",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Do the amounts of ₹50,000 and ₹60,000 include GST?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "03-typed-replies",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": [
+      "One answer needs your interpretation."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Interpret buyer's reply",
+      "Interpret buyer's reply"
+    ],
+    "answers": [],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [],
+    "conversationTail": [
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "04-interpreted",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": [
+      "The buyer answered. Use these answers to build an offer."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Use these answers"
+    ],
+    "answers": [],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [],
+    "conversationTail": [
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "05-offer",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": [
+      "Review this offer before sending it."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review buyer proposal",
+      "Don't proceed"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [],
+    "conversationTail": [
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "06-founder-handoff",
+    "url": "http://localhost:3101/deals/hero/offer/preview",
+    "status": "options_ready",
+    "headline": [
+      "Review this offer before sending it."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Approve and send to buyer"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "07-failed-send",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "approved",
+    "headline": [
+      "Approved · not yet sent to the buyer."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Retry sending",
+      "Don't proceed"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "merchant_approved",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:00:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-2",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "clarification",
+        "state": "approved_and_sent_by_merchant",
+        "author": "ai",
+        "text": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "questionId": "clar-approval"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "08-delivered",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "sent",
+    "headline": [
+      "Waiting for the buyer to review offer version 1."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:00:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "09-settled-understand",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "sent",
+    "headline": [
+      "Waiting for the buyer to review offer version 1."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:00:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "10-buyer-hold",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "sent",
+    "headline": [
+      "Waiting for the buyer to review offer version 1."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "interpretations": [
+      {
+        "messageId": "conv-3",
+        "questionId": "clar-gst",
+        "value": "yes",
+        "quote": "Yes, both amounts include GST.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      },
+      {
+        "messageId": "conv-4",
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "quote": "₹60,000 is per contract.",
+        "actor": "merchant",
+        "at": "2026-10-01T09:00:00+05:30"
+      }
+    ],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:00:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": "2026-10-01T09:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "change_request",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Please hold this offer. I need to discuss the scope with my MD.",
+        "createdAt": "2026-10-01T09:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-5",
+        "source": "buyer_proposal_page",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "11-late-correction-offer",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": [
+      "Review this offer before sending it."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review buyer proposal",
+      "Don't proceed"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:20:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "12-late-correction-understand",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "options_ready",
+    "headline": [
+      "Review this offer before sending it."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:20:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "13-late-correction-preview",
+    "url": "http://localhost:3101/deals/hero/offer/preview",
+    "status": "options_ready",
+    "headline": [
+      "Review this offer before sending it."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Approve and send to buyer"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-3",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Yes, both amounts include GST.",
+        "createdAt": "2026-10-01T09:20:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-gst",
+          "answerValue": "yes"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "14-sent-after-correction",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "sent",
+    "headline": [
+      "Waiting for the buyer to review offer version 1."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-1",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "questionId": "clar-gst"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "15-unsupported-date",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "A buyer message needs your reply."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review buyer message",
+      "Mark as handled"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "20 tak cash tight hai",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported_date_expression",
+          "detail": "The buyer gave a timing constraint without one safely supported date; ask for the exact date."
+        }
+      }
+    ]
+  },
+  {
+    "name": "16-handled-but-unresolved",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "Up to date · next payment ₹23,010 on 1 Dec 2026."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [
+      {
+        "messageId": "conv-8",
+        "handledAt": "2026-11-28T10:00:00+05:30",
+        "actor": "merchant",
+        "note": "Spoke to buyer. They asked for 24 December; founder to confirm."
+      }
+    ],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "20 tak cash tight hai",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported_date_expression",
+          "detail": "The buyer gave a timing constraint without one safely supported date; ask for the exact date."
+        }
+      }
+    ]
+  },
+  {
+    "name": "17-corrected-change-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "The buyer can't pay until after 20 Dec 2026. Draft revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Draft revised terms"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "change_requested",
+        "amendmentId": null,
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Actually cash is tight till the 24th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 24th",
+          "unavailableUntil": "2026-12-24",
+          "earliestDebit": "2026-12-25",
+          "replyDate": "2026-11-28",
+          "transformation": "day 24 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-24; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  },
+  {
+    "name": "18-mobile-conflicting-replies",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "The buyer can't pay until after 20 Dec 2026. Draft revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Draft revised terms"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "change_requested",
+        "amendmentId": null,
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Actually cash is tight till the 24th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 24th",
+          "unavailableUntil": "2026-12-24",
+          "earliestDebit": "2026-12-25",
+          "replyDate": "2026-11-28",
+          "transformation": "day 24 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-24; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  },
+  {
+    "name": "19-draft-original-date",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": [
+      "The buyer asked to move a payment. Review the revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review revised terms",
+      "Approve revised terms"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "draft_amendment",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "draft_amendment",
+            "note": "Draft amendment: 2026-12-01 → 2026-12-21"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      },
+      {
+        "version": 2,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Actually cash is tight till the 24th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 24th",
+          "unavailableUntil": "2026-12-24",
+          "earliestDebit": "2026-12-25",
+          "replyDate": "2026-11-28",
+          "transformation": "day 24 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-24; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  },
+  {
+    "name": "20-preventive-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "The buyer can't pay until after 20 Dec 2026. Draft revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Draft revised terms"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "change_requested",
+        "amendmentId": null,
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  },
+  {
+    "name": "21-revision-review",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": [
+      "The buyer asked to move a payment. Review the revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review revised terms",
+      "Approve revised terms"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "draft_amendment",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "draft_amendment",
+            "note": "Draft amendment: 2026-12-01 → 2026-12-21"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      },
+      {
+        "version": 2,
+        "status": "draft",
+        "merchantApproval": null
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  },
+  {
+    "name": "22-revision-sent",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": [
+      "Waiting for the buyer to accept the revised terms."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "draft_amendment",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "draft_amendment",
+            "note": "Draft amendment: 2026-12-01 → 2026-12-21"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      },
+      {
+        "version": 2,
+        "status": "sent",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-11-28T10:00:00+05:30",
+          "termsHash": "ebe3f22fd2226fbcd5e05fb4b8898e89106370a0b990da0f529ef2ab1f3bb46e"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "amendment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 2,
+          "amendmentId": "amd-1"
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "23-rescheduled",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "Up to date · next payment ₹23,010 on 21 Dec 2026."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "payment_rescheduled",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "draft_amendment",
+            "note": "Draft amendment: 2026-12-01 → 2026-12-21"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "payment_rescheduled",
+            "note": "Collection updated after both approvals"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "superseded",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      },
+      {
+        "version": 2,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-11-28T10:00:00+05:30",
+          "termsHash": "ebe3f22fd2226fbcd5e05fb4b8898e89106370a0b990da0f529ef2ab1f3bb46e"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "amendment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 2,
+          "amendmentId": "amd-1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-10",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Payment rescheduled: ₹23,010 will now be debited on 21 Dec 2026.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 2,
+          "attemptId": "att-pay-2-2-v2"
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "24-collected",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "All scheduled payments collected."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 20th",
+        "unavailableUntil": "2026-12-20",
+        "earliestDebit": "2026-12-21",
+        "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "payment_rescheduled",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 20th”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "draft_amendment",
+            "note": "Draft amendment: 2026-12-01 → 2026-12-21"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "payment_rescheduled",
+            "note": "Collection updated after both approvals"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "superseded",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      },
+      {
+        "version": 2,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-11-28T10:00:00+05:30",
+          "termsHash": "ebe3f22fd2226fbcd5e05fb4b8898e89106370a0b990da0f529ef2ab1f3bb46e"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 20th.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 20th",
+          "unavailableUntil": "2026-12-20",
+          "earliestDebit": "2026-12-21",
+          "replyDate": "2026-11-28",
+          "transformation": "day 20 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-20; “till” is inclusive, so the earliest debit is the next day"
+        }
+      },
+      {
+        "id": "conv-9",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "amendment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 2,
+          "amendmentId": "amd-1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-10",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Payment rescheduled: ₹23,010 will now be debited on 21 Dec 2026.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 2,
+          "attemptId": "att-pay-2-2-v2"
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "25-buyer-declined",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "buyer_rejected",
+    "headline": [
+      "Buyer declined offer version 1."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "buyer_rejected",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-4",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "₹60,000 is per contract.",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-2",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": true,
+        "refs": {
+          "questionId": "clar-approval",
+          "answerValue": "per_contract"
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      },
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "decline",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Declined the proposal",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-5",
+        "source": "buyer_proposal_page",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": {
+          "kind": "needs_attention",
+          "reason": "unsupported",
+          "detail": "The reply is outside the supported phrases; the merchant should read it."
+        }
+      }
+    ]
+  },
+  {
+    "name": "26-failed-debit",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "Debit failed · retry scheduled for 4 Dec 2026."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-5",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "proposal",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Here is our proposal (version 1): ₹46,020 including GST, paid as ₹23,010 on 1 Nov 2026, ₹23,010 on 1 Dec 2026. Review and respond here: /proposal/agr-hero/v1",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      }
+    ]
+  },
+  {
+    "name": "27-payment-claim",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "A buyer message needs your reply."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details",
+      "Review buyer message",
+      "Mark as handled"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "I paid",
+        "createdAt": "2026-12-01T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "payment_claimed",
+          "phrase": "I paid"
+        }
+      }
+    ]
+  },
+  {
+    "name": "28-no-restructure",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": [
+      "Up to date · next payment ₹23,010 on 1 Dec 2026."
+    ],
+    "actions": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, both amounts include GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:20:00+05:30"
+      },
+      {
+        "questionId": "clar-approval",
+        "value": "per_contract",
+        "answerText": "₹60,000 is per contract.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:22:00+05:30"
+      }
+    ],
+    "interpretations": [],
+    "handledMessages": [],
+    "changeRequests": [
+      {
+        "id": "chg-1",
+        "replyId": "conv-8",
+        "noticeId": "notice-att-pay-2-1-v1",
+        "attemptId": "att-pay-2-1-v1",
+        "scheduleLineId": "pay-2",
+        "agreementVersion": 1,
+        "phrase": "till the 31st",
+        "unavailableUntil": "2026-12-31",
+        "earliestDebit": "2027-01-01",
+        "transformation": "day 31 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-31; “till” is inclusive, so the earliest debit is the next day",
+        "timing": "preventive",
+        "state": "not_restructured",
+        "amendmentId": "amd-1",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "history": [
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "change_requested",
+            "note": "Buyer wrote “till the 31st”"
+          },
+          {
+            "at": "2026-11-28T10:00:00+05:30",
+            "state": "not_restructured",
+            "note": "Recheck failed: PAYMENT_BEFORE_NEXT_BUDGET"
+          }
+        ]
+      }
+    ],
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "merchantApproval": {
+          "by": "Merchant (Pinecone Media Works)",
+          "at": "2026-10-01T09:22:00+05:30",
+          "termsHash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2"
+        }
+      }
+    ],
+    "conversationTail": [
+      {
+        "id": "conv-6",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "payment",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Your upfront payment link for ₹23,010 (simulated): https://simulated.invalid/pl/plink_sim_agrherov1pay11",
+        "createdAt": "2026-10-01T09:22:00+05:30",
+        "sentAt": "2026-10-01T09:22:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "agreementVersion": 1,
+          "attemptId": "att-pay-1-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-7",
+        "dealId": "deal-hero",
+        "direction": "outbound",
+        "kind": "notice",
+        "state": "sent_by_adaptive_deals",
+        "author": "code",
+        "text": "Reminder: ₹23,010 (incl. GST) will be debited on 1 Dec 2026 under your mandate. Reply here if this date does not work.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": "2026-11-28T10:00:00+05:30",
+        "inReplyTo": null,
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": null,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": null
+      },
+      {
+        "id": "conv-8",
+        "dealId": "deal-hero",
+        "direction": "inbound",
+        "kind": "buyer_reply",
+        "state": "received_from_buyer",
+        "author": "buyer",
+        "text": "Cash is tight till the 31st.",
+        "createdAt": "2026-11-28T10:00:00+05:30",
+        "sentAt": null,
+        "inReplyTo": "conv-7",
+        "source": "whatsapp_simulated",
+        "provenance": "simulated",
+        "scripted": false,
+        "refs": {
+          "noticeId": "notice-att-pay-2-1-v1",
+          "attemptId": "att-pay-2-1-v1"
+        },
+        "classification": {
+          "kind": "change_requested",
+          "phrase": "till the 31st",
+          "unavailableUntil": "2026-12-31",
+          "earliestDebit": "2027-01-01",
+          "replyDate": "2026-11-28",
+          "transformation": "day 31 → next occurrence strictly after the reply date 2026-11-28 (Asia/Kolkata) = 2026-12-31; “till” is inclusive, so the earliest debit is the next day"
+        }
+      }
+    ]
+  }
+]

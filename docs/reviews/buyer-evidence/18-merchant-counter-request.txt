@@ -1,0 +1,70 @@
+Skip to content
+Show demo controls
+/Razorpay
+Adaptive Deals
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Waiting on buyer
+Waiting for the buyer to accept the revised terms.
+✓
+Understand the buyer
+Done
+✓
+Review the offer
+Done
+3
+Track the deal
+Current
+NOW
+Waiting for the buyer to accept the revised terms.
+Open buyer proposal (version 2)
+
+Offer version 2 delivered · 28 Nov 2026, 10:00 IST · simulated channel · link /proposal/agr-hero/v2
+
+Buyer asked to move a payment
+Payment schedule · version 1
+1 Nov 2026Payment link
+₹23,010 Paid
+1 Dec 2026Recurring debit
+₹23,010 Scheduled
+Payment details
+OUTCOME AND LEARNING
+Provisional contribution from modelled inputs
+Window in progress · incomplete inputs
+₹4,789.80
+
+This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype.
+
+Target metric: realised contribution within 90 days per eligible stalled deal.
+
+INITIAL OFFER SENT
+₹46,020
+Including GST
+CURRENT ACCEPTED CONTRACT
+₹46,020
+Including GST
+PAYMENTS RECORDED IN ADAPTIVE DEALS
+₹23,010
+₹19,500 excl. GST
+How this was calculated
+What happened in this deal
+How outcomes improve recommendations
+Conversation since the offer
+WhatsApp simulated · buyer replies selected by the demo operator
+Revised proposal
+Sent by Adaptive Deals
+28 Nov 2026, 10:00 IST
+
+We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2
+
+Buyer · Kestrel Lane Clinics
+Received from buyer
+From the buyer proposal page
+28 Nov 2026, 10:00 IST
+
+I cannot accept 21 December. Could we use 24 December?
+
+Show full conversation
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

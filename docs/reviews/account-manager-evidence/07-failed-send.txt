@@ -1,0 +1,29 @@
+Skip to content
+Show demo controls
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Action required
+Approved · not yet sent to the buyer.
+✓
+Understand the buyer
+Done
+2
+Review the offer
+Current
+3
+Track the deal
+Upcoming
+Approved · not yet sent to the buyer
+
+Last attempt: Simulated delivery failure (presenter: fail next send)
+
+Version 1 · ₹46,020 including GST. The buyer has no access until it is delivered.
+
+Retry sending
+Don't proceed
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

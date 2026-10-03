@@ -1,0 +1,42 @@
+Skip to content
+DEMO CONTROLS · SIMULATED
+Simulated date: 2026-10-01
+Merchant action
+Next: review the buyer proposal
+Go there
+More
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Action required
+Review this offer before sending it.
+Go to current stage →
+✓
+Understand the buyer
+Done
+2
+Review the offer
+Current
+3
+Track the deal
+Upcoming
+Buyer constraints confirmed for offer version 1 · 1 Oct 2026, 09:22 IST
+
+Buyer constraints confirmed from the conversation.
+
+Go to the current stage →
+Details
+Original annual proposal: ₹1,41,600 including GST
+Current-quarter budget: ₹50,000 including GST, until 31 Dec 2026
+Next budget: April 2027 · exact day not provided
+Contracts above ₹60,000 including GST require MD approval (per contract)
+Do the amounts of ₹50,000 and ₹60,000 include GST?
+“Yes, both amounts include GST.”
+Does the approval limit of ₹60,000 apply per payment or to the whole contract?
+“₹60,000 is per contract.”
+See evidence
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

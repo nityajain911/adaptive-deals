@@ -1,0 +1,65 @@
+Skip to content
+DEMO CONTROLS · SIMULATED
+Simulated date: 2026-11-28
+Buyer action
+Next: the buyer accepts the revised terms
+Open buyer page
+Back to merchant view
+More
+PM
+Pinecone Media Works
+for Kestrel Lane Clinics
+Revised payment date
+
+The ₹23,010 payment moves from 1 Dec 2026 to 21 Dec 2026. The amount and everything else are unchanged.
+
+WHAT'S INCLUDED
+Website fixes
+One-time
+Search marketing
+3 months
+Monthly reporting
+3 months
+
+Delivery Nov 2026 – Jan 2027
+
+NOT INCLUDED
+
+Social media
+
+This is a separate purchase with its own value. Anything later follows your normal approval process.
+
+Total including GST
+₹46,020
+₹39,000 + GST 18% ₹7,020
+No additional financing charge added by the seller.
+PAYMENTS
+1 Nov 2026
+Payment link
+₹23,010
+incl. GST ₹3,510
+21 Dec 2026
+Recurring debit (e-mandate)
+₹23,010
+incl. GST ₹3,510
+Recurring authorisation
+
+An e-mandate of up to ₹23,010 per debit, ending 31 Jan 2027. You get a reminder 3 days before each debit. (Simulated in this prototype.)
+
+Accepting requires confirming you are authorised to purchase this scope on its own.
+AFTER YOU ACCEPT
+The ₹23,010 payment is debited on 21 Dec 2026 under your existing authorisation, instead of 1 Dec 2026.
+Every other payment, the scope and the total stay exactly as before.
+Until you accept, your current agreement and its schedule stay in place.
+I confirm I am authorised to purchase this scope on its own. It is a separate purchase with its own value, not part of a larger purchase split to avoid approval.
+Accept revised proposal
+
+You accept version 2 exactly as shown (terms hash ebe3f22fd222…).
+
+Request a change
+
+To decline this revision, request a change. Your current agreement stays in place until you accept a revision.
+
+Agreement details
+
+Fictional merchant and buyer · synthetic figures · no real payment is taken

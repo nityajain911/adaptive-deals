@@ -1,0 +1,58 @@
+[
+  {
+    "version": 1,
+    "hash": "151255d7e05cd402193961ba1000df0b87ad2624034bf3bbfcc725ced72169f2",
+    "invoices": [
+      {
+        "id": "inv-1",
+        "paymentLineId": "pay-1",
+        "invoiceDate": {
+          "value": "2026-11-01",
+          "precision": "day"
+        },
+        "prePaise": 1950000,
+        "gstPaise": 351000,
+        "totalPaise": 2301000
+      },
+      {
+        "id": "inv-2",
+        "paymentLineId": "pay-2",
+        "invoiceDate": {
+          "value": "2026-12-01",
+          "precision": "day"
+        },
+        "prePaise": 1950000,
+        "gstPaise": 351000,
+        "totalPaise": 2301000
+      }
+    ]
+  },
+  {
+    "version": 2,
+    "hash": "ebe3f22fd2226fbcd5e05fb4b8898e89106370a0b990da0f529ef2ab1f3bb46e",
+    "invoices": [
+      {
+        "id": "inv-1",
+        "paymentLineId": "pay-1",
+        "invoiceDate": {
+          "value": "2026-11-01",
+          "precision": "day"
+        },
+        "prePaise": 1950000,
+        "gstPaise": 351000,
+        "totalPaise": 2301000
+      },
+      {
+        "id": "inv-2",
+        "paymentLineId": "pay-2",
+        "invoiceDate": {
+          "value": "2026-12-21",
+          "precision": "day"
+        },
+        "prePaise": 1950000,
+        "gstPaise": 351000,
+        "totalPaise": 2301000
+      }
+    ]
+  }
+]

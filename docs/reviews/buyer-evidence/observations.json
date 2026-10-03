@@ -1,0 +1,457 @@
+[
+  {
+    "name": "00-unsent-link",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "options_ready",
+    "versions": [
+      {
+        "version": 1,
+        "status": "draft"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [],
+    "overflow": false
+  },
+  {
+    "name": "01-mobile-proposal",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept proposal",
+      "Request a change",
+      "Decline"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "03-change-requested",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept proposal",
+      "Request a change",
+      "Decline"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "04-merchant-after-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "05-accepted-after-request",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "06-upfront-paid-mandate-pending",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "07-setup-complete",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "08-declined",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "buyer_rejected",
+    "versions": [
+      {
+        "version": 1,
+        "status": "buyer_rejected"
+      }
+    ],
+    "buyerStatus": [
+      "Declined. You declined this proposal on 1 Oct 2026, 09:22 IST. No payment has been set up."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "09-upfront-option",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept proposal",
+      "Request a change",
+      "Decline"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "10-upfront-accepted",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "11-annual-needs-md",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept proposal",
+      "Request a change",
+      "Decline"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "12-annual-accepted",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": false
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "13-deferred-option",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "sent",
+    "versions": [
+      {
+        "version": 1,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept proposal",
+      "Request a change",
+      "Decline"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "14-notice-time-buyer",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "15-unsent-revision",
+    "url": "http://localhost:3101/proposal/agr-hero/v2",
+    "dealStatus": "amending",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "draft"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [],
+    "overflow": false
+  },
+  {
+    "name": "16-revision-awaiting",
+    "url": "http://localhost:3101/proposal/agr-hero/v2",
+    "dealStatus": "amending",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept revised proposal",
+      "Request a change"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "17-revision-counter-request",
+    "url": "http://localhost:3101/proposal/agr-hero/v2",
+    "dealStatus": "amending",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Accept revised proposal",
+      "Request a change"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "18-merchant-counter-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "dealStatus": "amending",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "sent"
+      }
+    ],
+    "buyerStatus": [],
+    "buttons": [
+      "Show demo controls",
+      "Audit details"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "19-revision-accepted",
+    "url": "http://localhost:3101/proposal/agr-hero/v2",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "superseded",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 28 Nov 2026, 10:00 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "20-old-version",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "superseded",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "This version was replaced by version 2. View the current version"
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "21-all-collected",
+    "url": "http://localhost:3101/proposal/agr-hero/v2",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "superseded",
+        "authority": true
+      },
+      {
+        "version": 2,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 28 Nov 2026, 10:00 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "22-failed-debit-buyer",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  },
+  {
+    "name": "23-desktop-buyer",
+    "url": "http://localhost:3101/proposal/agr-hero/v1",
+    "dealStatus": "active",
+    "versions": [
+      {
+        "version": 1,
+        "status": "active",
+        "authority": true
+      }
+    ],
+    "buyerStatus": [
+      "Accepted. You accepted this version on 1 Oct 2026, 09:22 IST."
+    ],
+    "buttons": [
+      "Show demo controls"
+    ],
+    "overflow": false
+  }
+]

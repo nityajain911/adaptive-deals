@@ -1,0 +1,165 @@
+Skip to content
+DEMO CONTROLS · SIMULATED
+Simulated date: 2026-11-28
+Storyboard complete. Reset to run it again.
+More
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Up to date
+Up to date · next payment ₹23,010 on 21 Dec 2026.
+✓
+Understand the buyer
+Done
+✓
+Review the offer
+Done
+3
+Track the deal
+Current
+NOW
+Up to date · next payment ₹23,010 on 21 Dec 2026.
+Open buyer proposal (version 2)
+
+Offer version 2 delivered · 28 Nov 2026, 10:00 IST · simulated channel · link /proposal/agr-hero/v2
+
+Payment rescheduled to 21 Dec 2026 · agreement version 2. Version 1 is kept as superseded history.
+Payment schedule · version 2
+1 Nov 2026Payment link
+₹23,010 Paid
+21 Dec 2026 (was 1 Dec 2026)Recurring debit
+₹23,010 Scheduled
+Payment details
+OUTCOME AND LEARNING
+Provisional contribution from modelled inputs
+Window in progress · incomplete inputs
+₹4,789.80
+
+This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype.
+
+Target metric: realised contribution within 90 days per eligible stalled deal.
+
+INITIAL OFFER SENT
+₹46,020
+Including GST
+CURRENT ACCEPTED CONTRACT
+₹46,020
+Including GST
+PAYMENTS RECORDED IN ADAPTIVE DEALS
+₹23,010
+₹19,500 excl. GST
+How this was calculated
+What happened in this deal
+How outcomes improve recommendations
+Conversation since the offer
+WhatsApp simulated · buyer replies selected by the demo operator
+Revised proposal
+Sent by Adaptive Deals
+28 Nov 2026, 10:00 IST
+
+We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2
+
+Payment
+Sent by Adaptive Deals
+28 Nov 2026, 10:00 IST
+
+Payment rescheduled: ₹23,010 will now be debited on 21 Dec 2026.
+
+Show full conversation
+Audit details · read-only
+Close
+Evidence
+Applied merchant rules
+Approval and acceptance history
+Calculation provenance
+Who did what
+Schedules
+Evidence
+Original annual proposal · Source: Synthetic deal fixture
+Merchant costs and rules · Source: Synthetic deal fixture
+Budget available now · Source: Simulated WhatsApp conversation
+Next budget · Source: Simulated WhatsApp conversation
+Buyer approval limit · Source: Simulated WhatsApp conversation
+Approval limit applies · Source: Simulated WhatsApp conversation
+Approval limit applies (confirmation) · Source: Clarification message
+Amounts include GST · Source: Simulated WhatsApp conversation
+Amounts include GST (confirmation) · Source: Clarification message
+Payment state · Source: Simulated payment record
+Offer figures and checks · Source: Deterministic calculation from configured inputs
+Constraint extraction · Source: AI run run-live-3f518779 · extract.v2
+Clarification wording · Source: AI run run-live-3f518779 · clarify.v1
+Option ranking and explanation · Source: AI run run-live-3f518779 · explain.v3
+Advanced details
+Applied merchant rules
+
+From the merchant's configuration (synthetic fixture). Read-only in this prototype.
+
+Contribution floor
+35% of the accepted price (excl. GST)
+Projected net contribution after direct costs and expected payment fees must reach this.
+Cash-at-risk limit
+₹10,000
+Peak funding requirement (costs paid before cash arrives) may not exceed this.
+Permitted structure templates
+4 of 4
+Split payment: 12 monthly payments, 4 quarterly payments, 2 equal payments, 6 months apart, 20% at start, 80% in month 7, 30% at start, 70% in month 7 · Phased scope: Website fixes + 3 months of search marketing and reporting · Deferred start: 2027-01-01, 2027-04-01, 2027-05-01 · Shorter commitment: 3 months, 6 months
+Maximum tenure
+12 months
+From delivery start to the later of the last delivery and the last payment.
+Smallest instalment
+₹10,000 excl. GST
+No payment line may be smaller.
+Discount policy
+No discount
+Discount levels templates may use: 0%.
+Package separability and independent value
+4 packages
+Website fixes: removable, deferrable, has value on its own · Search marketing: removable, deferrable, has value on its own · Social media: removable, deferrable, has value on its own · Monthly reporting: removable, deferrable, no value on its own, needs Search marketing or Social media
+Approval and acceptance history
+Version 1 · superseded · approved by Merchant (Pinecone Media Works), 1 Oct 2026, 09:22 IST · accepted by the buyer, 1 Oct 2026, 09:22 IST
+Version 2 · active · approved by Merchant (Pinecone Media Works), 28 Nov 2026, 10:00 IST · accepted by the buyer, 28 Nov 2026, 10:00 IST
+Delivery of version 1 (proposal): sent 1 Oct 2026, 09:22 IST
+Delivery of version 2 (amendment): sent 28 Nov 2026, 10:00 IST
+Advanced details
+Calculation provenance
+Offer
+Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments
+Customer total
+₹39,000 pre-GST + GST ₹7,020 = ₹46,020 (GST per line, half-up, 18%)
+Projected contribution
+₹39,000 − direct costs ₹18,750 − expected payment fees ₹920.40 (2%) = ₹19,329.60
+Peak funding requirement
+₹0 · limit ₹10,000
+Inputs
+Package prices and direct costs from the synthetic fixture; costs committed at the start of each delivery month; payments collected on their due dates.
+Who did what
+AI
+Extracted the opening constraints (extract.v2) · Drafted the clarification questions (clarify.v1) · Suggested the order of eligible options (explain.v3)
+Code
+Normalised supported values and verified every evidence quote · Evaluated every permitted structure and calculated every figure · Enforced the approval ordering and validated AI prose · Read only the narrow supported payment-date reply (reply-rules.v1) · Wrote the recommendation explanation, because the AI wording did not pass validation
+Merchant
+Sent 2 clarification questions · Approved terms version 1 · Approved terms version 2
+Buyer
+Sent 3 simulated replies · Accepted terms version 1 (simulated buyer action) · Accepted terms version 2 (simulated buyer action)
+Schedules
+Delivery
+2026-11 · Website fixes · ₹24,000
+2026-11 · Search marketing · ₹4,000
+2026-11 · Monthly reporting · ₹1,000
+2026-12 · Search marketing · ₹4,000
+2026-12 · Monthly reporting · ₹1,000
+2027-01 · Search marketing · ₹4,000
+2027-01 · Monthly reporting · ₹1,000
+Invoices
+inv-1 · 1 Nov 2026 · ₹23,010 incl. GST ₹3,510
+inv-2 · 21 Dec 2026 · ₹23,010 incl. GST ₹3,510
+Collection attempts
+1 Nov 2026 · pay-1 · ₹23,010 · succeeded · version 1
+1 Dec 2026 · pay-2 · ₹23,010 · removed · version 1
+21 Dec 2026 · pay-2 · ₹23,010 · scheduled · version 2 · revised
+Advanced details
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

@@ -1,0 +1,236 @@
+[
+  {
+    "name": "01-start",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": "Confirm two details before we can recommend an offer.",
+    "primary": [
+      "Send 2 questions to buyer"
+    ]
+  },
+  {
+    "name": "02-waiting-answers",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": "Waiting for the buyer to answer.",
+    "primary": []
+  },
+  {
+    "name": "03-typed-answer",
+    "url": "http://localhost:3101/deals/hero/understand",
+    "status": "clarifying",
+    "headline": "Waiting for the buyer to answer.",
+    "primary": []
+  },
+  {
+    "name": "04-offer",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": "Review this offer before sending it.",
+    "primary": [
+      "Review buyer proposal"
+    ]
+  },
+  {
+    "name": "05-alternative-1",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": "Review this offer before sending it.",
+    "primary": [
+      "Review buyer proposal"
+    ]
+  },
+  {
+    "name": "05-alternative-2",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": "Review this offer before sending it.",
+    "primary": [
+      "Review buyer proposal"
+    ]
+  },
+  {
+    "name": "05-alternative-3",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "options_ready",
+    "headline": "Review this offer before sending it.",
+    "primary": [
+      "Review buyer proposal"
+    ]
+  },
+  {
+    "name": "06-preview",
+    "url": "http://localhost:3101/deals/hero/offer/preview",
+    "status": "options_ready",
+    "headline": "Review this offer before sending it.",
+    "primary": [
+      "Approve and send to buyer"
+    ]
+  },
+  {
+    "name": "07-send-failed",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "approved",
+    "headline": "Approved · not yet sent to the buyer.",
+    "primary": [
+      "Retry sending"
+    ]
+  },
+  {
+    "name": "08-sent",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "sent",
+    "headline": "Waiting for the buyer to review offer version 1.",
+    "primary": []
+  },
+  {
+    "name": "09-proposal-change-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "sent",
+    "headline": "Waiting for the buyer to review offer version 1.",
+    "primary": []
+  },
+  {
+    "name": "10-buyer-declined",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "buyer_rejected",
+    "headline": "Buyer declined offer version 1.",
+    "primary": []
+  },
+  {
+    "name": "11-founder-closed",
+    "url": "http://localhost:3101/deals/hero/offer",
+    "status": "merchant_rejected",
+    "headline": "Closed in Adaptive Deals.",
+    "primary": []
+  },
+  {
+    "name": "12-accepted-unpaid",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Buyer accepted. Waiting for the buyer to pay the upfront link and authorise recurring payments.",
+    "primary": []
+  },
+  {
+    "name": "13-paid-mandate-pending",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Buyer accepted. Waiting for the buyer to authorise recurring payments.",
+    "primary": []
+  },
+  {
+    "name": "14-ready",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Up to date · next payment ₹23,010 on 1 Dec 2026.",
+    "primary": []
+  },
+  {
+    "name": "15-paid-claim",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "A buyer message needs your reply.",
+    "primary": [
+      "Review buyer message"
+    ]
+  },
+  {
+    "name": "16-claim-handled",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Up to date · next payment ₹23,010 on 1 Dec 2026.",
+    "primary": []
+  },
+  {
+    "name": "17-unsupported-reply",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "A buyer message needs your reply.",
+    "primary": [
+      "Review buyer message"
+    ]
+  },
+  {
+    "name": "18-change-request",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "The buyer can't pay until after 20 Dec 2026. Draft revised terms.",
+    "primary": [
+      "Draft revised terms"
+    ]
+  },
+  {
+    "name": "19-amendment-draft",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": "The buyer asked to move a payment. Review the revised terms.",
+    "primary": [
+      "Review revised terms"
+    ]
+  },
+  {
+    "name": "20-amendment-waiting",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": "Waiting for the buyer to accept the revised terms.",
+    "primary": []
+  },
+  {
+    "name": "21-rescheduled",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Up to date · next payment ₹23,010 on 21 Dec 2026.",
+    "primary": []
+  },
+  {
+    "name": "22-collected",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "All scheduled payments collected.",
+    "primary": []
+  },
+  {
+    "name": "23-failed-debit",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Debit failed · retry scheduled for 4 Dec 2026.",
+    "primary": []
+  },
+  {
+    "name": "24-failed-debit-amendment",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "amending",
+    "headline": "The buyer asked to move a payment. Review the revised terms.",
+    "primary": [
+      "Review revised terms"
+    ]
+  },
+  {
+    "name": "25-amendment-check-result",
+    "url": "http://localhost:3101/deals/hero/track",
+    "status": "active",
+    "headline": "Up to date · next payment ₹23,010 on 1 Dec 2026.",
+    "primary": []
+  },
+  {
+    "name": "26-scenario-insufficient",
+    "url": "http://localhost:3101/presenter",
+    "status": "active",
+    "headline": null,
+    "primary": []
+  },
+  {
+    "name": "26-scenario-outside",
+    "url": "http://localhost:3101/presenter",
+    "status": "active",
+    "headline": null,
+    "primary": []
+  },
+  {
+    "name": "26-scenario-no-feasible",
+    "url": "http://localhost:3101/presenter",
+    "status": "active",
+    "headline": null,
+    "primary": []
+  }
+]

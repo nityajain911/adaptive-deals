@@ -1,0 +1,97 @@
+Skip to content
+Show demo controls
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Waiting on buyer
+Waiting for the buyer to accept the revised terms.
+✓
+Understand the buyer
+Done
+✓
+Review the offer
+Done
+3
+Track the deal
+Current
+NOW
+Waiting for the buyer to accept the revised terms.
+Open buyer proposal (version 2)
+
+Offer version 2 delivered · 28 Nov 2026, 10:00 IST · simulated channel · link /proposal/agr-hero/v2
+
+Buyer asked to move a payment
+Payment schedule · version 1
+1 Nov 2026Payment link
+₹23,010 Paid
+1 Dec 2026Recurring debit
+₹23,010 Scheduled
+Payment details
+BALANCE EXCL. GST
+₹19,500
+GST TO COLLECT
+₹3,510
+COLLECTED (VERIFIED)
+₹23,010
+₹19,500 excl. GST
+UNPAID SERVICE VALUE
+₹0
+FUNDING REQUIREMENT
+₹0
+OUTCOME AND LEARNING
+Provisional contribution from modelled inputs
+Window in progress · incomplete inputs
+₹4,789.80
+
+This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype.
+
+Target metric: realised contribution within 90 days per eligible stalled deal.
+
+INITIAL OFFER SENT
+₹46,020
+Including GST
+CURRENT ACCEPTED CONTRACT
+₹46,020
+Including GST
+PAYMENTS RECORDED IN ADAPTIVE DEALS
+₹23,010
+₹19,500 excl. GST
+How this was calculated
+Cash received excl. GST
+₹19,500
+Estimated payment fees
+₹460.20
+Modelled direct costs incurred
+₹14,250
+Measurement cutoff
+28 Nov 2026, 10:00 IST
+Refund data is not modelled in this prototype. No refund amount has been assumed.
+Estimated payment fees at configured rate (2%) — not an actual settled Razorpay fee record.
+Includes modelled costs incurred up to the measurement cutoff. Irrevocably committed future costs are not modelled.
+What happened in this deal
+Buyer accepted version 1 · 1 Oct 2026, 09:22 IST
+Upfront payment received · 1 Nov 2026, 10:00 IST
+How outcomes improve recommendations
+Conversation since the offer
+WhatsApp simulated · buyer replies selected by the demo operator
+Buyer · Kestrel Lane Clinics
+Received from buyer
+Simulated buyer reply
+28 Nov 2026, 10:00 IST
+
+Cash is tight till the 20th.
+
+Draft amendment
+Read by code (reply-rules.v1), not AI · “till the 20th” → unavailable through 2026-12-20, earliest debit 2026-12-21
+Revised proposal
+Sent by Adaptive Deals
+28 Nov 2026, 10:00 IST
+
+We can move the ₹23,010 payment from 1 Dec 2026 to 21 Dec 2026. The amount is unchanged. Please review revised version 2: /proposal/agr-hero/v2
+
+Show full conversation
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

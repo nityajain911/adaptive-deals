@@ -1,0 +1,42 @@
+[
+  {
+    "label": "payment before acceptance",
+    "result": {
+      "ok": false,
+      "error": "No active agreement"
+    },
+    "attemptsUnchanged": true
+  },
+  {
+    "label": "debit before mandate confirmed",
+    "result": {
+      "ok": false,
+      "error": "The mandate must be confirmed before a recurring debit"
+    },
+    "attemptsUnchanged": true
+  },
+  {
+    "label": "repeat upfront payment event",
+    "result": {
+      "ok": false,
+      "error": "No unpaid payment link"
+    },
+    "attemptsUnchanged": true
+  },
+  {
+    "label": "repeat recurring event after full payment",
+    "result": {
+      "ok": false,
+      "error": "No recurring debit is scheduled"
+    },
+    "attemptsUnchanged": true
+  },
+  {
+    "label": "attempt to simulate retry success",
+    "result": {
+      "ok": false,
+      "error": "No recurring debit is scheduled"
+    },
+    "attemptsUnchanged": true
+  }
+]

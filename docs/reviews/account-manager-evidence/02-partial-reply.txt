@@ -1,0 +1,76 @@
+Skip to content
+Show demo controls
+/Razorpay
+Adaptive Deals
+Prototype · synthetic data
+PM
+ADAPTIVE DEALS · DEAL
+Kestrel Lane Clinics · Annual digital marketing
+Audit details
+Waiting on buyer
+Waiting for the buyer to answer.
+1
+Understand the buyer
+Current
+2
+Review the offer
+Upcoming
+3
+Track the deal
+Upcoming
+What's blocking this deal
+Original annual proposal: ₹1,41,600 including GST
+Current-quarter budget: ₹50,000 (GST basis not confirmed), until 31 Dec 2026
+Next budget: April 2027 · exact day not provided
+Above ₹60,000 (GST basis not confirmed) requires MD approval (per payment or per contract not confirmed)
+See evidence
+Confirm two details
+Suggested by AI
+Sent · 1 Oct 2026, 09:00 IST
+
+Do the amounts of ₹50,000 and ₹60,000 include GST?
+
+Why it matters: If it includes GST, 4 options are feasible (3 within the approval limit); if it excludes GST, 5 options are feasible (4 within the approval limit). 1 option changes outcome. For example, “3-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.
+
+Buyer replied: “Yes, both amounts include GST.”
+Suggested by AI
+Sent · 1 Oct 2026, 09:00 IST
+
+Does the approval limit of ₹60,000 apply per payment or to the whole contract?
+
+Why it matters: If it applies per payment, 5 options are feasible (4 within the approval limit); if it applies to the whole contract, 5 options are feasible (3 within the approval limit). 1 option changes outcome. For example, “Full annual scope from May 2027 · 12 monthly payments” is feasible within the limit when it applies per payment but feasible but needs MD approval when it applies to the whole contract.
+
+Waiting for the buyer.
+
+Waiting for the buyer.
+
+Conversation
+WhatsApp simulated · buyer replies selected by the demo operator
+Buyer · Kestrel Lane Clinics
+Received from buyer
+Simulated WhatsApp conversation
+1 Oct 2026, 08:47 IST
+
+Only ₹50K left this quarter; new budget in April; anything above ₹60K needs MD approval.
+
+Question
+Approved and sent by merchant
+1 Oct 2026, 09:00 IST
+
+Do the amounts of ₹50,000 and ₹60,000 include GST?
+
+Question
+Approved and sent by merchant
+1 Oct 2026, 09:00 IST
+
+Does the approval limit of ₹60,000 apply per payment or to the whole contract?
+
+Buyer · Kestrel Lane Clinics
+Received from buyer
+Simulated buyer reply
+1 Oct 2026, 09:00 IST
+
+Yes, both amounts include GST.
+
+Show full conversation
+Synthetic data · fictional merchant and buyer. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.

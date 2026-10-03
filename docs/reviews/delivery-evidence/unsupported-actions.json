@@ -1,0 +1,6 @@
+{
+  "requestScopeChangeOnActive": {
+    "ok": false,
+    "error": "Only a sent proposal can receive a change request"
+  }
+}

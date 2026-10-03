@@ -1,0 +1,20 @@
+{
+  "handledMessages": [
+    {
+      "messageId": "conv-9",
+      "handledAt": "2026-11-28T10:00:00+05:30",
+      "actor": "merchant",
+      "note": "Spoke to buyer. They asked for 24 December; founder to confirm."
+    }
+  ],
+  "events": [
+    {
+      "id": "ev-26",
+      "at": "2026-11-28T10:00:00+05:30",
+      "kind": "message_handled",
+      "title": "Buyer message marked handled",
+      "detail": "Spoke to buyer. They asked for 24 December; founder to confirm.",
+      "provenance": "merchant"
+    }
+  ]
+}

@@ -1,0 +1,475 @@
+[
+  {
+    "name": "02-not-accepted",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 0,
+    "outstandingPaise": 4602000,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "03-accepted-setup-pending",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 0,
+    "outstandingPaise": 4602000,
+    "activeAttempts": [
+      {
+        "line": "pay-1",
+        "due": "2026-11-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "04-upfront-paid",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "05-mandate-confirmed",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "06-notice",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "07-unverified-payment-claim",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "08-claim-handled",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "09-preventive-draft",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "10-awaiting-buyer",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "11-preventive-active",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-21",
+        "amount": 2301000,
+        "origin": "amendment"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "12-phase-collected",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 4602000,
+    "outstandingPaise": 0,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "13-failed-retry-scheduled",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-04",
+        "amount": 2301000,
+        "origin": "internal_retry"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "14-retry-amendment-draft",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-04",
+        "amount": 2301000,
+        "origin": "internal_retry"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "15-retry-awaiting-buyer",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-04",
+        "amount": 2301000,
+        "origin": "internal_retry"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "16-retry-removed",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-21",
+        "amount": 2301000,
+        "origin": "amendment"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "17-recovery-collected",
+    "version": 2,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 4602000,
+    "outstandingPaise": 0,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "18-all-upfront",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 4602000,
+    "outstandingPaise": 0,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "19-annual-upfront",
+    "version": 1,
+    "contractPaise": 14160000,
+    "schedulePaise": 14160000,
+    "prePaise": 12000000,
+    "gstPaise": 2160000,
+    "collectedPaise": 4248000,
+    "outstandingPaise": 9912000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2027-05-01",
+        "amount": 9912000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "20-annual-april-notice",
+    "version": 1,
+    "contractPaise": 14160000,
+    "schedulePaise": 14160000,
+    "prePaise": 12000000,
+    "gstPaise": 2160000,
+    "collectedPaise": 4248000,
+    "outstandingPaise": 9912000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2027-05-01",
+        "amount": 9912000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "21-annual-paid-after-window",
+    "version": 1,
+    "contractPaise": 14160000,
+    "schedulePaise": 14160000,
+    "prePaise": 12000000,
+    "gstPaise": 2160000,
+    "collectedPaise": 14160000,
+    "outstandingPaise": 0,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "22-mobile-annual-paid",
+    "version": 1,
+    "contractPaise": 14160000,
+    "schedulePaise": 14160000,
+    "prePaise": 12000000,
+    "gstPaise": 2160000,
+    "collectedPaise": 14160000,
+    "outstandingPaise": 0,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "23-deferred-first-payment",
+    "version": 1,
+    "contractPaise": 14160000,
+    "schedulePaise": 14160000,
+    "prePaise": 12000000,
+    "gstPaise": 2160000,
+    "collectedPaise": 1180000,
+    "outstandingPaise": 12980000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2027-06-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-3",
+        "due": "2027-07-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-4",
+        "due": "2027-08-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-5",
+        "due": "2027-09-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-6",
+        "due": "2027-10-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-7",
+        "due": "2027-11-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-8",
+        "due": "2027-12-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-9",
+        "due": "2028-01-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-10",
+        "due": "2028-02-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-11",
+        "due": "2028-03-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      },
+      {
+        "line": "pay-12",
+        "due": "2028-04-01",
+        "amount": 1180000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  },
+  {
+    "name": "24-declined",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 0,
+    "outstandingPaise": 4602000,
+    "activeAttempts": [],
+    "rowReconciles": true
+  },
+  {
+    "name": "25-unfeasible-reschedule",
+    "version": 1,
+    "contractPaise": 4602000,
+    "schedulePaise": 4602000,
+    "prePaise": 3900000,
+    "gstPaise": 702000,
+    "collectedPaise": 2301000,
+    "outstandingPaise": 2301000,
+    "activeAttempts": [
+      {
+        "line": "pay-2",
+        "due": "2026-12-01",
+        "amount": 2301000,
+        "origin": "agreement"
+      }
+    ],
+    "rowReconciles": true
+  }
+]
