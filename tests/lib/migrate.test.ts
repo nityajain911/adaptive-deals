@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrateState, STORE_SCHEMA_VERSION } from "@/lib/migrate";
+import { DEFAULT_CASE_ID } from "@/data/synthetic/cases";
 
 const base = (over: Record<string, unknown> = {}) => ({
   schema: "adaptive-deals.store.v1", dealId: "deal-hero", status: "clarifying",
@@ -18,6 +19,7 @@ describe("migrateState (spec §9)", () => {
     expect([s.selectedOption, s.deliveries, s.outcomes, s.reviewRequired]).toEqual([null, [], [], null]);
     expect(s.workDispositions).toEqual([]);
     expect(s.decisionBranch).toBeNull();
+    expect(s.caseId).toBe(DEFAULT_CASE_ID);
   });
   it("requires review when a stored decision branch is incomplete", () => {
     const s = migrateState(base({

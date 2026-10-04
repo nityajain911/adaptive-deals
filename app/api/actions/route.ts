@@ -8,6 +8,7 @@ import * as svc from "@/lib/service";
 import { setFailNextSend } from "@/lib/presenter-store";
 import { SYSTEM_STEPS, type SystemStepId } from "@/lib/demo-steps";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
+import { CASE_IDS, type CaseId } from "@/data/synthetic/cases";
 
 /**
  * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
@@ -16,6 +17,7 @@ import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason,
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
 const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reset") }),
+  z.object({ action: z.literal("start_case"), caseId: z.enum(CASE_IDS as unknown as [CaseId, ...CaseId[]]) }),
   z.object({ action: z.literal("demo_system_step"), stepId: z.enum(SYSTEM_STEPS as unknown as [SystemStepId, ...SystemStepId[]]) }),
   z.object({ action: z.literal("run_live") }),
   z.object({ action: z.literal("replay_run"), runId: z.string().max(40) }),
@@ -84,6 +86,9 @@ export async function POST(request: Request) {
     switch (a.action) {
       case "reset":
         await svc.resetToSeed();
+        break;
+      case "start_case":
+        await svc.startCase(a.caseId);
         break;
       case "demo_system_step":
         await svc.runSystemStep(a.stepId);

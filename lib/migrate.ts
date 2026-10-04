@@ -2,13 +2,14 @@ import { DEMO_ANCHOR } from "@/domain/clock";
 import { deliveryKey, type DeliveryRecord } from "./deal-records";
 import type { DemoState } from "./service";
 import { DECISION_BRANCH_SCHEMA, type DecisionBranch } from "./decision-branch";
+import { CASE_IDS, DEFAULT_CASE_ID } from "@/data/synthetic/cases";
 
 /**
  * Store schema migration (spec §9). Deterministic and idempotent: it adds compatible state and
  * infers new fields only where existing records prove them. It never rewrites history and never
  * invents a delivery, acceptance or option; ambiguity sets `reviewRequired` instead.
  */
-export const STORE_SCHEMA_VERSION = 4;
+export const STORE_SCHEMA_VERSION = 5;
 
 const SENT_OR_LATER = new Set(["sent", "accepted", "active", "superseded", "buyer_rejected"]);
 
@@ -20,6 +21,11 @@ export function migrateState(raw: unknown): DemoState {
   s.changeRequests ??= [];
   s.workDispositions ??= [];
   s.reviewRequired ??= null;
+  if (s.caseId === undefined) s.caseId = DEFAULT_CASE_ID;
+  else if (!(CASE_IDS as readonly string[]).includes(s.caseId)) {
+    s.caseId = DEFAULT_CASE_ID;
+    s.reviewRequired = "The saved commercial case is unknown. Inspect records before continuing.";
+  }
   if (s.decisionBranch === undefined) s.decisionBranch = null;
   else if (s.decisionBranch !== null && !validDecisionBranch(s.decisionBranch)) {
     s.decisionBranch = null;

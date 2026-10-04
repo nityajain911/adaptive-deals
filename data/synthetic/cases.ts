@@ -102,7 +102,7 @@ const reducedAnswers: RecordedAnswer[] = [
   {
     questionId: "clar-gst",
     value: "yes",
-    answerText: "Yes, both ₹50,000 and ₹60,000 include GST.",
+    answerText: "Yes, both amounts include GST.",
     recordedBy: "Merchant (Pinecone Media Works)",
     confirmedByBuyerVia: "whatsapp",
     answeredAt: "2026-10-01T09:20:00+05:30",
@@ -110,7 +110,7 @@ const reducedAnswers: RecordedAnswer[] = [
   {
     questionId: "clar-approval",
     value: "per_contract",
-    answerText: "₹60,000 is the limit for the full contract.",
+    answerText: "₹60,000 is per contract.",
     recordedBy: "Merchant (Pinecone Media Works)",
     confirmedByBuyerVia: "whatsapp",
     answeredAt: "2026-10-01T09:22:00+05:30",

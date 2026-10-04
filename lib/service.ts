@@ -23,7 +23,8 @@ import { ReplayProvider } from "@/ai/replay-provider";
 import type { RecordedAnswer, RunRecord } from "@/ai/run-record";
 import { SyntheticAuthoredProvider } from "@/ai/synthetic-provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
-import { heroBuyer, heroClarificationAnswers, heroDemoEvents, heroMerchant, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
+import { heroClarificationAnswers, heroDemoEvents, heroMerchant, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
+import { allDemoCases, DEFAULT_CASE_ID, demoCase, type CaseId, type DemoCase } from "@/data/synthetic/cases";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
@@ -72,6 +73,8 @@ export interface TimelineEvent {
 export interface DemoState {
   schema: "adaptive-deals.store.v1";
   dealId: string;
+  /** One active fictional commercial case. Switching it replaces the complete demo store. */
+  caseId: CaseId;
   status: DealStatus;
   statusHistory: { at: string; from: DealStatus | null; to: DealStatus; reason: string }[];
   clockAdvances: ClockAdvance[];
@@ -119,7 +122,38 @@ export class ActionError extends Error {
 // ── Bundled synthetic run ────────────────────────────────────────────────────
 
 export function bundledSyntheticRun(): RunRecord {
-  return JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8"));
+  return bundledCaseRun(DEFAULT_CASE_ID);
+}
+
+function bundledCaseRun(caseId: CaseId): RunRecord {
+  const item = demoCase(caseId);
+  if (!item) throw new ActionError("Unknown case", 404);
+  return JSON.parse(readFileSync(path.join(process.cwd(), item.bundledRunPath), "utf8"));
+}
+
+/** Current fictional case, validated by migration before any action reads it. */
+export function activeCase(s: Pick<DemoState, "caseId">): DemoCase {
+  const item = demoCase(s.caseId);
+  if (!item) throw new ActionError("Unknown case", 404);
+  return item;
+}
+
+/** Historical hero runs remain replayable for audit; active product work always uses the case. */
+function dealForState(s: Pick<DemoState, "caseId" | "run">) {
+  return s.run.record.inputs.dealId === HERO_DEAL_ID ? heroDeal() : activeCase(s).deal;
+}
+
+/** A mapped additive live run when available, otherwise the credential-free bundled replay. */
+export function demoCaseRunRecord(caseId: CaseId): RunRecord {
+  try {
+    const mapping = JSON.parse(readFileSync(path.join(process.cwd(), "data/case-runs.json"), "utf8")) as Partial<Record<CaseId, string>>;
+    const runId = mapping[caseId];
+    const live = runId ? committedLiveRun(runId) : null;
+    if (live?.kind === "live" && live.status === "complete" && live.inputs.dealId === demoCase(caseId)!.deal.dealId) return live;
+  } catch {
+    // The live mapping is additive and optional; synthetic replay is always available.
+  }
+  return bundledCaseRun(caseId);
 }
 
 const LIVE_RUN_ID = /^run-live-[a-f0-9]{8}$/;
@@ -188,16 +222,24 @@ const at10 = (date: string) => `${date}T10:00:00+05:30`;
 // ── Seed and load ────────────────────────────────────────────────────────────
 
 /** Fresh demo state at the start of the storyboard: the bundled synthetic run, before answers. */
-export async function seedState(record: RunRecord = demoRunRecord(), viewing: "replay" | "fresh" = "replay"): Promise<DemoState> {
-  const provider = new ReplayProvider(record.kind === "live" ? "recorded_replay" : "synthetic_replay", record.model, record.steps);
-  const first = await runConstruct({ provider, kind: record.kind, runId: record.runId, clock: new FixedClock(), deal: heroDeal(), recordedAtWall: record.recordedAtWall });
+export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" = "replay", requestedCaseId?: CaseId): Promise<DemoState> {
+  const inferred = record ? allDemoCases().find((candidate) => candidate.deal.dealId === record.inputs.dealId)?.id : undefined;
+  const caseId = requestedCaseId ?? inferred ?? DEFAULT_CASE_ID;
+  const item = demoCase(caseId);
+  if (!item) throw new ActionError("Unknown case", 404);
+  const selectedRecord = record ?? demoCaseRunRecord(caseId);
+  const deal = selectedRecord.inputs.dealId === HERO_DEAL_ID ? heroDeal() : item.deal;
+  if (selectedRecord.inputs.dealId !== deal.dealId) throw new ActionError("The selected run does not belong to this case");
+  const provider = new ReplayProvider(selectedRecord.kind === "live" ? "recorded_replay" : "synthetic_replay", selectedRecord.model, selectedRecord.steps);
+  const first = await runConstruct({ provider, kind: selectedRecord.kind, runId: selectedRecord.runId, clock: new FixedClock(), deal, recordedAtWall: selectedRecord.recordedAtWall });
   const s: DemoState = {
     schema: "adaptive-deals.store.v1",
     dealId: HERO_DEAL_ID,
+    caseId,
     status: "stalled",
     statusHistory: [{ at: DEMO_ANCHOR, from: null, to: "stalled", reason: "Deal entered the workspace with a buyer conversation" }],
     clockAdvances: [],
-    run: { record: first.record, viewing, sourceRunId: record.runId },
+    run: { record: first.record, viewing, sourceRunId: selectedRecord.runId },
     agreements: [],
     paymentLinks: [],
     mandate: null,
@@ -221,7 +263,7 @@ export async function seedState(record: RunRecord = demoRunRecord(), viewing: "r
     decisionBranch: null,
     reviewRequired: null,
   };
-  event(s, "run_loaded", record.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", record.kind === "live" ? "live_model" : "synthetic_replay", `Run ${record.runId}`);
+  event(s, "run_loaded", selectedRecord.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", selectedRecord.kind === "live" ? "live_model" : "synthetic_replay", `Run ${selectedRecord.runId}`);
   setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
   draftMissingClarifications(s);
   return s;
@@ -269,20 +311,34 @@ async function mutate(fn: (s: DemoState) => Promise<void> | void): Promise<DemoS
 
 export async function resetToSeed(): Promise<DemoState> {
   return serialised(async () => {
-    const s = await seedState();
+    const current = await readJson<DemoState>(STORE_FILE);
+    const caseId = current ? migrateState(current).caseId : DEFAULT_CASE_ID;
+    const s = await seedState(undefined, "replay", caseId);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
+  });
+}
+
+/** Replace the one active demo atomically. Invalid cases leave the previous file unchanged. */
+export async function startCase(caseId: string): Promise<DemoState> {
+  const item = demoCase(caseId);
+  if (!item) throw new ActionError("Unknown case", 404);
+  const replacement = await seedState(undefined, "replay", item.id);
+  return serialised(async () => {
+    await writeJsonAtomic(STORE_FILE, replacement);
+    return replacement;
   });
 }
 
 // ── Derived engine state (always recomputed from the run record, integrity-checked) ──
 
 export async function currentOutcome(s: DemoState): Promise<RunOutcome> {
+  const deal = dealForState(s);
   if (s.decisionBranch) {
     const initial = await initialOutcomeForBranch(s);
-    return deriveBranchOutcome({ initial, branch: s.decisionBranch, deal: heroDeal() });
+    return deriveBranchOutcome({ initial, branch: s.decisionBranch, deal });
   }
-  return replayRun(s.run.record, heroDeal(), new FixedClock());
+  return replayRun(s.run.record, deal, new FixedClock());
 }
 
 /** Answers that govern the current decision, whether recorded in the run or in an application branch. */
@@ -320,7 +376,7 @@ function providerForContinuation(s: DemoState): ModelProvider {
 }
 
 function sourceSteps(s: DemoState) {
-  if (s.run.record.kind !== "live") return bundledSyntheticRun().steps;
+  if (s.run.record.kind !== "live") return (s.run.record.inputs.dealId === HERO_DEAL_ID ? JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord : demoCaseRunRecord(s.caseId)).steps;
   const id = s.run.sourceRunId ?? s.run.record.runId;
   return (committedLiveRunSync(id) ?? s.run.record).steps;
 }
@@ -334,7 +390,7 @@ function committedLiveRunSync(runId: string): RunRecord | null {
 }
 
 function sourceRecord(s: DemoState): RunRecord {
-  if (s.run.record.kind !== "live") return bundledSyntheticRun();
+  if (s.run.record.kind !== "live") return s.run.record.inputs.dealId === HERO_DEAL_ID ? (JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord) : demoCaseRunRecord(s.caseId);
   const id = s.run.sourceRunId ?? s.run.record.runId;
   return committedLiveRunSync(id) ?? s.run.record;
 }
@@ -348,7 +404,7 @@ export async function initialOutcomeForBranch(s: DemoState): Promise<RunOutcome>
     kind: source.kind,
     runId: source.runId,
     clock: new FixedClock(),
-    deal: heroDeal(),
+    deal: dealForState(s),
     recordedAtWall: source.recordedAtWall,
     promptVersions: source.promptVersions,
   });
@@ -358,11 +414,13 @@ export async function startLiveRun(): Promise<DemoState> {
   const provider = createLiveProvider();
   const availability = liveAvailability();
   if (!provider || !availability.available) throw new ActionError(`Run live is unavailable: ${availability.available ? "no provider" : availability.reason}.`, 412);
+  const current = await getState();
+  const item = activeCase(current);
   const runId = `run-live-${randomUUID().slice(0, 8)}`;
-  const out = await runConstruct({ provider, kind: "live", runId, clock: new FixedClock(), deal: heroDeal(), recordedAtWall: new Date().toISOString() });
+  const out = await runConstruct({ provider, kind: "live", runId, clock: new FixedClock(), deal: item.deal, recordedAtWall: new Date().toISOString() });
   await writeJsonAtomic(`runs/${runId}.json`, out.record);
   return serialised(async () => {
-    const s = await seedState(out.record, "fresh");
+    const s = await seedState(out.record, "fresh", item.id);
     s.events = s.events.map((e) => (e.kind === "run_loaded" ? { ...e, title: "Live model run started" } : e));
     await writeJsonAtomic(STORE_FILE, s);
     return s;
@@ -374,8 +432,10 @@ export async function replayStoredRun(runId: string): Promise<DemoState> {
   if (!LIVE_RUN_ID.test(runId)) throw new ActionError("Unknown run", 404);
   const record = await storedLiveRun(runId);
   if (!record || record.kind !== "live") throw new ActionError("Only stored live runs can be replayed as actual runs", 404);
+  const item = allDemoCases().find((candidate) => candidate.deal.dealId === record.inputs.dealId);
+  if (!item) throw new ActionError("Stored run does not belong to a demo case", 404);
   return serialised(async () => {
-    const s = await seedState(record, "replay");
+    const s = await seedState(record, "replay", item.id);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
   });
@@ -407,13 +467,13 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
     let out: RunOutcome;
     const source = sourceRecord(s);
     if (s.run.record.kind === "live" && s.run.viewing === "fresh") {
-      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
+      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: dealForState(s), answers, previous: s.run.record });
       s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
       s.decisionBranch = null;
       // Keep the stored copy of a fresh live run complete, so it can later be replayed.
       await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
     } else if (answersMatchRecorded(source, answers)) {
-      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
+      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: dealForState(s), answers, previous: s.run.record });
       s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
       s.decisionBranch = null;
     } else {
@@ -428,7 +488,7 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
         explanationSource: "code_fallback",
       };
       // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
-      out = deriveBranchOutcome({ initial, branch, deal: heroDeal() });
+      out = deriveBranchOutcome({ initial, branch, deal: dealForState(s) });
       s.decisionBranch = branch;
     }
     for (const a of answers) event(s, "clarification_answered", `Answer recorded: ${a.answerText}`, "merchant", `Confirmed by buyer via ${a.confirmedByBuyerVia}`);
@@ -447,7 +507,8 @@ async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: Ev
 }
 
 function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: 1, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: heroBuyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
+  const item = activeCase(s);
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: 1, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
 }
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
@@ -815,14 +876,14 @@ export async function acceptAgreement(version: number, termsHash: string, author
     const adapters = paymentAdapters(process.env, s.paymentLinks);
     const linkAttempt = s.attempts.find((a) => a.method === "payment_link" && a.status === "scheduled");
     if (linkAttempt) {
-      const link = await adapters.links.createPaymentLink({ referenceId: linkAttempt.idempotencyKey, amountPaise: linkAttempt.amountPaise, description: `Adaptive Deals ${v.agreementId} v${v.version} · instalment ${linkAttempt.scheduleLineId}`, customerName: heroBuyer.name, notes: { agreement: v.agreementId, version: String(v.version), terms_hash: v.termsHash.slice(0, 32) } });
+      const link = await adapters.links.createPaymentLink({ referenceId: linkAttempt.idempotencyKey, amountPaise: linkAttempt.amountPaise, description: `Adaptive Deals ${v.agreementId} v${v.version} · instalment ${linkAttempt.scheduleLineId}`, customerName: activeCase(s).buyer.name, notes: { agreement: v.agreementId, version: String(v.version), terms_hash: v.termsHash.slice(0, 32) } });
       s.paymentLinks.push(link);
       s.attempts = s.attempts.map((a) => (a.id === linkAttempt.id ? { ...a, razorpayId: link.id } : a));
       event(s, "payment_link_created", `Upfront payment link created`, link.mode === "real_test" ? "real_test" : "simulated", link.mode === "real_test" ? `Razorpay test mode · ${link.id}` : `Simulated · ${link.id}`);
       sendCode(s, "payment", paymentLinkMessageText({ amountPaise: link.amountPaise, url: link.shortUrl, simulated: link.mode === "simulated" }), { agreementVersion: v.version, attemptId: linkAttempt.id });
     }
     if (v.terms.mandate) {
-      const reg = await adapters.recurring.registerMandate({ referenceId: `${v.agreementId}_v${v.version}`, perDebitLimitPaise: v.terms.mandate.perDebitLimitPaise, endDate: v.terms.mandate.endDate.value, customerName: heroBuyer.name });
+      const reg = await adapters.recurring.registerMandate({ referenceId: `${v.agreementId}_v${v.version}`, perDebitLimitPaise: v.terms.mandate.perDebitLimitPaise, endDate: v.terms.mandate.endDate.value, customerName: activeCase(s).buyer.name });
       s.mandate = { ...createMandate({ id: reg.id, agreementId: v.agreementId, agreementVersion: v.version, terms: v.terms.mandate, mode: reg.mode }), note: reg.note };
       event(s, "mandate_requested", "Mandate registration requested", "simulated", reg.note);
     }
@@ -1089,7 +1150,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       lineId: cr.scheduleLineId,
       newDueDate: cr.earliestDebit,
       constraints,
-      engine: { merchant: heroMerchant, packages: heroDeal().packages, templates: heroDeal().templates },
+      engine: { merchant: heroMerchant, packages: activeCase(s).deal.packages, templates: activeCase(s).deal.templates },
       mandate: s.mandate!,
       trigger: cr.timing === "preventive" ? "buyer_message" : "failed_debit",
       triggerRefs: [cr.attemptId, cr.noticeId!, cr.replyId],
@@ -1103,7 +1164,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
       return;
     }
-    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: heroBuyer.id, policy: heroMerchant.policy, clock: clockOf(s), supersedes: v.version }));
+    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: activeCase(s).buyer.id, policy: heroMerchant.policy, clock: clockOf(s), supersedes: v.version }));
     s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
     event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
     setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");
@@ -1151,7 +1212,7 @@ export async function acceptAmendment(termsHash: string, authorityConfirmed: boo
     a = transitionAmendment(a, "active", clockOf(s).now());
     s.amendments[s.amendments.length - 1] = a;
     if (a.mandateFit.freshAuthorisationRequired && v2.terms.mandate) {
-      const reg = await paymentAdapters(process.env).recurring.registerMandate({ referenceId: `${v2.agreementId}_v${v2.version}`, perDebitLimitPaise: v2.terms.mandate.perDebitLimitPaise, endDate: v2.terms.mandate.endDate.value, customerName: heroBuyer.name });
+      const reg = await paymentAdapters(process.env).recurring.registerMandate({ referenceId: `${v2.agreementId}_v${v2.version}`, perDebitLimitPaise: v2.terms.mandate.perDebitLimitPaise, endDate: v2.terms.mandate.endDate.value, customerName: activeCase(s).buyer.name });
       s.mandate = { ...createMandate({ id: reg.id, agreementId: v2.agreementId, agreementVersion: v2.version, terms: v2.terms.mandate, mode: reg.mode }), note: reg.note };
       event(s, "mandate_requested", "Fresh mandate authorisation requested", "simulated", reg.note);
     }
@@ -1176,7 +1237,8 @@ export async function runScenario(id: string | null): Promise<DemoState> {
     const sc = SCENARIOS.find((x) => x.id === id);
     if (!sc) throw new ActionError("Unknown scenario", 404);
     const provider = new SyntheticAuthoredProvider({ extract: sc.extraction }, []);
-    const out = await runConstruct({ provider, kind: "synthetic_replay", runId: `run-${sc.id}`, clock: new FixedClock(), deal: { ...heroDeal(), dealId: sc.id, messages: sc.messages } });
+    const current = activeCase(s).deal;
+    const out = await runConstruct({ provider, kind: "synthetic_replay", runId: `run-${sc.id}`, clock: new FixedClock(), deal: { ...current, dealId: sc.id, messages: sc.messages } });
     s.scenario = { id: sc.id, record: out.record };
   });
 }

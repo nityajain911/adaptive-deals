@@ -8,9 +8,9 @@ import { localDateOf } from "@/domain/dates";
 import { driveTo } from "../helpers/drive";
 
 /**
- * Connected buyer journey through the service and real store. Uses the default displayed demo
- * run (the committed actual Groq run), so it exercises the live-run application state; no model
- * or network call is allowed anywhere in this suite.
+ * Connected buyer journey through the service and real store. Until additive per-case live runs
+ * are recorded, the selected designed case uses its bundled synthetic replay. No model or network
+ * call is allowed anywhere in this suite.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-connected-"));
 delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
@@ -37,10 +37,10 @@ const snapshot = async () => {
   return JSON.stringify({ attempts: s.attempts, paymentLinks: s.paymentLinks, agreements: s.agreements, mandate: s.mandate, amendments: s.amendments });
 };
 
-describe("connected buyer journey (live-run application state)", () => {
+describe("connected buyer journey (selected-case application state)", () => {
   it("seeds AI-suggested drafts that are not sent until the merchant sends them", async () => {
     const s = await svc.resetToSeed();
-    expect(s.run.record.kind).toBe("live");
+    expect(s.run.record.kind).toBe("synthetic_replay");
     const drafts = s.conversation.filter((i) => i.kind === "clarification");
     expect(drafts.map((d) => [d.state, d.author, d.sentAt])).toEqual([
       ["suggested_by_ai", "ai", null],
@@ -197,7 +197,7 @@ describe("connected buyer journey (live-run application state)", () => {
   });
 });
 
-describe("typed replies use the same bounded path in replay and live-run states", () => {
+describe("typed replies use the same bounded path across selected-case resets", () => {
   async function typedNoticeReplies(demoRun: string | undefined) {
     if (demoRun) process.env.ADAPTIVE_DEALS_DEMO_RUN = demoRun;
     else delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
@@ -212,13 +212,13 @@ describe("typed replies use the same bounded path in replay and live-run states"
     }
     return { kind: (await S()).run.record.kind, out };
   }
-  it("synthetic replay and live-run states classify typed replies identically", async () => {
-    const live = await typedNoticeReplies(undefined);
-    const synthetic = await typedNoticeReplies("synthetic");
-    expect(live.kind).toBe("live");
-    expect(synthetic.kind).toBe("synthetic_replay");
-    expect(live.out).toEqual(synthetic.out);
-    expect(live.out).toEqual(["false:change_requested", "false:payment_claimed", "false:acknowledgement", "false:needs_attention"]);
+  it("classifies typed replies identically after a normal and explicit synthetic reset", async () => {
+    const normal = await typedNoticeReplies(undefined);
+    const explicit = await typedNoticeReplies("synthetic");
+    expect(normal.kind).toBe("synthetic_replay");
+    expect(explicit.kind).toBe("synthetic_replay");
+    expect(normal.out).toEqual(explicit.out);
+    expect(normal.out).toEqual(["false:change_requested", "false:payment_claimed", "false:acknowledgement", "false:needs_attention"]);
     expect(fetchSpy).not.toHaveBeenCalled();
     delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
   });
