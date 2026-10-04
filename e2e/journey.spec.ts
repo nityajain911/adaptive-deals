@@ -21,7 +21,7 @@ async function api(page: Page, data: Record<string, unknown>, ok = true) {
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as StoredState;
 const save = (s: StoredState) => writeFileSync(STORE, JSON.stringify(s, null, 2) + "\n");
 const reset = (page: Page) => api(page, { action: "reset" });
-const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
+const shot = (page: Page, name: string) => process.env.ADAPTIVE_E2E_NO_SHOTS === "1" ? Promise.resolve(Buffer.alloc(0)) : page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
 
 async function noHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -378,4 +378,147 @@ test("initial Offer viewport keeps rejections and funding detail collapsed", asy
     if (await fundingLabels.nth(i).isVisible()) visibleFundingLabels++;
   }
   expect(visibleFundingLabels).toBe(0);
+});
+
+test("P0 · buyer change request transfers ownership until the merchant makes an explicit disposition", async ({ page }) => {
+  const agreement = await prepareSent(page);
+  await api(page, { action: "request_change", version: agreement.version, text: "Could we start with a smaller first phase?" });
+
+  await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
+  await expect(page.getByTestId("buyer-status")).toContainText("Waiting for Pinecone Media Works");
+  await expect(page.getByTestId("buyer-actions")).toHaveCount(0);
+
+  const request = state().conversation.findLast((item) => item.kind === "change_request")!;
+  await page.goto("/deals/hero/track");
+  await expectStage(page, "track", "The buyer requested a change", "Review buyer request");
+  await expect(page.getByTestId(`work-${request.id}`)).toContainText("current proposal remains unchanged");
+  await page.getByTestId(`keep-current-${request.id}`).click();
+  await expectStage(page, "track", "Waiting for the buyer to review offer version 1", undefined);
+
+  await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
+  await expect(page.getByTestId("buyer-status")).toContainText("Review and respond");
+  await expect(page.getByTestId("buyer-actions")).toBeVisible();
+});
+
+test("P0 · resolved notice corrections leave the attention queue and unsupported non-date replies get generic guidance", async ({ page }) => {
+  await prepareAccepted(page);
+  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
+  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
+  await api(page, { action: "demo_system_step", stepId: "send_notice" });
+  const notice = state().conversation.findLast((item) => item.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, text: "Cash is tight till the 20th." });
+  await api(page, { action: "propose_amendment" });
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, text: "Actually, cash is tight till the 25th." });
+  const correction = state().conversation.at(-1)!;
+
+  await page.goto("/deals/hero/track");
+  await page.getByTestId("buyer-work-card").locator("summary").click();
+  await expect(page.getByTestId(`work-${correction.id}`)).toBeVisible();
+  await page.getByTestId(`keep-current-${correction.id}`).click();
+  await expect(page.getByTestId(`work-${correction.id}`)).toHaveCount(0);
+  await expect(page.getByTestId(`attention-${correction.id}`)).toHaveCount(0);
+
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, text: "Please call me" });
+  const unsupported = state().conversation.at(-1)!;
+  await page.reload();
+  await expect(page.getByTestId(`attention-${unsupported.id}`)).toContainText("agree the next step");
+  await expect(page.getByTestId(`attention-${unsupported.id}`)).not.toContainText("one exact date");
+});
+
+test("P0 · late buyer evidence blocks preview and delivery until it is reviewed", async ({ page }) => {
+  const draft = await prepareDraft(page);
+  await api(page, {
+    action: "buyer_reply",
+    inReplyTo: clarification("clar-gst").id,
+    text: "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal.",
+  });
+  const correction = state().conversation.at(-1)!;
+  const blocked = await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash }, false);
+  expect(blocked.error).toMatch(/buyer evidence|review/i);
+  expect(state().deliveries).toHaveLength(0);
+
+  await page.goto("/deals/hero/offer");
+  await expectStage(page, "offer", /newer buyer evidence/i, undefined);
+  await expect(page.getByTestId("evidence-review")).toBeVisible();
+  await expect(page.getByTestId(`evidence-${correction.id}`)).toContainText("₹20,000");
+  await page.getByTestId(`keep-current-${correction.id}`).click();
+  await expect(page.getByTestId("primary-action")).toContainText(/Review/);
+  expect(state().deliveries).toHaveLength(0);
+});
+
+test("P0 · a merchant-selected annual offer keeps its attribution and MD approval condition", async ({ page }) => {
+  await prepareOptions(page);
+  await api(page, { action: "select_option", structureId: "split_payment:plan=deposit_30" });
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
+  await expect(page.getByTestId("recommendation")).toContainText(/MD approval|required internal approval/i);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/offer\/preview$/);
+  const draft = state().agreements.find((agreement) => agreement.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+
+  await page.goto(`/proposal/${draft.agreementId}/v${draft.version}`);
+  await expect(page.getByTestId("authority-requirement")).toContainText("required internal approval");
+  await expect(page.getByTestId("accept")).toBeDisabled();
+  await page.getByTestId("authority").check();
+  await expect(page.getByTestId("accept")).toBeEnabled();
+});
+
+test("P0 · a failed restructure stays actionable and leaves the original payment visible", async ({ page }) => {
+  await prepareAccepted(page);
+  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
+  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
+  await api(page, { action: "demo_system_step", stepId: "send_notice" });
+  const notice = state().conversation.findLast((item) => item.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, text: "Cash is tight till the 31st." });
+  await api(page, { action: "propose_amendment" });
+
+  await page.goto("/deals/hero/track");
+  await expectStage(page, "track", /requested date does not fit/i, "Review with buyer");
+  await expect(page.getByTestId("buyer-work-card")).toContainText("original payment remains scheduled");
+  await expect(page.getByTestId("payment-schedule")).toContainText("1 Dec 2026");
+  await expect(page.getByTestId("amendment-settled")).toHaveCount(0);
+});
+
+test("P0 · current agreement summary keeps phase, annual, deferred and declined financial scopes distinct", async ({ page }) => {
+  await prepareAccepted(page);
+  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
+  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
+  await api(page, { action: "demo_system_step", stepId: "send_notice" });
+  const notice = state().conversation.findLast((item) => item.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, scriptId: "notice-cash-tight" });
+  await api(page, { action: "propose_amendment" });
+  const revision = state().agreements.find((agreement) => agreement.version === 2)!;
+  await api(page, { action: "approve_amendment", termsHash: revision.termsHash });
+  await api(page, { action: "accept_amendment", termsHash: revision.termsHash, authorityConfirmed: true });
+  await page.goto("/deals/hero/track");
+  const current = page.getByTestId("current-agreement");
+  await expect(current).toContainText("Standalone three-month package");
+  await expect(current).toContainText("Nov 2026–Jan 2027");
+  await expect(current).toContainText("No later phase is agreed");
+  await expect(current).toContainText("₹23,010");
+
+  for (const [structureId, expectedTitle] of [
+    ["split_payment:plan=deposit_30", "Annual digital marketing agreement"],
+    ["deferred_start:start=2027-05-01,plan=monthly_12", "Annual digital marketing from May 2027"],
+  ] as const) {
+    await prepareOptions(page);
+    await api(page, { action: "select_option", structureId });
+    await api(page, { action: "review_buyer_proposal" });
+    const draft = state().agreements.find((agreement) => agreement.status === "draft")!;
+    await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+    await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+    await page.goto("/deals/hero/track");
+    await expect(page.getByTestId("current-agreement")).toContainText(expectedTitle);
+    await expect(page.getByTestId("current-agreement")).toContainText("Accepted");
+  }
+
+  const declined = await prepareSent(page);
+  await api(page, { action: "decline", version: declined.version, reason: "budget" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("current-agreement")).toContainText("Declined");
+  await expect(page.getByTestId("current-agreement")).toContainText("not shown as money owed");
 });

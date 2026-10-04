@@ -730,6 +730,25 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 - Frozen assets 44/44. Protected paths unchanged (the only domain change remains `domain/state.ts`).
 - Credential scan clean. No Groq calls.
 
+### 2026-10-04 · Persona P0 integrity and focus build [OpenAI Codex]
+
+**Prompt (applicant):** implement the consolidated P0 findings from five end-user persona reviews.
+
+**Built:**
+- Explicit merchant ownership and disposition for unresolved buyer requests, conflicting notice replies, failed restructuring and pending follow-up.
+- A commercial-evidence boundary that blocks preview, approval, send and amendment actions when newer relevant buyer evidence has not been reviewed.
+- Continuity of buyer approval conditions into canonical agreement terms, hashes and buyer acceptance; merchant-selected alternatives retain **Selected by you** attribution.
+- Complete amendment differences on merchant and buyer views, including the planned invoice-date qualification.
+- Separate operational contract financials from the 90-day outcome window.
+- One current-agreement summary on Track, with accurate phase, annual, deferred, declined and revision states, plus the explicit boundary that delivery readiness is not tracked.
+- Version-specific buyer lifecycle copy for review, merchant response, setup, scheduled debit, pending outcome, retry, paid, declined and superseded states.
+
+**AI boundary:** no prompt, schema, model, provider or evaluation logic changed. No live model call was made, no saved run changed and the frozen evaluation was not rerun. This build changes deterministic product state, views and tests only.
+
+**Browser proof:** five P0 journeys cover buyer-request ownership, late commercial evidence, merchant-selected annual approval, failed restructuring, and distinct phase/annual/deferred/declined agreement summaries. The default browser-test command still uses Next's standard production build. `ADAPTIVE_E2E_WEBPACK=1` is an explicit fallback only for restricted runners that forbid the local port opened by Turbopack's PostCSS worker.
+
+**Final review corrections:** service guards now block amendment approval and both buyer-acceptance paths when newer buyer intent is unresolved. Resolved notice corrections leave both work and attention queues; generic unsupported replies receive generic guidance. Proposed and declined offers no longer use agreement language, historical links follow the latest delivered descendant, and the operational-versus-90-day cutoff explanation is visible. These are deterministic service and view changes only; the AI and frozen-evaluation boundary above remains unchanged.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

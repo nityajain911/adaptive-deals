@@ -151,6 +151,51 @@ describe("select → draft → approve → send", () => {
     await presenter.setFailNextSend(false);
   });
 
+  it("a correction after an amendment draft blocks approval and delivery", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (s) => s.amendments.at(-1)?.state === "proposed");
+    const before = await svc.getState();
+    const notice = before.conversation.find((m) => m.kind === "notice")!;
+    const v2 = before.agreements.find((v) => v.version === 2)!;
+
+    const corrected = await svc.buyerReply({ inReplyTo: notice.id, text: "Actually, cash is tight till the 25th." });
+    expect(corrected.conversation.at(-1)?.classification?.kind).toBe("change_requested");
+    await expect(svc.approveAmendment(v2.termsHash)).rejects.toThrow(/buyer request|buyer evidence/i);
+
+    const after = await svc.getState();
+    expect(after.amendments.at(-1)?.state).toBe("proposed");
+    expect(after.agreements.find((v) => v.version === 2)?.status).toBe("draft");
+    expect(isDelivered(after.deliveries, 2)).toBe(false);
+  });
+
+  it("an unresolved proposal-page change request blocks initial buyer acceptance", async () => {
+    await toOptions();
+    const draft = await svc.reviewBuyerProposal();
+    await svc.approveDraft(draft.version, draft.termsHash);
+    await svc.sendProposal(draft.version);
+    await svc.requestChange(draft.version, "Please reduce the scope before I accept.");
+
+    await expect(svc.acceptAgreement(draft.version, draft.termsHash, true)).rejects.toThrow(/buyer request/i);
+    const after = await svc.getState();
+    expect(after.status).toBe("sent");
+    expect(after.agreements[0].buyerAcceptance).toBeNull();
+    expect(after.attempts).toEqual([]);
+  });
+
+  it("an unresolved proposal-page change request blocks amendment acceptance", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (s) => s.amendments.at(-1)?.state === "merchant_approved");
+    const before = await svc.getState();
+    const v2 = before.agreements.find((v) => v.version === 2)!;
+    await svc.requestChange(v2.version, "Please revise the service dates before I accept.");
+
+    await expect(svc.acceptAmendment(v2.termsHash, true)).rejects.toThrow(/buyer request/i);
+    const after = await svc.getState();
+    expect(after.amendments.at(-1)?.state).toBe("merchant_approved");
+    expect(after.agreements.find((v) => v.version === 2)?.buyerAcceptance).toBeNull();
+    expect(after.agreements.find((v) => v.version === 1)?.status).toBe("active");
+  });
+
   it("a conflicting second notice date blocks amendment drafting until the merchant keeps the first request", async () => {
     await svc.resetToSeed();
     await driveTo(svc, (s) => s.conversation.some((m) => m.kind === "notice"));

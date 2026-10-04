@@ -138,6 +138,22 @@ Buyer-facing messages and the buyer proposal are written by code from canonical 
 
 Limits such as the cash-at-risk limit, contribution floor and smallest instalment are merchant settings. The engine enforces whatever the merchant configures. The hero values and their reasons are in `FIXTURE_RATIONALE.md`.
 
+## Commercial evidence, agreement state and financial scope
+
+**New buyer messages can block a decision without becoming contract terms.** A buyer message received after an option was selected is review work. Approval, sending and amendment actions stay blocked until the merchant explicitly chooses **Keep current terms**, **Handle outside Adaptive Deals**, or **Follow-up still pending**. Only a resolving merchant disposition clears the blocker. The message and decision remain append-only evidence; neither is inserted into canonical terms or their hash.
+
+**One current agreement summary owns the Track page.** An active agreement remains current while a revision awaits approval or acceptance. A draft or sent revision cannot replace it. Superseded versions stay historical. The summary derives scope, exclusions and planned service months from canonical terms and separates acceptance, payment-link state, mandate state and verified collections from this boundary: **Delivery readiness is not tracked here.** Payment completion never means service delivery is complete.
+
+**Approval above the buyer's limit is attested, not verified.** If an engine-feasible structure needs buyer approval, the condition is part of canonical terms and the buyer must attest that the required internal approval was obtained. Adaptive Deals does not identify or authenticate the approver.
+
+**Operational contract money and the outcome window answer different questions.** Contract total, verified collections, remaining amount and next payment belong to the current accepted agreement. The outcome card counts receipts only through the earlier of the simulated current time and 90 days after eligibility. Planned service dates are used for modelled costs; actual delivery completion is outside Adaptive Deals.
+
+**Buyer proposal state is version-specific.** A sent version asks the buyer to review and respond and labels setup as proposed. A change request says the merchant is reviewing it. Accepted versions show recorded payment-link, mandate, debit, retry or paid state. Declined and superseded versions are history and never repeat forward-looking setup instructions from an old version.
+
+**Every binding step rechecks unresolved buyer intent.** Drafting, amendment approval, initial acceptance and amendment acceptance all stop when a current-version buyer request or conflicting payment reply is unresolved. Hiding a UI button is not the control boundary; the service refuses the action as well. A superseded buyer link points through the full version chain to the latest buyer-accessible replacement.
+
+**Labels follow legal state.** Before acceptance the compact summary is a **Proposed offer** with **Proposed scope**. After buyer decline it is a **Declined offer** with **Offered scope**. Only accepted terms are a **Current agreement** with **Agreed scope**.
+
 ## View acceptance checklists
 
 Each item names where it is implemented. The Playwright journey (`e2e/journey.spec.ts`) asserts them at 1440 px and 390 px.

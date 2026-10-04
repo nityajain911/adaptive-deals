@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CurrentAgreement } from "@/components/track/current-agreement";
 import { createAgreementVersion, type AgreementVersion } from "@/domain/agreement";
 import { FixedClock } from "@/domain/clock";
 import { interpretations } from "@/domain/constraints";
@@ -94,5 +96,32 @@ describe("current agreement summary", () => {
     const s = summarize([current, proposedRevision])!;
     expect(s.version).toBe(1);
     expect(s.title).toBe("Standalone three-month package");
+  });
+
+  it("uses agreement language only for accepted terms", () => {
+    const proposed = summarize([version(phase, "sent")], "proposed", null)!;
+    const accepted = summarize([version(phase, "active")])!;
+    const declined = summarize([version(phase, "buyer_rejected")], "declined", null)!;
+
+    const proposedHtml = renderToStaticMarkup(CurrentAgreement({ summary: proposed }));
+    expect(proposedHtml).toContain("Proposed offer · version 1");
+    expect(proposedHtml).toContain("Proposed scope");
+    expect(proposedHtml).not.toContain("Current agreement");
+
+    const acceptedHtml = renderToStaticMarkup(CurrentAgreement({ summary: accepted }));
+    expect(acceptedHtml).toContain("Current agreement · version 1");
+    expect(acceptedHtml).toContain("Agreed scope");
+
+    const declinedHtml = renderToStaticMarkup(CurrentAgreement({ summary: declined }));
+    expect(declinedHtml).toContain("Declined offer · version 1");
+    expect(declinedHtml).toContain("Offered scope");
+    expect(declinedHtml).not.toContain("Current agreement");
+  });
+
+  it("renders why operational collections can differ from the 90-day outcome window", () => {
+    const summary = summarize([version(annual, "active")], "accepted", 0)!;
+    summary.financial.windowExplanation = "Some verified payments were received after the 90-day cutoff and are excluded from the outcome window.";
+    const html = renderToStaticMarkup(CurrentAgreement({ summary }));
+    expect(html).toContain(summary.financial.windowExplanation);
   });
 });

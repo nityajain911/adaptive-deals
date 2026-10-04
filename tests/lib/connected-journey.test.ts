@@ -260,10 +260,14 @@ describe("one open change request per payment under an agreement version", () =>
     expect(s.changeRequests[0].state).toBe("draft_amendment");
     const before = await material();
     s = await svc.buyerReply({ inReplyTo: notice.id, text: "Make it till the 22nd" });
+    const lateCorrection = s.conversation.at(-1)!;
     expect(s.conversation.filter((i) => i.inReplyTo === notice.id)).toHaveLength(3);
     expect(await material()).toBe(before);
     expect(s.events.at(-1)!.title).toBe("Merchant attention needed: a change request is already open");
 
+    const v2 = s.agreements.find((v) => v.version === 2)!;
+    await expect(svc.approveAmendment(v2.termsHash)).rejects.toThrow(/buyer request/i);
+    await svc.reviewWork("message", lateCorrection.id, "keep_current_terms", "Use the already drafted date");
     await driveTo(svc, (x) => x.amendments[0]?.state === "active");
     s = await S();
     expect(s.changeRequests).toHaveLength(1);

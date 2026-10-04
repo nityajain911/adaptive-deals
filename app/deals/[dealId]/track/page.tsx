@@ -14,7 +14,7 @@ import type { Structure } from "@/domain/structures";
 import { loadDeal } from "@/lib/deal-page";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 import { outcomeSummary } from "@/lib/outcome";
-import { activeVersionOf, noticeReplyOutcome, unresolvedWork } from "@/lib/views";
+import { activeVersionOf, noticeReplyOutcome, replyNeedsExactDate, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
 import { scheduleRows } from "@/lib/track-copy";
 import { contractFinancialView } from "@/lib/financial-view";
@@ -50,8 +50,9 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
 
   // Buyer messages awaiting the merchant.
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
+  const resolvedWork = new Set(s.workDispositions.filter((d) => d.sourceKind === "message" && (d.kind === "keep_current_terms" || d.kind === "handled_outside")).map((d) => d.sourceId));
   const attention = s.conversation.filter((i) => {
-    if (i.direction !== "inbound" || handled.has(i.id)) return false;
+    if (i.direction !== "inbound" || handled.has(i.id) || resolvedWork.has(i.id)) return false;
     if (s.conversation.find((x) => x.id === i.inReplyTo)?.kind !== "notice") return false;
     const o = noticeReplyOutcome(i, s, active?.version ?? null);
     return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
@@ -155,6 +156,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
               {attention.map((m) => {
                 const o = noticeReplyOutcome(m, s, active?.version ?? null)!;
                 const claimed = m.classification?.kind === "payment_claimed";
+                const dateAmbiguity = replyNeedsExactDate(m.classification);
                 return (
                   <li key={m.id} className="px-5 py-3 text-[13px]" data-testid={`attention-${m.id}`}>
                     <div className="text-ink">
@@ -162,7 +164,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                     </div>
                     <div className="mt-1 text-ink-2">Why nothing changed: {o.detail}</div>
                     <div className="mt-1 text-ink-2">
-                      Safe next step: {claimed ? "Payment is not confirmed. Verify it against the payment record before taking action." : "Reply to the buyer personally and ask for one exact date."}
+                      Safe next step: {claimed ? "Payment is not confirmed. Verify it against the payment record before taking action." : dateAmbiguity ? "Reply to the buyer personally and ask for one exact date." : "Reply to the buyer personally and agree the next step."}
                     </div>
                     <p className="mt-1 text-[12px] text-muted">Marking it handled records only that you dealt with it outside the prototype. No reply is sent and no payment changes.</p>
                     <MarkHandledForm messageId={m.id} />

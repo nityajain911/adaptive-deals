@@ -6,6 +6,7 @@ import { formatINR } from "@/domain/money";
 import type { ChangeRequest } from "@/domain/restructure";
 import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
+import type { ReplyClassification } from "@/domain/replies";
 import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
 
 /**
@@ -14,6 +15,22 @@ import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKi
  */
 
 export const activeVersionOf = (agreements: AgreementVersion[]) => [...agreements].reverse().find((v) => v.status === "active") ?? null;
+
+/** Latest buyer-accessible descendant of a historical agreement version. */
+export function latestReplacementVersion(agreements: AgreementVersion[], originalVersion: number): AgreementVersion | null {
+  let cursor = originalVersion;
+  let replacement: AgreementVersion | null = null;
+  const visited = new Set<number>([cursor]);
+  while (true) {
+    const next = agreements
+      .filter((version) => version.supersedes === cursor && version.status !== "draft" && version.status !== "merchant_approved")
+      .sort((a, b) => b.version - a.version)[0];
+    if (!next || visited.has(next.version)) return replacement;
+    replacement = next;
+    cursor = next.version;
+    visited.add(cursor);
+  }
+}
 
 export type UnresolvedWorkKind = "buyer_request" | "conflicting_evidence" | "not_restructured" | "follow_up_pending";
 
@@ -41,6 +58,9 @@ type WorkState = {
 };
 
 const resolving = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside";
+
+const EXACT_DATE_REASONS = new Set(["unsupported_date_expression", "multiple_dates", "same_day_ambiguous"]);
+export const replyNeedsExactDate = (classification: ReplyClassification | null) => classification?.kind === "needs_attention" && EXACT_DATE_REASONS.has(classification.reason);
 
 /** Current-version buyer work which still needs an explicit merchant disposition. */
 export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
@@ -110,7 +130,7 @@ export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
       detail: outcome?.detail ?? NO_REQUEST_NEUTRAL,
       occurredAt: handled?.handledAt ?? message.createdAt,
       note: handled?.note ?? null,
-      dateAmbiguity: message.classification?.kind === "needs_attention" && /date|day|month|week/i.test(message.classification.detail),
+      dateAmbiguity: replyNeedsExactDate(message.classification),
     });
     if (item) out.push(item);
   }

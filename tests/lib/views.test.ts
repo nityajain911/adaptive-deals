@@ -7,7 +7,7 @@ import { enumerateAndEvaluate } from "@/domain/engine";
 import { formatINR } from "@/domain/money";
 import type { ChangeRequest } from "@/domain/restructure";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
-import { actionableChangeRequests, buyerProposalLifecycle, changeRequestDisplay, explanationAttribution, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
+import { actionableChangeRequests, buyerProposalLifecycle, changeRequestDisplay, explanationAttribution, latestReplacementVersion, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
@@ -137,6 +137,16 @@ describe("buyer proposal lifecycle", () => {
     const out = lifecycle("active", { isRevision: true, paymentLinkStatus: "paid", mandateStatus: "confirmed" });
     expect(`${out.headline} ${out.detail}`).not.toMatch(/until you accept|after you accept/i);
     expect(out.setupBasis).toBe("actual");
+  });
+});
+
+describe("historical proposal replacement", () => {
+  it("links every superseded version to the latest delivered descendant", () => {
+    const v1 = version(1, "superseded");
+    const v2 = version(2, "superseded");
+    const v3 = version(3, "active");
+    expect(latestReplacementVersion([v1, v2, v3], 1)?.version).toBe(3);
+    expect(latestReplacementVersion([v1, v2, v3], 2)?.version).toBe(3);
   });
 });
 

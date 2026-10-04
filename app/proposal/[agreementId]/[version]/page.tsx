@@ -11,7 +11,7 @@ import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
 import { AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered } from "@/lib/deal-records";
-import { buyerProposalLifecycle, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
+import { buyerProposalLifecycle, latestReplacementVersion, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
 
 export const metadata = { title: "Proposal · Pinecone Media Works" };
@@ -36,7 +36,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const changedLine = amendment ? v.terms.paymentSchedule.find((p) => p.id === amendment.change.lineId) : null;
   const previousLine = amendment && previous ? previous.terms.paymentSchedule.find((p) => p.id === amendment.change.lineId) : null;
   const differences = amendment && previous ? amendmentDiff(previous.terms, v.terms) : [];
-  const replacement = v.status === "superseded" ? s.agreements.find((x) => x.supersedes === v.version && x.status !== "draft" && x.status !== "merchant_approved") : null;
+  const replacement = v.status === "superseded" ? latestReplacementVersion(s.agreements, v.version) : null;
   const myRequests = s.conversation.filter((i) => i.kind === "change_request" && i.refs.agreementVersion === v.version);
   const currentLineIds = new Set(v.terms.paymentSchedule.map((line) => line.id));
   const versionAttempts = s.attempts.filter((attempt) => attempt.agreementId === v.agreementId && currentLineIds.has(attempt.scheduleLineId));
@@ -180,7 +180,7 @@ function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement }: { life
   if (["setup_pending", "payment_scheduled", "payment_pending", "retry_scheduled", "paid"].includes(lifecycle.state))
     return (
       <div className={cx(box, "bg-green-weak text-green")} role="status" data-testid="buyer-status">
-        <strong>{lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}. {lifecycle.detail}
+        <strong>Accepted · {lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}. {lifecycle.detail}
       </div>
     );
   if (lifecycle.state === "declined")

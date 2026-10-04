@@ -412,6 +412,11 @@ function assertNoNewDecisionEvidence(s: DemoState) {
   if (unreviewedDecisionEvidence(s).length) throw new ActionError("Review newer buyer evidence before continuing this commercial decision");
 }
 
+function assertNoUnresolvedCommercialWork(s: DemoState) {
+  const blocking = unresolvedWork(s).find((w) => w.kind === "buyer_request" || w.kind === "conflicting_evidence" || w.kind === "follow_up_pending");
+  if (blocking) throw new ActionError("Review the newer buyer request before continuing this commercial decision");
+}
+
 function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">) {
   s.outcomes.push({ id: `out-${s.outcomes.length + 1}`, at: clockOf(s).now(), dealId: s.dealId, ...rec });
 }
@@ -699,6 +704,7 @@ function planNotices(s: DemoState) {
 
 export async function acceptAgreement(version: number, termsHash: string, authorityConfirmed: boolean): Promise<DemoState> {
   return mutate(async (s) => {
+    assertNoUnresolvedCommercialWork(s);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "sent");
     if (i < 0) throw new ActionError("No sent agreement version to accept");
     s.agreements[i] = buyerAccept(s.agreements[i], termsHash, "Buyer (Demo buyer view)", clockOf(s), { authorityConfirmed });
@@ -959,8 +965,7 @@ export const unavailableUntilPhrase = (text: string) => UNAVAILABLE_UNTIL.exec(t
 export async function proposeAmendment(): Promise<DemoState> {
   return mutate(async (s) => {
     assertNoNewDecisionEvidence(s);
-    const blocking = unresolvedWork(s).find((w) => w.kind === "buyer_request" || w.kind === "conflicting_evidence" || w.kind === "follow_up_pending");
-    if (blocking) throw new ActionError("Review the newer buyer request before drafting revised terms");
+    assertNoUnresolvedCommercialWork(s);
     if (s.status !== "active") throw new ActionError(`Amendments start from an active agreement (deal is ${s.status})`);
     const v = activeVersion(s)!;
     // Only a request under the active version; a stale earlier-version request never blocks it.
@@ -1003,6 +1008,7 @@ export async function proposeAmendment(): Promise<DemoState> {
 export async function approveAmendment(termsHash: string): Promise<DemoState> {
   return mutate((s) => {
     assertNoNewDecisionEvidence(s);
+    assertNoUnresolvedCommercialWork(s);
     const a = s.amendments.at(-1);
     if (!a || a.state !== "proposed") throw new ActionError("No proposed revision");
     const i = s.agreements.findIndex((v) => v.version === a.toVersion && v.status === "draft");
@@ -1020,6 +1026,7 @@ export async function approveAmendment(termsHash: string): Promise<DemoState> {
 
 export async function acceptAmendment(termsHash: string, authorityConfirmed: boolean): Promise<DemoState> {
   return mutate(async (s) => {
+    assertNoUnresolvedCommercialWork(s);
     let a = s.amendments.at(-1);
     if (!a || a.state !== "merchant_approved") throw new ActionError("No revision awaiting buyer acceptance");
     const i = s.agreements.findIndex((v) => v.version === a!.toVersion && v.status === "sent");

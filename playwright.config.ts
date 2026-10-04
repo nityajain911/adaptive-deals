@@ -11,7 +11,9 @@ export default defineConfig({
   use: { baseURL: "http://localhost:3200", trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npx next build && npx next start -p 3200",
+    // Default remains the production Turbopack build. The explicit fallback is for restricted
+    // runners that forbid the local port Turbopack's PostCSS worker opens during compilation.
+    command: process.env.ADAPTIVE_E2E_WEBPACK === "1" ? "npx next build --webpack && npx next start -p 3200" : "npx next build && npx next start -p 3200",
     url: "http://localhost:3200/deals/hero",
     timeout: 300_000,
     reuseExistingServer: false,
