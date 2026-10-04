@@ -3,7 +3,7 @@ import { formatDate } from "@/domain/dates";
 import type { EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
 import { heroPackages, heroTemplates } from "@/data/synthetic/hero";
-import { appliedRules, auditSources, whoDidWhat } from "@/lib/audit";
+import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
@@ -41,6 +41,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
   const policy = run.inputs.policy;
   const sources = auditSources(s, run);
   const who = whoDidWhat(run, out.explanation?.source ?? null, s);
+  const branch = branchAudit(s, out);
   const x = offerStructure(s, out);
   const e = x?.economics;
   return (
@@ -73,6 +74,29 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
           </ul>
         </details>
       </section>
+
+      {branch ? (
+        <section aria-labelledby="audit-branch" data-testid="branch-audit">
+          <H id="audit-branch">Decision branch</H>
+          <p>{branch.notice}</p>
+          <ul className="mt-2 space-y-1">
+            {branch.answers.map((answer) => (
+              <li key={answer.questionId}>
+                <span className="font-medium text-ink">{answer.questionId}</span> · “{answer.answerText}” → {answer.value} · confirmed via {answer.confirmedByBuyerVia}
+              </li>
+            ))}
+          </ul>
+          <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
+            <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>
+            <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-1 font-mono text-[11px]">
+              <dt>Parent run</dt><dd className="break-all">{branch.parentRunId}</dd>
+              <dt>Branch</dt><dd className="break-all">{branch.branchId}</dd>
+              <dt>Engine result</dt><dd className="break-all">{branch.engineFingerprint}</dd>
+              <dt>Explanation</dt><dd>{branch.explanationSource}</dd>
+            </dl>
+          </details>
+        </section>
+      ) : null}
 
       <section aria-labelledby="audit-rules">
         <H id="audit-rules">Applied merchant rules</H>

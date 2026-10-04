@@ -8,6 +8,7 @@ import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
 import { alternativeContributionLine, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
 import { explanationAttribution } from "@/lib/views";
+import type { DecisionBranch } from "@/lib/decision-branch";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
 import { ApprovalBadge } from "../structure-card";
@@ -33,7 +34,7 @@ export function contextLine(budgetPaise: number | null, limitPaise: number | nul
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, exp, policy, context, primary, presentation }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected" }) {
+export function Recommendation({ x, exp, policy, context, primary, presentation, decisionBranch = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; decisionBranch?: DecisionBranch | null }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const summary = offerSummary(x, originalProposal(), policy.gstRateBps);
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
@@ -136,7 +137,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation 
         <span className="font-semibold text-ink">Why this offer: </span>
         <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
         <div className="mt-1 text-[12px] text-muted" data-testid="attribution">
-          {explanationAttribution(aiNote ? (exp?.source ?? null) : null)}
+          {explanationAttribution(aiNote ? (exp?.source ?? null) : exp?.source ?? null, decisionBranch)}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>

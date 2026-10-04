@@ -154,6 +154,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           policy={policy}
           context={context}
           presentation={explicitlySelected ? "merchant_selected" : "recommended"}
+          decisionBranch={s.decisionBranch}
           primary={
             <>
               {primaryId === "review_new_evidence" ? null : (

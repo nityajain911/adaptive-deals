@@ -9,6 +9,7 @@ import type { ChangeRequest } from "@/domain/restructure";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { actionableChangeRequests, buyerProposalLifecycle, changeRequestDisplay, explanationAttribution, latestReplacementVersion, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
+import type { DecisionBranch } from "@/lib/decision-branch";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 const feasible = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible;
@@ -158,6 +159,20 @@ describe("recommendation attribution follows the actual output source", () => {
     expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).not.toMatch(/did not pass validation/i);
     expect(explanationAttribution({ ranking: "code", text: "code_fallback" })).toMatch(/Order set by code$/);
     expect(explanationAttribution(null)).toBe("Explanation written by code · all figures calculated by the engine");
+  });
+  it("never credits AI with a changed-answer branch it did not process", () => {
+    const branch = {
+      schema: "adaptive-deals.decision-branch.v1",
+      branchId: "branch-1",
+      parentRunId: "run-parent",
+      createdAt: "2026-10-01T09:30:00+05:30",
+      answers: [],
+      reason: "changed_clarification_answers",
+      explanationSource: "code_fallback",
+    } satisfies DecisionBranch;
+    const copy = explanationAttribution({ ranking: "code", text: "code_fallback" }, branch);
+    expect(copy).toBe("Recalculated by the engine after the buyer's answer · explanation written by code.");
+    expect(copy).not.toMatch(/AI ranked|AI explained|suggested by AI/i);
   });
 });
 

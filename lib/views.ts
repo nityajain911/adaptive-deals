@@ -8,6 +8,7 @@ import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
 import type { ReplyClassification } from "@/domain/replies";
 import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
+import type { DecisionBranch } from "./decision-branch";
 
 /**
  * Pure view derivations shared by the merchant and buyer pages. Nothing here changes state;
@@ -219,7 +220,8 @@ export function pendingActions(s: { conversation: ConversationItem[]; changeRequ
 // ── Attribution ─────────────────────────────────────────────────────────────
 
 /** Accurate attribution for the recommendation text, following the actual output source. */
-export function explanationAttribution(source: ExplanationResult["source"] | null): string {
+export function explanationAttribution(source: ExplanationResult["source"] | null, branch: DecisionBranch | null = null): string {
+  if (branch) return "Recalculated by the engine after the buyer's answer · explanation written by code.";
   if (!source) return "Explanation written by code · all figures calculated by the engine";
   const order = source.ranking === "ai" ? "Order suggested by AI, approval ordering enforced by code" : "Order set by code";
   if (source.text === "ai") return `Explanation written by AI · all figures calculated by the engine · ${order}`;

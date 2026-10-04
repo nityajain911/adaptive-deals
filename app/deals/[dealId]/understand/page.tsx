@@ -7,6 +7,7 @@ import { Badge, Card } from "@/components/ui";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { originalProposal } from "@/lib/offer-copy";
 import { blockingLines } from "@/lib/understand-copy";
+import { decisionAnswers } from "@/lib/service";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -27,7 +28,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposal());
   const evidence = r.engine.profile.filter((f) => f.evidence.length);
-  const answers = r.inputs.answers;
+  const answers = decisionAnswers(s);
   const confirmedAt = answers.map((a) => a.answeredAt).sort().at(-1) ?? null;
   const offerVersion = s.selectedOption?.draftVersion ?? s.agreements.at(-1)?.version ?? null;
   const primary = current ? progress.primaryAction : null;
@@ -52,6 +53,13 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             {f.confirmedBy ? ` · confirmed in a clarification reply` : ""}
           </li>
         ))}
+        {s.decisionBranch
+          ? answers.map((answer) => (
+              <li key={`branch-${answer.questionId}`}>
+                <span className="font-semibold text-ink">Changed clarification · {answer.questionId}</span> · Source: buyer clarification recorded by merchant · “{answer.answerText}”
+              </li>
+            ))
+          : null}
       </ul>
     </details>
   );

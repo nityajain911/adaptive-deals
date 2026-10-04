@@ -4,18 +4,35 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { RunRecord } from "@/ai/run-record";
 import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
-import { appliedRules, auditSources, whoDidWhat } from "@/lib/audit";
+import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
+import type { DecisionBranch } from "@/lib/decision-branch";
 
 /** Spec §8.3: truthful sources, run-specific attribution, read-only. */
 const run = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
-const state = {
+const baseState = {
   conversation: [{ kind: "clarification", state: "approved_and_sent_by_merchant", direction: "outbound" }],
   agreements: [{ version: 1, merchantApproval: { by: "Merchant", at: "t" }, buyerAcceptance: { by: "Buyer", at: "t" }, status: "active" }],
   attempts: [{ status: "succeeded", method: "payment_link" }],
   outcomes: [],
   interpretations: [{ messageId: "conv-3", questionId: "clar-gst", value: "yes", quote: "with gst", actor: "merchant", at: "t" }],
   handledMessages: [],
-} as never;
+  decisionBranch: null,
+};
+const state = baseState as never;
+
+const branch: DecisionBranch = {
+  schema: "adaptive-deals.decision-branch.v1",
+  branchId: "branch-changed",
+  parentRunId: run.runId,
+  createdAt: "2026-10-01T09:30:00+05:30",
+  answers: [
+    { questionId: "clar-gst", value: "no", answerText: "No, both exclude GST.", recordedBy: "Merchant", confirmedByBuyerVia: "whatsapp", answeredAt: "2026-10-01T09:20:00+05:30" },
+    { questionId: "clar-approval", value: "per_payment", answerText: "₹60,000 is per payment.", recordedBy: "Merchant", confirmedByBuyerVia: "whatsapp", answeredAt: "2026-10-01T09:22:00+05:30" },
+  ],
+  reason: "changed_clarification_answers",
+  explanationSource: "code_fallback",
+};
+const branchedState = { ...baseState, decisionBranch: branch } as never;
 
 describe("audit sources", () => {
   const src = auditSources(state, run);
@@ -44,6 +61,30 @@ describe("who did what", () => {
     const w = whoDidWhat(run, { ranking: "ai", text: "ai" }, state);
     expect(w.ai).toContain("Wrote the recommendation explanation (explain.v3)");
     expect(w.code.join(" ")).not.toMatch(/did not pass validation/);
+  });
+  it("attributes a branch to the engine and code, never to the parent AI explanation", () => {
+    const w = whoDidWhat(run, { ranking: "code", text: "code_fallback" }, branchedState);
+    expect(w.ai.join(" ")).not.toMatch(/order|recommendation explanation/i);
+    expect(w.code.join(" ")).toMatch(/recalculated every permitted structure/i);
+    expect(w.code.join(" ")).toMatch(/wrote the recommendation explanation/i);
+    expect(`${w.ai.join(" ")} ${w.code.join(" ")}`).not.toMatch(/AI ranked|AI explained/i);
+  });
+});
+
+describe("decision branch audit", () => {
+  it("records parent and branch IDs, changed evidence, engine fingerprint and explanation source", async () => {
+    const svc = await import("@/lib/service");
+    const seeded = await svc.seedState(run, "replay");
+    const out = await svc.initialOutcomeForBranch(seeded);
+    const derived = (await import("@/lib/decision-branch")).deriveBranchOutcome({ initial: out, branch, deal: (await import("@/data/synthetic/hero-run")).heroDeal() });
+    const audit = branchAudit(branchedState, derived);
+    expect(audit).toMatchObject({ parentRunId: run.runId, branchId: "branch-changed", explanationSource: "code_fallback" });
+    expect(audit?.answers.map((answer) => [answer.questionId, answer.value, answer.answerText])).toEqual([
+      ["clar-gst", "no", "No, both exclude GST."],
+      ["clar-approval", "per_payment", "₹60,000 is per payment."],
+    ]);
+    expect(audit?.engineFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(audit?.notice).toMatch(/parent model run did not process the changed answers/i);
   });
 });
 
