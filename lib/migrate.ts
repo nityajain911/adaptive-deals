@@ -1,13 +1,14 @@
 import { DEMO_ANCHOR } from "@/domain/clock";
 import { deliveryKey, type DeliveryRecord } from "./deal-records";
 import type { DemoState } from "./service";
+import { DECISION_BRANCH_SCHEMA, type DecisionBranch } from "./decision-branch";
 
 /**
  * Store schema migration (spec §9). Deterministic and idempotent: it adds compatible state and
  * infers new fields only where existing records prove them. It never rewrites history and never
  * invents a delivery, acceptance or option; ambiguity sets `reviewRequired` instead.
  */
-export const STORE_SCHEMA_VERSION = 3;
+export const STORE_SCHEMA_VERSION = 4;
 
 const SENT_OR_LATER = new Set(["sent", "accepted", "active", "superseded", "buyer_rejected"]);
 
@@ -18,6 +19,12 @@ export function migrateState(raw: unknown): DemoState {
   s.suggestionsPaused ??= false;
   s.changeRequests ??= [];
   s.workDispositions ??= [];
+  s.reviewRequired ??= null;
+  if (s.decisionBranch === undefined) s.decisionBranch = null;
+  else if (s.decisionBranch !== null && !validDecisionBranch(s.decisionBranch)) {
+    s.decisionBranch = null;
+    s.reviewRequired = "The saved decision branch is incomplete or invalid. Inspect records before continuing.";
+  }
   if (s.selectedOption) s.selectedOption.evidenceMessageIds ??= [];
   if (s.schemaVersion === STORE_SCHEMA_VERSION) return s;
 
@@ -25,7 +32,6 @@ export function migrateState(raw: unknown): DemoState {
   s.outcomes ??= [];
   s.handledMessages ??= [];
   s.interpretations ??= [];
-  s.reviewRequired ??= null;
 
   if (s.deliveries === undefined) {
     const deliveries: DeliveryRecord[] = [];
@@ -59,4 +65,31 @@ export function migrateState(raw: unknown): DemoState {
 
   s.schemaVersion = STORE_SCHEMA_VERSION;
   return s;
+}
+
+function validDecisionBranch(value: unknown): value is DecisionBranch {
+  if (!value || typeof value !== "object") return false;
+  const branch = value as Partial<DecisionBranch>;
+  return (
+    branch.schema === DECISION_BRANCH_SCHEMA &&
+    typeof branch.branchId === "string" &&
+    branch.branchId.length > 0 &&
+    typeof branch.parentRunId === "string" &&
+    branch.parentRunId.length > 0 &&
+    typeof branch.createdAt === "string" &&
+    branch.reason === "changed_clarification_answers" &&
+    branch.explanationSource === "code_fallback" &&
+    Array.isArray(branch.answers) &&
+    branch.answers.length > 0 &&
+    branch.answers.every(
+      (answer) =>
+        !!answer &&
+        typeof answer.questionId === "string" &&
+        typeof answer.value === "string" &&
+        typeof answer.answerText === "string" &&
+        typeof answer.recordedBy === "string" &&
+        (answer.confirmedByBuyerVia === "whatsapp" || answer.confirmedByBuyerVia === "email" || answer.confirmedByBuyerVia === "call") &&
+        typeof answer.answeredAt === "string",
+    )
+  );
 }

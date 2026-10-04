@@ -50,6 +50,7 @@ import {
 import { CLASSIFICATION_LABEL } from "@/domain/replies";
 import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision-evidence";
+import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -100,6 +101,8 @@ export interface DemoState {
   handledMessages: HandledMessage[];
   workDispositions: WorkDisposition[];
   interpretations: Interpretation[];
+  /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
+  decisionBranch: DecisionBranch | null;
   /** Set by migration when saved history cannot be inferred safely; blocks dependent actions. */
   reviewRequired: string | null;
 }
@@ -215,6 +218,7 @@ export async function seedState(record: RunRecord = demoRunRecord(), viewing: "r
     handledMessages: [],
     workDispositions: [],
     interpretations: [],
+    decisionBranch: null,
     reviewRequired: null,
   };
   event(s, "run_loaded", record.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", record.kind === "live" ? "live_model" : "synthetic_replay", `Run ${record.runId}`);
@@ -274,7 +278,16 @@ export async function resetToSeed(): Promise<DemoState> {
 // ── Derived engine state (always recomputed from the run record, integrity-checked) ──
 
 export async function currentOutcome(s: DemoState): Promise<RunOutcome> {
+  if (s.decisionBranch) {
+    const initial = await initialOutcomeForBranch(s);
+    return deriveBranchOutcome({ initial, branch: s.decisionBranch, deal: heroDeal() });
+  }
   return replayRun(s.run.record, heroDeal(), new FixedClock());
+}
+
+/** Answers that govern the current decision, whether recorded in the run or in an application branch. */
+export function decisionAnswers(s: DemoState): RecordedAnswer[] {
+  return s.decisionBranch?.answers ?? s.run.record.inputs.answers;
 }
 
 function activeVersion(s: DemoState): AgreementVersion | null {
@@ -313,6 +326,27 @@ function committedLiveRunSync(runId: string): RunRecord | null {
   } catch {
     return committedLiveRun(runId);
   }
+}
+
+function sourceRecord(s: DemoState): RunRecord {
+  if (s.run.record.kind !== "live") return bundledSyntheticRun();
+  const id = s.run.sourceRunId ?? s.run.record.runId;
+  return committedLiveRunSync(id) ?? s.run.record;
+}
+
+/** Replays only extraction and clarification from the immutable source, before any answer branch. */
+export async function initialOutcomeForBranch(s: DemoState): Promise<RunOutcome> {
+  const source = sourceRecord(s);
+  const provider = new ReplayProvider(source.kind === "live" ? "recorded_replay" : "synthetic_replay", source.model, source.steps);
+  return runConstruct({
+    provider,
+    kind: source.kind,
+    runId: source.runId,
+    clock: new FixedClock(),
+    deal: heroDeal(),
+    recordedAtWall: source.recordedAtWall,
+    promptVersions: source.promptVersions,
+  });
 }
 
 export async function startLiveRun(): Promise<DemoState> {
@@ -365,10 +399,33 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
       confirmedByBuyerVia: i.confirmedByBuyerVia,
       answeredAt: i.answeredAt ?? clockOf(s).now(),
     }));
-    const out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
-    s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
-    // Keep the stored copy of a live run complete, so "Replay of an actual run" replays all of it.
-    if (out.record.kind === "live" && s.run.viewing === "fresh") await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
+    let out: RunOutcome;
+    const source = sourceRecord(s);
+    if (s.run.record.kind === "live" && s.run.viewing === "fresh") {
+      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
+      s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
+      s.decisionBranch = null;
+      // Keep the stored copy of a fresh live run complete, so it can later be replayed.
+      await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
+    } else if (answersMatchRecorded(source, answers)) {
+      out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: heroDeal(), answers, previous: s.run.record });
+      s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
+      s.decisionBranch = null;
+    } else {
+      const initial = await initialOutcomeForBranch(s);
+      const branch: DecisionBranch = {
+        schema: DECISION_BRANCH_SCHEMA,
+        branchId: `branch-${randomUUID()}`,
+        parentRunId: source.runId,
+        createdAt: clockOf(s).now(),
+        answers,
+        reason: "changed_clarification_answers",
+        explanationSource: "code_fallback",
+      };
+      // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
+      out = deriveBranchOutcome({ initial, branch, deal: heroDeal() });
+      s.decisionBranch = branch;
+    }
     for (const a of answers) event(s, "clarification_answered", `Answer recorded: ${a.answerText}`, "merchant", `Confirmed by buyer via ${a.confirmedByBuyerVia}`);
     setStatus(s, statusForEvaluation(out.evaluation), "Engine re-evaluated every template with the confirmed answers");
   });

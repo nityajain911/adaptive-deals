@@ -17,6 +17,20 @@ describe("migrateState (spec §9)", () => {
     expect(s.eligibleAt).toBe("2026-10-01T09:00:00+05:30");
     expect([s.selectedOption, s.deliveries, s.outcomes, s.reviewRequired]).toEqual([null, [], [], null]);
     expect(s.workDispositions).toEqual([]);
+    expect(s.decisionBranch).toBeNull();
+  });
+  it("requires review when a stored decision branch is incomplete", () => {
+    const s = migrateState(base({
+      schemaVersion: STORE_SCHEMA_VERSION - 1,
+      decisionBranch: {
+        schema: "adaptive-deals.decision-branch.v1",
+        branchId: "branch-broken",
+        parentRunId: "run-parent",
+        answers: [],
+      },
+    }));
+    expect(s.decisionBranch).toBeNull();
+    expect(s.reviewRequired).toMatch(/decision branch/i);
   });
   it("adds work dispositions to a schema-2 store without treating handled messages as resolved", () => {
     const handled = [{ messageId: "reply-1", handledAt: "2026-12-01T11:00:00+05:30", actor: "merchant", note: "Called buyer" }];
@@ -31,7 +45,7 @@ describe("migrateState (spec §9)", () => {
       reviewRequired: null,
     });
     const s = migrateState(raw);
-    expect(s.schemaVersion).toBe(3);
+    expect(s.schemaVersion).toBe(STORE_SCHEMA_VERSION);
     expect(s.handledMessages).toEqual(handled);
     expect(s.workDispositions).toEqual([]);
     const snapshot = JSON.stringify(s);
