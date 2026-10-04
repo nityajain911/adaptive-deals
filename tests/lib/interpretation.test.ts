@@ -36,6 +36,6 @@ describe("merchant interpretation", () => {
     const ap = s.conversation.find((i) => i.refs.questionId === "clar-approval" && i.kind === "clarification")!;
     await svc.buyerReply({ inReplyTo: ap.id, scriptId: "clar-approval-contract" });
     const done = await svc.adoptRepliesAsAnswers();
-    expect(done.run.record.inputs.answers.find((a) => a.questionId === "clar-gst")).toMatchObject({ value: "yes", answerText: "with gst" });
+    expect(svc.decisionAnswers(done).find((a) => a.questionId === "clar-gst")).toMatchObject({ value: "yes", answerText: "with gst" });
   });
 });

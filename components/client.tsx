@@ -324,6 +324,9 @@ export function InterpretForm({ messageId, buyerText, options, primary = false }
       <Button type="submit" variant={primary ? "primary" : "secondary"} data-testid={primary ? "primary-action" : undefined} disabled={pending || !value || !quote.trim()}>
         {pending ? "Recording…" : "Interpret buyer's reply"}
       </Button>
+      <Button type="button" variant="ghost" data-testid={`ask-again-${messageId}`} disabled={pending} onClick={() => run({ action: "ask_clarification_again", messageId })}>
+        Not clear yet · ask buyer again
+      </Button>
       <ErrorText error={error} />
     </form>
   );

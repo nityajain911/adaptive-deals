@@ -223,7 +223,11 @@ export const heroClarificationAnswers: { gst: ClarificationAnswer & { value: "ye
  */
 export const heroScriptedReplies = [
   { id: "clar-gst-yes", context: "clarification" as const, questionId: "clar-gst", text: "Yes, both amounts include GST.", answerValue: "yes" },
+  { id: "clar-gst-no", context: "clarification" as const, questionId: "clar-gst", text: "No, both amounts exclude GST.", answerValue: "no" },
+  { id: "clar-gst-unclear", context: "clarification" as const, questionId: "clar-gst", text: "₹50,000 includes GST, but I'm not sure about the ₹60,000 limit." },
   { id: "clar-approval-contract", context: "clarification" as const, questionId: "clar-approval", text: "₹60,000 is per contract.", answerValue: "per_contract" },
+  { id: "clar-approval-payment", context: "clarification" as const, questionId: "clar-approval", text: "₹60,000 is per payment.", answerValue: "per_payment" },
+  { id: "clar-approval-unclear", context: "clarification" as const, questionId: "clar-approval", text: "I'm not sure whether ₹60,000 is per payment or for the full contract." },
   { id: "notice-cash-tight", context: "notice" as const, text: "Cash is tight till the 20th.", hero: true },
   { id: "notice-paid", context: "notice" as const, text: "I paid" },
   { id: "notice-okay", context: "notice" as const, text: "Okay" },

@@ -120,7 +120,7 @@ describe("simulated buyer reply control", () => {
     expect(replyContext(s)).toBeNull(); // questions not sent yet
     s = await svc.sendQuestions();
     const ctx = replyContext(s)!;
-    expect(ctx.scripts.map((x) => x.id)).toEqual(["clar-gst-yes"]);
+    expect(ctx.scripts.map((x) => x.id)).toEqual(["clar-gst-yes", "clar-gst-no", "clar-gst-unclear"]);
     expect(s.conversation.find((i) => i.id === ctx.inReplyTo)?.refs.questionId).toBe("clar-gst");
     await driveTo(svc, (x) => x.conversation.some((i) => i.kind === "notice"));
     s = await svc.getState();

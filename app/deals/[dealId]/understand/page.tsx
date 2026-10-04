@@ -7,7 +7,7 @@ import { Badge, Card } from "@/components/ui";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { originalProposal } from "@/lib/offer-copy";
 import { blockingLines } from "@/lib/understand-copy";
-import { decisionAnswers } from "@/lib/service";
+import { decisionAnswers, latestClarificationForQuestion } from "@/lib/service";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -34,7 +34,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const primary = current ? progress.primaryAction : null;
 
   const questions = r.displayed.questions.map((q) => {
-    const draft = s.conversation.find((i) => i.kind === "clarification" && i.refs.questionId === q.id) ?? null;
+    const draft = latestClarificationForQuestion(s, q.id);
     const reply = draft ? ([...s.conversation].reverse().find((i) => i.inReplyTo === draft.id) ?? null) : null;
     const answer = answers.find((a) => a.questionId === q.id) ?? null;
     return { q, draft, reply, answer };

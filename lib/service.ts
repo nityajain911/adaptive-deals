@@ -290,6 +290,11 @@ export function decisionAnswers(s: DemoState): RecordedAnswer[] {
   return s.decisionBranch?.answers ?? s.run.record.inputs.answers;
 }
 
+/** Latest clarification draft or follow-up for one question. Earlier exchanges remain in history. */
+export function latestClarificationForQuestion(s: Pick<DemoState, "conversation">, questionId: string): ConversationItem | null {
+  return [...s.conversation].reverse().find((item) => item.kind === "clarification" && item.refs.questionId === questionId) ?? null;
+}
+
 function activeVersion(s: DemoState): AgreementVersion | null {
   return [...s.agreements].reverse().find((v) => v.status === "active") ?? null;
 }
@@ -620,7 +625,7 @@ export async function sendQuestions(): Promise<DemoState> {
 export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const out = await currentOutcome(s);
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
-  const clar = s.conversation.filter((i) => i.kind === "clarification");
+  const clar = s.run.record.displayed.questions.map((question) => latestClarificationForQuestion(s, question.id)).filter((item): item is ConversationItem => item !== null);
   const active = activeVersion(s);
   const resolved = new Set(s.workDispositions.filter((d) => d.kind === "keep_current_terms" || d.kind === "handled_outside").filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
@@ -742,6 +747,39 @@ export async function interpretClarificationReply(messageId: string, value: stri
     s.interpretations.push({ messageId, questionId: q.refs.questionId, value, quote: t, actor: "merchant", at: clockOf(s).now() });
     s.conversation[i] = { ...m, refs: { ...m.refs, answerValue: value } };
     event(s, "merchant_interpretation", "Merchant interpreted the buyer's reply", "merchant", `“${t}” → ${value} (merchant judgement)`);
+  });
+}
+
+const clarificationFollowUp = (questionId: string): string => {
+  if (questionId === "clar-gst") return "I couldn't safely apply one GST basis. Please confirm one: both ₹50,000 and ₹60,000 include GST, or both exclude GST. If they use different bases, please say so and we'll keep this unresolved.";
+  if (questionId === "clar-approval") return "Please confirm whether the ₹60,000 approval limit applies to each payment or to the full contract. If you're not sure, please say so and we'll keep this unresolved.";
+  throw new ActionError("This clarification cannot be asked again automatically");
+};
+
+/** Merchant-authorised follow-up for an unclear buyer reply. It records no inferred value. */
+export async function askClarificationAgain(messageId: string): Promise<DemoState> {
+  return mutate((s) => {
+    if (s.status !== "clarifying") throw new ActionError("A clarification follow-up is only available while clarifying");
+    const reply = s.conversation.find((item) => item.id === messageId);
+    const target = reply?.inReplyTo ? s.conversation.find((item) => item.id === reply.inReplyTo) : null;
+    const questionId = target?.refs.questionId;
+    if (!reply || reply.direction !== "inbound" || target?.kind !== "clarification" || !questionId) throw new ActionError("Only an unclear buyer reply to a clarification can be followed up");
+    if (reply.refs.answerValue || s.interpretations.some((item) => item.messageId === reply.id)) throw new ActionError("This reply already has a supported answer");
+    if (latestClarificationForQuestion(s, questionId)?.id !== target.id) throw new ActionError("A newer clarification already supersedes this reply");
+
+    const draft = draftClarification({
+      id: itemId(s, "conv"),
+      dealId: s.dealId,
+      questionId,
+      text: clarificationFollowUp(questionId),
+      wording: "code_fallback",
+      at: clockOf(s).now(),
+      paused: false,
+    });
+    if (!draft) throw new ActionError("The follow-up could not be drafted");
+    const sent = merchantSend(draft, clockOf(s).now());
+    s.conversation.push(sent);
+    event(s, "clarification_follow_up", "Merchant asked the buyer to clarify", "merchant", `Reply ${reply.id} stayed unresolved; no value was inferred. ${sent.text}`);
   });
 }
 
@@ -948,8 +986,9 @@ export async function setSuggestionsPaused(paused: boolean): Promise<DemoState> 
 export async function adoptRepliesAsAnswers(): Promise<DemoState> {
   const s = await getState();
   const inputs: AnswerInput[] = s.run.record.displayed.questions.map((q) => {
-    const draft = s.conversation.find((i) => i.kind === "clarification" && i.refs.questionId === q.id && i.sentAt);
+    const draft = latestClarificationForQuestion(s, q.id);
     if (!draft) throw new ActionError(`Send the question “${q.question}” first`);
+    if (!draft.sentAt) throw new ActionError(`Send the question “${q.question}” first`);
     const reply = [...s.conversation].reverse().find((i) => i.inReplyTo === draft.id);
     if (!reply) throw new ActionError(`Waiting for the buyer's reply to “${q.question}”`);
     if (!reply.refs.answerValue) throw new ActionError(`Record the answer to “${q.question}” manually: typed replies are not interpreted`);
