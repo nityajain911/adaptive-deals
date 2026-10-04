@@ -92,6 +92,24 @@ The prompt's example simulated date (`2027-05-03`) is only an example. The hero'
 
 The first question names both amounts on purpose. The message states ₹50K and ₹60K separately, and a GST answer about one must not be extended to the other (see `PRODUCT_DECISIONS.md`).
 
+## Designed commercial demo cases
+
+The three entries in `data/synthetic/cases.ts` are fictional development scenarios. They are
+designed to exercise materially different engine decisions; they are not merchant interviews,
+proof of demand, model-performance results or evidence that revenue was recovered.
+
+| Case | Buyer situation | Engine decision the fixture is designed to exercise |
+| --- | --- | --- |
+| Reduced scope | Booking friction is urgent; website and search have standalone value; social can wait; current budget and the approval limit need clarification | Construct a smaller merchant-approved Phase 1 without changing price or inventing scope |
+| Preserve scope | The full annual package is required; only ₹10,000 is available this quarter; the next usable budget opens on 1 May 2027; each payment up to ₹15,000 before GST is within the buyer's authority | Preserve every required package and defer the start until the stated budget is available |
+| No fit | The buyer requires every package and work must begin by 15 October, before the earliest approved template starts | Return no feasible deal and identify the buyer's deadline as the binding reason |
+
+All three cases reuse the same merchant policy, package catalog and template ranges described
+above. Their messages are written for human comprehension first. The extraction expectations are
+authored before any external model call, cite verbatim evidence and contain only fields supported
+by `extract.v2`. The bundled run files are credential-free synthetic replays generated from
+hand-authored outputs plus the real deterministic engine.
+
 ## Synthetic extraction
 
 `heroSyntheticExtraction` is a hand-written stand-in for AI output, used by the credential-free synthetic replay and by the tests. It is not output from a model.
