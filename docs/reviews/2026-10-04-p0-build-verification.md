@@ -94,3 +94,39 @@ The independent whole-branch review found two Critical and four Important issues
 - the operational-versus-90-day collection explanation is rendered beside the contract figures.
 
 No Critical or Important finding remains. One Minor finding is deferred: `components/track/contract-financial-card.tsx` is an unused component. It is not rendered, has no state or side effects and does not affect a P0 requirement.
+
+## Submission-polish verification
+
+This later pass adds only the approved focus, copy, documentation and release-evidence changes. It does not reopen the P0 domain model or frozen AI boundary.
+
+| Check | Result |
+| --- | --- |
+| Unit and integration tests | **460 of 460 passed** across 55 files |
+| Type checking | **Clean** |
+| Lint | **Clean** |
+| Default Next.js build | Blocked in this restricted runner when Turbopack's PostCSS worker attempted to bind a local port |
+| Production build fallback | **Passed** with Next.js 16.3.8 and webpack |
+| Browser journeys | **18 of 18 passed** with the restricted-runner webpack fallback |
+| Build release gate | **Passed**; applicant-owned placeholders were reported |
+| Submission release gate | Failed only because the applicant-owned sections remain incomplete, as intended |
+| Protected assets | **44 of 44 unchanged**: 43 repository paths plus the external freeze pack |
+
+The release gate found no banned outcome claims and no future-tense description of the completed frozen evaluation. The credential scan matched only its documented pattern and deliberately fake Razorpay IDs used by integration tests; no live credential was found.
+
+### Refreshed visual evidence
+
+The browser journey produced a new, prefixed screenshot set under `artifacts/ui-review/submission-2026-10-04-*.png`. Existing screenshots—including the two applicant-modified files in the original checkout—were not overwritten.
+
+The set covers:
+
+- Understand, Offer, merchant preview and the exact expanded buyer message;
+- the mobile buyer proposal;
+- Track before buyer acceptance, amendment review and the accepted reschedule;
+- 390 px Understand, Offer, buyer and Track layouts.
+
+### Final evidence boundary
+
+- No AI prompt, schema, validator, provider or stored run changed.
+- No frozen case, label or result changed, and the frozen evaluation was not rerun.
+- No live model call was made.
+- The two Phase 1 headlines, approval-conditional contribution wording, buyer-message preview and Track balance label are deterministic view changes.

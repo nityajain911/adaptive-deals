@@ -4,6 +4,7 @@ import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant } from "@/data/synthetic/hero";
 import { contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
+import { alternativeContributionLine, headlineFor } from "@/lib/offer-copy";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 /** Spec §5.1: one primary action; rejection and funding detail collapsed in the initial view. */
@@ -25,6 +26,22 @@ describe("recommendation card", () => {
   it("uses forecast language only", () => {
     expect(html).toContain("Projected contribution");
     expect(html).not.toMatch(/recovered|guaranteed|Realised contribution/i);
+  });
+  it("distinguishes the two Phase 1 payment choices and explains the split", () => {
+    const options = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible;
+    const split = options.find((x) => x.structure.template === "phased_scope" && x.structure.payments.length === 2)!;
+    const upfront = options.find((x) => x.structure.template === "phased_scope" && x.structure.payments.length === 1)!;
+    expect(headlineFor(split)).toContain("two monthly payments");
+    expect(headlineFor(upfront)).toContain("paid upfront");
+    expect(headlineFor(split)).not.toBe(headlineFor(upfront));
+    expect(html).toContain("lowering the largest payment");
+  });
+  it("makes approval-dependent contribution conditional in alternatives", () => {
+    const options = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible;
+    const phase = options.find((x) => x.structure.template === "phased_scope" && x.structure.payments.length === 2)!;
+    const annual = options.find((x) => x.approval === "requires_approval")!;
+    expect(alternativeContributionLine(annual)).toMatch(/^If the buyer secures MD approval: projected contribution/);
+    expect(alternativeContributionLine(phase)).toMatch(/^Projected contribution/);
   });
   it("distinguishes an engine recommendation from an option selected by the merchant", () => {
     expect(html).toContain("Recommended offer");

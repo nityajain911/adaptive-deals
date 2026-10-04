@@ -6,7 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
-import { headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
+import { alternativeContributionLine, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
 import { explanationAttribution } from "@/lib/views";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
@@ -161,8 +161,9 @@ export function Alternatives({ options, selectedId }: { options: EvaluatedStruct
                 <ApprovalBadge approval={x.approval} />
               </div>
             </div>
-            <div className="tabular text-ink-2">
-              {formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))} · projected contribution {formatINR(x.economics.netContributionPaise)}
+            <div className="tabular text-right text-ink-2">
+              <div>{formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))}</div>
+              <div className="text-[12px]">{alternativeContributionLine(x)}</div>
             </div>
             <ActionButton body={{ action: "select_option", structureId: x.structure.id }} variant="ghost" testId={`select-${i + 1}`}>
               Select this offer

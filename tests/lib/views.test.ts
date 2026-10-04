@@ -153,8 +153,9 @@ describe("historical proposal replacement", () => {
 describe("recommendation attribution follows the actual output source", () => {
   it("AI wording only when the explanation text is AI", () => {
     expect(explanationAttribution({ ranking: "ai", text: "ai" })).toMatch(/^Explanation written by AI · all figures calculated by the engine/);
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).toMatch(/^Explanation written by code \(AI wording did not pass validation\)/);
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).toBe("Explanation written by code · all figures calculated by the engine · Order suggested by AI");
     expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).not.toMatch(/written by AI/);
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).not.toMatch(/did not pass validation/i);
     expect(explanationAttribution({ ranking: "code", text: "code_fallback" })).toMatch(/Order set by code$/);
     expect(explanationAttribution(null)).toBe("Explanation written by code · all figures calculated by the engine");
   });

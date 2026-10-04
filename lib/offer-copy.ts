@@ -12,9 +12,14 @@ import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero
 const WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 const word = (n: number) => WORD[n] ?? String(n);
 const phaseMonths = (x: EvaluatedStructure) => Math.max(...x.structure.scope.map((i) => i.months));
+const paymentChoice = (x: EvaluatedStructure) => {
+  if (x.structure.payments.length === 1) return "paid upfront";
+  if (x.structure.payments.length === 2) return "two monthly payments";
+  return `${word(x.structure.payments.length)} payments`;
+};
 
 const HEADLINES: Record<TemplateType, (x: EvaluatedStructure) => string> = {
-  phased_scope: (x) => `Start with a standalone ${word(phaseMonths(x))}-month package`,
+  phased_scope: (x) => `Start with a standalone ${word(phaseMonths(x))}-month package · ${paymentChoice(x)}`,
   split_payment: () => "Keep the annual scope and split the payments",
   deferred_start: () => "Start when the buyer's next budget opens",
   shorter_commitment: () => "Offer a shorter commitment",
@@ -25,8 +30,16 @@ export const headlineFor = (x: EvaluatedStructure): string => HEADLINES[x.struct
 /** Accurate code fallback when validated AI wording is unavailable for this exact option. */
 export function whyOffer(x: EvaluatedStructure): string {
   const payments = x.structure.payments.length === 1 ? "one payment" : `${x.structure.payments.length} payments`;
+  const largestPayment = Math.max(...x.structure.payments.map((payment) => payment.totalPaise));
+  if (x.structure.template === "phased_scope" && x.structure.payments.length > 1)
+    return `It keeps the standalone Phase 1 scope within the buyer's confirmed limit while lowering the largest payment to ${formatINR(largestPayment)}, and it passes your rules.`;
   if (x.approval === "requires_approval") return `It fits the buyer's confirmed budget and timing through ${payments}, requires the buyer's MD approval, and passes your rules.`;
   return `It fits the buyer's confirmed budget, timing and approval limit through ${payments}, and passes your rules.`;
+}
+
+export function alternativeContributionLine(x: EvaluatedStructure): string {
+  const contribution = `projected contribution ${formatINR(x.economics.netContributionPaise)}`;
+  return x.approval === "requires_approval" ? `If the buyer secures MD approval: ${contribution}` : contribution.replace(/^p/, "P");
 }
 
 /**

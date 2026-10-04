@@ -21,7 +21,11 @@ async function api(page: Page, data: Record<string, unknown>, ok = true) {
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as StoredState;
 const save = (s: StoredState) => writeFileSync(STORE, JSON.stringify(s, null, 2) + "\n");
 const reset = (page: Page) => api(page, { action: "reset" });
-const shot = (page: Page, name: string) => process.env.ADAPTIVE_E2E_NO_SHOTS === "1" ? Promise.resolve(Buffer.alloc(0)) : page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
+const shot = (page: Page, name: string) => {
+  if (process.env.ADAPTIVE_E2E_NO_SHOTS === "1") return Promise.resolve(Buffer.alloc(0));
+  const prefix = process.env.ADAPTIVE_E2E_SHOT_PREFIX ?? "";
+  return page.screenshot({ path: `${SHOTS}/${prefix}${name}.png`, fullPage: true });
+};
 
 async function noHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -121,8 +125,12 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
   await expect(page.getByTestId("preview-frame")).toContainText("Not sent");
+  await expect(page.getByTestId("buyer-message-preview")).toContainText("Here is our proposal");
+  await expect(page.getByTestId("buyer-message-preview")).toContainText("Review and respond here");
   await expect(page.getByTestId("primary-action")).toHaveText("Approve and send to buyer");
   await shot(page, "desktop-3-preview");
+  await page.getByTestId("buyer-message-preview").click();
+  await shot(page, "desktop-3b-preview-message");
 
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/track$/);
@@ -137,6 +145,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("back-to-merchant").click();
 
   await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
+  await expect(page.getByTestId("payment-schedule")).toContainText("Amount still to collect before GST");
   await page.getByTestId("demo-next").click();
   await expect(page.getByTestId("demo-step")).toContainText("authorises the mandate");
   await page.getByTestId("demo-next").click();
@@ -370,8 +379,12 @@ test("initial Offer viewport keeps rejections and funding detail collapsed", asy
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("recommendation")).toBeVisible();
+  await expect(page.getByTestId("recommendation")).toContainText("two monthly payments");
+  await expect(page.getByText(/structures across .* templates evaluated/i)).toHaveCount(0);
   await expect(page.getByTestId("featured-buyer-rejection")).toBeHidden();
   await expect(page.getByTestId("featured-seller-rejection")).toBeHidden();
+  await page.getByTestId("compare-alternatives").locator(":scope > summary").click();
+  await expect(page.getByTestId("compare-alternatives")).toContainText("If the buyer secures MD approval: projected contribution");
   const fundingLabels = page.getByText("Peak funding requirement", { exact: false });
   let visibleFundingLabels = 0;
   for (let i = 0; i < (await fundingLabels.count()); i++) {

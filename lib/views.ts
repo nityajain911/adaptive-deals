@@ -223,7 +223,8 @@ export function explanationAttribution(source: ExplanationResult["source"] | nul
   if (!source) return "Explanation written by code · all figures calculated by the engine";
   const order = source.ranking === "ai" ? "Order suggested by AI, approval ordering enforced by code" : "Order set by code";
   if (source.text === "ai") return `Explanation written by AI · all figures calculated by the engine · ${order}`;
-  return `Explanation written by code (AI wording did not pass validation) · all figures calculated by the engine · ${order}`;
+  if (source.ranking === "ai") return "Explanation written by code · all figures calculated by the engine · Order suggested by AI";
+  return `Explanation written by code · all figures calculated by the engine · ${order}`;
 }
 
 // ── Buyer proposal ──────────────────────────────────────────────────────────

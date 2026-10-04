@@ -13,7 +13,7 @@ const GST = heroMerchant.policy.gstRateBps;
 
 describe("code-written headlines by template", () => {
   it("one headline per template type, chosen from the engine template", () => {
-    expect(headlineFor(byTemplate("phased_scope"))).toBe("Start with a standalone three-month package");
+    expect(headlineFor(byTemplate("phased_scope"))).toBe("Start with a standalone three-month package · paid upfront");
     expect(headlineFor(byTemplate("split_payment"))).toBe("Keep the annual scope and split the payments");
     expect(headlineFor(byTemplate("deferred_start"))).toBe("Start when the buyer's next budget opens");
     expect(headlineFor(byTemplate("shorter_commitment"))).toBe("Offer a shorter commitment");

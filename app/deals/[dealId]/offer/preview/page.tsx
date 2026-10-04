@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
+import { proposalMessageText } from "@/domain/conversation";
 import { StageShell } from "@/components/deal/stage-shell";
 import { PreviewActions } from "@/components/offer/preview-actions";
 import { EvidenceReview } from "@/components/offer/evidence-review";
@@ -8,6 +9,7 @@ import { Notice } from "@/components/ui";
 import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { proposalView } from "@/lib/views";
+import { proposalLinkOf } from "@/lib/track-links";
 
 /**
  * Merchant preview of the exact buyer proposal (spec §5.3). Rendered from the draft's canonical
@@ -21,6 +23,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
   const stale = progress.primaryAction?.id === "review_updated_proposal";
   const newEvidence = progress.primaryAction?.id === "review_new_evidence";
   const view = proposalView(v, heroPackages, heroMerchant.policy);
+  const buyerMessage = proposalMessageText(v.terms, v.version, proposalLinkOf(v));
   return (
     <StageShell dealId={dealId} viewing="offer">
       <div className="mx-auto max-w-[560px] space-y-4">
@@ -35,6 +38,11 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
           </div>
           <ProposalContent view={view} nextHeading="After you accept" nextSteps={view.nextSteps} />
         </article>
+        <details className="rounded-xl border border-line bg-surface px-4 py-2" data-testid="buyer-message-preview">
+          <summary className="cursor-pointer text-[13px] font-semibold text-ink">Message the buyer will receive</summary>
+          <p className="py-3 text-[13px] leading-5 text-ink-2">{buyerMessage}</p>
+          <p className="pb-2 text-[12px] text-muted">Simulated WhatsApp message · sent only after you approve and delivery succeeds.</p>
+        </details>
         {stale || newEvidence ? null : <PreviewActions dealId={dealId} version={v.version} termsHash={v.termsHash} />}
         <details className="rounded-xl border border-line bg-surface px-4 py-2" data-testid="preview-agreement-details">
           <summary className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">

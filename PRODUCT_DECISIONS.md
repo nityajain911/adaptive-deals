@@ -251,3 +251,12 @@ These are not built and do not appear as navigation:
 - AI-triggered payments;
 - claims that a mandate guarantees payment;
 - claims of proven demand or collection uplift.
+## Submission polish: focus the offer and preserve the evidence boundary
+
+- The two eligible Phase 1 structures must be distinguishable in their headline: **two monthly payments** and **paid upfront**.
+- The recommended split structure explains its practical advantage: it lowers the largest payment while remaining inside the buyer's confirmed limit and every merchant rule.
+- Contribution for an annual structure that needs buyer approval is always conditional: **If the buyer secures MD approval**.
+- Primary merchant screens use plain decision language. Exact model-validation failures, run provenance, rejected checks and hashes remain available in Audit or collapsed Agreement details.
+- The merchant preview includes the exact code-generated simulated WhatsApp message. It is derived from canonical terms and appears before approval and delivery.
+- Track calls the operational balance **Amount still to collect before GST**. The 90-day outcome measure remains separately labelled and keeps its existing definition.
+- The submission note reports the completed frozen evaluation and its agent-authored provenance. The role-based persona reviews are usability inspections, not interviews or independent demand evidence.

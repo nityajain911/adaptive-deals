@@ -196,7 +196,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
               <details className="mt-3 rounded-xl border border-line px-4 py-2">
                 <summary className="cursor-pointer text-[13px] font-semibold text-blue">Payment details</summary>
                 <div className="grid grid-cols-2 gap-2 py-2 md:grid-cols-5">
-                  <Stat label="Balance excl. GST" value={formatINR(ledger.balance.prePaise)} />
+                  <Stat label="Amount still to collect before GST" value={formatINR(ledger.balance.prePaise)} />
                   <Stat label="GST to collect" value={formatINR(ledger.balance.gstPaise)} />
                   <Stat label="Collected (verified)" value={formatINR(ledger.collected.totalPaise)} hint={`${formatINR(ledger.collected.prePaise)} excl. GST`} />
                   <Stat label="Unpaid service value" value={formatINR(ledger.unpaidServiceValuePaise)} />

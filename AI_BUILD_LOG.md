@@ -749,6 +749,20 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 
 **Final review corrections:** service guards now block amendment approval and both buyer-acceptance paths when newer buyer intent is unresolved. Resolved notice corrections leave both work and attention queues; generic unsupported replies receive generic guidance. Proposed and declined offers no longer use agreement language, historical links follow the latest delivered descendant, and the operational-versus-90-day cutoff explanation is visible. These are deterministic service and view changes only; the AI and frozen-evaluation boundary above remains unchanged.
 
+### 2026-10-04 · Submission focus and evidence update [OpenAI Codex]
+
+**Prompt (applicant):** apply the reviewed submission improvements without expanding product scope.
+
+**Changed:**
+- Distinguished the two Phase 1 options by payment pattern and made the recommendation explain the smaller largest payment.
+- Made annual-option contribution explicitly conditional on the buyer securing MD approval.
+- Removed internal evaluation phrasing from the primary Offer view while retaining exact evidence in Audit.
+- Added the exact code-generated outbound proposal message to the merchant preview.
+- Updated Track's operational balance label and aligned the README, demo script and product note to the three-stage product.
+- Added a release checker for unsupported outcome claims, future-tense frozen-evaluation wording and applicant-owned sections.
+
+**AI and evaluation boundary:** no prompt, schema, validator, provider, stored run, frozen case or frozen result changed. No live model call was made and the frozen evaluation was not rerun.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

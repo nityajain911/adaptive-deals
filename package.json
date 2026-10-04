@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "check:release": "tsx scripts/check-release.ts",
     "reset:seed": "tsx --conditions=react-server scripts/reset-seed.ts",
     "eval": "tsx --env-file-if-exists=.env.local scripts/run-dev-eval.ts",
     "eval:frozen": "tsx --env-file-if-exists=.env.local scripts/run-frozen-eval.ts",

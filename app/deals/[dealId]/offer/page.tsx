@@ -2,7 +2,7 @@ import Link from "next/link";
 import { shortReason } from "@/domain/copy";
 import { failingChecks } from "@/domain/engine";
 import { formatDate } from "@/domain/dates";
-import { formatINR, sum } from "@/domain/money";
+import { formatINR } from "@/domain/money";
 import { PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
@@ -168,9 +168,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         <SuccessMeasure />
         <Alternatives options={options} selectedId={x.structure.id} />
         <Rejections r={r} />
-        <p className="text-[12px] text-muted">
-          {r.structures.length} structures across {r.templatesEvaluated.length} templates evaluated · total including GST {formatINR(sum(x.structure.payments.map((q) => q.totalPaise)))}
-        </p>
+        <p className="text-[12px] text-muted">Every merchant-approved template was checked. Open the rejected options or Audit details for the full evaluation.</p>
       </div>
     </StageShell>
   );
