@@ -140,7 +140,12 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const x = options.find((o) => o.structure.id === selectedId);
   if (!x || !r) return <StageShell dealId={dealId} viewing="offer">{null}</StageShell>;
   const p = out.profile;
-  const context = contextLine(p.budgetNow.value?.amountPaise ?? null, p.approvalLimit.value?.amountPaise ?? null, p.approvalScope.status === "stated" && p.approvalScope.value === "per_contract");
+  const context = contextLine(
+    p.budgetNow.value?.amountPaise ?? null,
+    p.approvalLimit.value?.amountPaise ?? null,
+    p.approvalScope.status === "stated" && p.approvalScope.value === "per_contract",
+    p.amountsIncludeGst.value === "yes",
+  );
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const explicitlySelected = s.outcomes.some((o) => o.type === "option_selected" && o.source?.kind === "action" && o.source.id === x.structure.id);
   return (

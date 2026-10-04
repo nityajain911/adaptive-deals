@@ -45,6 +45,15 @@ async function prepareOptions(page: Page) {
   expect(state().status).toBe("options_ready");
 }
 
+async function prepareClarificationCombination(page: Page, gstScript: "clar-gst-yes" | "clar-gst-no", approvalScript: "clar-approval-contract" | "clar-approval-payment") {
+  await reset(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: gstScript });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: approvalScript });
+  await api(page, { action: "adopt_replies" });
+  expect(state().status).toBe("options_ready");
+}
+
 async function prepareDraft(page: Page) {
   await prepareOptions(page);
   await api(page, { action: "review_buyer_proposal" });
@@ -101,6 +110,70 @@ function asV1(s: StoredState) {
 }
 
 test.describe.configure({ mode: "serial" });
+
+test("P0 · every clarification combination produces its engine decision and truthful provenance after reload", async ({ page }) => {
+  const cases = [
+    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", gstCopy: "including GST", approvalCopy: "Contracts above", recorded: true },
+    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", gstCopy: "excluding GST", approvalCopy: "Contracts above", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "including GST", approvalCopy: "Payments above", recorded: false },
+    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "excluding GST", approvalCopy: "Payments above", recorded: false },
+  ] as const;
+
+  for (const c of cases) {
+    await prepareClarificationCombination(page, c.gst, c.approval);
+    await page.goto("/deals/hero/offer");
+    await expect(page.getByTestId("recommendation")).toBeVisible();
+    await expect(page.getByTestId("offer-context")).toContainText(c.gstCopy);
+    await expect(page.getByTestId("offer-context")).toContainText(c.approvalCopy);
+    await api(page, { action: "review_buyer_proposal" });
+    expect(state().agreements.find((agreement) => agreement.status === "draft")?.structureId).toBe(c.expected);
+
+    await page.goto("/deals/hero/offer");
+    await page.reload();
+    await expect(page.getByText("Application error", { exact: false })).toHaveCount(0);
+    await page.getByTestId("audit-details").click();
+    const drawer = page.getByTestId("audit-drawer");
+    await expect(drawer).toBeVisible();
+    if (c.recorded) {
+      expect(state().decisionBranch).toBeNull();
+      await expect(drawer).not.toContainText("The parent model run did not process the changed answers");
+    } else {
+      expect(state().decisionBranch).not.toBeNull();
+      await expect(drawer).toContainText("The parent model run did not process the changed answers");
+      await expect(drawer).toContainText("code_fallback");
+      await expect(page.getByTestId("attribution")).toContainText("Recalculated by the engine after the buyer's answer");
+      await expect(page.getByTestId("attribution")).not.toContainText(/AI ranked|AI explained/i);
+    }
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("P0 · mixed and unsure clarification replies stay unresolved until the merchant asks again", async ({ page }) => {
+  for (const uncertain of [
+    { questionId: "clar-gst", scriptId: "clar-gst-unclear", otherId: "clar-approval", otherScript: "clar-approval-contract" },
+    { questionId: "clar-approval", scriptId: "clar-approval-unclear", otherId: "clar-gst", otherScript: "clar-gst-yes" },
+  ] as const) {
+    await reset(page);
+    await api(page, { action: "send_questions" });
+    await api(page, { action: "buyer_reply", inReplyTo: clarification(uncertain.questionId).id, scriptId: uncertain.scriptId });
+    await api(page, { action: "buyer_reply", inReplyTo: clarification(uncertain.otherId).id, scriptId: uncertain.otherScript });
+    const before = state();
+    const commercial = JSON.stringify({ agreements: before.agreements, attempts: before.attempts, paymentLinks: before.paymentLinks, mandate: before.mandate, amendments: before.amendments });
+
+    await page.goto("/deals/hero/understand");
+    await expect(page.getByTestId("status-headline")).toContainText("needs your interpretation");
+    await page.locator('[data-testid^="ask-again-"]').click();
+    await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer");
+    const after = state();
+    expect(after.conversation.filter((message) => message.kind === "clarification" && message.refs.questionId === uncertain.questionId)).toHaveLength(2);
+    expect(JSON.stringify({ agreements: after.agreements, attempts: after.attempts, paymentLinks: after.paymentLinks, mandate: after.mandate, amendments: after.amendments })).toBe(commercial);
+    expect(after.interpretations).toHaveLength(0);
+
+    await page.goto("/deals/hero/offer");
+    await expect(page.getByTestId("stage-upcoming")).toBeVisible();
+    await expect(page.getByTestId("recommendation")).toHaveCount(0);
+  }
+});
 
 test("90-second storyboard follows the three-stage preventive journey", async ({ page }) => {
   await page.setViewportSize(DESKTOP);

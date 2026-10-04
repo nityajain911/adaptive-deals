@@ -25,11 +25,12 @@ const RULE_NAME: Partial<Record<string, string>> = {
 };
 
 /** Context line from the confirmed profile, with the GST basis and approval scope kept. */
-export function contextLine(budgetPaise: number | null, limitPaise: number | null, perContract: boolean): string {
+export function contextLine(budgetPaise: number | null, limitPaise: number | null, perContract: boolean, includesGst = true): string {
   const o = originalProposal();
+  const basis = includesGst ? "including GST" : "excluding GST";
   const parts = [`Original annual proposal: ${formatINR(o.totalPaise)} including GST.`];
-  if (budgetPaise !== null) parts.push(`The buyer has ${formatINR(budgetPaise)} including GST this quarter.`);
-  if (limitPaise !== null) parts.push(`${perContract ? "Contracts" : "Payments"} above ${formatINR(limitPaise)} including GST require MD approval.`);
+  if (budgetPaise !== null) parts.push(`The buyer has ${formatINR(budgetPaise)} ${basis} this quarter.`);
+  if (limitPaise !== null) parts.push(`${perContract ? "Contracts" : "Payments"} above ${formatINR(limitPaise)} ${basis} require MD approval.`);
   return parts.join(" ");
 }
 

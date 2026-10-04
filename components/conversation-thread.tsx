@@ -51,8 +51,7 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
   };
   const items = s.conversation.filter(inScope);
   const activeV = activeVersionOf(s.agreements)?.version ?? null;
-  const buyerOpening = opening.filter((m) => m.author === "buyer");
-  const otherOpening = opening.filter((m) => m.author !== "buyer");
+  const openingChronological = [...opening].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
   const shown = scope === "track" ? items.slice(-compact) : items;
   const hidden = scope === "track" ? items.slice(0, Math.max(0, items.length - compact)) : [];
 
@@ -86,6 +85,21 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
     );
   };
 
+  const openingBubble = (message: Message) => {
+    const buyer = message.author === "buyer";
+    return (
+      <li key={message.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", buyer ? "border-line bg-surface" : "ml-auto border-[#d6defe] bg-blue-weak")} data-testid={`message-${message.id}`}>
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
+          <span className="font-semibold text-ink-2">{buyer ? "Buyer · Kestrel Lane Clinics" : "Merchant · Pinecone Media Works"}</span>
+          {buyer ? <Badge tone="amber">Received from buyer</Badge> : <Badge tone="green">Sent by merchant</Badge>}
+          <Pill>Simulated WhatsApp conversation</Pill>
+          <Pill>{fmtTime(message.timestamp)}</Pill>
+        </div>
+        <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{message.text}</p>
+      </li>
+    );
+  };
+
   return (
     <section aria-labelledby={`thread-${scope}`} className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid={`thread-${scope}`}>
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
@@ -95,33 +109,14 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
         <span className="text-[12px] text-muted">WhatsApp simulated · buyer replies selected by the demo operator</span>
       </div>
       <ol className="space-y-3 p-5" aria-label="Messages">
-        {buyerOpening.map((m) => (
-          <li key={m.id} className="max-w-[92%] rounded-2xl border border-line bg-surface px-4 py-3" data-testid={`message-${m.id}`}>
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-              <span className="font-semibold text-ink-2">Buyer · Kestrel Lane Clinics</span>
-              <Badge tone="amber">Received from buyer</Badge>
-              <Pill>Simulated WhatsApp conversation</Pill>
-              <Pill>{fmtTime(m.timestamp)}</Pill>
-            </div>
-            <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{m.text}</p>
-          </li>
-        ))}
+        {openingChronological.map(openingBubble)}
         {shown.map(bubble)}
-        {!buyerOpening.length && !shown.length ? <li className="text-[13px] text-muted">No messages yet.</li> : null}
+        {!openingChronological.length && !shown.length ? <li className="text-[13px] text-muted">No messages yet.</li> : null}
       </ol>
-      {otherOpening.length || hidden.length ? (
+      {hidden.length ? (
         <details className="border-t border-line px-5 py-3">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">Show full conversation</summary>
           <ol className="mt-3 space-y-3" aria-label="Earlier messages">
-            {otherOpening.map((m) => (
-              <li key={m.id} className="ml-auto max-w-[92%] rounded-2xl border border-[#d6defe] bg-blue-weak px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-                  <span className="font-semibold text-ink-2">Merchant · Pinecone Media Works</span>
-                  <Pill>{fmtTime(m.timestamp)}</Pill>
-                </div>
-                <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{m.text}</p>
-              </li>
-            ))}
             {hidden.map(bubble)}
           </ol>
         </details>

@@ -950,7 +950,16 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
       if (!sc) throw new ActionError("Unknown scripted reply", 404);
       if (sc.context !== target.kind) throw new ActionError(`That scripted reply answers a ${sc.context}, not a ${target.kind}`);
       if ("questionId" in sc && sc.questionId !== target.refs.questionId) throw new ActionError("That scripted reply answers a different question");
-      const at = sc.context === "clarification" ? Object.values(heroClarificationAnswers).find((a) => a.clarificationId === target.refs.questionId)!.answeredAt : sc.context === "notice" ? heroDemoEvents.preventiveReplyAt : clockOf(s).now();
+      const recorded =
+        sc.context === "clarification" && "answerValue" in sc
+          ? sourceRecord(s).inputs.answers.find((answer) => answer.questionId === target.refs.questionId && answer.value === sc.answerValue && answer.answerText === sc.text)
+          : null;
+      const at =
+        sc.context === "clarification"
+          ? (recorded?.answeredAt ?? Object.values(heroClarificationAnswers).find((a) => a.clarificationId === target.refs.questionId)!.answeredAt)
+          : sc.context === "notice"
+            ? heroDemoEvents.preventiveReplyAt
+            : clockOf(s).now();
       applyBuyerReply(s, { inReplyTo: target.id, text: sc.text, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined });
       return;
     }

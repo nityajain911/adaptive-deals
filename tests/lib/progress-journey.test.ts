@@ -55,7 +55,9 @@ describe("dealProgress across the hero journey", () => {
     const svc = await import("@/lib/service");
     const { headlines, state } = await walk(svc, "failed_debit");
     expect(headlines).toEqual([...START, "Debit failed · retry scheduled for 4 Dec 2026.", ...END]);
-    expect(state.clockAdvances.map((a) => a.to)).toEqual(["2026-10-01T09:20:00+05:30", "2026-10-01T09:22:00+05:30", "2026-11-01T10:00:00+05:30", "2026-11-28T10:00:00+05:30", "2026-12-01T10:00:00+05:30"]);
+    // The recorded replay's buyer answers are timestamped at the demo anchor, so retaining that
+    // exact continuation does not fabricate later clarification clock advances.
+    expect(state.clockAdvances.map((a) => a.to)).toEqual(["2026-11-01T10:00:00+05:30", "2026-11-28T10:00:00+05:30", "2026-12-01T10:00:00+05:30"]);
     expect(state.run.record.clockAdvances.map((a) => a.to)).toEqual(state.clockAdvances.map((a) => a.to)); // every clock move is in the run record
     expect(state.attempts.find((a) => a.method === "payment_link")!.status).toBe("succeeded");
     expect(state.attempts.filter((a) => a.scheduleLineId === "pay-2").map((a) => [a.status, a.dueDate])).toEqual([
