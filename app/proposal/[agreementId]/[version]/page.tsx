@@ -11,7 +11,7 @@ import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
 import { AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered } from "@/lib/deal-records";
-import { parseVersionSegment, proposalView } from "@/lib/views";
+import { buyerProposalLifecycle, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
 
 export const metadata = { title: "Proposal · Pinecone Media Works" };
@@ -38,9 +38,22 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const differences = amendment && previous ? amendmentDiff(previous.terms, v.terms) : [];
   const replacement = v.status === "superseded" ? s.agreements.find((x) => x.supersedes === v.version && x.status !== "draft" && x.status !== "merchant_approved") : null;
   const myRequests = s.conversation.filter((i) => i.kind === "change_request" && i.refs.agreementVersion === v.version);
+  const currentLineIds = new Set(v.terms.paymentSchedule.map((line) => line.id));
+  const versionAttempts = s.attempts.filter((attempt) => attempt.agreementId === v.agreementId && currentLineIds.has(attempt.scheduleLineId));
+  const openBuyerRequest = myRequests.some((request) => !s.workDispositions.some((disposition) => disposition.sourceKind === "message" && disposition.sourceId === request.id && (disposition.kind === "keep_current_terms" || disposition.kind === "handled_outside")));
+  const paidLines = new Map(versionAttempts.filter((attempt) => attempt.status === "succeeded").map((attempt) => [attempt.scheduleLineId, attempt.amountPaise]));
+  const lifecycle = buyerProposalLifecycle({
+    agreement: v,
+    hasBuyerRequest: openBuyerRequest && v.status === "sent",
+    paymentLinkStatus: s.paymentLinks.at(-1)?.status ?? null,
+    mandateStatus: s.mandate?.status ?? null,
+    attempts: versionAttempts,
+    fullyPaid: [...paidLines.values()].reduce((total, amount) => total + amount, 0) >= v.terms.pricing.totalPaise,
+    replacementVersion: replacement?.version ?? null,
+    isRevision: !!amendment,
+  });
   // A revision changes one line; onboarding steps (link, mandate set-up) already happened.
-  const nextSteps =
-    amendment && changedLine && previousLine
+  const proposedNextSteps = amendment && changedLine && previousLine
       ? [
           amendment.mandateFit.fits
             ? `The ${formatINR(changedLine.totalPaise)} payment is debited on ${formatDate(changedLine.dueDate.value)} under your existing authorisation, instead of ${formatDate(previousLine.dueDate.value)}.`
@@ -48,6 +61,13 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
           "Until you accept, your current agreement and its schedule stay in place.",
         ]
       : view.nextSteps;
+  const nextSteps = lifecycle.setupBasis === "proposed"
+    ? proposedNextSteps
+    : lifecycle.state === "superseded"
+      ? [replacement ? `Use version ${replacement.version} for the current terms and payment status.` : "This version is retained only as agreement history."]
+      : lifecycle.state === "declined"
+        ? ["No payment setup was created for this version."]
+        : [lifecycle.detail, `Service period: ${view.delivery.from} – ${view.delivery.to}. Payment completion does not confirm service delivery.`];
   const link = v.status === "active" || v.status === "accepted" || v.status === "superseded" ? s.paymentLinks.at(-1) ?? null : null;
 
   return (
@@ -71,12 +91,12 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             Review the payment, planned invoice date and unchanged terms below before accepting this revision.
           </p>
         ) : null}
-        <StatusBanner status={v.status} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} replacementVersion={replacement?.version ?? null} />
+        <StatusBanner lifecycle={lifecycle} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} />
       </header>
 
       <div className="space-y-5 px-5 py-5">
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} nextHeading={v.status === "sent" ? "After you accept" : "What happens next"} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
+        <ProposalContent view={view} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
         {link ? (
           <p className="-mt-3 text-[12px] text-muted" data-testid="buyer-payment-link">
             Payment link {link.id} · {formatINR(link.amountPaise)} · {link.status === "paid" ? "paid" : "awaiting payment"} ({link.mode === "simulated" ? "simulated" : "Razorpay test mode"})
@@ -84,7 +104,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         ) : null}
 
         {/* 8. Actions */}
-        {v.status === "sent" ? (
+        {lifecycle.showResponseActions ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
             <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} />
             <RequestChangeForm version={v.version} />
@@ -151,25 +171,28 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   );
 }
 
-function StatusBanner({ status, acceptedAt, declinedAt, replacement, replacementVersion }: { status: string; acceptedAt: string | null; declinedAt: string | null; replacement: string | null; replacementVersion: number | null }) {
-  if (status === "sent") return null;
+function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement }: { lifecycle: BuyerProposalLifecycle; acceptedAt: string | null; declinedAt: string | null; replacement: string | null }) {
   const box = "mt-3 rounded-xl px-3 py-2 text-[13px]";
-  if (status === "accepted" || status === "active")
+  if (lifecycle.state === "awaiting_response")
+    return <div className={cx(box, "bg-blue-weak text-blue-ink")} role="status" data-testid="buyer-status"><strong>{lifecycle.headline}.</strong> {lifecycle.detail}</div>;
+  if (lifecycle.state === "waiting_on_merchant")
+    return <div className={cx(box, "bg-violet-weak text-violet")} role="status" data-testid="buyer-status"><strong>{lifecycle.headline}.</strong> {lifecycle.detail}</div>;
+  if (["setup_pending", "payment_scheduled", "payment_pending", "retry_scheduled", "paid"].includes(lifecycle.state))
     return (
       <div className={cx(box, "bg-green-weak text-green")} role="status" data-testid="buyer-status">
-        <strong>Accepted.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}.
+        <strong>{lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}. {lifecycle.detail}
       </div>
     );
-  if (status === "buyer_rejected")
+  if (lifecycle.state === "declined")
     return (
       <div className={cx(box, "bg-red-weak text-red")} role="status" data-testid="buyer-status">
         <strong>Declined.</strong> You declined this proposal{declinedAt ? ` on ${fmtTime(declinedAt)}` : ""}. No payment has been set up.
       </div>
     );
-  if (status === "superseded")
+  if (lifecycle.state === "superseded")
     return (
       <div className={cx(box, "bg-surface-muted text-ink-2")} role="status" data-testid="buyer-status">
-        This version was replaced{replacementVersion ? ` by version ${replacementVersion}` : ""}.{" "}
+        This version was replaced{lifecycle.replacementVersion ? ` by version ${lifecycle.replacementVersion}` : ""}.{" "}
         {replacement ? (
           <Link href={replacement} className="font-semibold text-blue underline">
             View the current version

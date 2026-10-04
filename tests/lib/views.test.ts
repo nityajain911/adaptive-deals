@@ -7,7 +7,7 @@ import { enumerateAndEvaluate } from "@/domain/engine";
 import { formatINR } from "@/domain/money";
 import type { ChangeRequest } from "@/domain/restructure";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
-import { actionableChangeRequests, changeRequestDisplay, explanationAttribution, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
+import { actionableChangeRequests, buyerProposalLifecycle, changeRequestDisplay, explanationAttribution, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
@@ -91,6 +91,52 @@ describe("buyer proposal is derived from canonical terms", () => {
     const v = createAgreementVersion({ agreementId: "a", version: 1, evaluated: requires, dealId: "d", merchantId: "m", buyerId: "b", policy: heroMerchant.policy, clock: new FixedClock() });
     expect(proposalView(v, heroPackages, heroMerchant.policy).authorityReason).toBe("required_approval");
     expect(proposalView(version(1, "sent"), heroPackages, heroMerchant.policy).authorityReason).toBe("phase_scope");
+  });
+});
+
+describe("buyer proposal lifecycle", () => {
+  const lifecycle = (status: AgreementVersion["status"], overrides: Partial<Parameters<typeof buyerProposalLifecycle>[0]> = {}) =>
+    buyerProposalLifecycle({
+      agreement: version(status === "superseded" ? 1 : 2, status),
+      hasBuyerRequest: false,
+      paymentLinkStatus: null,
+      mandateStatus: null,
+      attempts: [],
+      replacementVersion: status === "superseded" ? 2 : null,
+      ...overrides,
+    });
+
+  it("asks for a response while sent and describes payment setup as proposed", () => {
+    const out = lifecycle("sent");
+    expect(out.state).toBe("awaiting_response");
+    expect(out.headline).toContain("Review and respond");
+    expect(out.showResponseActions).toBe(true);
+    expect(out.setupBasis).toBe("proposed");
+  });
+
+  it("puts a buyer change request into a truthful waiting-on-merchant state", () => {
+    const out = lifecycle("sent", { hasBuyerRequest: true });
+    expect(out.state).toBe("waiting_on_merchant");
+    expect(out.headline).toBe("Waiting for Pinecone Media Works");
+    expect(out.showResponseActions).toBe(false);
+  });
+
+  it("reports actual accepted setup and collection states", () => {
+    expect(lifecycle("active", { paymentLinkStatus: "created", mandateStatus: "pending" }).detail).toMatch(/payment link.*awaiting payment.*mandate.*pending/i);
+    expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "scheduled", dueDate: "2026-12-21" }] }).state).toBe("payment_scheduled");
+    expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "failed", dueDate: "2026-12-01" }, { status: "scheduled", dueDate: "2026-12-04", origin: "internal_retry" }] }).state).toBe("retry_scheduled");
+    expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "succeeded", dueDate: "2026-12-21" }], fullyPaid: true }).state).toBe("paid");
+  });
+
+  it("keeps declined and superseded versions historical", () => {
+    expect(lifecycle("buyer_rejected")).toMatchObject({ state: "declined", showResponseActions: false });
+    expect(lifecycle("superseded")).toMatchObject({ state: "superseded", replacementVersion: 2, showResponseActions: false });
+  });
+
+  it("never tells an accepted revision to accept again", () => {
+    const out = lifecycle("active", { isRevision: true, paymentLinkStatus: "paid", mandateStatus: "confirmed" });
+    expect(`${out.headline} ${out.detail}`).not.toMatch(/until you accept|after you accept/i);
+    expect(out.setupBasis).toBe("actual");
   });
 });
 

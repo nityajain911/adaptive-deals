@@ -234,6 +234,73 @@ export interface ProposalView {
   authorityReason: "phase_scope" | "required_approval" | null;
 }
 
+export type BuyerProposalLifecycleState =
+  | "awaiting_response"
+  | "waiting_on_merchant"
+  | "setup_pending"
+  | "payment_scheduled"
+  | "payment_pending"
+  | "retry_scheduled"
+  | "paid"
+  | "declined"
+  | "superseded";
+
+export interface BuyerProposalLifecycle {
+  state: BuyerProposalLifecycleState;
+  headline: string;
+  detail: string;
+  nextHeading: string;
+  setupBasis: "proposed" | "actual" | "historical";
+  showResponseActions: boolean;
+  replacementVersion: number | null;
+}
+
+/** Buyer-facing lifecycle truth for one delivered agreement version. */
+export function buyerProposalLifecycle(args: {
+  agreement: Pick<AgreementVersion, "status" | "version">;
+  hasBuyerRequest: boolean;
+  paymentLinkStatus: "created" | "partially_paid" | "paid" | "expired" | "cancelled" | null;
+  mandateStatus: "pending" | "confirmed" | "revoked" | "expired" | null;
+  attempts: { status: "scheduled" | "submitted" | "succeeded" | "failed" | "removed"; dueDate: string; origin?: "agreement" | "internal_retry" | "amendment" }[];
+  fullyPaid?: boolean;
+  replacementVersion: number | null;
+  isRevision?: boolean;
+}): BuyerProposalLifecycle {
+  const { agreement } = args;
+  const base = { replacementVersion: args.replacementVersion };
+  if (agreement.status === "superseded") {
+    return { ...base, state: "superseded", headline: `Version ${agreement.version} is historical`, detail: args.replacementVersion ? `It was replaced by version ${args.replacementVersion}.` : "It is no longer the current version.", nextHeading: "Version history", setupBasis: "historical", showResponseActions: false };
+  }
+  if (agreement.status === "buyer_rejected") {
+    return { ...base, state: "declined", headline: "Proposal declined", detail: "No payment setup was created for this version.", nextHeading: "What happened", setupBasis: "historical", showResponseActions: false };
+  }
+  if (args.hasBuyerRequest) {
+    return { ...base, state: "waiting_on_merchant", headline: "Waiting for Pinecone Media Works", detail: "Your change request was sent. This version stays unchanged while the merchant reviews it.", nextHeading: "While you wait", setupBasis: "proposed", showResponseActions: false };
+  }
+  if (agreement.status === "sent") {
+    return { ...base, state: "awaiting_response", headline: "Review and respond", detail: "Payment setup shown below is proposed and starts only after you accept.", nextHeading: "After you accept", setupBasis: "proposed", showResponseActions: true };
+  }
+
+  const link = args.paymentLinkStatus === "paid" ? "payment link paid" : args.paymentLinkStatus === "partially_paid" ? "payment link partially paid" : args.paymentLinkStatus ? "payment link awaiting payment" : "no payment link required";
+  const mandate = args.mandateStatus === "confirmed" ? "mandate confirmed" : args.mandateStatus === "pending" ? "mandate pending" : args.mandateStatus ? `mandate ${args.mandateStatus}` : "no mandate required";
+  if (args.fullyPaid) {
+    return { ...base, state: "paid", headline: "Payments complete", detail: `${link} · ${mandate}. Payment completion does not confirm service delivery.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+  }
+  const retry = args.attempts.filter((a) => a.status === "scheduled" && a.origin === "internal_retry").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  if (retry) {
+    return { ...base, state: "retry_scheduled", headline: `Retry scheduled for ${formatDate(retry.dueDate)}`, detail: `${link} · ${mandate}. The failed attempt remains in the payment history.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+  }
+  const submitted = args.attempts.find((a) => a.status === "submitted");
+  if (submitted) {
+    return { ...base, state: "payment_pending", headline: "Payment outcome pending", detail: `${link} · ${mandate}. The submitted debit has not been recorded as paid.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+  }
+  const scheduled = args.attempts.filter((a) => a.status === "scheduled").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  if (scheduled) {
+    return { ...base, state: "payment_scheduled", headline: `Next payment scheduled for ${formatDate(scheduled.dueDate)}`, detail: `${link} · ${mandate}.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+  }
+  return { ...base, state: "setup_pending", headline: args.isRevision ? "Revised terms accepted" : "Proposal accepted", detail: `${link} · ${mandate}.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+}
+
 const monthLabel = (ym: string) => formatDate(`${ym}-01`).replace(/^1 /, "");
 
 /** The buyer proposal, derived only from canonical agreement terms (plus package names). */

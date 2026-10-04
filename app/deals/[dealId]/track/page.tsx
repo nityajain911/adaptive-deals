@@ -7,9 +7,9 @@ import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
-import { ContractFinancialCard } from "@/components/track/contract-financial-card";
+import { CurrentAgreement } from "@/components/track/current-agreement";
 import { Card, Stat } from "@/components/ui";
-import { heroMerchant } from "@/data/synthetic/hero";
+import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import type { Structure } from "@/domain/structures";
 import { loadDeal } from "@/lib/deal-page";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
@@ -18,6 +18,7 @@ import { activeVersionOf, noticeReplyOutcome, unresolvedWork } from "@/lib/views
 import { proposalLinkOf } from "@/lib/track-links";
 import { scheduleRows } from "@/lib/track-copy";
 import { contractFinancialView } from "@/lib/financial-view";
+import { currentAgreementSummary } from "@/lib/current-agreement";
 
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
@@ -74,6 +75,18 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     timeZone: heroMerchant.timeZone,
   });
   const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
+  const agreementSummary = shown && financial
+    ? currentAgreementSummary({
+        agreements: s.agreements,
+        packages: heroPackages,
+        financial,
+        progress,
+        paymentSetup: {
+          upfront: shown.terms.paymentSchedule.some((line) => line.method === "payment_link") ? (s.paymentLinks.some((link) => link.status === "paid") ? "paid" : "pending") : "not_applicable",
+          mandate: shown.terms.mandate ? (s.mandate?.status === "confirmed" ? "confirmed" : "pending") : "not_applicable",
+        },
+      })
+    : null;
   const outcomeSignals: OutcomeSignal[] = s.outcomes.map((o) => {
     let label: string;
     if (o.type === "buyer_accepted") label = `Buyer accepted version ${o.version}`;
@@ -113,7 +126,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           ) : null}
         </Card>
 
-        {financial ? <ContractFinancialCard view={financial} /> : null}
+        {agreementSummary ? <CurrentAgreement summary={agreementSummary} /> : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
