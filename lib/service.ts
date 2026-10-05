@@ -324,6 +324,7 @@ export async function startCase(caseId: string): Promise<DemoState> {
   const item = demoCase(caseId);
   if (!item) throw new ActionError("Unknown case", 404);
   const replacement = await seedState(undefined, "replay", item.id);
+  event(replacement, "case_started", `Case started: ${item.title}`, "merchant", item.id);
   return serialised(async () => {
     await writeJsonAtomic(STORE_FILE, replacement);
     return replacement;

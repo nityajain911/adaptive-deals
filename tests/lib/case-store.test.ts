@@ -39,6 +39,9 @@ describe("one active commercial case store", () => {
       expect(s.run.record.inputs.messages.every((message) => message.dealId === item.deal.dealId)).toBe(true);
       expect(s.agreements).toEqual([]);
       expect(s.outcomes).toEqual([]);
+      expect(s.events.filter((event) => event.kind === "case_started")).toEqual([
+        expect.objectContaining({ detail: id, provenance: "merchant" }),
+      ]);
     }
   });
 
@@ -47,6 +50,7 @@ describe("one active commercial case store", () => {
     const reset = await svc.resetToSeed();
     expect(reset.caseId).toBe("preserve-scope");
     expect(reset.run.record.runId).toBe(CASE_SYNTHETIC_RUN_IDS["preserve-scope"]);
+    expect(reset.events.some((event) => event.kind === "case_started")).toBe(false);
   });
 
   it("constructs and validates a replacement before writing it", async () => {

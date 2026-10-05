@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { CasePicker, type CasePickerCard } from "@/components/deal/case-picker";
 import { MerchantHeader } from "@/components/merchant-header";
+import { WalkthroughWelcome } from "@/components/walkthrough/welcome";
 import { allDemoCases } from "@/data/synthetic/cases";
 import { getState } from "@/lib/service";
 
@@ -25,6 +26,7 @@ export default async function DealsPage() {
     <>
       <MerchantHeader current="deals" />
       <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-7 sm:px-6" data-testid="case-picker">
+        <WalkthroughWelcome />
         <div className="max-w-[760px]">
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Adaptive Deals</div>
           <h1 className="mt-1 text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Choose a commercial decision case</h1>
