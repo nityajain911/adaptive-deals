@@ -41,7 +41,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   });
 
   const evidenceDetails = (
-    <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence">
+    <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence" data-walkthrough="constraint-evidence">
       <summary className="cursor-pointer text-[13px] font-semibold text-ink">See evidence</summary>
       <ul className="mt-2 space-y-2 pb-2 text-[12px] text-ink-2">
         <li>

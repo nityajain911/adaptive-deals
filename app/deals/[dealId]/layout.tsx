@@ -1,5 +1,6 @@
 import { DemoBarServer } from "@/components/demo-bar-server";
 import { MerchantHeader } from "@/components/merchant-header";
+import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 
 /**
  * Merchant deal layout: header and page chrome only. A page cannot pass state up to its layout,
@@ -10,6 +11,7 @@ export default async function DealLayout({ children, params }: LayoutProps<"/dea
   return (
     <>
       <DemoBarServer dealId={dealId} />
+      <WalkthroughServer dealId={dealId} />
       <MerchantHeader />
       <main id="main" className="flex-1">
         {children}

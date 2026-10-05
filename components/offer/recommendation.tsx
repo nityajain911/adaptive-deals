@@ -44,7 +44,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
   const aiNote = exp?.source.text === "ai" ? exp.notes.find((n) => n.structureId === x.structure.id)?.text : null;
   const e = x.economics;
   return (
-    <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation">
+    <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation" data-walkthrough="commercial-recommendation">
       <div className="border-b border-line px-5 py-4">
         <Badge tone="blue">{presentation === "merchant_selected" ? "Selected by you" : "Recommended offer"}</Badge>
         <h2 className="mt-2 text-[22px] font-bold tracking-tight text-ink" data-testid="offer-headline">

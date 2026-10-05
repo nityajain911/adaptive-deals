@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BriefcaseBusiness, Handshake } from "lucide-react";
 import { cx } from "./ui";
+import { WalkthroughLauncher } from "./walkthrough/walkthrough-launcher";
 
 /** Razorpay-style dark dashboard header for the merchant views only. */
 export function MerchantHeader({ current = "adaptive" }: { current?: "deals" | "adaptive" }) {
@@ -23,6 +24,7 @@ export function MerchantHeader({ current = "adaptive" }: { current?: "deals" | "
           </Link>
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <WalkthroughLauncher />
           <span className="hidden rounded-md border border-white/20 px-2 py-0.5 text-[12px] font-medium text-white/80 sm:inline">Prototype · synthetic data</span>
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#1d1d1f] text-[12px] font-bold" title="Pinecone Media Works (fictional merchant)" aria-label="Merchant: Pinecone Media Works (fictional)">
             PM

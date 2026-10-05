@@ -61,6 +61,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html[data-walkthrough-open] body {
+  scroll-padding-bottom: 65dvh;
+  padding-bottom: 88px;
+}
+
+[data-walkthrough-active="true"] {
+  outline: 3px solid color-mix(in srgb, var(--blue) 70%, transparent);
+  outline-offset: 4px;
+  border-radius: var(--radius-card);
+  transition: outline-color 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--blue) 10%, transparent);
+}
+
+@media (min-width: 768px) {
+  html[data-walkthrough-open] body {
+    padding-right: 360px;
+    padding-bottom: 0;
+    scroll-padding-bottom: 0;
+  }
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }

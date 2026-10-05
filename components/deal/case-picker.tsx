@@ -48,7 +48,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
     });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-walkthrough="case-picker">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" role="radiogroup" aria-label="Commercial cases">
         {cards.map((card) => {
           const chosen = selected === card.id;

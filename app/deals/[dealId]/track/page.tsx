@@ -105,6 +105,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   return (
     <StageShell dealId={dealId} viewing="track">
       <div className="space-y-5">
+        <div data-walkthrough="collection-setup">
         <Card className="space-y-3 p-5" data-testid="now-card">
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Now</div>
           <div className="text-[18px] font-semibold text-ink">{progress.headline}</div>
@@ -126,8 +127,9 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             </p>
           ) : null}
         </Card>
+        </div>
 
-        {agreementSummary ? <CurrentAgreement summary={agreementSummary} /> : null}
+        {agreementSummary ? <div data-walkthrough="final-terms"><CurrentAgreement summary={agreementSummary} /></div> : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
