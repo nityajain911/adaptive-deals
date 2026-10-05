@@ -1,4 +1,4 @@
-import { WALKTHROUGH_VERSION } from "@/lib/walkthrough";
+import { WALKTHROUGH_VERSION } from "@/lib/walkthrough-version";
 
 export const WALKTHROUGH_PREFERENCES_KEY = `adaptive-deals.walkthrough.${WALKTHROUGH_VERSION}`;
 export const WALKTHROUGH_PREFERENCES_EVENT = "adaptive-deals:walkthrough-preferences";

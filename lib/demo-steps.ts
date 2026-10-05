@@ -4,32 +4,15 @@ import { heroMerchant, heroScriptedReplies } from "@/data/synthetic/hero";
 import { isDelivered } from "./deal-records";
 import type { DealProgress } from "./progress";
 import type { DemoState } from "./service";
+import type { DemoStepShape, SystemStepId } from "./demo-step-types";
+export { demoStepConsequence, SYSTEM_STEPS, type DemoStepType, type SystemStepId } from "./demo-step-types";
 
 /**
  * The guided demo storyboard (spec §8.1, plan Task 13), canonical preventive path.
  * Merchant and buyer decisions are never executed here: their steps only navigate and instruct.
  * Only labelled system events are executable (see `runSystemStep` in the service).
  */
-export type DemoStepType = "merchant" | "buyer" | "system";
-export type SystemStepId = "pay_upfront_link" | "confirm_mandate" | "advance_to_notice" | "send_notice";
-export const SYSTEM_STEPS: readonly SystemStepId[] = ["pay_upfront_link", "confirm_mandate", "advance_to_notice", "send_notice"];
-
-export interface DemoStep {
-  id: string;
-  type: DemoStepType;
-  label: string;
-  href: string;
-  systemAction: SystemStepId | null;
-  /** True when the step is a simulated buyer reply, given through the reply control. */
-  usesReplyControl: boolean;
-}
-
-/** Human-readable authority and consequence shown before a walkthrough control can mutate demo state. */
-export function demoStepConsequence(step: Pick<DemoStep, "type" | "label">): string {
-  const consequence = step.label.replace(/^(Next:|Simulate:)\s*/i, "").replace(/^simulated\s+/i, "");
-  const owner = step.type === "system" ? "Simulated system event" : step.type === "buyer" ? "Simulated buyer action" : "Merchant action";
-  return `${owner} · ${consequence}`;
-}
+export type DemoStep = DemoStepShape;
 
 const nav = (id: string, type: "merchant" | "buyer", label: string, href: string, usesReplyControl = false): DemoStep => ({ id, type, label, href, systemAction: null, usesReplyControl });
 const sys = (id: SystemStepId, label: string, href: string): DemoStep => ({ id, type: "system", label, href, systemAction: id, usesReplyControl: false });
@@ -57,6 +40,10 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
     case "understand.missing":
       return nav("send_missing_question", "merchant", "Next: ask the buyer for the missing detail", at("understand"));
     case "offer.review":
+      if (s.selectedOption?.draftVersion && s.agreements.some((agreement) => agreement.version === s.selectedOption?.draftVersion && agreement.status === "draft")) {
+        return nav("approve_and_send_draft", "merchant", "Next: approve and send the exact buyer proposal", `${at("offer")}/preview`);
+      }
+      return nav("review_buyer_proposal", "merchant", "Next: review the buyer proposal", at("offer"));
     case "offer.stale":
       return nav("review_buyer_proposal", "merchant", "Next: review the buyer proposal", at("offer"));
     case "offer.approved_unsent":

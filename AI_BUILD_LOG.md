@@ -763,6 +763,22 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 
 **AI and evaluation boundary:** no prompt, schema, validator, provider, stored run, frozen case or frozen result changed. No live model call was made and the frozen evaluation was not rerun.
 
+### 2026-10-05 · Buildathon product walkthrough [OpenAI Codex]
+
+**Prompt (applicant):** replace the dense demo controls with an actual product-style walkthrough for the Buildathon demo.
+
+**Built:**
+- A first-visit welcome and deliberate fictional-case selection, followed by a resumable walkthrough derived from stored deal state rather than route history.
+- A focused desktop drawer and compact mobile bottom sheet with actor labels, trust explanations, progress, Hide, Restart and **Take me there** behavior.
+- Stable product anchors and keyboard focus restoration across route changes and reloads.
+- A narrow walkthrough command boundary: it can run only labelled buyer replies, labelled system events and a separately confirmed reset. Merchant decisions remain in product screens.
+- Honest terminal outcomes for no-fit and buyer-declined cases, without suggesting an invoice action.
+- Release checks that reject hardcoded prices, recommendations, invoice IDs, confidence figures, raw prompt hashes and evaluation copy inside walkthrough modules.
+
+**AI boundary:** the walkthrough displays the run provenance already stored by the product. It does not hardcode or regenerate AI answers, recommendations or commercial figures. No prompt, schema, validator, provider, stored run, frozen case or frozen result changed, and no live model call was made.
+
+**Browser coverage:** first visit, complete core journey, reload and off-route recovery, hide and resume, confirmed restart, terminal outcomes, keyboard focus, compact 390 px presentation, and the existing preventive storyboard all run against the production build.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

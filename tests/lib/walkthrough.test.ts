@@ -91,6 +91,16 @@ describe("walkthrough state comes from the deal", () => {
     expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["setup_collection", "preventive_restructure"]);
     expect(view.stepLabel).toBe("Explore another product capability");
   });
+
+  it("keeps migration review at the last stage supported by the records", () => {
+    const understand = resolve(started(), progress("review.required", "understand", "merchant"));
+    expect(understand.currentObjectiveId).toBe("understand_buyer");
+    expect(understand.currentAction).toMatchObject({ id: "inspect_records", href: "/deals/hero/understand" });
+
+    const offer = resolve(started(), progress("review.required", "offer", "merchant"));
+    expect(offer.currentObjectiveId).toBe("review_decision");
+    expect(offer.currentAction).toMatchObject({ id: "inspect_records", href: "/deals/hero/offer" });
+  });
 });
 
 describe("capability and outcome honesty", () => {

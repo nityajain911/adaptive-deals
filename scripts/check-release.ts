@@ -15,11 +15,13 @@ export interface ReleaseResult {
   applicantPlaceholders: ReleaseIssue[];
   bannedClaims: ReleaseIssue[];
   futureFrozenWork: ReleaseIssue[];
+  walkthroughLeaks: ReleaseIssue[];
   failures: string[];
 }
 
 const BANNED = /\b(revenue recovered|cash recovered|guaranteed contribution|confirmed via WhatsApp)\b/i;
 const FUTURE_FROZEN = /\b(?:obtain|create|write|label|run)\b[^\n]{0,80}\bfrozen (?:evaluation|set|test set)\b/i;
+const WALKTHROUGH_LEAK = /₹\s*\d|\bStandalone three-month package\b|invoice_[A-Za-z0-9_]+|\bmodel confidence\b|\bRun live\b|\bFail next send\b|\braw prompt hash\b|\bfrozen evaluation\b/i;
 
 const linesWith = (root: string, file: string, pattern: RegExp): ReleaseIssue[] => {
   const absolute = path.join(root, file);
@@ -47,11 +49,14 @@ export function checkRelease({ root, mode }: { root: string; mode: ReleaseMode }
   ];
   const bannedClaims = [...new Set(merchantFacing)].flatMap((file) => linesWith(root, file, BANNED));
   const futureFrozenWork = linesWith(root, "ONE_PAGE_PRODUCT_NOTE.md", FUTURE_FROZEN);
+  const walkthroughFiles = [...codeFiles(root, "components/walkthrough"), "lib/walkthrough.ts"].filter((file) => existsSync(path.join(root, file)));
+  const walkthroughLeaks = walkthroughFiles.flatMap((file) => linesWith(root, file, WALKTHROUGH_LEAK));
   const failures: string[] = [];
   if (mode === "submission" && applicantPlaceholders.length) failures.push("Applicant-owned sections are still incomplete.");
   if (bannedClaims.length) failures.push("Banned outcome claims remain in merchant-facing content.");
   if (futureFrozenWork.length) failures.push("The product note still describes the frozen evaluation as future work.");
-  return { ok: failures.length === 0, applicantPlaceholders, bannedClaims, futureFrozenWork, failures };
+  if (walkthroughLeaks.length) failures.push("The walkthrough contains hardcoded commercial output or presenter-only copy.");
+  return { ok: failures.length === 0, applicantPlaceholders, bannedClaims, futureFrozenWork, walkthroughLeaks, failures };
 }
 
 function print(result: ReleaseResult, mode: ReleaseMode) {
@@ -60,7 +65,7 @@ function print(result: ReleaseResult, mode: ReleaseMode) {
     console.log(`Awaiting applicant: ${result.applicantPlaceholders.length} placeholder line(s)`);
     for (const issue of result.applicantPlaceholders) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
   }
-  for (const issue of [...result.bannedClaims, ...result.futureFrozenWork]) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
+  for (const issue of [...result.bannedClaims, ...result.futureFrozenWork, ...result.walkthroughLeaks]) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
   if (result.ok) console.log("PASS");
   else for (const failure of result.failures) console.error(`FAIL: ${failure}`);
 }

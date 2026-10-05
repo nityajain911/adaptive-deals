@@ -4,15 +4,17 @@ import os from "node:os";
 import path from "node:path";
 import { checkRelease } from "@/scripts/check-release";
 
-function fixture(args: { note?: string; log?: string; demo?: string; merchant?: string } = {}) {
+function fixture(args: { note?: string; log?: string; demo?: string; merchant?: string; walkthrough?: string } = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), "adaptive-release-"));
   mkdirSync(path.join(root, "app", "deals"), { recursive: true });
   mkdirSync(path.join(root, "components", "offer"), { recursive: true });
+  mkdirSync(path.join(root, "components", "walkthrough"), { recursive: true });
   writeFileSync(path.join(root, "ONE_PAGE_PRODUCT_NOTE.md"), args.note ?? "The frozen evaluation ran once.\n[APPLICANT] Add your judgement.");
   writeFileSync(path.join(root, "AI_BUILD_LOG.md"), args.log ?? "[APPLICANT] Record your decision.");
   writeFileSync(path.join(root, "DEMO_SCRIPT.md"), args.demo ?? "A truthful demo.");
   writeFileSync(path.join(root, "app", "deals", "page.tsx"), args.merchant ?? "export default function Page() { return null }");
   writeFileSync(path.join(root, "components", "offer", "card.tsx"), "export const Card = () => null");
+  writeFileSync(path.join(root, "components", "walkthrough", "guide.tsx"), args.walkthrough ?? "export const Guide = 'No copied commercial output'");
   return root;
 }
 
@@ -35,5 +37,20 @@ describe("release checks", () => {
     expect(result.ok).toBe(false);
     expect(result.bannedClaims).toHaveLength(1);
     expect(result.futureFrozenWork).toHaveLength(1);
+  });
+
+  it.each([
+    "The recommendation is Standalone three-month package",
+    "Show ₹50,000 in the guide",
+    "invoice_demo_123",
+    "Model confidence: 92%",
+    "Run live",
+    "Fail next send",
+    "raw prompt hash",
+    "open the frozen evaluation",
+  ])("rejects walkthrough-only output or presenter copy: %s", (walkthrough) => {
+    const result = checkRelease({ root: fixture({ walkthrough }), mode: "build" });
+    expect(result.ok).toBe(false);
+    expect(result.walkthroughLeaks).toHaveLength(1);
   });
 });

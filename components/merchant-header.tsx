@@ -7,8 +7,8 @@ import { WalkthroughLauncher } from "./walkthrough/walkthrough-launcher";
 export function MerchantHeader({ current = "adaptive" }: { current?: "deals" | "adaptive" }) {
   return (
     <header className="bg-header text-white">
-      <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-6 px-4 sm:px-6">
-        <span className="text-[19px] font-extrabold italic tracking-tight" aria-label="Razorpay">
+      <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-3 sm:gap-6 sm:px-6">
+        <span className="hidden text-[19px] font-extrabold italic tracking-tight sm:inline" aria-label="Razorpay">
           <span className="text-[#3d6bff]">/</span>Razorpay
         </span>
         <nav aria-label="Products" className="flex h-full items-center gap-5">

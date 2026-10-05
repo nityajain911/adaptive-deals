@@ -21,6 +21,7 @@ async function api(page: Page, data: Record<string, unknown>, ok = true) {
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as StoredState;
 const save = (s: StoredState) => writeFileSync(STORE, JSON.stringify(s, null, 2) + "\n");
 const reset = (page: Page) => api(page, { action: "reset" });
+const startCase = (page: Page) => api(page, { action: "start_case", caseId: "reduced-scope" });
 const shot = (page: Page, name: string) => {
   if (process.env.ADAPTIVE_E2E_NO_SHOTS === "1") return Promise.resolve(Buffer.alloc(0));
   const prefix = process.env.ADAPTIVE_E2E_SHOT_PREFIX ?? "";
@@ -38,12 +39,21 @@ function clarification(id: string) {
 
 async function prepareOptions(page: Page) {
   await reset(page);
+  await startCase(page);
   await api(page, { action: "send_questions" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await api(page, { action: "adopt_replies" });
   expect(state().status).toBe("options_ready");
 }
+
+async function openWalkthrough(page: Page) {
+  if (await page.getByTestId("walkthrough").count()) return;
+  await page.getByTestId("walkthrough-launcher").click();
+  await expect(page.getByTestId("walkthrough")).toBeVisible();
+}
+
+const walkthroughPrimary = (page: Page) => page.getByTestId("walkthrough").locator("[data-walkthrough-primary]");
 
 async function prepareClarificationCombination(page: Page, gstScript: "clar-gst-yes" | "clar-gst-no", approvalScript: "clar-approval-contract" | "clar-approval-payment") {
   await reset(page);
@@ -178,17 +188,19 @@ test("P0 · mixed and unsure clarification replies stay unresolved until the mer
 test("90-second storyboard follows the three-stage preventive journey", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reset(page);
+  await startCase(page);
   await page.goto("/deals/hero");
+  await openWalkthrough(page);
 
   await expectStage(page, "understand", "Confirm two details", "Send 2 questions to buyer");
   await shot(page, "desktop-1-understand");
   await clickPrimary(page);
   await expectStage(page, "understand", "Waiting for the buyer", undefined);
 
-  await page.getByTestId("demo-reply-choice").selectOption("clar-gst-yes");
-  await page.getByTestId("demo-reply-send").click();
-  await expect(page.getByTestId("demo-reply-choice")).toHaveValue("clar-approval-contract");
-  await page.getByTestId("demo-reply-send").click();
+  await page.getByTestId("walkthrough-reply-choice").selectOption("clar-gst-yes");
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveValue("clar-approval-contract");
+  await walkthroughPrimary(page).click();
   await expectStage(page, "understand", "The buyer answered", "Use these answers");
   await clickPrimary(page);
 
@@ -219,15 +231,15 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
 
   await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
   await expect(page.getByTestId("payment-schedule")).toContainText("Amount still to collect before GST");
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-step")).toContainText("authorises the mandate");
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-step")).toContainText("Advance simulated date");
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-step")).toContainText("Send scheduled advance notice");
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-reply-choice")).toHaveValue("notice-cash-tight");
-  await page.getByTestId("demo-reply-send").click();
+  await walkthroughPrimary(page).click();
+  await expect(walkthroughPrimary(page)).toContainText("authorises the mandate");
+  await walkthroughPrimary(page).click();
+  await expect(walkthroughPrimary(page)).toContainText("Advance simulated date");
+  await walkthroughPrimary(page).click();
+  await expect(walkthroughPrimary(page)).toContainText("Send scheduled advance notice");
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveValue("notice-cash-tight");
+  await walkthroughPrimary(page).click();
   await expectStage(page, "track", /can't pay until after 20 Dec 2026/, "Draft revised terms");
   await clickPrimary(page);
   await expectStage(page, "track", "Review the revised terms", "Review revised terms");
@@ -250,10 +262,11 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
 test("the complete journey works with demo controls hidden", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reset(page);
+  await startCase(page);
   await page.goto("/deals/hero/understand");
-  await page.getByTestId("demo-menu").click();
-  await page.getByTestId("hide-demo-controls").click();
-  await expect(page.getByTestId("demo-bar")).toHaveCount(0);
+  await openWalkthrough(page);
+  await page.getByTestId("walkthrough").getByRole("button", { name: "Hide" }).click();
+  await expect(page.getByTestId("walkthrough")).toHaveCount(0);
 
   await clickPrimary(page);
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
@@ -282,14 +295,15 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("amendment-settled")).toBeVisible();
-  await expect(page.getByTestId("demo-bar")).toHaveCount(0);
+  await expect(page.getByTestId("walkthrough")).toHaveCount(0);
 });
 
-test("demo Next navigates to merchant decisions but never approves them", async ({ page }) => {
+test("walkthrough navigation reaches merchant decisions but never approves them", async ({ page }) => {
   await prepareOptions(page);
-  await page.goto("/deals/hero/offer");
-  await expect(page.getByTestId("demo-next-link")).toHaveText("Go there");
-  await page.getByTestId("demo-next-link").click();
+  await page.goto("/deals/hero/understand");
+  await openWalkthrough(page);
+  await expect(walkthroughPrimary(page)).toHaveText("Take me there");
+  await walkthroughPrimary(page).click();
   expect(state().agreements.filter((a) => a.merchantApproval)).toHaveLength(0);
   await expect(page.getByTestId("primary-action")).toHaveText("Review buyer proposal");
 });
@@ -299,14 +313,15 @@ test("advance date and send notice are two explicit system steps", async ({ page
   await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
   await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
   await page.goto("/deals/hero/track");
-  await expect(page.getByTestId("demo-next")).toContainText("Advance simulated date to 28 Nov 2026");
+  await openWalkthrough(page);
+  await expect(walkthroughPrimary(page)).toContainText("Advance simulated date to 28 Nov 2026");
   const advancesBefore = state().clockAdvances.length;
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-next")).toContainText("Send scheduled advance notice");
+  await walkthroughPrimary(page).click();
+  await expect(walkthroughPrimary(page)).toContainText("Send scheduled advance notice");
   expect(state().clockAdvances).toHaveLength(advancesBefore + 1);
   expect(state().notices.filter((n) => n.sentAt)).toHaveLength(0);
-  await page.getByTestId("demo-next").click();
-  await expect(page.getByTestId("demo-reply")).toBeVisible();
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("walkthrough-reply-choice")).toBeVisible();
   expect(state().notices.filter((n) => n.sentAt)).toHaveLength(1);
 });
 
@@ -410,7 +425,7 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await shot(page, "mobile-3-buyer-proposal");
   await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
-  await page.getByTestId("back-to-merchant").click();
+  await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-banner")).toBeVisible();
   await expect(page.getByTestId("payment-schedule")).toBeVisible();
   await noHorizontalScroll(page);

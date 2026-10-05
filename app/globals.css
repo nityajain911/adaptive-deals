@@ -62,8 +62,13 @@ body {
 }
 
 html[data-walkthrough-open] body {
+  scroll-padding-bottom: 64px;
+  padding-bottom: 64px;
+}
+
+html[data-walkthrough-open][data-walkthrough-expanded] body {
   scroll-padding-bottom: 65dvh;
-  padding-bottom: 88px;
+  padding-bottom: 65dvh;
 }
 
 [data-walkthrough-active="true"] {
@@ -75,7 +80,8 @@ html[data-walkthrough-open] body {
 }
 
 @media (min-width: 768px) {
-  html[data-walkthrough-open] body {
+  html[data-walkthrough-open] body,
+  html[data-walkthrough-open][data-walkthrough-expanded] body {
     padding-right: 360px;
     padding-bottom: 0;
     scroll-padding-bottom: 0;

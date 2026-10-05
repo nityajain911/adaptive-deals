@@ -41,6 +41,7 @@ const view: WalkthroughView = {
     href: "/deals/hero/understand",
     systemAction: null,
     usesReplyControl: false,
+    consequence: "Merchant action · send questions",
   },
   terminalOutcome: null,
   provenance: "live_groq_replay",
@@ -107,6 +108,7 @@ describe("buildathon walkthrough presentation", () => {
         href: "/deals/hero/track",
         systemAction: "pay_upfront_link",
         usesReplyControl: false,
+        consequence: "Simulated system event · buyer pays the upfront link",
       },
     };
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, {

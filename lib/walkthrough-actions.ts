@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
+import { SYSTEM_STEPS, type SystemStepId } from "./demo-step-types";
 
 export type WalkthroughCommand =
   | { action: "demo_system_step"; stepId: SystemStepId }

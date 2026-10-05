@@ -47,6 +47,15 @@ describe("demo steps never perform merchant or buyer decisions", () => {
     const st = (await step())!;
     expect([st.type, st.systemAction, st.href]).toEqual(["buyer", null, "/proposal/agr-hero/v1"]);
   });
+
+  it("guides an already-prepared draft to the exact merchant preview", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (x) => x.status === "options_ready");
+    await svc.reviewBuyerProposal();
+    const st = (await step())!;
+    expect([st.id, st.type, st.href, st.systemAction]).toEqual(["approve_and_send_draft", "merchant", "/deals/hero/offer/preview", null]);
+    expect(st.label).toContain("approve and send");
+  });
 });
 
 describe("buyer setup gate and explicit time", () => {

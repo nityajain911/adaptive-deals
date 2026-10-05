@@ -33,9 +33,11 @@ The prototype works without credentials. After a reset it replays a stored actua
 
 The old `/workspace`, `/clarification`, `/decision`, `/agreement` and `/timeline` URLs remain only as redirects into the current deal stage.
 
-### Demo controls and audit
+### Buildathon walkthrough and audit
 
-The thin **Demo controls · simulated** bar is outside the merchant product. It can navigate the operator to merchant and buyer decisions, but it cannot make those decisions. It executes only labelled system events and simulated buyer replies. Use **More → Reset demo** before a new walkthrough and **More → Hide demo controls** to inspect the merchant experience on its own.
+Open `/deals` for the first-visit experience, choose **Start walkthrough**, then deliberately select a fictional buyer case. The walkthrough follows the deal's real stored state, survives route changes and reloads, and can be reopened from **Walkthrough** in the merchant header. On phones it starts as a compact bottom sheet so the product action stays visible.
+
+The guide explains the current decision and can take the reviewer to the relevant product area. Merchant decisions—including sending questions, approving terms and closing a deal—remain in the product. The guide can execute only clearly labelled simulated buyer replies and system events. **Hide** leaves the product usable on its own; **Restart** confirms before atomically returning to case selection. No recommendation, price or AI answer is copied into the walkthrough.
 
 **Audit details** opens a read-only drawer with source evidence, rules, calculations, approvals, deliveries, schedules, hashes and run attribution. The primary product screens show only the information needed for the current decision.
 
@@ -92,8 +94,8 @@ ai/                     frozen schemas, versioned prompts, providers and run rec
 data/synthetic/         fictional hero fixture, replay outputs and failure scenarios
 integrations/razorpay/  test-key guard and simulated/test-mode payment links
 evaluation/             development data and frozen evaluation records
-lib/                    service, derived product views, JSON store and demo orchestration
-app/, components/       three-stage merchant product, buyer proposal, presenter and audit
+lib/                    service, derived product views, JSON store and walkthrough orchestration
+app/, components/       three-stage merchant product, buyer proposal, walkthrough, presenter and audit
 ```
 
 ## Boundaries

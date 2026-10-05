@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { ChevronDown, ChevronUp, Compass } from "lucide-react";
 import type { WalkthroughView } from "@/lib/walkthrough";
 import { confirmedRestartCommand, walkthroughCommand, type WalkthroughCommand } from "@/lib/walkthrough-actions";
 import { Button, useAction } from "@/components/client";
@@ -49,6 +50,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const router = useRouter();
   const pathname = usePathname();
   const { run, pending, error } = useAction();
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const raw = useSyncExternalStore(subscribeWalkthroughPreferences, walkthroughPreferencesSnapshot, () => "");
   const preferences = useMemo(() => readWalkthroughPreferences({ getItem: () => raw || null }), [raw]);
   const wasOpen = useRef(false);
@@ -64,7 +66,10 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   };
 
   useEffect(() => {
-    if (preferences.open && !wasOpen.current) document.getElementById("walkthrough-heading")?.focus();
+    if (preferences.open && !wasOpen.current) {
+      const focusId = window.matchMedia("(max-width: 767px)").matches ? "walkthrough-mobile-toggle" : "walkthrough-heading";
+      document.getElementById(focusId)?.focus();
+    }
     wasOpen.current = preferences.open;
   }, [preferences.open]);
 
@@ -72,6 +77,11 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
     document.documentElement.toggleAttribute("data-walkthrough-open", preferences.open);
     return () => document.documentElement.removeAttribute("data-walkthrough-open");
   }, [preferences.open]);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-walkthrough-expanded", preferences.open && mobileExpanded);
+    return () => document.documentElement.removeAttribute("data-walkthrough-expanded");
+  }, [mobileExpanded, preferences.open]);
 
   useEffect(() => {
     if (!preferences.open) return;
@@ -115,28 +125,48 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const currentIndex = view.objectives.findIndex((item) => item.id === view.currentObjectiveId);
 
   return (
-    <aside className="walkthrough-shell fixed inset-x-0 bottom-0 z-40 max-h-[62dvh] overflow-hidden border-t border-line bg-surface shadow-[0_-10px_35px_rgba(16,24,40,0.16)] md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[360px] md:border-l md:border-t-0" role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
-      <WalkthroughProgress
-        view={view}
-        displayedObjectiveId={displayedId}
-        primaryLabel={offRoute ? "Take me there" : view.currentAction?.systemAction ? view.currentAction.label : "Complete this in the product"}
-        primaryDisabled={pending}
-        onPrimary={primary}
-        onBack={() => update({ ...preferences, reviewingObjectiveId: view.objectives[Math.max(0, displayedIndex - 1)]?.id ?? null })}
-        onNext={() => update({ ...preferences, reviewingObjectiveId: displayedIndex + 1 >= currentIndex ? null : view.objectives[displayedIndex + 1]?.id ?? null })}
-        onHide={() => update({ ...preferences, open: false })}
-        onRestart={() => {
-          const command = confirmedRestartCommand(window.confirm("Restart the walkthrough and remove unfinished demo progress for this case?"));
-          if (!command) return;
-          run(walkthroughCommand(command), () => {
-            update({ ...preferences, reviewingObjectiveId: null, open: true });
-            router.push("/deals");
-          });
-        }}
-        primaryControl={!offRoute && current && view.currentAction?.usesReplyControl && reply ? <BuyerReplyControl key={reply.inReplyTo} reply={reply} pending={pending} error={error} send={(command) => run(walkthroughCommand(command))} /> : undefined}
-        error={!(!offRoute && current && view.currentAction?.usesReplyControl && reply) ? error : null}
-        backHref={backHref}
-      />
+    <aside className={`walkthrough-shell fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t border-line bg-surface shadow-[0_-10px_35px_rgba(16,24,40,0.16)] ${mobileExpanded ? "max-h-[62dvh]" : "max-h-[64px]"} md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[360px] md:border-l md:border-t-0`} role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
+      <button
+        type="button"
+        className="flex h-16 w-full items-center justify-between gap-3 px-4 text-left md:hidden"
+        aria-expanded={mobileExpanded}
+        aria-controls="walkthrough-content"
+        id="walkthrough-mobile-toggle"
+        onClick={() => setMobileExpanded((value) => !value)}
+        data-testid="walkthrough-mobile-toggle"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-weak text-blue"><Compass aria-hidden className="h-4 w-4" /></span>
+          <span className="min-w-0">
+            <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-blue">Demo walkthrough</span>
+            <span className="block truncate text-[13px] font-semibold text-ink">{displayed.title}</span>
+          </span>
+        </span>
+        {mobileExpanded ? <ChevronDown aria-hidden className="h-5 w-5 shrink-0 text-muted" /> : <ChevronUp aria-hidden className="h-5 w-5 shrink-0 text-muted" />}
+      </button>
+      <div id="walkthrough-content" className={`${mobileExpanded ? "block h-[calc(62dvh-64px)]" : "hidden"} md:block md:h-full`}>
+        <WalkthroughProgress
+          view={view}
+          displayedObjectiveId={displayedId}
+          primaryLabel={offRoute ? "Take me there" : view.currentAction?.systemAction ? view.currentAction.label : view.currentAction ? "Complete this in the product" : null}
+          primaryDisabled={pending}
+          onPrimary={primary}
+          onBack={() => update({ ...preferences, reviewingObjectiveId: view.objectives[Math.max(0, displayedIndex - 1)]?.id ?? null })}
+          onNext={() => update({ ...preferences, reviewingObjectiveId: displayedIndex + 1 >= currentIndex ? null : view.objectives[displayedIndex + 1]?.id ?? null })}
+          onHide={() => update({ ...preferences, open: false })}
+          onRestart={() => {
+            const command = confirmedRestartCommand(window.confirm("Restart the walkthrough and remove unfinished demo progress for this case?"));
+            if (!command) return;
+            run(walkthroughCommand(command), () => {
+              update({ ...preferences, reviewingObjectiveId: null, open: true });
+              router.push("/deals");
+            });
+          }}
+          primaryControl={!offRoute && current && view.currentAction?.usesReplyControl && reply ? <BuyerReplyControl key={reply.inReplyTo} reply={reply} pending={pending} error={error} send={(command) => run(walkthroughCommand(command))} /> : undefined}
+          error={!(!offRoute && current && view.currentAction?.usesReplyControl && reply) ? error : null}
+          backHref={backHref}
+        />
+      </div>
     </aside>
   );
 }

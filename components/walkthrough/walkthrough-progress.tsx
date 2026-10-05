@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Check, ChevronLeft, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import type { WalkthroughActor, WalkthroughProvenance, WalkthroughView } from "@/lib/walkthrough";
-import { demoStepConsequence } from "@/lib/demo-steps";
 import { Button } from "@/components/client";
 
 const ACTOR_LABEL: Record<WalkthroughActor, string> = {
@@ -40,7 +39,7 @@ export function WalkthroughProgress({
 }: {
   view: WalkthroughView;
   displayedObjectiveId: string;
-  primaryLabel: string;
+  primaryLabel: string | null;
   primaryDisabled: boolean;
   onPrimary: () => void;
   onBack: () => void;
@@ -76,13 +75,13 @@ export function WalkthroughProgress({
           <p className="mt-1 text-[13px] leading-5 text-ink-2">{objective.notice}</p>
         </div>
         {displayedObjectiveId === view.currentObjectiveId && view.terminalOutcome ? <p className="mt-4 rounded-xl border border-line bg-surface-muted px-4 py-3 text-[13px] text-ink">{view.terminalOutcome}</p> : null}
-        {displayedObjectiveId === view.currentObjectiveId && view.currentAction ? <p className="mt-4 text-[12px] font-medium text-ink-2" data-testid="walkthrough-consequence">{demoStepConsequence(view.currentAction)}</p> : null}
+        {displayedObjectiveId === view.currentObjectiveId && view.currentAction ? <p className="mt-4 text-[12px] font-medium text-ink-2" data-testid="walkthrough-consequence">{view.currentAction.consequence}</p> : null}
 
-        {primaryControl ?? (
+        {primaryControl ?? (primaryLabel ? (
           <Button variant="primary" className="mt-5 w-full" onClick={onPrimary} disabled={primaryDisabled} data-walkthrough-primary="true">
             {primaryLabel}
           </Button>
-        )}
+        ) : null)}
         {error ? <p role="alert" className="mt-2 text-[12px] text-red">{error}</p> : null}
 
         <details className="mt-5 border-t border-line pt-3">
@@ -113,7 +112,7 @@ export function WalkthroughProgress({
           <button type="button" className="inline-flex items-center gap-1 font-semibold text-muted hover:text-ink" onClick={onHide}><EyeOff aria-hidden className="h-3.5 w-3.5" /> Hide</button>
           <button type="button" className="inline-flex items-center gap-1 font-semibold text-muted hover:text-ink" onClick={onRestart}><RotateCcw aria-hidden className="h-3.5 w-3.5" /> Restart</button>
         </div>
-        {backHref ? <Link href={backHref} className="mt-3 block text-center text-[12px] font-semibold text-blue hover:underline">Back to merchant view</Link> : null}
+        {backHref ? <Link href={backHref} className="mt-3 block text-center text-[12px] font-semibold text-blue hover:underline" data-testid="back-to-merchant">Back to merchant view</Link> : null}
       </div>
     </div>
   );

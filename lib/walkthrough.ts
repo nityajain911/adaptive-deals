@@ -1,9 +1,9 @@
 import type { DemoStep, DemoStepType } from "./demo-steps";
-import { nextDemoStep } from "./demo-steps";
+import { demoStepConsequence, nextDemoStep } from "./demo-steps";
 import type { DealProgress } from "./progress";
 import type { DemoState } from "./service";
-
-export const WALKTHROUGH_VERSION = "buildathon.v1" as const;
+import { WALKTHROUGH_VERSION } from "./walkthrough-version";
+export { WALKTHROUGH_VERSION } from "./walkthrough-version";
 
 export type WalkthroughCapability = "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
 export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "engine";
@@ -29,6 +29,7 @@ export interface WalkthroughAction {
   href: string;
   systemAction: DemoStep["systemAction"];
   usesReplyControl: boolean;
+  consequence: string;
 }
 
 export interface WalkthroughView {
@@ -119,11 +120,12 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
 
 function action(step: DemoStep | null, dealId: string): WalkthroughAction | null {
   if (!step) return null;
-  return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId) };
+  return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step) };
 }
 
 function objectiveFor(progress: DealProgress): string {
-  if (progress.rule.startsWith("understand.") || progress.rule === "review.required") return "understand_buyer";
+  if (progress.rule === "review.required") return progress.stage === "understand" ? "understand_buyer" : "review_decision";
+  if (progress.rule.startsWith("understand.")) return "understand_buyer";
   if (progress.rule.startsWith("offer.")) return "review_decision";
   if (progress.rule === "track.sent_awaiting_buyer" || progress.rule === "track.terminal") return "confirm_terms";
   if (progress.rule === "track.buyer_setup") return "setup_collection";
@@ -170,6 +172,7 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
     href: "/deals",
     systemAction: null,
     usesReplyControl: false,
+    consequence: "Merchant action · choose a case in the product",
   };
 
   return {
