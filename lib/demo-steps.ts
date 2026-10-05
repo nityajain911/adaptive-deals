@@ -24,6 +24,13 @@ export interface DemoStep {
   usesReplyControl: boolean;
 }
 
+/** Human-readable authority and consequence shown before a walkthrough control can mutate demo state. */
+export function demoStepConsequence(step: Pick<DemoStep, "type" | "label">): string {
+  const consequence = step.label.replace(/^(Next:|Simulate:)\s*/i, "").replace(/^simulated\s+/i, "");
+  const owner = step.type === "system" ? "Simulated system event" : step.type === "buyer" ? "Simulated buyer action" : "Merchant action";
+  return `${owner} · ${consequence}`;
+}
+
 const nav = (id: string, type: "merchant" | "buyer", label: string, href: string, usesReplyControl = false): DemoStep => ({ id, type, label, href, systemAction: null, usesReplyControl });
 const sys = (id: SystemStepId, label: string, href: string): DemoStep => ({ id, type: "system", label, href, systemAction: id, usesReplyControl: false });
 

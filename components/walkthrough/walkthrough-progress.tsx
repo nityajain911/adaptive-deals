@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Check, ChevronLeft, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 import type { WalkthroughActor, WalkthroughProvenance, WalkthroughView } from "@/lib/walkthrough";
+import { demoStepConsequence } from "@/lib/demo-steps";
 import { Button } from "@/components/client";
 
 const ACTOR_LABEL: Record<WalkthroughActor, string> = {
@@ -32,6 +34,8 @@ export function WalkthroughProgress({
   onNext,
   onHide,
   onRestart,
+  primaryControl,
+  error,
   backHref,
 }: {
   view: WalkthroughView;
@@ -43,6 +47,8 @@ export function WalkthroughProgress({
   onNext: () => void;
   onHide: () => void;
   onRestart: () => void;
+  primaryControl?: ReactNode;
+  error?: string | null;
   backHref?: string;
 }) {
   const objective = view.objectives.find((item) => item.id === displayedObjectiveId) ?? view.objectives.find((item) => item.id === view.currentObjectiveId)!;
@@ -70,10 +76,14 @@ export function WalkthroughProgress({
           <p className="mt-1 text-[13px] leading-5 text-ink-2">{objective.notice}</p>
         </div>
         {displayedObjectiveId === view.currentObjectiveId && view.terminalOutcome ? <p className="mt-4 rounded-xl border border-line bg-surface-muted px-4 py-3 text-[13px] text-ink">{view.terminalOutcome}</p> : null}
+        {displayedObjectiveId === view.currentObjectiveId && view.currentAction ? <p className="mt-4 text-[12px] font-medium text-ink-2" data-testid="walkthrough-consequence">{demoStepConsequence(view.currentAction)}</p> : null}
 
-        <Button variant="primary" className="mt-5 w-full" onClick={onPrimary} disabled={primaryDisabled} data-walkthrough-primary="true">
-          {primaryLabel}
-        </Button>
+        {primaryControl ?? (
+          <Button variant="primary" className="mt-5 w-full" onClick={onPrimary} disabled={primaryDisabled} data-walkthrough-primary="true">
+            {primaryLabel}
+          </Button>
+        )}
+        {error ? <p role="alert" className="mt-2 text-[12px] text-red">{error}</p> : null}
 
         <details className="mt-5 border-t border-line pt-3">
           <summary className="cursor-pointer text-[13px] font-semibold text-ink">Walkthrough progress</summary>

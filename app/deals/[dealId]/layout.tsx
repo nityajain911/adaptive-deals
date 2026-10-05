@@ -1,4 +1,3 @@
-import { DemoBarServer } from "@/components/demo-bar-server";
 import { MerchantHeader } from "@/components/merchant-header";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 
@@ -10,7 +9,6 @@ export default async function DealLayout({ children, params }: LayoutProps<"/dea
   const { dealId } = await params;
   return (
     <>
-      <DemoBarServer dealId={dealId} />
       <WalkthroughServer dealId={dealId} />
       <MerchantHeader />
       <main id="main" className="flex-1">

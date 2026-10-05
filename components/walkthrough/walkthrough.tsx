@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { WalkthroughView } from "@/lib/walkthrough";
-import { useAction } from "@/components/client";
+import { confirmedRestartCommand, walkthroughCommand, type WalkthroughCommand } from "@/lib/walkthrough-actions";
+import { Button, useAction } from "@/components/client";
 import { notifyWalkthroughPreferences, readWalkthroughPreferences, subscribeWalkthroughPreferences, walkthroughPreferencesSnapshot, writeWalkthroughPreferences } from "./preferences";
 import { WalkthroughProgress } from "./walkthrough-progress";
 
@@ -18,10 +19,36 @@ function focusTarget(anchorId: string) {
   return true;
 }
 
-export function Walkthrough({ view, backHref }: { view: WalkthroughView; reply: { inReplyTo: string; label: string; scripts: { id: string; text: string }[] } | null; backHref?: string }) {
+function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo: string; label: string; scripts: { id: string; text: string }[] }; pending: boolean; error: string | null; send: (command: WalkthroughCommand) => void }) {
+  const [choice, setChoice] = useState(reply.scripts[0]?.id ?? "__typed");
+  const [typed, setTyped] = useState("");
+  const custom = choice === "__typed";
+  return (
+    <form
+      className="mt-4 space-y-2 rounded-xl border border-[#ddd5ff] bg-violet-weak p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        send(walkthroughCommand(custom ? { action: "buyer_reply", inReplyTo: reply.inReplyTo, text: typed } : { action: "buyer_reply", inReplyTo: reply.inReplyTo, scriptId: choice }));
+      }}
+    >
+      <label className="block text-[12px] font-semibold text-ink">Simulated buyer response
+        <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px] font-normal" value={choice} onChange={(event) => setChoice(event.target.value)} data-testid="walkthrough-reply-choice">
+          {reply.scripts.map((script) => <option key={script.id} value={script.id}>{script.text}</option>)}
+          <option value="__typed">Type another reply</option>
+        </select>
+      </label>
+      {custom ? <textarea aria-label="Another simulated buyer reply" className="min-h-20 w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px]" value={typed} maxLength={500} onChange={(event) => setTyped(event.target.value)} /> : null}
+      <p className="text-[11px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
+      <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : "Send simulated buyer response"}</Button>
+      {error ? <p role="alert" className="text-[12px] text-red">{error}</p> : null}
+    </form>
+  );
+}
+
+export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; reply: { inReplyTo: string; label: string; scripts: { id: string; text: string }[] } | null; backHref?: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { run, pending } = useAction();
+  const { run, pending, error } = useAction();
   const raw = useSyncExternalStore(subscribeWalkthroughPreferences, walkthroughPreferencesSnapshot, () => "");
   const preferences = useMemo(() => readWalkthroughPreferences({ getItem: () => raw || null }), [raw]);
   const wasOpen = useRef(false);
@@ -78,6 +105,10 @@ export function Walkthrough({ view, backHref }: { view: WalkthroughView; reply: 
       router.push(destination);
       return;
     }
+    if (current && view.currentAction?.systemAction) {
+      run(walkthroughCommand({ action: "demo_system_step", stepId: view.currentAction.systemAction }));
+      return;
+    }
     focusTarget(displayed.anchorId);
   };
   const displayedIndex = view.objectives.findIndex((item) => item.id === displayedId);
@@ -88,19 +119,22 @@ export function Walkthrough({ view, backHref }: { view: WalkthroughView; reply: 
       <WalkthroughProgress
         view={view}
         displayedObjectiveId={displayedId}
-        primaryLabel={offRoute ? "Take me there" : "Complete this in the product"}
+        primaryLabel={offRoute ? "Take me there" : view.currentAction?.systemAction ? view.currentAction.label : "Complete this in the product"}
         primaryDisabled={pending}
         onPrimary={primary}
         onBack={() => update({ ...preferences, reviewingObjectiveId: view.objectives[Math.max(0, displayedIndex - 1)]?.id ?? null })}
         onNext={() => update({ ...preferences, reviewingObjectiveId: displayedIndex + 1 >= currentIndex ? null : view.objectives[displayedIndex + 1]?.id ?? null })}
         onHide={() => update({ ...preferences, open: false })}
         onRestart={() => {
-          if (!window.confirm("Restart the walkthrough and remove unfinished demo progress for this case?")) return;
-          run({ action: "reset" }, () => {
+          const command = confirmedRestartCommand(window.confirm("Restart the walkthrough and remove unfinished demo progress for this case?"));
+          if (!command) return;
+          run(walkthroughCommand(command), () => {
             update({ ...preferences, reviewingObjectiveId: null, open: true });
             router.push("/deals");
           });
         }}
+        primaryControl={!offRoute && current && view.currentAction?.usesReplyControl && reply ? <BuyerReplyControl key={reply.inReplyTo} reply={reply} pending={pending} error={error} send={(command) => run(walkthroughCommand(command))} /> : undefined}
+        error={!(!offRoute && current && view.currentAction?.usesReplyControl && reply) ? error : null}
         backHref={backHref}
       />
     </aside>

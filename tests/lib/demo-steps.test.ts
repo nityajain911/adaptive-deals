@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { nextDemoStep, replyContext } from "@/lib/demo-steps";
+import { demoStepConsequence, nextDemoStep, replyContext } from "@/lib/demo-steps";
 import { driveTo } from "../helpers/drive";
 
 /**
@@ -26,6 +26,11 @@ const step = async () => {
 };
 
 describe("demo steps never perform merchant or buyer decisions", () => {
+  it("names the actor and consequence before an executable system step", () => {
+    expect(demoStepConsequence({ type: "system", label: "Simulate: buyer pays the upfront link" })).toBe("Simulated system event · buyer pays the upfront link");
+    expect(demoStepConsequence({ type: "buyer", label: "Next: simulated buyer reply to the question" })).toBe("Simulated buyer action · buyer reply to the question");
+    expect(demoStepConsequence({ type: "merchant", label: "Next: review the buyer proposal" })).toBe("Merchant action · review the buyer proposal");
+  });
   it("merchant steps only navigate", async () => {
     await svc.resetToSeed();
     const st = (await step())!;

@@ -36,6 +36,7 @@ const view: WalkthroughView = {
   currentAction: {
     id: "send_questions",
     actor: "merchant",
+    type: "merchant",
     label: "Send questions",
     href: "/deals/hero/understand",
     systemAction: null,
@@ -93,5 +94,33 @@ describe("buildathon walkthrough presentation", () => {
 
   it("keeps the walkthrough permanently reachable from the merchant header", () => {
     expect(renderToStaticMarkup(createElement(MerchantHeader))).toContain("Walkthrough");
+  });
+
+  it("states the actor and consequence before a simulation control", () => {
+    const systemView: WalkthroughView = {
+      ...view,
+      currentAction: {
+        id: "pay_upfront_link",
+        actor: "system",
+        type: "system",
+        label: "Simulate: buyer pays the upfront link",
+        href: "/deals/hero/track",
+        systemAction: "pay_upfront_link",
+        usesReplyControl: false,
+      },
+    };
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, {
+      view: systemView,
+      displayedObjectiveId: systemView.currentObjectiveId,
+      primaryLabel: "Run simulated event",
+      primaryDisabled: false,
+      onPrimary: () => undefined,
+      onBack: () => undefined,
+      onNext: () => undefined,
+      onHide: () => undefined,
+      onRestart: () => undefined,
+    }));
+    expect(html).toContain("Simulated system action");
+    expect(html).toContain("Simulated system event · buyer pays the upfront link");
   });
 });

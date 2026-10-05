@@ -24,6 +24,7 @@ export interface WalkthroughObjective {
 export interface WalkthroughAction {
   id: string;
   actor: DemoStepType;
+  type: DemoStepType;
   label: string;
   href: string;
   systemAction: DemoStep["systemAction"];
@@ -164,6 +165,7 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
   const caseAction: WalkthroughAction = {
     id: "choose_case",
     actor: "merchant",
+    type: "merchant",
     label: "Choose a case in the product",
     href: "/deals",
     systemAction: null,
