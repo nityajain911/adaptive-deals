@@ -608,3 +608,55 @@ test("P0 · current agreement summary keeps phase, annual, deferred and declined
   await expect(page.getByTestId("current-agreement")).toContainText("Declined");
   await expect(page.getByTestId("current-agreement")).toContainText("not shown as money owed");
 });
+
+test("commercial case picker starts all three cases and isolates their buyer, run and outcomes", async ({ page }) => {
+  const cases = [
+    {
+      id: "reduced-scope",
+      buyer: "Kestrel Lane Clinics",
+      message: "The broken booking page is costing us enquiries",
+      status: "clarifying",
+    },
+    {
+      id: "preserve-scope",
+      buyer: "Northstar Learning Centres",
+      message: "We need the complete annual package",
+      status: "options_ready",
+    },
+    {
+      id: "no-fit",
+      buyer: "Blue Harbor Foods",
+      message: "The retail launch cannot move",
+      status: "no_feasible_structure",
+    },
+  ] as const;
+
+  for (const item of cases) {
+    await page.goto("/deals");
+    await expect(page.getByTestId("case-picker")).toBeVisible();
+    await page.getByTestId(`select-case-${item.id}`).click();
+    await expect(page.getByTestId("case-switch-warning")).toHaveText("Starting another case resets unfinished demo progress.");
+    await page.getByTestId("start-selected-case").click();
+    await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(item.buyer);
+    expect(state().caseId).toBe(item.id);
+    expect(state().status).toBe(item.status);
+    expect(state().run.record.inputs.messages.some((message) => message.text.includes(item.message))).toBe(true);
+    expect(state().agreements).toHaveLength(0);
+    expect(state().outcomes).toHaveLength(0);
+
+    if (item.id === "reduced-scope") {
+      await expect(page.getByTestId("thread-understand")).toContainText(item.message);
+      await api(page, { action: "send_questions" });
+      expect(state().conversation.length).toBeGreaterThan(0);
+    } else {
+      await page.getByText("Details", { exact: true }).click();
+      await expect(page.getByTestId("thread-understand")).toContainText(item.message);
+      expect(state().conversation).toHaveLength(0);
+      expect(state().run.record.inputs.messages.some((message) => message.text.includes("Kestrel"))).toBe(false);
+    }
+  }
+
+  // Leave the existing hero journey as the selected case for subsequent manual testing.
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+});

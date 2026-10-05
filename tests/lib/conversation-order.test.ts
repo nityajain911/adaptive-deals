@@ -8,7 +8,7 @@ import { contextLine } from "@/components/offer/recommendation";
 describe("Understand conversation order", () => {
   it("shows the merchant proposal before the later buyer constraint in the collapsed thread", async () => {
     const state = await seedState(bundledSyntheticRun(), "replay");
-    const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", opening: heroMessages }));
+    const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", buyerName: "Kestrel Lane Clinics", opening: heroMessages }));
     const merchant = html.indexOf("Sharing our annual proposal");
     const buyer = html.indexOf("Only ₹50K left this quarter");
 

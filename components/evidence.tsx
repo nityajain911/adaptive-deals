@@ -24,7 +24,7 @@ export function highlighted(text: string, spans: { start: number; end: number; l
   return out;
 }
 
-export function Conversation({ messages, evidence }: { messages: Message[]; evidence: (Evidence & { label: string })[] }) {
+export function Conversation({ messages, evidence, buyerName = "Buyer" }: { messages: Message[]; evidence: (Evidence & { label: string })[]; buyerName?: string }) {
   return (
     <ol className="space-y-3" aria-label="Buyer conversation">
       {messages.map((m) => {
@@ -32,7 +32,7 @@ export function Conversation({ messages, evidence }: { messages: Message[]; evid
         return (
           <li key={m.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", m.author === "buyer" ? "border-line bg-surface" : "ml-auto border-[#d6defe] bg-blue-weak")} data-testid={`message-${m.id}`}>
             <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-              <span className="font-semibold text-ink-2">{m.author === "buyer" ? "Buyer · Kestrel Lane Clinics" : "Merchant · Pinecone Media Works"}</span>
+              <span className="font-semibold text-ink-2">{m.author === "buyer" ? `Buyer · ${buyerName}` : "Merchant · Pinecone Media Works"}</span>
               <Pill>{m.source === "whatsapp" ? "WhatsApp (pasted)" : "Email (pasted)"}</Pill>
               <Pill>{fmtTime(m.timestamp)}</Pill>
               <span className="font-mono text-[11px]">{m.id}</span>

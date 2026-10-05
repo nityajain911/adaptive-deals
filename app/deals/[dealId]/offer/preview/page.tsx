@@ -6,7 +6,7 @@ import { PreviewActions } from "@/components/offer/preview-actions";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { ProposalContent } from "@/components/proposal-content";
 import { Notice } from "@/components/ui";
-import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
+import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { proposalView } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
@@ -17,7 +17,7 @@ import { proposalLinkOf } from "@/lib/track-links";
  */
 export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offer/preview">) {
   const { dealId } = await props.params;
-  const { s, progress } = await loadDeal(dealId);
+  const { s, progress, activeCase } = await loadDeal(dealId);
   const v = s.agreements.find((a) => a.version === s.selectedOption?.draftVersion && a.status === "draft");
   if (!v || progress.stage !== "offer") redirect(stageHref(dealId, progress.stage));
   const stale = progress.primaryAction?.id === "review_updated_proposal";
@@ -34,7 +34,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
         {newEvidence ? <EvidenceReview s={s} /> : null}
         <article className="rounded-2xl bg-surface p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08),0_0_0_1px_var(--border)]" aria-label="Buyer proposal preview">
           <div className="mb-4 text-[13px] text-muted">
-            {heroMerchant.name} · for {heroBuyer.name}
+            {heroMerchant.name} · for {activeCase.buyer.name}
           </div>
           <ProposalContent view={view} nextHeading="After you accept" nextSteps={view.nextSteps} />
         </article>

@@ -23,7 +23,7 @@ import { currentAgreementSummary } from "@/lib/current-agreement";
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
   const { dealId } = await props.params;
-  const { s, out, progress, today, now } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, today, now } = await loadDeal(dealId);
   if (progress.stages.track === "upcoming") {
     return (
       <StageShell dealId={dealId} viewing="track">
@@ -209,7 +209,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
 
         <OutcomeCard summary={summary} signals={outcomeSignals} />
 
-        <ConversationThread s={s} scope="track" />
+        <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} />
       </div>
     </StageShell>
   );

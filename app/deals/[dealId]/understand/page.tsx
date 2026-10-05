@@ -23,7 +23,7 @@ const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
 /** Stage 1 · Understand the buyer (spec §4). */
 export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
   const { dealId } = await props.params;
-  const { s, out, progress } = await loadDeal(dealId);
+  const { s, out, progress, activeCase } = await loadDeal(dealId);
   const current = progress.stages.understand === "current";
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposal());
@@ -94,6 +94,9 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               </dl>
             ) : null}
             {evidenceDetails}
+            <div className="mt-4">
+              <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} />
+            </div>
           </details>
         </Card>
       </StageShell>
@@ -146,7 +149,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             </Card>
           ) : null}
         </div>
-        <ConversationThread s={s} scope="understand" opening={r.inputs.messages} />
+        <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} />
       </div>
     </StageShell>
   );

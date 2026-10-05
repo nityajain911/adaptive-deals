@@ -7,9 +7,9 @@ import { AcceptForm, DeclineButton, RequestChangeForm } from "@/components/clien
 import { ProposalContent } from "@/components/proposal-content";
 import { fmtTime } from "@/components/evidence";
 import { cx } from "@/components/ui";
-import { heroBuyer, heroMerchant, heroPackages } from "@/data/synthetic/hero";
+import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
-import { AGREEMENT_ID, proposalLink } from "@/lib/service";
+import { activeCase, AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered } from "@/lib/deal-records";
 import { buyerProposalLifecycle, latestReplacementVersion, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
@@ -25,6 +25,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const version = parseVersionSegment(seg);
   if (agreementId !== AGREEMENT_ID || version === null) notFound();
   const { s } = await loadPage();
+  const buyer = activeCase(s).buyer;
   const v = s.agreements.find((x) => x.agreementId === agreementId && x.version === version);
   // A proposal link exists only once the merchant has approved and sent this exact version.
   // Buyer access opens only after a successful delivery of this exact version (spec §5.5).
@@ -80,7 +81,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
           </span>
           <div className="min-w-0">
             <div className="text-[14px] font-semibold text-ink">{heroMerchant.name}</div>
-            <div className="text-[12px] text-muted">for {heroBuyer.name}</div>
+            <div className="text-[12px] text-muted">for {buyer.name}</div>
           </div>
         </div>
         <h1 id="proposal-title" className="mt-4 text-[22px] font-bold leading-7 tracking-tight text-ink">

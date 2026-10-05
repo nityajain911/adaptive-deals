@@ -42,7 +42,7 @@ function linkify(text: string): ReactNode[] {
   );
 }
 
-export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s: DemoState; scope: "understand" | "track"; opening?: Message[]; compact?: number }) {
+export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2 }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number }) {
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -63,7 +63,7 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
     return (
       <li key={i.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", outbound ? cx("ml-auto", i.sentAt ? "border-[#d6defe] bg-blue-weak" : "border-dashed border-[#9fb3ff] bg-surface") : "border-line bg-surface")} data-testid={`thread-${i.id}`} data-kind={i.kind}>
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-          <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : "Buyer · Kestrel Lane Clinics"}</span>
+          <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : `Buyer · ${buyerName}`}</span>
           <Badge tone={STATE_TONE[i.state]}>{STATE_LABEL[i.state]}</Badge>
           {!outbound ? <Pill>{i.source === "buyer_proposal_page" ? "From the buyer proposal page" : "Simulated buyer reply"}</Pill> : null}
           <Pill>{fmtTime(i.sentAt ?? i.createdAt)}</Pill>
@@ -90,7 +90,7 @@ export function ConversationThread({ s, scope, opening = [], compact = 2 }: { s:
     return (
       <li key={message.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", buyer ? "border-line bg-surface" : "ml-auto border-[#d6defe] bg-blue-weak")} data-testid={`message-${message.id}`}>
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-          <span className="font-semibold text-ink-2">{buyer ? "Buyer · Kestrel Lane Clinics" : "Merchant · Pinecone Media Works"}</span>
+          <span className="font-semibold text-ink-2">{buyer ? `Buyer · ${buyerName}` : "Merchant · Pinecone Media Works"}</span>
           {buyer ? <Badge tone="amber">Received from buyer</Badge> : <Badge tone="green">Sent by merchant</Badge>}
           <Pill>Simulated WhatsApp conversation</Pill>
           <Pill>{fmtTime(message.timestamp)}</Pill>
