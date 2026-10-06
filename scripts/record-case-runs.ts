@@ -30,102 +30,14 @@ import Groq from "groq-sdk";
 import { KEY_VARS, liveAvailability } from "@/ai/config";
 import { GroqProvider } from "@/ai/groq-provider";
 import { runConstruct, type RunOutcome } from "@/ai/orchestrator";
-import type { ModelProvider, ProviderResult, StructuredRequest } from "@/ai/provider";
+import type { ModelProvider } from "@/ai/provider";
 import type { AiTask } from "@/ai/schemas";
 import { FixedClock } from "@/domain/clock";
 import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
-import { decideAfterAttempt, outputContract, type Spent } from "./recording-policy";
+import { defaultOptions, newLedger, RecordingProvider, Stop, type Ledger } from "./recording-provider";
 
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const MODEL_OUTPUT_CAP = Number(arg("max-model-outputs") ?? 6);
-const PACE_MS = 25_000;
-const DEFAULT_RETRY_WAIT_MS = 60_000;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-interface Ledger {
-  requests: { n: number; caseId: string; task: AiTask; ok: boolean; schemaValid: boolean | null; failure: string | null; waitedMsBefore: number; retryOf: number | null }[];
-  retries: { caseId: string; task: AiTask; why: "schema" | "provider"; reason: string }[];
-  /** Outputs the provider returned that broke the declared schema. Preserved, never used. */
-  rejectedAttempts: { caseId: string; task: AiTask; inputHash: string; supersededRunId: string | null; reason: string; rawOutput: unknown }[];
-  /** Set by the client wrapper when the provider states how long to wait. */
-  retryAfterMs: number | null;
-  lastRequestAt: number | null;
-  modelOutputs: number;
-}
-
-class Stop extends Error {}
-
-/** Counts every request, paces them, and requests a step again only as the recording policy allows. */
-class RecordingProvider implements ModelProvider {
-  readonly name;
-  readonly model;
-  private readonly kept: Record<string, ProviderResult>;
-  constructor(
-    private readonly inner: ModelProvider,
-    private readonly caseId: string,
-    private readonly ledger: Ledger,
-    private readonly keptFile: string,
-    /** Schema-failed attempts of a step already spent in an earlier invocation (a superseded run). */
-    private readonly priorSchemaAttempts: Partial<Record<AiTask, number>> = {},
-  ) {
-    this.name = inner.name;
-    this.model = inner.model;
-    this.kept = existsSync(keptFile) ? (JSON.parse(readFileSync(keptFile, "utf8")) as Record<string, ProviderResult>) : {};
-  }
-
-  /** Remove a step's stored output so it is requested again; returns what was stored. */
-  strike(inputHash: string): ProviderResult | null {
-    const stored = this.kept[inputHash] ?? null;
-    delete this.kept[inputHash];
-    writeFileSync(this.keptFile, JSON.stringify(this.kept, null, 2) + "\n");
-    return stored;
-  }
-
-  async generate(req: StructuredRequest): Promise<ProviderResult> {
-    // A step's first valid output is final: if an earlier attempt stopped after it, that same
-    // output is reused here and no new call is made.
-    const kept = this.kept[req.inputHash];
-    if (kept) {
-      console.error(`  ${this.caseId} · ${req.task} · reusing the first valid output from an earlier attempt; no call made`);
-      return kept;
-    }
-    const spent: Spent = { schemaRetries: this.priorSchemaAttempts[req.task] ?? 0, providerRetries: 0 };
-    let retryOf: number | null = null;
-    let wait = 0;
-    for (;;) {
-      if (this.ledger.modelOutputs >= MODEL_OUTPUT_CAP && retryOf === null) throw new Stop("Model-output cap reached before this step; no call made");
-      const sinceLast = this.ledger.lastRequestAt === null ? Infinity : Date.now() - this.ledger.lastRequestAt;
-      // Pace every request; after a rate limit, wait for the provider's stated time instead.
-      wait = retryOf !== null && this.ledger.retryAfterMs !== null ? this.ledger.retryAfterMs + 2_000 : Math.max(0, PACE_MS - sinceLast);
-      if (retryOf !== null && this.ledger.retryAfterMs === null && wait < DEFAULT_RETRY_WAIT_MS && spent.providerRetries > 0) wait = DEFAULT_RETRY_WAIT_MS;
-      if (wait > 0 && Number.isFinite(wait)) await sleep(wait);
-      this.ledger.retryAfterMs = null;
-
-      const n = this.ledger.requests.length + 1;
-      const res = await this.inner.generate(req);
-      this.ledger.lastRequestAt = Date.now();
-      if (res.ok) this.ledger.modelOutputs++;
-      const contract = res.ok ? outputContract(req.schema, res.raw) : ({ valid: false, reason: "no output" } as const);
-      this.ledger.requests.push({ n, caseId: this.caseId, task: req.task, ok: res.ok, schemaValid: res.ok ? contract.valid : null, failure: res.ok ? null : res.failure, waitedMsBefore: Number.isFinite(wait) ? wait : 0, retryOf });
-      const outcome = !res.ok ? `${res.failure}: ${res.message}` : contract.valid ? "model output received, schema valid" : `model output received, ${contract.valid ? "" : contract.reason}`;
-      console.error(`  request ${n} · ${this.caseId} · ${req.task} · ${outcome}`);
-
-      const decision = decideAfterAttempt(res.ok ? { ok: true, raw: res.raw } : { ok: false, failure: res.failure }, contract, spent);
-      if (decision.action === "keep") {
-        this.kept[req.inputHash] = res;
-        writeFileSync(this.keptFile, JSON.stringify(this.kept, null, 2) + "\n");
-        return res;
-      }
-      if (decision.action === "stop") throw new Stop(`${req.task}: ${decision.reason}${!res.ok ? ` (${res.message})` : ""}`);
-      if (decision.preserve && res.ok) this.ledger.rejectedAttempts.push({ caseId: this.caseId, task: req.task, inputHash: req.inputHash, supersededRunId: null, reason: contract.valid ? "" : contract.reason, rawOutput: res.raw });
-      this.ledger.retries.push({ caseId: this.caseId, task: req.task, why: decision.why, reason: res.ok ? (contract.valid ? "" : contract.reason) : `${res.failure}: ${res.message}` });
-      if (decision.why === "schema") spent.schemaRetries++;
-      else spent.providerRetries++;
-      retryOf = n;
-    }
-  }
-}
+const options = defaultOptions(Number(arg("max-model-outputs") ?? 6));
 
 /** Reads the provider's retry timing off a rate-limit error before the provider class reduces it to a failure kind. */
 function timedClient(client: Groq, ledger: Ledger) {
@@ -184,7 +96,7 @@ function supersededStep(dir: string, runId: string, task: AiTask) {
 
 async function record(caseId: CaseId, live: ModelProvider, ledger: Ledger, dir: string, rerun: { runId: string; task: AiTask } | null) {
   const item = demoCase(caseId)!;
-  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${caseId}.json`), rerun ? { [rerun.task]: 1 } : {});
+  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${caseId}.json`), rerun ? { [rerun.task]: 1 } : {}, options);
   if (rerun) {
     // The earlier attempt is preserved in the report, struck from the reusable outputs, and counted
     // against the rerun budget; every other step of the case is reused unchanged.
@@ -209,7 +121,7 @@ async function record(caseId: CaseId, live: ModelProvider, ledger: Ledger, dir: 
 
 async function main() {
   const availability = liveAvailability();
-  console.log(`Provider: ${availability.provider} · model: ${availability.available ? availability.model : "(unavailable)"} · model-output cap: ${MODEL_OUTPUT_CAP}`);
+  console.log(`Provider: ${availability.provider} · model: ${availability.available ? availability.model : "(unavailable)"} · model-output cap: ${options.modelOutputCap}`);
   if (!availability.available) throw new Error(`Live model unavailable: ${availability.reason}`);
   if (availability.provider !== "groq") throw new Error("These recordings are authorised for Groq only");
   const only = arg("only");
@@ -228,7 +140,7 @@ async function main() {
   }
 
   const apiKey = process.env[KEY_VARS.groq]!.trim();
-  const ledger: Ledger = { requests: [], retries: [], rejectedAttempts: [], retryAfterMs: null, lastRequestAt: null, modelOutputs: 0 };
+  const ledger = newLedger();
   // The SDK's own silent retries are disabled so that every request is counted and paced here.
   const live = new GroqProvider(availability.model, timedClient(new Groq({ apiKey, maxRetries: 0 }), ledger) as never, apiKey);
   const dir = path.join(process.env.ADAPTIVE_DEALS_DATA_DIR || path.join(process.cwd(), ".data"), "runs");
