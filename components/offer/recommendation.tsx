@@ -143,7 +143,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
         <span className="font-semibold text-ink">Why this offer: </span>
         <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
         <div className="mt-1 text-[12px] text-muted" data-testid="attribution">
-          {explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text)}
+          {explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>

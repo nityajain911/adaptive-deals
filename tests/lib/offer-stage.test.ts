@@ -105,6 +105,13 @@ describe("recommendation attribution on the card", () => {
     expect(html).toContain(NOTE);
     expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine.");
   });
+  it("on the option the merchant selected, says the merchant chose it and the model only wrote the reason", () => {
+    const html = renderToStaticMarkup(Recommendation({ x, exp: exp(noteFor(x.structure.id), "code_fallback"), policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: GROQ }));
+    expect(html).toContain("Selected by you");
+    expect(html).toContain(NOTE);
+    expect(attribution(html)).toBe("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+    expect(attribution(html)).not.toMatch(/ranked/);
+  });
   it("never shows a parent run's note on a changed-answer branch", () => {
     const branch: DecisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "p", createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
     const html = card(exp(noteFor(x.structure.id)), GROQ, branch);

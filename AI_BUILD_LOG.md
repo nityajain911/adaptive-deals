@@ -851,6 +851,31 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Also added:** an uncaptured fact that changes no structure's outcome (the GST basis in this case) is disclosed on Understand instead of asked about, from the engine's own ambiguity analysis.
 
+### 2026-10-06 · Final recordings of the three cases, and one stopped rerun (Groq, frozen prompts) [Claude Code]
+
+**Authorisation (applicant):** six final calls across the three cases; a refusal is a valid outcome and is not rerun; a result is technically invalid only for transport, timeout, rate-limit, malformed-response or schema failure; the first technically valid result is final, misses included.
+
+**Method:** `scripts/record-case-runs.ts` runs the real orchestrator and engine with the live provider (`groq` · `openai/gpt-oss-120b`), calling only the tasks each case's own chain reaches, paced 25 s apart with the SDK's silent retries disabled. The only non-model input is the simulated buyer's scripted answer to the two questions the reduced-scope chain itself asked.
+
+| # | Case | Task | Result |
+|---|---|---|---|
+| 1 | reduced-scope | extract (`extract.v2`) | Valid · accepted |
+| 2 | reduced-scope | clarify (`clarify.v1`) | Valid · accepted |
+| 3 | reduced-scope | explain (`explain.v3`) | Valid · ranking accepted; comparison and one per-offer note rejected by code (literal figures); three notes accepted |
+| 4 | preserve-scope | extract | Valid · accepted with one field rejected by code |
+| 5 | preserve-scope | explain | Output broke the schema (a per-offer note of 291 characters, limit 240) |
+| 6 | no-fit | extract | Valid · accepted |
+
+All six returned model output on the first attempt: no rate limit, no refusal, no retry.
+
+**Outcomes:** all three cases reached the outcome on their case cards. Reduced scope: the model ranked the single upfront payment first, not the two payments the hand-written sample ranked first. Preserve scope: the model returned the required scope as "complete annual package", which names no package, so code rejected it (its evidence quote lists all four services); it also again missed the buyer's statement that both amounts exclude GST. No fit: every field correct.
+
+**Stopped rerun:** the applicant ruled that a schema failure is a technical failure, so the preserve-scope explanation was requested once more. That output also broke the schema (a per-offer note over 240 characters), and the recording stopped under the agreed rule. The first rejected output is preserved in the recording report. **The second rejected output was not saved**: the recorder only preserved an output when it was about to retry it. Its schema failure reason is recorded; the output itself is lost. Corrected in `a52cccf`: every schema-invalid output is now preserved, including when a step stops, with a test.
+
+**Product changes the recordings prompted (applicant-approved):** the merchant now confirms required services the extraction could not map (`6e5f8e7`); a selected alternative's attribution credits the merchant for the choice and the model only for the reason it wrote.
+
+**Secrets:** none stored; the key was checked against every file written.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

@@ -165,6 +165,17 @@ describe("recommendation attribution follows the actual output source", () => {
     expect(explanationAttribution({ ranking: "code", text: "code_fallback" }, groq, null, "code_fallback")).toBe("Explanation written by code · all figures calculated by the engine · Order set by code");
     expect(explanationAttribution(null, groq)).toBe("Explanation written by code · all figures calculated by the engine");
   });
+  it("credits the choice to the merchant on a selected alternative, and the model only for the reason it wrote", () => {
+    const sel = (source: { ranking: "ai" | "code"; text: "ai" | "code_fallback" }, p: ModelProvenance, comparison: "ai" | "code_fallback" = "code_fallback") => explanationAttribution(source, p, null, comparison, true);
+    expect(sel({ ranking: "ai", text: "ai" }, groq)).toBe("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+    expect(sel({ ranking: "ai", text: "ai" }, groq, "ai")).toBe("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine.");
+    expect(sel({ ranking: "ai", text: "code_fallback" }, groq)).toBe("You selected this option · explanation written by code · all figures calculated by the engine");
+    expect(sel({ ranking: "code", text: "code_fallback" }, groq)).toBe("You selected this option · explanation written by code · all figures calculated by the engine");
+    expect(sel({ ranking: "ai", text: "ai" }, sample)).toBe("Sample reason written by hand · no model ran · you selected this option · figures calculated by the engine. Full comparison written by code.");
+    for (const line of [sel({ ranking: "ai", text: "ai" }, sample), sel({ ranking: "ai", text: "code_fallback" }, sample)]) expect(line).not.toMatch(/\bAI\b|Groq/);
+    // A selected option is never described as ranked by the model.
+    expect(sel({ ranking: "ai", text: "ai" }, groq)).not.toMatch(/ranked/);
+  });
   it("never claims the model wrote the full comparison when code wrote it", () => {
     for (const ranking of ["ai", "code"] as const) {
       const line = explanationAttribution({ ranking, text: "ai" }, groq, null, "code_fallback");

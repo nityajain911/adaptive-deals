@@ -230,11 +230,19 @@ export function explanationAttribution(
   provenance: ModelProvenance,
   branch: DecisionBranch | null = null,
   comparison: ExplanationResult["source"]["text"] = source?.text ?? "code_fallback",
+  /** The merchant chose this option over the recommendation: the model is credited only for the reason it wrote. */
+  selectedByMerchant = false,
 ): string {
   if (branch) return `Recalculated by the engine after ${branchCause(branch)} · explanation written by code.`;
   const ranked = source?.ranking === "ai";
   const reasoned = source?.text === "ai";
   if (!source) return "Explanation written by code · all figures calculated by the engine";
+  if (selectedByMerchant) {
+    if (!reasoned) return "You selected this option · explanation written by code · all figures calculated by the engine";
+    const clause = comparison === "code_fallback" ? " Full comparison written by code." : "";
+    const reason = provenance.modelMade ? `${provenance.providerName} wrote this reason · you selected this option · ${provenance.label.replace(/^./, (c) => c.toLowerCase())}` : "Sample reason written by hand · no model ran · you selected this option";
+    return `${reason} · figures calculated by the engine.${clause}`;
+  }
   if (!ranked && !reasoned) return "Explanation written by code · all figures calculated by the engine · Order set by code";
   const who = provenance.modelMade ? provenance.providerName : null;
   const origin = who ? provenance.label.replace(/^./, (c) => c.toLowerCase()) : "no model ran";
