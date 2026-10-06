@@ -1,0 +1,234 @@
+{
+  "schema": "adaptive-deals.case-recording-report.v1",
+  "purpose": "Evidence for the three recorded case runs in this directory.",
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "summary": {
+    "providerRequests": 7,
+    "tasksWithUsableModelOutput": 5,
+    "usableModelOutputs": [
+      "reduced-scope extract",
+      "reduced-scope clarify",
+      "reduced-scope explain",
+      "preserve-scope extract",
+      "no-fit extract"
+    ],
+    "schemaViolatingAttempts": [
+      "preserve-scope explain (attempt 1)",
+      "preserve-scope explain (attempt 2)"
+    ],
+    "providerFailures": 0,
+    "refusals": 0,
+    "retriesForProviderFailure": 0,
+    "note": "Seven provider requests: six in the first recording and one rerun. Five tasks produced usable model output. Two preserve-scope explanation attempts violated the declared output schema (a per-offer note over 240 characters). The rerun was the single authorised retry; it failed the schema again and recording stopped. The accepted preserve-scope record is the first recording, whose explanation step is the first invalid output."
+  },
+  "invocations": [
+    {
+      "name": "first recording",
+      "recordedAt": "2026-10-06T08:58:11.831Z",
+      "schemaValidBasis": "derived afterwards from each stored step's validation issues; the recorder of that day did not measure it",
+      "requests": [
+        {
+          "n": 1,
+          "caseId": "reduced-scope",
+          "task": "extract",
+          "providerReturnedOutput": true,
+          "schemaValid": true,
+          "providerFailure": null,
+          "retryOf": null
+        },
+        {
+          "n": 2,
+          "caseId": "reduced-scope",
+          "task": "clarify",
+          "providerReturnedOutput": true,
+          "schemaValid": true,
+          "providerFailure": null,
+          "retryOf": null
+        },
+        {
+          "n": 3,
+          "caseId": "reduced-scope",
+          "task": "explain",
+          "providerReturnedOutput": true,
+          "schemaValid": true,
+          "providerFailure": null,
+          "retryOf": null
+        },
+        {
+          "n": 4,
+          "caseId": "preserve-scope",
+          "task": "extract",
+          "providerReturnedOutput": true,
+          "schemaValid": true,
+          "providerFailure": null,
+          "retryOf": null
+        },
+        {
+          "n": 5,
+          "caseId": "preserve-scope",
+          "task": "explain",
+          "providerReturnedOutput": true,
+          "schemaValid": false,
+          "providerFailure": null,
+          "retryOf": null
+        },
+        {
+          "n": 6,
+          "caseId": "no-fit",
+          "task": "extract",
+          "providerReturnedOutput": true,
+          "schemaValid": true,
+          "providerFailure": null,
+          "retryOf": null
+        }
+      ]
+    },
+    {
+      "name": "rerun of preserve-scope explain (stopped)",
+      "recordedAt": "2026-10-06T09:35:13.438Z",
+      "supersedes": "run-case-preserve-scope-fe3de4cf",
+      "stopped": "preserve-scope: explain: The output still fails its schema after 1 rerun: schema: Too big: expected string to have <=240 characters",
+      "schemaValidBasis": "measured by the recorder",
+      "requests": [
+        {
+          "n": 1,
+          "caseId": "preserve-scope",
+          "task": "explain",
+          "providerReturnedOutput": true,
+          "schemaValid": false,
+          "providerFailure": null,
+          "retryOf": null
+        }
+      ]
+    }
+  ],
+  "rejectedAttempts": [
+    {
+      "attempt": 1,
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "inputHash": "330960e812412db74b8bbe9398bb718e0d42fc356396845ae2ae20b230deed60",
+      "reason": "schema: Too big: expected string to have <=240 characters",
+      "preserved": true,
+      "alsoStoredAsStepOf": "run-case-preserve-scope-fe3de4cf",
+      "rawOutput": {
+        "ranking": [
+          "A"
+        ],
+        "comparison": "Option {A.label} spreads the total of {A.total} over {A.payment_count} equal monthly payments of {A.largest_payment} each, starting {A.first_payment_date} and ending {A.last_payment_date}. The net contribution is {A.net_contribution} ({A.net_contribution_pct}) and the peak funding requirement is {A.peak_funding} with a peak unpaid value of {A.peak_unpaid_value}. Approval is {A.approval}.",
+        "option_notes": [
+          {
+            "option": "A",
+            "note": "The schedule offers predictable cash flow but requires a commitment for a full year, with the highest unpaid balance of {A.peak_unpaid_value} remaining on the books until the final payment. The net contribution of {A.net_contribution} represents {A.net_contribution_pct} of the overall cost."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 2,
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "inputHash": "330960e812412db74b8bbe9398bb718e0d42fc356396845ae2ae20b230deed60",
+      "reason": "schema: Too big: expected string to have <=240 characters",
+      "preserved": false,
+      "rawOutput": null,
+      "why": "The output was not stored. The recorder preserved a schema-invalid output only when it was about to retry it, and this attempt was the last allowed, so the recorder stopped without saving it. Its failure reason was recorded from the run's console output. The recorder was fixed afterwards (commit a52cccf) so that every schema-invalid output is preserved. The missing output has not been reconstructed."
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "reduced-scope",
+      "runId": "run-case-reduced-scope-8aef9d45",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+          "inputHash": "c145376b74154de7909083359e682e399f8129e4e92b10dab1319ee81b0a12fc",
+          "outcome": "accepted",
+          "issues": []
+        },
+        {
+          "task": "clarify",
+          "promptVersion": "clarify.v1",
+          "promptHash": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e",
+          "inputHash": "16ee2ed53200e960b4a81bbfda5a534ac92f95677f2254de79b109719c2264e9",
+          "outcome": "accepted",
+          "issues": []
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14",
+          "inputHash": "a3016140febd37d08af1c8df2110e7e18fdabc95147eacc9998e124baa29ef65",
+          "outcome": "accepted_with_corrections",
+          "issues": [
+            "comparison rejected: contains a literal figure, date or percentage",
+            "note for C rejected: contains a literal figure, date or percentage"
+          ]
+        }
+      ],
+      "engine": {
+        "initial": "ambiguous",
+        "final": "options_ready"
+      }
+    },
+    {
+      "caseId": "preserve-scope",
+      "runId": "run-case-preserve-scope-fe3de4cf",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+          "inputHash": "549cfbfe8112e2cd60a9ad94267abbb3fb012206ea5dd8e50bbecde0fb0b4d33",
+          "outcome": "accepted_with_corrections",
+          "issues": [
+            "field required_package rejected: does not match a deal package"
+          ]
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14",
+          "inputHash": "330960e812412db74b8bbe9398bb718e0d42fc356396845ae2ae20b230deed60",
+          "outcome": "rejected",
+          "issues": [
+            "schema: Too big: expected string to have <=240 characters"
+          ]
+        }
+      ],
+      "engine": {
+        "initial": "options_ready",
+        "final": "options_ready"
+      }
+    },
+    {
+      "caseId": "no-fit",
+      "runId": "run-case-no-fit-553afce3",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+          "inputHash": "b7fa28985103172cff042a1b4107dbf5ddb68c677439ad42428dd5a915f41474",
+          "outcome": "accepted",
+          "issues": []
+        }
+      ],
+      "engine": {
+        "initial": "no_feasible_deal",
+        "final": "no_feasible_deal"
+      }
+    }
+  ],
+  "acceptedRecords": {
+    "reduced-scope": "run-case-reduced-scope-8aef9d45",
+    "preserve-scope": "run-case-preserve-scope-fe3de4cf",
+    "no-fit": "run-case-no-fit-553afce3"
+  }
+}

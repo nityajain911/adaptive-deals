@@ -1,0 +1,1587 @@
+{
+  "schema": "adaptive-deals.run.v1",
+  "runId": "run-case-no-fit-553afce3",
+  "kind": "live",
+  "status": "complete",
+  "createdAt": "2026-10-01T09:00:00+05:30",
+  "recordedAtWall": "2026-10-06T08:57:43.813Z",
+  "provider": "groq",
+  "model": "openai/gpt-oss-120b",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v3"
+  },
+  "inputs": {
+    "dealId": "case-no-fit",
+    "messages": [
+      {
+        "id": "no-fit-1",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Our launch proposal is Website fixes, Search marketing, Social media and Monthly reporting for ₹1,20,000 plus GST, with delivery starting in November.",
+        "timestamp": "2026-09-29T16:30:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "no-fit-2",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "The retail launch cannot move: work must start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and need Website fixes, Search marketing, Social media and Monthly reporting. If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.",
+        "timestamp": "2026-10-01T08:55:00+05:30",
+        "source": "whatsapp"
+      }
+    ],
+    "packageIds": [
+      "website-fixes",
+      "search-marketing",
+      "social-media",
+      "monthly-reporting"
+    ],
+    "policy": {
+      "gstRateBps": 1800,
+      "contributionFloor": {
+        "minPercentBps": 3500,
+        "minPaise": null,
+        "combine": "both"
+      },
+      "cashAtRiskLimitPaise": 1000000,
+      "maxTenureMonths": 12,
+      "smallestInstalmentPaise": 1000000,
+      "discountLimitBps": 0,
+      "paymentFeeBps": 200,
+      "advanceNoticeDays": 3,
+      "internalRetryAfterDays": 3,
+      "mandateEndBufferMonths": 1
+    },
+    "answers": []
+  },
+  "steps": [
+    {
+      "task": "extract",
+      "promptVersion": "extract.v2",
+      "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+      "inputHash": "b7fa28985103172cff042a1b4107dbf5ddb68c677439ad42428dd5a915f41474",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"no-fit-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:30:00+05:30\">\nOur launch proposal is Website fixes, Search marketing, Social media and Monthly reporting for ₹1,20,000 plus GST, with delivery starting in November.\n</message>\n<message id=\"no-fit-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nThe retail launch cannot move: work must start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and need Website fixes, Search marketing, Social media and Monthly reporting. If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "temperature": "0",
+      "rawOutput": {
+        "fields": [
+          {
+            "key": "budget_now_amount",
+            "raw_text": "₹2,00,000",
+            "evidence_quote": "We have ₹2,00,000 available this quarter, including GST",
+            "message_id": "no-fit-2",
+            "confidence": "high"
+          },
+          {
+            "key": "budget_now_period",
+            "raw_text": "this quarter",
+            "evidence_quote": "We have ₹2,00,000 available this quarter, including GST",
+            "message_id": "no-fit-2",
+            "confidence": "high"
+          },
+          {
+            "key": "amounts_include_gst",
+            "raw_text": "including GST",
+            "evidence_quote": "We have ₹2,00,000 available this quarter, including GST",
+            "message_id": "no-fit-2",
+            "confidence": "high"
+          },
+          {
+            "key": "latest_start",
+            "raw_text": "by the 15th this month",
+            "evidence_quote": "work must start by the 15th this month",
+            "message_id": "no-fit-2",
+            "confidence": "high"
+          },
+          {
+            "key": "required_package",
+            "raw_text": "Website fixes, Search marketing, Social media and Monthly reporting",
+            "evidence_quote": "need Website fixes, Search marketing, Social media and Monthly reporting",
+            "message_id": "no-fit-2",
+            "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "tell us plainly rather than changing the scope or timing",
+            "evidence_quote": "If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.",
+            "message_id": "no-fit-2",
+            "confidence": "medium"
+          }
+        ],
+        "ambiguities": [],
+        "missing_required": [],
+        "unsupported_requests": [],
+        "suspected_instructions": []
+      },
+      "outcome": "accepted",
+      "failure": null,
+      "issues": []
+    }
+  ],
+  "engine": {
+    "profile": [
+      {
+        "key": "budgetNow",
+        "label": "Budget available now",
+        "status": "stated",
+        "display": "₹2,00,000 available 1 Oct 2026 – 31 Dec 2026",
+        "rawText": "₹2,00,000 · this quarter",
+        "evidence": [
+          {
+            "quote": "We have ₹2,00,000 available this quarter, including GST",
+            "messageId": "no-fit-2",
+            "start": 71,
+            "end": 126
+          }
+        ],
+        "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "nextBudget",
+        "label": "Next budget",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalLimit",
+        "label": "Buyer approval limit",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalScope",
+        "label": "Approval limit applies",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "amountsIncludeGst",
+        "label": "Amounts include GST",
+        "status": "stated",
+        "display": "Amounts include GST",
+        "rawText": "including GST",
+        "evidence": [
+          {
+            "quote": "We have ₹2,00,000 available this quarter, including GST",
+            "messageId": "no-fit-2",
+            "start": 71,
+            "end": 126
+          }
+        ],
+        "transformation": "GST keyword",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "latestStart",
+        "label": "Latest start date",
+        "status": "stated",
+        "display": "Start by 15 Oct 2026",
+        "rawText": "by the 15th this month",
+        "evidence": [
+          {
+            "quote": "work must start by the 15th this month",
+            "messageId": "no-fit-2",
+            "start": 31,
+            "end": 69
+          }
+        ],
+        "transformation": "next occurrence of day 15 on or after message date 2026-10-01",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "requiredPackages",
+        "label": "Required packages",
+        "status": "stated",
+        "display": "website-fixes, search-marketing, social-media, monthly-reporting",
+        "rawText": null,
+        "evidence": [
+          {
+            "quote": "need Website fixes, Search marketing, Social media and Monthly reporting",
+            "messageId": "no-fit-2",
+            "start": 132,
+            "end": 204
+          },
+          {
+            "quote": "need Website fixes, Search marketing, Social media and Monthly reporting",
+            "messageId": "no-fit-2",
+            "start": 132,
+            "end": 204
+          },
+          {
+            "quote": "need Website fixes, Search marketing, Social media and Monthly reporting",
+            "messageId": "no-fit-2",
+            "start": 132,
+            "end": 204
+          },
+          {
+            "quote": "need Website fixes, Search marketing, Social media and Monthly reporting",
+            "messageId": "no-fit-2",
+            "start": 132,
+            "end": 204
+          }
+        ],
+        "transformation": "matched to deal packages",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "optionalPackages",
+        "label": "Optional packages",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "other_0",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "tell us plainly rather than changing the scope or timing",
+        "rawText": "tell us plainly rather than changing the scope or timing",
+        "evidence": [
+          {
+            "quote": "If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.",
+            "messageId": "no-fit-2",
+            "start": 206,
+            "end": 308
+          }
+        ],
+        "transformation": null,
+        "confidence": "medium",
+        "note": null,
+        "confirmedBy": null
+      }
+    ],
+    "derivedBudgetGap": null,
+    "rejectedFields": [],
+    "suspectedInstructions": [],
+    "initial": {
+      "state": "no_feasible_deal",
+      "missingRequired": [],
+      "outsideTemplates": [],
+      "ambiguities": [],
+      "templatesEvaluated": [
+        "split_payment",
+        "phased_scope",
+        "deferred_start",
+        "shorter_commitment"
+      ],
+      "structures": [
+        {
+          "id": "split_payment:plan=monthly_12",
+          "label": "Full annual scope · 12 monthly payments",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "split_payment:plan=quarterly_4",
+          "label": "Full annual scope · 4 quarterly payments",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 3540000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1800000
+        },
+        {
+          "id": "split_payment:plan=two_equal",
+          "label": "Full annual scope · 2 equal payments, 6 months apart",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 7080000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 7080000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1200000
+        },
+        {
+          "id": "split_payment:plan=deposit_20",
+          "label": "Full annual scope · 20% at start, 80% in month 7",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "CASH_AT_RISK_ABOVE_LIMIT"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 2832000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 11328000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 1050000,
+          "peakUnpaidServiceValuePaise": 4800000
+        },
+        {
+          "id": "split_payment:plan=deposit_30",
+          "label": "Full annual scope · 30% at start, 70% in month 7",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 4248000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 9912000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 3600000
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=upfront",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 4602000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=two_monthly",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 2301000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 2301000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 950000
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=three_monthly",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · 3 monthly payments",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1534000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1534000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1534000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 125000,
+          "peakUnpaidServiceValuePaise": 1600000
+        },
+        {
+          "id": "deferred_start:start=2027-01-01,plan=monthly_12",
+          "label": "Full annual scope from Jan 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "deferred_start:start=2027-04-01,plan=monthly_12",
+          "label": "Full annual scope from Apr 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-03-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "deferred_start:start=2027-05-01,plan=monthly_12",
+          "label": "Full annual scope from May 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-04-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "shorter_commitment:term_months=3,plan=upfront",
+          "label": "3-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 4800000,
+          "totalPaise": 5664000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 5664000
+            }
+          ],
+          "netContributionPaise": 2361720,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=3,plan=monthly",
+          "label": "3-month commitment · 3 monthly payments",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 4800000,
+          "totalPaise": 5664000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1888000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1888000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1888000
+            }
+          ],
+          "netContributionPaise": 2361720,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1600000
+        },
+        {
+          "id": "shorter_commitment:term_months=6,plan=upfront",
+          "label": "6-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 7200000,
+          "totalPaise": 8496000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 8496000
+            }
+          ],
+          "netContributionPaise": 3580080,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=6,plan=monthly",
+          "label": "6-month commitment · 6 monthly payments",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 7200000,
+          "totalPaise": 8496000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1416000
+            }
+          ],
+          "netContributionPaise": 3580080,
+          "peakFundingPaise": 375000,
+          "peakUnpaidServiceValuePaise": 2000000
+        }
+      ],
+      "feasibleOrder": [],
+      "featured": {
+        "buyer": "split_payment:plan=monthly_12",
+        "seller": null
+      }
+    },
+    "final": {
+      "state": "no_feasible_deal",
+      "missingRequired": [],
+      "outsideTemplates": [],
+      "ambiguities": [],
+      "templatesEvaluated": [
+        "split_payment",
+        "phased_scope",
+        "deferred_start",
+        "shorter_commitment"
+      ],
+      "structures": [
+        {
+          "id": "split_payment:plan=monthly_12",
+          "label": "Full annual scope · 12 monthly payments",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "split_payment:plan=quarterly_4",
+          "label": "Full annual scope · 4 quarterly payments",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 3540000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 3540000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1800000
+        },
+        {
+          "id": "split_payment:plan=two_equal",
+          "label": "Full annual scope · 2 equal payments, 6 months apart",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 7080000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 7080000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1200000
+        },
+        {
+          "id": "split_payment:plan=deposit_20",
+          "label": "Full annual scope · 20% at start, 80% in month 7",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "CASH_AT_RISK_ABOVE_LIMIT"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 2832000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 11328000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 1050000,
+          "peakUnpaidServiceValuePaise": 4800000
+        },
+        {
+          "id": "split_payment:plan=deposit_30",
+          "label": "Full annual scope · 30% at start, 70% in month 7",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 4248000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 9912000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 3600000
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=upfront",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 4602000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=two_monthly",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 2301000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 2301000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 950000
+        },
+        {
+          "id": "phased_scope:scope=web-search-report-3m,plan=three_monthly",
+          "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · 3 monthly payments",
+          "template": "phased_scope",
+          "scopeKind": "phase_1",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START",
+            "REQUIRED_PACKAGE_EXCLUDED"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 3900000,
+          "totalPaise": 4602000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1534000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1534000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1534000
+            }
+          ],
+          "netContributionPaise": 1932960,
+          "peakFundingPaise": 125000,
+          "peakUnpaidServiceValuePaise": 1600000
+        },
+        {
+          "id": "deferred_start:start=2027-01-01,plan=monthly_12",
+          "label": "Full annual scope from Jan 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "deferred_start:start=2027-04-01,plan=monthly_12",
+          "label": "Full annual scope from Apr 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-03-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "deferred_start:start=2027-05-01,plan=monthly_12",
+          "label": "Full annual scope from May 2027 · 12 monthly payments",
+          "template": "deferred_start",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2027-05-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-06-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-07-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-08-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-09-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-10-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-11-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2027-12-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-01-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-02-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-03-01",
+              "totalPaise": 1180000
+            },
+            {
+              "dueDate": "2028-04-01",
+              "totalPaise": 1180000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 575000,
+          "peakUnpaidServiceValuePaise": 2200000
+        },
+        {
+          "id": "shorter_commitment:term_months=3,plan=upfront",
+          "label": "3-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 4800000,
+          "totalPaise": 5664000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 5664000
+            }
+          ],
+          "netContributionPaise": 2361720,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=3,plan=monthly",
+          "label": "3-month commitment · 3 monthly payments",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 4800000,
+          "totalPaise": 5664000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1888000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1888000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1888000
+            }
+          ],
+          "netContributionPaise": 2361720,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 1600000
+        },
+        {
+          "id": "shorter_commitment:term_months=6,plan=upfront",
+          "label": "6-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 7200000,
+          "totalPaise": 8496000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 8496000
+            }
+          ],
+          "netContributionPaise": 3580080,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=6,plan=monthly",
+          "label": "6-month commitment · 6 monthly payments",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "START_AFTER_LATEST_START"
+          ],
+          "needsInformationCodes": [
+            "PAYMENT_AFTER_PERIOD_NO_NEXT_BUDGET"
+          ],
+          "prePaise": 7200000,
+          "totalPaise": 8496000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2026-12-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-01-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-02-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-03-01",
+              "totalPaise": 1416000
+            },
+            {
+              "dueDate": "2027-04-01",
+              "totalPaise": 1416000
+            }
+          ],
+          "netContributionPaise": 3580080,
+          "peakFundingPaise": 375000,
+          "peakUnpaidServiceValuePaise": 2000000
+        }
+      ],
+      "feasibleOrder": [],
+      "featured": {
+        "buyer": "split_payment:plan=monthly_12",
+        "seller": null
+      }
+    }
+  },
+  "displayed": {
+    "questions": [],
+    "explanation": null
+  },
+  "clockAdvances": []
+}

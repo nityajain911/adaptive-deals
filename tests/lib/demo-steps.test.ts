@@ -10,7 +10,7 @@ import { driveTo } from "../helpers/drive";
  * labelled system events and simulated replies, and follows the canonical preventive storyboard.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-demo-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
   throw new Error("no network");
 });

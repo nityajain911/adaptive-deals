@@ -7,7 +7,7 @@ import { driveTo } from "../helpers/drive";
 
 /** Spec §3.3, §5.7: closures, handled messages, buyer reasons. No network. */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-close-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
   throw new Error("no network");
 });

@@ -10,7 +10,7 @@ import path from "node:path";
  * files. Uses a fake provider (the bundled synthetic replay): no external model call is made.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-presenter-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
   throw new Error("no network");
 });

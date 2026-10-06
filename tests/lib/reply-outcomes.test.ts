@@ -12,7 +12,7 @@ import { driveTo } from "../helpers/drive";
  * reason recorded at the time (or neutral wording). No model or network call is allowed.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-outcomes-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 
 type Svc = typeof import("@/lib/service");
 type State = Awaited<ReturnType<Svc["getState"]>>;

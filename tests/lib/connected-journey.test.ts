@@ -13,7 +13,7 @@ import { driveTo } from "../helpers/drive";
  * call is allowed anywhere in this suite.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-connected-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 process.env.GROQ_API_KEY = "gsk_test_not_a_real_key_never_used";
 
 type Svc = typeof import("@/lib/service");
@@ -198,9 +198,7 @@ describe("connected buyer journey (selected-case application state)", () => {
 });
 
 describe("typed replies use the same bounded path across selected-case resets", () => {
-  async function typedNoticeReplies(demoRun: string | undefined) {
-    if (demoRun) process.env.ADAPTIVE_DEALS_DEMO_RUN = demoRun;
-    else delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+  async function typedNoticeReplies() {
     await svc.resetToSeed();
     await driveTo(svc, (x) => x.conversation.some((i) => i.kind === "notice"));
     const notice = (await S()).conversation.find((x) => x.kind === "notice")!;
@@ -212,15 +210,14 @@ describe("typed replies use the same bounded path across selected-case resets", 
     }
     return { kind: (await S()).run.record.kind, out };
   }
-  it("classifies typed replies identically after a normal and explicit synthetic reset", async () => {
-    const normal = await typedNoticeReplies(undefined);
-    const explicit = await typedNoticeReplies("synthetic");
-    expect(normal.kind).toBe("synthetic_replay");
-    expect(explicit.kind).toBe("synthetic_replay");
-    expect(normal.out).toEqual(explicit.out);
-    expect(normal.out).toEqual(["false:change_requested", "false:payment_claimed", "false:acknowledgement", "false:needs_attention"]);
+  it("classifies typed replies identically after two resets of the labelled sample", async () => {
+    const first = await typedNoticeReplies();
+    const second = await typedNoticeReplies();
+    expect(first.kind).toBe("synthetic_replay");
+    expect(second.kind).toBe("synthetic_replay");
+    expect(first.out).toEqual(second.out);
+    expect(first.out).toEqual(["false:change_requested", "false:payment_claimed", "false:acknowledgement", "false:needs_attention"]);
     expect(fetchSpy).not.toHaveBeenCalled();
-    delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
   });
 });
 

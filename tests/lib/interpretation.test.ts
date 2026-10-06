@@ -5,7 +5,7 @@ import path from "node:path";
 
 /** Spec §3.3, §4: merchant interpretation of an unsupported clarification reply. */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-interp-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
   throw new Error("no network");
 });

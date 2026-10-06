@@ -7,7 +7,7 @@ import { CASE_IDS, DEFAULT_CASE_ID, demoCase, type CaseId } from "@/data/synthet
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-cases-"));
 process.env.ADAPTIVE_DEALS_DATA_DIR = dataDir;
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 delete process.env.GROQ_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
 

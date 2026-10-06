@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    // Unit suites assert the labelled hand-written sample unless a test opts into a recording explicitly.
+    env: { ADAPTIVE_DEALS_DEMO_RUN: "synthetic" },
   },
 });

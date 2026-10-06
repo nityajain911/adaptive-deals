@@ -159,7 +159,7 @@ describe("audit drawer content is read-only", () => {
     const os = await import("node:os");
     const path = await import("node:path");
     process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-audit-"));
-    delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+    process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
     const svc = await import("@/lib/service");
     const { driveTo } = await import("../helpers/drive");
     await svc.resetToSeed();

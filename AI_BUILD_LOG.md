@@ -851,7 +851,7 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Also added:** an uncaptured fact that changes no structure's outcome (the GST basis in this case) is disclosed on Understand instead of asked about, from the engine's own ambiguity analysis.
 
-### 2026-10-06 · Final recordings of the three cases, and one stopped rerun (Groq, frozen prompts) [Claude Code]
+### 2026-10-06 · Final recordings of the three cases: seven provider requests, one stopped rerun (Groq, frozen prompts) [Claude Code]
 
 **Authorisation (applicant):** six final calls across the three cases; a refusal is a valid outcome and is not rerun; a result is technically invalid only for transport, timeout, rate-limit, malformed-response or schema failure; the first technically valid result is final, misses included.
 
@@ -866,11 +866,13 @@ Seven requests in total: five returned model output and two were rejected by the
 | 5 | preserve-scope | explain | Output broke the schema (a per-offer note of 291 characters, limit 240) |
 | 6 | no-fit | extract | Valid · accepted |
 
-All six returned model output on the first attempt: no rate limit, no refusal, no retry.
+**Counts, stated precisely:** seven provider requests in total (the six above plus one rerun, below). Five tasks produced usable model output. Two preserve-scope explanation attempts violated the declared output schema. There were no provider failures and no refusals.
 
-**Outcomes:** all three cases reached the outcome on their case cards. Reduced scope: the model ranked the single upfront payment first, not the two payments the hand-written sample ranked first. Preserve scope: the model returned the required scope as "complete annual package", which names no package, so code rejected it (its evidence quote lists all four services); it also again missed the buyer's statement that both amounts exclude GST. No fit: every field correct.
+**Outcomes:** all three cases reached the outcome on their case cards. Reduced scope: the model ranked the single upfront payment first, not the two payments the hand-written sample ranked first. Preserve scope: a schema-valid extraction with one rejected required-scope field ("complete annual package" names no package, so code rejected it; its evidence quote lists all four services) and one missed GST fact (the buyer said both amounts exclude GST). No fit: every field correct.
 
-**Stopped rerun:** the applicant ruled that a schema failure is a technical failure, so the preserve-scope explanation was requested once more. That output also broke the schema (a per-offer note over 240 characters), and the recording stopped under the agreed rule. The first rejected output is preserved in the recording report. **The second rejected output was not saved**: the recorder only preserved an output when it was about to retry it. Its schema failure reason is recorded; the output itself is lost. Corrected in `a52cccf`: every schema-invalid output is now preserved, including when a step stops, with a test.
+**Stopped rerun:** the applicant ruled that a schema failure is a technical failure, so the preserve-scope explanation was requested once more. That output also broke the schema (a per-offer note over 240 characters), and the recording stopped under the agreed rule. The first rejected output is preserved in the recording report. **The second rejected output was not saved**: the recorder only preserved an output when it was about to retry it. Its schema failure reason is recorded; the output itself is lost and has not been reconstructed. Corrected afterwards in `a52cccf`: every schema-invalid output is now preserved, including when a step stops, with a test.
+
+**Applicant decision:** the single authorised retry is exhausted. `run-case-preserve-scope-fe3de4cf` is accepted as the mapped record for that case, with the merchant's confirmation of the required services and a code-written explanation. The three records and `recording-report.json` are committed in `data/case-recorded-runs/` and mapped by `data/case-runs.json`.
 
 **Product changes the recordings prompted (applicant-approved):** the merchant now confirms required services the extraction could not map (`6e5f8e7`); a selected alternative's attribution credits the merchant for the choice and the model only for the reason it wrote.
 

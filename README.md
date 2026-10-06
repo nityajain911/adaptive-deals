@@ -16,15 +16,15 @@ npm run reset:seed
 npm run dev
 ```
 
-Open [http://localhost:3000/deals/hero](http://localhost:3000/deals/hero). The deal home always redirects to the stage that currently needs attention.
+Open [http://localhost:3000/deals](http://localhost:3000/deals) and choose a case. The deal home (`/deals/hero`) always redirects to the stage that currently needs attention.
 
-The prototype works without credentials. After a reset it replays a stored actual Groq run and uses simulated messaging and payments. Set `ADAPTIVE_DEALS_DEMO_RUN=synthetic` to use the hand-written synthetic replay instead.
+The prototype works without credentials. After a reset each case starts from its **recorded Groq run** (`data/case-recorded-runs/`, mapped by `data/case-runs.json`), replayed exactly from the stored outputs: no model call is made while you use it. If a case has no valid recording for its exact conversation, the product falls back to a hand-written sample, labelled **Sample output written by hand · no model ran**. Set `ADAPTIVE_DEALS_DEMO_RUN=synthetic` to force the sample. Messaging and payments are simulated.
 
 ## Product journey
 
 | Stage | What the merchant does | Route |
 | --- | --- | --- |
-| **Understand the buyer** | Reviews evidence-backed constraints, sends two useful questions and confirms the buyer's answers | `/deals/hero/understand` |
+| **Understand the buyer** | Reviews evidence-backed constraints, sends two useful questions and confirms the buyer's answers, or confirms required services the extraction could not map | `/deals/hero/understand` |
 | **Review the offer** | Reviews the recommended structure, compares eligible alternatives, previews the exact buyer proposal and approves the version | `/deals/hero/offer` |
 | **Buyer preview** | Sees the same canonical terms and the exact simulated WhatsApp message before sending | `/deals/hero/offer/preview` |
 | **Track the deal** | Sees the current agreement, amount collected, amount still to collect, next action and preventive amendment | `/deals/hero/track` |
@@ -45,9 +45,23 @@ The guide explains the current decision and can take the reviewer to the relevan
 
 - Extracts candidate buyer constraints with verbatim evidence.
 - Drafts clarification wording.
-- Prioritises and explains only structures that deterministic code has marked eligible.
+- Ranks, and writes a short reason for, structures that deterministic code has marked eligible.
 
-Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, creates canonical terms and hashes, and gates every approval and payment action. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
+Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
+
+Every attribution on screen is derived from the stored run, not from the feature: a recorded run reads **Recorded Groq output**, a hand-written sample reads **Sample output written by hand · no model ran**, and a card says **Groq ranked · code explained** or **Groq wrote this reason · you selected this option** only when that is what happened.
+
+## Recorded model runs
+
+Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.
+
+| Case | What the recording shows | What the merchant does |
+| --- | --- | --- |
+| **Repair bookings now, defer social** | Groq extracts the constraints, words both questions and ranks the single upfront payment first. Code rejects its comparison text (it contained figures), so the card reads *Groq ranked and wrote this reason · … Full comparison written by code.* | Compares the alternatives and **selects two payments**, labelled *Selected by you*. The preventive restructuring journey continues from that selected offer. |
+| **Keep the annual scope, move the start** | Schema-valid extraction with one rejected required-scope field ("complete annual package" names no service) and one missed GST fact. The model's explanation broke its schema twice, so code writes the explanation. | **Confirms the required services** before any offer. The engine then recalculates, and the card reads *Recalculated by the engine after the merchant confirmed the services · explanation written by code.* |
+| **Decline an impossible start date** | A clean extraction. | Reads why the engine rejects every approved structure, and closes the deal. |
+
+One of the seven requests is not stored: the recorder did not save the second schema-invalid output (it only preserved an output it was about to retry), and the failure reason is the only record of it. The recorder was fixed afterwards. The report says so and the output has not been reconstructed.
 
 ## Environment variables
 
@@ -62,6 +76,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `RAZORPAY_MODE` | `test` creates the upfront link in Razorpay test mode; other values simulate it |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Test keys only; live keys are refused |
 | `ADAPTIVE_DEALS_DATA_DIR` | JSON store location; defaults to git-ignored `.data/` |
+| `ADAPTIVE_DEALS_DEMO_RUN` | `synthetic` forces the labelled hand-written sample instead of the recorded runs |
 
 ## Commands
 
@@ -71,10 +86,10 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | Lint check |
 | `npm run build` | Production build |
-| `npm run test:e2e` | Desktop and mobile browser journeys; writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1` |
+| `npm run test:e2e` | Desktop and mobile browser journeys against two production servers (the labelled sample on port 3200, the recorded runs on 3201); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1` |
 | `npm run check:release -- --build` | Checks product claims and reports applicant-owned placeholders without failing on them |
 | `npm run check:release -- --submission` | Final gate; also fails while applicant-owned sections remain |
-| `npm run reset:seed` | Restores the clean hero deal |
+| `npm run reset:seed` | Restores the clean default case |
 | `npm run hero:report` | Prints every evaluated hero structure and its checks |
 | `npm run eval` | Development evaluation |
 | `npm run eval:frozen` | Frozen evaluation tooling and recorded-set validation |
@@ -91,7 +106,8 @@ The 20 cases were authored by OpenAI Codex at Nitya Jain's direction. They are a
 domain/                 deterministic money, dates, templates, checks, economics,
                         agreement hashes, collections, amendments and state machines
 ai/                     frozen schemas, versioned prompts, providers and run records
-data/synthetic/         fictional hero fixture, replay outputs and failure scenarios
+data/synthetic/         fictional cases, hand-written sample outputs and failure scenarios
+data/case-recorded-runs/ the three recorded Groq runs and their recording report
 integrations/razorpay/  test-key guard and simulated/test-mode payment links
 evaluation/             development data and frozen evaluation records
 lib/                    service, derived product views, JSON store and walkthrough orchestration
@@ -107,5 +123,5 @@ app/, components/       three-stage merchant product, buyer proposal, walkthroug
 - Buyer MD approval is an attestation, not identity verification.
 - Service dates are contractual plans; actual delivery completion is not tracked.
 - Refunds, external payments and accounting reconciliation are not modelled.
-- The evidence consists of one synthetic merchant segment, one main deal and agent-conducted role inspections. It does not establish market frequency.
+- The evidence consists of one synthetic merchant segment, three fictional cases (one recorded model run each) and agent-conducted role inspections. It does not establish market frequency.
 - How often Indian service sellers negotiate commercial structure over WhatsApp remains an assumption to validate.

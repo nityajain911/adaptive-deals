@@ -124,7 +124,7 @@ const catalog: Record<CaseId, DemoCase> = {
     buyer: { id: "buyer-kestrel", name: "Kestrel Lane Clinics" },
     proposalSummary: "Annual website, search, social and reporting proposal · ₹1,20,000 before GST",
     barrier: "The buyer can fund the urgent website and search work now, while social can wait.",
-    proofPoint: "Shows the engine constructing a smaller standalone phase without discounting the work.",
+    proofPoint: "Shows the engine building a smaller standalone phase without discounting the work, with more than one way to pay for it. The merchant keeps the final choice.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/reduced-scope-synthetic-run.json",
     deal: sharedDeal("case-reduced-scope", [
@@ -153,7 +153,7 @@ const catalog: Record<CaseId, DemoCase> = {
     buyer: { id: "buyer-northstar", name: "Northstar Learning Centres" },
     proposalSummary: "Full annual launch programme · ₹1,20,000 before GST",
     barrier: "The buyer needs every service, but the next usable campaign budget opens in May.",
-    proofPoint: "Shows the engine preserving full scope by changing timing instead of cutting deliverables.",
+    proofPoint: "Shows the engine preserving full scope by changing timing instead of cutting deliverables. When the extraction cannot map the buyer's required scope to specific services, the merchant confirms them before any offer.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/preserve-scope-synthetic-run.json",
     deal: sharedDeal("case-preserve-scope", [
@@ -182,7 +182,7 @@ const catalog: Record<CaseId, DemoCase> = {
     buyer: { id: "buyer-blueharbor", name: "Blue Harbor Foods" },
     proposalSummary: "Full launch support · ₹1,20,000 before GST",
     barrier: "The buyer's fixed launch requires work to start before any approved template can begin.",
-    proofPoint: "Shows justified abstention when every merchant-approved structure breaks a buyer constraint.",
+    proofPoint: "Shows a clean extraction followed by justified abstention: every merchant-approved structure breaks a buyer constraint, so the engine rejects them all.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/no-fit-synthetic-run.json",
     deal: sharedDeal("case-no-fit", [

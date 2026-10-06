@@ -8,7 +8,7 @@ import type { DemoState } from "@/lib/service";
 import { walkthroughCapabilities, walkthroughView } from "@/lib/walkthrough";
 
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-walkthrough-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 delete process.env.GROQ_API_KEY;
 
 type Svc = typeof import("@/lib/service");

@@ -9,7 +9,7 @@ import { driveTo, type HeroPath } from "../helpers/drive";
  * The upfront payment and mandate are completed before the notice; the walk ends up to date at 21 Dec.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-progress-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
   throw new Error("no network");
 });

@@ -52,6 +52,7 @@ next-env.d.ts
 
 # e2e data store
 /.data-e2e/
+/.data-e2e-recorded/
 
 # isolated agent worktrees
 /.worktrees/

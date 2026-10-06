@@ -8,7 +8,7 @@ import { driveTo } from "../helpers/drive";
 
 /** Spec §3.3 and §5.5: select → draft → approve → send, delivery gate, idempotent retry. No network. */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-delivery-"));
-delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
+process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
 type Svc = typeof import("@/lib/service");
 let svc: Svc;
 let presenter: typeof import("@/lib/presenter-store");
