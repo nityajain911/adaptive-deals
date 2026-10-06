@@ -878,6 +878,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Secrets:** none stored; the key was checked against every file written.
 
+### 2026-10-06 · Experience pass: demo guide, chat, fewer words, buyer page [Claude Code]
+
+**What changed:** The demo guide now names the product's own button and points at it instead of offering a "complete" button; the conversation reads as a chat with the buyer's own words marked; secondary notes sit behind click-to-open "i" buttons; the buyer page opens with a glance line and wording built from the accepted terms; merchant-facing terms are plain ("offer", "approved offer type"); forecasts are rounded for the decision. Commits `c8ddbe7`, `e860da7`, `1f15c45`, `6ce8894`, `82a26cb`.
+
+**AI boundary:** No prompt, schema, frozen case, recording, evaluation or engine rule changed, and no model call was made. Highlights come from stored evidence only, shown when the stored offsets still reproduce the stored quote. The Understand summary, the guide's ending summary and the buyer's glance line are written by code from confirmed state. The simulated buyer's "not sure" replies still leave a fact unresolved.
+
+**Human decisions:** The applicant chose the four directions (chat look, a guide that does not mislead, less text, a clearer walkthrough) and approved the order. Two choices were mine and are open to change: the phone bar points at the primary action and never performs it, and change-request starters offer a date or a scope but not an amount.
+
+**Evidence:** Screenshots under `artifacts/ui-review/ux-2026-10-06-*` are new; earlier files were not overwritten. The `desktop-*` and `mobile-*` sample screenshots are from the labelled hand-written sample run; the two `recorded-*` screenshots are from recorded Groq runs.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

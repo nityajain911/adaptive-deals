@@ -9,10 +9,18 @@ import type { DemoState } from "@/lib/service";
  * merchant overriding the model's ranking, the code fallback, and a clean abstention.
  */
 const STORE = path.join(".data-e2e-recorded", "store.json");
+const SHOTS = "artifacts/ui-review";
 const MOBILE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 const RUN = { "reduced-scope": "run-case-reduced-scope-8aef9d45", "preserve-scope": "run-case-preserve-scope-fe3de4cf", "no-fit": "run-case-no-fit-553afce3" } as const;
 const SERVICES = ["website-fixes", "search-marketing", "social-media", "monthly-reporting"];
+
+/** Review screenshots of recorded runs. Written only with a prefix, so existing files are never overwritten. */
+const shot = (page: Page, name: string) => {
+  const prefix = process.env.ADAPTIVE_E2E_SHOT_PREFIX;
+  if (process.env.ADAPTIVE_E2E_NO_SHOTS === "1" || !prefix) return Promise.resolve(Buffer.alloc(0));
+  return page.screenshot({ path: `${SHOTS}/${prefix}${name}.png`, fullPage: true });
+};
 
 type Stored = DemoState & Record<string, unknown>;
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as Stored;
@@ -161,6 +169,7 @@ test("recorded · the merchant overrides Groq's ranking, and the preventive rest
   await expect(page.getByTestId("offer-headline")).toHaveText("Start with a standalone three-month package · paid upfront");
   await expect(page.getByTestId("offer-payments")).toContainText("One payment");
   await expect(page.getByTestId("attribution")).toHaveText("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+  await shot(page, "recorded-2-offer-reduced-scope");
 
   // The merchant chooses the two-payment alternative.
   await expect(page.getByTestId("compare-alternatives")).toBeVisible();
@@ -259,6 +268,7 @@ test("recorded · the chat marks the buyer's own words, and the rejected phrase 
   await expect(thread.locator('[data-testid="chat-highlight"][data-kind="evidence"]').first()).toBeVisible();
   await rejected.click();
   await expect(thread.getByTestId("chat-highlight-note")).toContainText("Not matched to a service");
+  await shot(page, "recorded-1-understand-preserve-scope");
   await rejected.click();
   await expect(thread.getByTestId("chat-highlight-note")).toHaveCount(0);
 });

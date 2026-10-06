@@ -25,7 +25,7 @@ The prototype works without credentials. After a reset each case starts from its
 | Stage | What the merchant does | Route |
 | --- | --- | --- |
 | **Understand the buyer** | Reviews evidence-backed constraints, sends two useful questions and confirms the buyer's answers, or confirms required services the extraction could not map | `/deals/hero/understand` |
-| **Review the offer** | Reviews the recommended structure, compares eligible alternatives, previews the exact buyer proposal and approves the version | `/deals/hero/offer` |
+| **Review the offer** | Reviews the recommended offer, sees the other offers it could send, previews the exact buyer proposal and approves the version | `/deals/hero/offer` |
 | **Buyer preview** | Sees the same canonical terms and the exact simulated WhatsApp message before sending | `/deals/hero/offer/preview` |
 | **Track the deal** | Sees the current agreement, amount collected, amount still to collect, next action and preventive amendment | `/deals/hero/track` |
 | **Buyer proposal** | Accepts, requests a change or declines a delivered version | `/proposal/agr-hero/v1` and `/proposal/agr-hero/v2` |
@@ -37,7 +37,7 @@ The old `/workspace`, `/clarification`, `/decision`, `/agreement` and `/timeline
 
 Open `/deals` for the first-visit experience, choose **Start walkthrough**, then deliberately select a fictional buyer case. The walkthrough follows the deal's real stored state, survives route changes and reloads, and can be reopened from **Walkthrough** in the merchant header. On phones it starts as a compact bottom sheet so the product action stays visible.
 
-The guide explains the current decision and can take the reviewer to the relevant product area. Merchant decisions—including sending questions, approving terms and closing a deal—remain in the product. The guide can execute only clearly labelled simulated buyer replies and system events. **Hide** leaves the product usable on its own; **Restart** confirms before atomically returning to case selection. No recommendation, price or AI answer is copied into the walkthrough.
+The guide explains the current decision. On a merchant step it names the product's own button (**Your turn**) and **Show me** scrolls to and highlights it without clicking it; only clearly labelled simulated buyer and system events have a guide button. Merchant decisions—including sending questions, approving terms and closing a deal—remain in the product. The guide can execute only clearly labelled simulated buyer replies and system events. **Hide** leaves the product usable on its own; **Restart** confirms before atomically returning to case selection. No recommendation, price or AI answer is copied into the walkthrough.
 
 **Audit details** opens a read-only drawer with source evidence, rules, calculations, approvals, deliveries, schedules, hashes and run attribution. The primary product screens show only the information needed for the current decision.
 
@@ -86,7 +86,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | Lint check |
 | `npm run build` | Production build |
-| `npm run test:e2e` | Desktop and mobile browser journeys against two production servers (the labelled sample on port 3200, the recorded runs on 3201); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1` |
+| `npm run test:e2e` | Desktop and mobile browser journeys against two production servers (the labelled sample on port 3200, the recorded runs on 3201); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1`; set `ADAPTIVE_E2E_SHOT_PREFIX` (for example `ux-2026-10-06-`) to write a new set without overwriting existing files |
 | `npm run check:release -- --build` | Checks product claims and reports applicant-owned placeholders without failing on them |
 | `npm run check:release -- --submission` | Final gate; also fails while applicant-owned sections remain |
 | `npm run reset:seed` | Restores the clean default case |

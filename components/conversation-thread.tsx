@@ -119,7 +119,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
   };
 
   return (
-    <section aria-labelledby={`thread-${scope}`} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface" data-testid={`thread-${scope}`} data-walkthrough={scope === "understand" ? "buyer-conversation" : undefined}>
+    <section aria-labelledby={`thread-${scope}`} className="h-fit overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface" data-testid={`thread-${scope}`} data-walkthrough={scope === "understand" ? "buyer-conversation" : undefined}>
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
         <h2 id={`thread-${scope}`} className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           <MessageCircle aria-hidden className="h-4 w-4 text-green" /> {buyerName}
