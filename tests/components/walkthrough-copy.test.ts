@@ -42,26 +42,21 @@ const view: WalkthroughView = {
     systemAction: null,
     usesReplyControl: false,
     consequence: "Merchant action · send questions",
+    productLabel: "Send 2 questions to buyer",
   },
   terminalOutcome: null,
   provenance: "live_groq_replay",
   provenanceLabel: "Recorded Groq output",
   stepLabel: "Step 2 of 4",
+  subSteps: null,
+  finish: null,
 };
 
 describe("buildathon walkthrough presentation", () => {
+  const base = { primaryDisabled: false, onPrimary: () => undefined, onBack: () => undefined, onNext: () => undefined, onHide: () => undefined, onRestart: () => undefined };
+
   it("shows one focused instruction, actor and trust explanation", () => {
-    const html = renderToStaticMarkup(createElement(WalkthroughProgress, {
-      view,
-      displayedObjectiveId: "understand_buyer",
-      primaryLabel: "Complete this in the product",
-      primaryDisabled: false,
-      onPrimary: () => undefined,
-      onBack: () => undefined,
-      onNext: () => undefined,
-      onHide: () => undefined,
-      onRestart: () => undefined,
-    }));
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
     expect(html).toContain("DEMO WALKTHROUGH");
     expect(html).toContain("STEP 2 OF 2");
     expect(html).toContain("Understand the buyer");
@@ -69,8 +64,47 @@ describe("buildathon walkthrough presentation", () => {
     expect(html).toContain("What to notice");
     expect(html).toContain("Merchant action");
     expect(html).toContain("Recorded Groq output");
-    expect(html.match(/data-walkthrough-primary=/g)).toHaveLength(1);
     expect(html).not.toMatch(/₹|contribution|invoice_[A-Za-z0-9]|model confidence/i);
+  });
+
+  it("never offers a guide button for a merchant decision: it names the product's button and offers Show me", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
+    expect(html).not.toContain("Complete this in the product");
+    expect(html).not.toContain("data-walkthrough-primary");
+    expect(html).toContain('data-testid="walkthrough-your-turn"');
+    expect(html).toContain("Your turn");
+    expect(html).toContain("“Send 2 questions to buyer”");
+    expect(html).toContain("Show me");
+    // A merchant action needs no simulation label.
+    expect(html).not.toContain("walkthrough-consequence");
+  });
+
+  it("tells the person to play the buyer, on the buyer's page", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "buyer", label: "Accept proposal" }, onShowMe: () => undefined }));
+    expect(html).toContain("Play the buyer");
+    expect(html).toContain("“Accept proposal”");
+    expect(html).toContain("on the buyer&#x27;s page");
+  });
+
+  it("shows the actions inside the stage and where the person is", () => {
+    const withSteps: WalkthroughView = { ...view, subSteps: [{ label: "Send the questions", state: "done" }, { label: "Buyer answers", state: "current" }, { label: "Use the answers", state: "todo" }] };
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: withSteps, displayedObjectiveId: "understand_buyer", primaryLabel: null }));
+    expect(html).toContain('aria-label="Actions in this step"');
+    expect(html).toContain('aria-current="step"');
+    expect(html).toMatch(/Send the questions<span class="sr-only"> \(done\)/);
+    expect(html).toMatch(/Buyer answers<span class="sr-only"> \(now\)/);
+    expect(html).toMatch(/Use the answers<span class="sr-only"> \(later\)/);
+  });
+
+  it("ends with a summary and a way to try another case, and no further action", () => {
+    const done: WalkthroughView = { ...view, currentAction: null, finish: { title: "Walkthrough complete", lines: ["You walked through: A case.", "Your decisions: approved version 1."] } };
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: done, displayedObjectiveId: "understand_buyer", primaryLabel: null }));
+    expect(html).toContain('data-testid="walkthrough-finish"');
+    expect(html).toContain("Walkthrough complete");
+    expect(html).toContain("Your decisions: approved version 1.");
+    expect(html).toMatch(/href="\/deals"[^>]*>Try another case/);
+    expect(html).not.toContain("walkthrough-your-turn");
+    expect(html).not.toContain("data-walkthrough-primary");
   });
 
   it("declares an anchor for every enabled objective", () => {
@@ -95,6 +129,12 @@ describe("buildathon walkthrough presentation", () => {
     expect(html).not.toContain("Replay of an actual Groq run");
   });
 
+  it("makes a simulation visibly different from a product action: violet, and labelled before it runs", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: { ...view, currentAction: { ...view.currentAction!, type: "system", systemAction: "pay_upfront_link", label: "Simulate: buyer pays the upfront link", consequence: "Simulated system event · buyer pays the upfront link", productLabel: null } }, displayedObjectiveId: "understand_buyer", primaryLabel: "Simulate: buyer pays the upfront link", primaryTone: "simulate" }));
+    expect(html).toMatch(/data-walkthrough-primary="true"[^>]*class="[^"]*bg-violet-weak[^"]*"[^>]*>Simulate: buyer pays the upfront link/);
+    expect(html).toContain("Simulated system event");
+  });
+
   it("keeps the walkthrough permanently reachable from the merchant header", () => {
     expect(renderToStaticMarkup(createElement(MerchantHeader))).toContain("Walkthrough");
   });
@@ -111,6 +151,7 @@ describe("buildathon walkthrough presentation", () => {
         systemAction: "pay_upfront_link",
         usesReplyControl: false,
         consequence: "Simulated system event · buyer pays the upfront link",
+        productLabel: null,
       },
     };
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, {

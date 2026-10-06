@@ -190,3 +190,79 @@ describe("run provenance", () => {
     expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The engine recalculated this decision after the buyer's answer; code set the order and wrote the explanation.");
   });
 });
+
+const recordedRun = () => JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
+
+describe("the real button the person must click", () => {
+  it("names the product's own button for merchant steps, taken from the progress derivation", () => {
+    const p = { ...progress("understand.send", "understand", "merchant", "action_required"), primaryAction: { id: "send_questions" as const, label: "Send 2 questions to buyer" } };
+    expect(resolve(started(), p).currentAction).toMatchObject({ id: "send_questions", type: "merchant", productLabel: "Send 2 questions to buyer" });
+  });
+
+  it("names the buyer's button when the person plays the buyer, and no button for simulated events", () => {
+    expect(resolve(started(), progress("track.sent_awaiting_buyer", "track", "buyer", "waiting_on_buyer")).currentAction).toMatchObject({ type: "buyer", productLabel: "Accept proposal" });
+    expect(resolve(started(), progress("understand.waiting", "understand", "buyer", "waiting_on_buyer")).currentAction).toMatchObject({ usesReplyControl: true, productLabel: null });
+  });
+
+  it("points at approve-and-send, not the earlier review button, once the draft exists", async () => {
+    const s = started();
+    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [] };
+    s.agreements = [{ version: 1, status: "draft" }] as never;
+    const view = resolve(s, { ...progress("offer.review", "offer", "merchant", "action_required"), primaryAction: { id: "review_buyer_proposal" as const, label: "Review buyer proposal" } });
+    expect(view.currentAction).toMatchObject({ id: "approve_and_send_draft", productLabel: "Approve and send to buyer", href: "/deals/hero/offer/preview" });
+  });
+});
+
+describe("sub-steps inside one stage", () => {
+  const items = (view: ReturnType<typeof resolve>) => view.subSteps?.map((x) => `${x.state}:${x.label}`);
+  it("shows the three Understand actions and where the person is", () => {
+    expect(items(resolve(started(), progress("understand.send", "understand", "merchant")))).toEqual(["current:Send the questions", "todo:Buyer answers", "todo:Use the answers"]);
+    expect(items(resolve(started(), progress("understand.waiting", "understand", "buyer", "waiting_on_buyer")))).toEqual(["done:Send the questions", "current:Buyer answers", "todo:Use the answers"]);
+    expect(items(resolve(started(), progress("understand.use_answers", "understand", "merchant")))).toEqual(["done:Send the questions", "done:Buyer answers", "current:Use the answers"]);
+  });
+  it("shows choose then preview for the offer, switching when a draft exists", () => {
+    expect(items(resolve(started(), progress("offer.review", "offer", "merchant")))).toEqual(["current:Choose the offer", "todo:Preview and send"]);
+    const s = started();
+    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [] };
+    s.agreements = [{ version: 1, status: "draft" }] as never;
+    expect(items(resolve(s, progress("offer.review", "offer", "merchant")))).toEqual(["done:Choose the offer", "current:Preview and send"]);
+  });
+  it("has none where a stage is one action", () => {
+    expect(resolve(started(), progress("understand.scope", "understand", "merchant")).subSteps).toBeNull();
+    expect(resolve(started(), progress("track.sent_awaiting_buyer", "track", "buyer", "waiting_on_buyer")).subSteps).toBeNull();
+  });
+});
+
+describe("how the walkthrough ends", () => {
+  it("is not finished while there is something to do", () => {
+    expect(resolve(started(), progress("understand.send", "understand", "merchant")).finish).toBeNull();
+    expect(resolve(started(), progress("offer.no_feasible", "offer", "merchant")).finish).toBeNull();
+  });
+  it("ends honestly when the buyer declined, with what the merchant did and no amounts", () => {
+    const s = started();
+    s.status = "buyer_rejected";
+    s.agreements = [{ version: 1, status: "buyer_rejected", merchantApproval: { by: "m", at: "t" } }] as never;
+    const view = resolve(s, progress("track.terminal", "track", null, "terminal"));
+    expect(view.finish).toMatchObject({ title: "Walkthrough ended" });
+    expect(view.finish!.lines).toContain("Buyer declined the offer.");
+    expect(view.finish!.lines.join(" ")).toContain("approved version 1");
+    expect(view.finish!.lines.join(" ")).not.toMatch(/₹/);
+  });
+  it("completes after a preventive restructuring that both sides approved", () => {
+    const s = started();
+    s.amendments = [{ state: "active", toVersion: 2 }] as never;
+    s.agreements = [{ version: 1, merchantApproval: { by: "m", at: "t" } }, { version: 2, merchantApproval: { by: "m", at: "t" } }] as never;
+    const view = resolve(s, progress("track.next_payment", "track", null, "informational"));
+    expect(view.finish!.title).toBe("Walkthrough complete");
+    expect(view.finish!.lines.join(" ")).toMatch(/approved version 1, approved version 2/);
+    expect(view.finish!.lines).toContain("A payment was moved to a later date after both sides approved version 2.");
+  });
+  it("credits the right source for what was understood", async () => {
+    const recorded = started(await svc.seedState(recordedRun(), "replay"));
+    recorded.amendments = [{ state: "active", toVersion: 2 }] as never;
+    expect(resolve(recorded, progress("track.next_payment", "track", null, "informational")).finish!.lines).toContain("Buyer constraints came from: Recorded Groq output.");
+    const sample = started();
+    sample.amendments = [{ state: "active", toVersion: 2 }] as never;
+    expect(resolve(sample, progress("track.next_payment", "track", null, "informational")).finish!.lines).toContain("Buyer constraints came from: Sample output written by hand · no model ran.");
+  });
+});

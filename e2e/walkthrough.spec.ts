@@ -80,7 +80,7 @@ test("guide completes the core journey while every merchant decision stays in th
   await expect(guide(page)).toContainText("STEP 3 OF 4");
   await productPrimary(page);
   await expect(page).toHaveURL(/\/offer\/preview$/);
-  await expect(guide(page).getByTestId("walkthrough-consequence")).toContainText("approve and send");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Approve and send to buyer");
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/track$/);
@@ -159,9 +159,9 @@ test("keyboard users can open the guide and move focus to the product target", a
   await page.getByTestId("walkthrough-launcher").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#walkthrough-heading")).toBeFocused();
-  await guide(page).locator("[data-walkthrough-primary]").focus();
+  await guide(page).locator("[data-walkthrough-show]").focus();
   await page.keyboard.press("Enter");
-  await expect(page.locator('[data-walkthrough="buyer-conversation"]')).toBeFocused();
+  await expect(page.getByTestId("primary-action")).toBeFocused();
 });
 
 test("390 px uses a compact bottom sheet without covering the product action or overflowing", async ({ page }) => {
@@ -186,3 +186,85 @@ test("390 px uses a compact bottom sheet without covering the product action or 
   await expect(sheet.getByTestId("walkthrough-mobile-toggle")).toHaveAttribute("aria-expanded", "true");
   expect((await sheet.boundingBox())!.height).toBeGreaterThan(200);
 });
+
+test("a merchant step has no guide button: it names the product's button and Show me points at it", async ({ page }) => {
+  await reset(page);
+  await startCase(page);
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Your turn");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("“Send 2 questions to buyer”");
+  await expect(guide(page)).not.toContainText("Complete this in the product");
+  await expect(guide(page).locator("[data-walkthrough-primary]")).toHaveCount(0);
+  await guide(page).locator("[data-walkthrough-show]").click();
+  await expect(page.getByTestId("primary-action")).toHaveAttribute("data-walkthrough-pulse", "true");
+  await expect(page.getByTestId("primary-action")).toBeFocused();
+  // The guide did not do the merchant's job.
+  expect(state().conversation.some((item) => item.kind === "clarification" && item.sentAt)).toBe(false);
+});
+
+test("simulated buyer and system controls are violet and labelled, and the buyer's own button is named on the buyer's page", async ({ page }) => {
+  await reset(page);
+  const sent = await prepareSent(page);
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  await guide(page).locator("[data-walkthrough-primary]").click();
+  await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Play the buyer");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("“Accept proposal”");
+  await page.getByTestId("authority").check();
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  expect(state().agreements.find((a) => a.version === sent.version)!.status).toBe("active");
+  await page.goto("/deals/hero/track");
+  await expect(guide(page).locator("[data-walkthrough-primary]")).toHaveClass(/bg-violet-weak/);
+  await expect(guide(page).getByTestId("walkthrough-consequence")).toContainText("Simulated system event");
+});
+
+test("the guide shows the actions inside Understand and moves along as they happen", async ({ page }) => {
+  await reset(page);
+  await startCase(page);
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  const items = guide(page).getByTestId("walkthrough-substeps").locator("li");
+  await expect(items).toHaveCount(3);
+  await expect(items.nth(0)).toHaveAttribute("aria-current", "step");
+  await api(page, { action: "send_questions" });
+  await page.reload();
+  await expect(items.nth(1)).toHaveAttribute("aria-current", "step");
+  await expect(items.nth(0)).toContainText("Send the questions");
+});
+
+test("the walkthrough ends with a summary and a way to try another case", async ({ page }) => {
+  await reset(page);
+  const v1 = await prepareSent(page);
+  await api(page, { action: "accept_agreement", version: v1.version, termsHash: v1.termsHash, authorityConfirmed: true });
+  for (const stepId of ["pay_upfront_link", "confirm_mandate", "advance_to_notice", "send_notice"]) await api(page, { action: "demo_system_step", stepId });
+  const notice = state().conversation.find((item) => item.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, scriptId: "notice-cash-tight" });
+  await api(page, { action: "propose_amendment" });
+  const v2 = state().agreements.find((a) => a.version === 2)!;
+  await api(page, { action: "approve_amendment", termsHash: v2.termsHash });
+  await api(page, { action: "accept_amendment", termsHash: v2.termsHash, authorityConfirmed: true });
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  const finish = guide(page).getByTestId("walkthrough-finish");
+  await expect(finish).toContainText("Walkthrough complete");
+  await expect(finish).toContainText("You walked through: Repair bookings now, defer social.");
+  await expect(finish).toContainText("Your decisions: approved version 1, approved version 2.");
+  await expect(finish).toContainText("A payment was moved to a later date after both sides approved version 2.");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toHaveCount(0);
+  await finish.getByTestId("walkthrough-try-another").click();
+  await expect(page).toHaveURL(/\/deals$/);
+});
+
+test("the first screen opens with the problem, not the product", async ({ page }) => {
+  await reset(page);
+  await page.goto("/deals");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.getByTestId("walkthrough-welcome-title")).toHaveText("A client says your quote doesn't fit their budget. What now?");
+  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("keeps every decision with you");
+  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("buyer and system events are clearly simulated");
+});
+

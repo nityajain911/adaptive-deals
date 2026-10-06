@@ -79,6 +79,28 @@ html[data-walkthrough-open][data-walkthrough-expanded] body {
   box-shadow: 0 0 0 7px color-mix(in srgb, var(--blue) 10%, transparent);
 }
 
+/* "Show me": the product's own button pulses so the person knows exactly what to click. */
+[data-walkthrough-pulse="true"] {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  animation: walkthrough-pulse 1.1s ease-out 3;
+}
+
+@keyframes walkthrough-pulse {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-walkthrough-pulse="true"] {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   html[data-walkthrough-open] body,
   html[data-walkthrough-open][data-walkthrough-expanded] body {

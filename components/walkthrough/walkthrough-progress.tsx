@@ -17,6 +17,9 @@ export function WalkthroughProgress({
   view,
   displayedObjectiveId,
   primaryLabel,
+  primaryTone = "navigate",
+  yourTurn = null,
+  onShowMe,
   primaryDisabled,
   onPrimary,
   onBack,
@@ -29,7 +32,12 @@ export function WalkthroughProgress({
 }: {
   view: WalkthroughView;
   displayedObjectiveId: string;
+  /** A button the guide itself performs: "Take me there", or a labelled simulation. */
   primaryLabel: string | null;
+  primaryTone?: "navigate" | "simulate";
+  /** The product button the person must click themselves. The guide has no button for it. */
+  yourTurn?: { who: "merchant" | "buyer"; label: string | null } | null;
+  onShowMe?: () => void;
   primaryDisabled: boolean;
   onPrimary: () => void;
   onBack: () => void;
@@ -59,19 +67,56 @@ export function WalkthroughProgress({
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
+        {displayedObjectiveId === view.currentObjectiveId && view.subSteps ? (
+          <ol className="mb-3 space-y-1.5" aria-label="Actions in this step" data-testid="walkthrough-substeps">
+            {view.subSteps.map((item) => (
+              <li key={item.label} className={`flex items-center gap-2 text-[13px] ${item.state === "current" ? "font-semibold text-ink" : item.state === "done" ? "text-muted" : "text-muted"}`} aria-current={item.state === "current" ? "step" : undefined}>
+                <span aria-hidden className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border text-[10px] ${item.state === "done" ? "border-green bg-green text-white" : item.state === "current" ? "border-blue text-blue" : "border-line"}`}>
+                  {item.state === "done" ? <Check className="h-3 w-3" /> : item.state === "current" ? "•" : ""}
+                </span>
+                {item.label}
+                <span className="sr-only">{item.state === "done" ? " (done)" : item.state === "current" ? " (now)" : " (later)"}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
         <p id="walkthrough-instruction" className="text-[14px] leading-6 text-ink">{objective.instruction}</p>
         <div className="mt-4 rounded-xl border border-[#d6defe] bg-blue-weak px-4 py-3">
           <div className="text-[12px] font-semibold text-blue-ink">What to notice</div>
           <p className="mt-1 text-[13px] leading-5 text-ink-2">{objective.notice}</p>
         </div>
         {displayedObjectiveId === view.currentObjectiveId && view.terminalOutcome ? <p className="mt-4 rounded-xl border border-line bg-surface-muted px-4 py-3 text-[13px] text-ink">{view.terminalOutcome}</p> : null}
-        {displayedObjectiveId === view.currentObjectiveId && view.currentAction ? <p className="mt-4 text-[12px] font-medium text-ink-2" data-testid="walkthrough-consequence">{view.currentAction.consequence}</p> : null}
+        {displayedObjectiveId === view.currentObjectiveId && view.currentAction && view.currentAction.type !== "merchant" ? <p className="mt-4 text-[12px] font-medium text-ink-2" data-testid="walkthrough-consequence">{view.currentAction.consequence}</p> : null}
 
-        {primaryControl ?? (primaryLabel ? (
-          <Button variant="primary" className="mt-5 w-full" onClick={onPrimary} disabled={primaryDisabled} data-walkthrough-primary="true">
-            {primaryLabel}
-          </Button>
-        ) : null)}
+        {displayedObjectiveId === view.currentObjectiveId && view.finish ? (
+          <section className="mt-5 rounded-xl border border-line bg-surface-muted p-4" data-testid="walkthrough-finish" aria-labelledby="walkthrough-finish-title">
+            <h3 id="walkthrough-finish-title" className="text-[15px] font-semibold text-ink">{view.finish.title}</h3>
+            <ul className="mt-2 space-y-1.5 text-[13px] leading-5 text-ink-2">
+              {view.finish.lines.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+            <Link href="/deals" className="mt-3 inline-flex min-h-9 items-center rounded-lg border border-line-strong bg-surface px-3.5 text-[13px] font-semibold text-ink hover:bg-surface-muted" data-testid="walkthrough-try-another">Try another case</Link>
+          </section>
+        ) : yourTurn ? (
+          <div className="mt-5 rounded-xl border border-[#cfd9ff] bg-surface p-4" data-testid="walkthrough-your-turn">
+            <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-blue">{yourTurn.who === "buyer" ? "Play the buyer" : "Your turn"}</div>
+            <p className="mt-1 text-[14px] leading-6 text-ink">
+              Click <strong className="font-semibold">{yourTurn.label ? `“${yourTurn.label}”` : "the highlighted button"}</strong>
+              {yourTurn.who === "buyer" ? " on the buyer's page." : "."}
+            </p>
+            {onShowMe ? (
+              <button type="button" onClick={onShowMe} className="mt-2 text-[13px] font-semibold text-blue underline underline-offset-2 hover:text-blue-ink" data-walkthrough-show="true">
+                Show me
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          primaryControl ??
+          (primaryLabel ? (
+            <Button variant={primaryTone === "simulate" ? "sim" : "secondary"} className="mt-5 w-full" onClick={onPrimary} disabled={primaryDisabled} data-walkthrough-primary="true">
+              {primaryLabel}
+            </Button>
+          ) : null)
+        )}
         {error ? <p role="alert" className="mt-2 text-[12px] text-red">{error}</p> : null}
 
         <details className="mt-5 border-t border-line pt-3">

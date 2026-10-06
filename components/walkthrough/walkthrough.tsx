@@ -121,6 +121,21 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
     }
     focusTarget(displayed.anchorId);
   };
+  // The product's own button is never duplicated in the guide: the person clicks it, and "Show me" points at it.
+  const action = view.currentAction;
+  const inProduct = !offRoute && current && !!action && !action.systemAction && !action.usesReplyControl && !view.finish;
+  const yourTurn = inProduct ? { who: action!.type === "buyer" ? ("buyer" as const) : ("merchant" as const), label: action!.productLabel } : null;
+  const showMe = () => {
+    const button = document.querySelector<HTMLElement>('[data-testid="primary-action"], [data-testid="accept"]');
+    if (!button) {
+      focusTarget(displayed.anchorId);
+      return;
+    }
+    button.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    button.focus({ preventScroll: true });
+    button.setAttribute("data-walkthrough-pulse", "true");
+    window.setTimeout(() => button.removeAttribute("data-walkthrough-pulse"), 3600);
+  };
   const displayedIndex = view.objectives.findIndex((item) => item.id === displayedId);
   const currentIndex = view.objectives.findIndex((item) => item.id === view.currentObjectiveId);
 
@@ -148,7 +163,10 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
         <WalkthroughProgress
           view={view}
           displayedObjectiveId={displayedId}
-          primaryLabel={offRoute ? "Take me there" : view.currentAction?.systemAction ? view.currentAction.label : view.currentAction ? "Complete this in the product" : null}
+          primaryLabel={offRoute ? "Take me there" : current && view.currentAction?.systemAction ? view.currentAction.label : null}
+          primaryTone={offRoute ? "navigate" : "simulate"}
+          yourTurn={yourTurn}
+          onShowMe={showMe}
           primaryDisabled={pending}
           onPrimary={primary}
           onBack={() => update({ ...preferences, reviewingObjectiveId: view.objectives[Math.max(0, displayedIndex - 1)]?.id ?? null })}

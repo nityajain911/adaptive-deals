@@ -1,6 +1,7 @@
 import type { DemoStep, DemoStepType } from "./demo-steps";
 import { demoStepConsequence, nextDemoStep } from "./demo-steps";
 import type { DealProgress } from "./progress";
+import { demoCase } from "@/data/synthetic/cases";
 import { branchCause } from "./decision-branch";
 import { taskOrRunProvenance, type ModelProvenance } from "./model-provenance";
 import type { DemoState } from "./service";
@@ -23,6 +24,17 @@ export interface WalkthroughObjective {
   capability: WalkthroughCapability;
 }
 
+export interface WalkthroughSubStep {
+  label: string;
+  state: "done" | "current" | "todo";
+}
+
+/** How the walkthrough ends: what happened, written by code from stored state and without amounts. */
+export interface WalkthroughFinish {
+  title: string;
+  lines: string[];
+}
+
 export interface WalkthroughAction {
   id: string;
   actor: DemoStepType;
@@ -32,6 +44,8 @@ export interface WalkthroughAction {
   systemAction: DemoStep["systemAction"];
   usesReplyControl: boolean;
   consequence: string;
+  /** The label on the product's own button the person must click; null for simulated events. */
+  productLabel: string | null;
 }
 
 export interface WalkthroughView {
@@ -45,6 +59,10 @@ export interface WalkthroughView {
   /** Display text for `provenance`; run-derived text names the actual source of the outputs. */
   provenanceLabel: string | null;
   stepLabel: string;
+  /** The actions inside the current stage, when it has more than one. */
+  subSteps: WalkthroughSubStep[] | null;
+  /** Set only when there is nothing left to do. */
+  finish: WalkthroughFinish | null;
 }
 
 const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["case_picker", "current_offer", "preventive_depth"]);
@@ -54,7 +72,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "choose_case",
     actor: "merchant",
     title: "Choose a buyer situation",
-    instruction: "Choose one case to start the walkthrough.",
+    instruction: "Pick a buyer situation to start.",
     notice: "Different buyer constraints lead to different commercial decisions.",
     href: "/deals",
     anchorId: "case-picker",
@@ -65,7 +83,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "understand_buyer",
     actor: "sample",
     title: "Understand the buyer",
-    instruction: "Review the extracted constraints and evidence, then complete the merchant action in the product: send the questions, or confirm services the extraction could not map.",
+    instruction: "Check what was understood from the buyer's words.",
     notice: "Code preserves uncertainty and evidence.",
     href: "/deals/:dealId/understand",
     anchorId: "buyer-conversation",
@@ -76,7 +94,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "review_decision",
     actor: "engine",
     title: "Review the commercial decision",
-    instruction: "Review the recommendation, compare the alternatives and choose the offer to preview in the product. The choice is yours.",
+    instruction: "Review the recommendation. You can choose a different offer.",
     notice: "Deterministic code calculates feasibility and economics.",
     href: "/deals/:dealId/offer",
     anchorId: "commercial-recommendation",
@@ -87,7 +105,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "confirm_terms",
     actor: "merchant",
     title: "Confirm the exact terms",
-    instruction: "Complete the human approval or acceptance shown in the product.",
+    instruction: "Both sides approve the same version of the terms.",
     notice: "The merchant and buyer act on the same versioned terms.",
     href: "/deals/:dealId/track",
     anchorId: "final-terms",
@@ -98,7 +116,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "setup_collection",
     actor: "system",
     title: "Set up collection",
-    instruction: "Run the labelled buyer or system setup event.",
+    instruction: "Simulate the buyer setting up payment.",
     notice: "Collection starts only after the buyer accepts the terms.",
     href: "/deals/:dealId/track",
     anchorId: "collection-setup",
@@ -109,7 +127,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "preventive_restructure",
     actor: "system",
     title: "Explore preventive restructuring",
-    instruction: "Follow the notice and change-request flow without waiting for a failed debit.",
+    instruction: "See what happens when the buyer asks to move a payment.",
     notice: "The product rechecks the revised schedule before either party approves it.",
     href: "/deals/:dealId/track",
     anchorId: "collection-setup",
@@ -122,9 +140,65 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
   return new Set(SHIPPED_CAPABILITIES);
 }
 
-function action(step: DemoStep | null, dealId: string): WalkthroughAction | null {
+/** Buttons the progress derivation does not name: the buyer's own page and the preview. */
+const PRODUCT_LABEL: Record<string, string> = {
+  approve_and_send_draft: "Approve and send to buyer",
+  buyer_accept: "Accept proposal",
+  buyer_accept_revision: "Accept revised proposal",
+};
+
+function action(step: DemoStep | null, dealId: string, progress: DealProgress): WalkthroughAction | null {
   if (!step) return null;
-  return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step) };
+  const productLabel = PRODUCT_LABEL[step.id] ?? (step.type === "merchant" ? (progress.primaryAction?.label ?? null) : null);
+  return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step), productLabel };
+}
+
+const UNDERSTAND_STEPS = ["Send the questions", "Buyer answers", "Use the answers"];
+const OFFER_STEPS = ["Choose the offer", "Preview and send"];
+const SETUP_STEPS = ["Buyer pays the upfront link", "Buyer authorises recurring payments"];
+
+const track = (labels: string[], current: number): WalkthroughSubStep[] => labels.map((label, i) => ({ label, state: i < current ? "done" : i === current ? "current" : "todo" }));
+
+const hasDraft = (state: DemoState) => !!state.selectedOption?.draftVersion && state.agreements.some((a) => a.version === state.selectedOption?.draftVersion && a.status === "draft");
+
+function subSteps(state: DemoState, progress: DealProgress): WalkthroughSubStep[] | null {
+  switch (progress.rule) {
+    case "understand.send":
+      return track(UNDERSTAND_STEPS, 0);
+    case "understand.waiting":
+    case "understand.interpret":
+      return track(UNDERSTAND_STEPS, 1);
+    case "understand.use_answers":
+      return track(UNDERSTAND_STEPS, 2);
+    case "offer.review":
+    case "offer.stale":
+      return track(OFFER_STEPS, progress.rule === "offer.review" && hasDraft(state) ? 1 : 0);
+    case "track.buyer_setup":
+      return track(SETUP_STEPS, state.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled") ? 0 : 1);
+    default:
+      return null;
+  }
+}
+
+/** The ending, built from stored state only. Amounts stay out of the guide. */
+function finish(state: DemoState, progress: DealProgress, hasAction: boolean, terminal: string | null): WalkthroughFinish | null {
+  if (hasAction) return null;
+  const amended = state.amendments.at(-1);
+  const completed = terminal !== null || progress.rule === "track.fully_paid" || amended?.state === "active";
+  if (!completed) return null;
+  const lines: string[] = [];
+  const title = demoCase(state.caseId)?.title;
+  if (title) lines.push(`You walked through: ${title}.`);
+  lines.push(`Buyer constraints came from: ${taskSource(state, "extract").label}.`);
+  const decisions: string[] = [];
+  if (state.decisionBranch?.scope) decisions.push("confirmed the required services");
+  if (state.outcomes.some((o) => o.type === "option_selected" && o.source?.kind === "action")) decisions.push("chose your own offer");
+  for (const v of state.agreements) if (v.merchantApproval) decisions.push(`approved version ${v.version}`);
+  if (decisions.length) lines.push(`Your decisions: ${decisions.join(", ")}.`);
+  if (terminal) lines.push(terminal);
+  else if (amended?.state === "active") lines.push(`A payment was moved to a later date after both sides approved version ${amended.toVersion}.`);
+  else lines.push("Every scheduled payment was collected.");
+  return { title: terminal ? "Walkthrough ended" : "Walkthrough complete", lines };
 }
 
 function objectiveFor(progress: DealProgress): string {
@@ -213,19 +287,24 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
     systemAction: null,
     usesReplyControl: false,
     consequence: "Merchant action · choose a case in the product",
+    productLabel: "Start this case",
   };
 
   const provenance = provenanceFor(currentObjectiveId, state);
+  const currentAction = started ? action(nextDemoStep(state, progress, dealId), dealId, progress) : caseAction;
+  const terminalOutcome = started ? outcome(state, progress) : null;
 
   return {
     version: WALKTHROUGH_VERSION,
     objectives,
     currentObjectiveId,
     completedObjectiveIds,
-    currentAction: started ? action(nextDemoStep(state, progress, dealId), dealId) : caseAction,
-    terminalOutcome: started ? outcome(state, progress) : null,
+    currentAction,
+    terminalOutcome,
     provenance,
     provenanceLabel: provenanceLabel(provenance, state),
     stepLabel,
+    subSteps: started ? subSteps(state, progress) : null,
+    finish: started ? finish(state, progress, currentAction !== null, terminalOutcome) : null,
   };
 }
