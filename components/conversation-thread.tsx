@@ -7,6 +7,7 @@ import type { Message } from "@/domain/types";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf, noticeReplyOutcome } from "@/lib/views";
 import { chatHighlights } from "@/lib/chat-highlights";
+import { ChatScroll } from "./chat/chat-scroll";
 import { HighlightedText } from "./chat/highlighted-text";
 import { fmtTime } from "./evidence";
 import { Badge, cx, type Tone } from "./ui";
@@ -126,11 +127,11 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         </h2>
         <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[13px] text-ink-2">Simulated conversation</span>
       </div>
-      <ol className="space-y-2 bg-[#efeae2] p-4" aria-label="Messages">
+      <ChatScroll label="Messages">
         {openingChronological.map(openingBubble)}
         {sentItems.map(bubble)}
         {!openingChronological.length && !sentItems.length ? <li className="text-[13px] text-muted">No messages yet.</li> : null}
-      </ol>
+      </ChatScroll>
       {hidden.length ? (
         <details className="border-t border-line px-5 py-3">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">Show full conversation</summary>

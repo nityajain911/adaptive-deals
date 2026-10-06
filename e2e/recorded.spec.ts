@@ -272,3 +272,24 @@ test("recorded · the chat marks the buyer's own words, and the rejected phrase 
   await rejected.click();
   await expect(thread.getByTestId("chat-highlight-note")).toHaveCount(0);
 });
+
+test("recorded · on a phone the chat is a fixed panel that scrolls inside itself, starting at the latest message", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await start(page, "preserve-scope");
+  await page.goto("/deals/hero/understand");
+  const chat = page.getByTestId("thread-understand").getByTestId("chat-scroll");
+  await expect(chat).toBeVisible();
+  const m = await chat.evaluate((el) => ({ overflowY: getComputedStyle(el).overflowY, client: el.clientHeight, scroll: el.scrollHeight, top: el.scrollTop, viewport: window.innerHeight }));
+  expect(m.overflowY).toBe("auto");
+  expect(m.client).toBeLessThanOrEqual(m.viewport * 0.6);
+  expect(m.scroll).toBeGreaterThan(m.client);
+  expect(m.top + m.client).toBeGreaterThanOrEqual(m.scroll - 2);
+  // Scrolling the chat moves the chat, not the page.
+  await chat.evaluate((el) => (el.scrollTop = 0));
+  await chat.scrollIntoViewIfNeeded();
+  const pageY = await page.evaluate(() => window.scrollY);
+  await chat.hover();
+  await page.mouse.wheel(0, 120);
+  await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageY);
+});
