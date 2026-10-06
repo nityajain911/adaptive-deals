@@ -7,6 +7,7 @@ import type { RunOutcome } from "@/ai/orchestrator";
 import { snapshotEvaluation, type RecordedAnswer } from "@/ai/run-record";
 import { canonicalJson } from "@/domain/agreement";
 import { createHash } from "node:crypto";
+import { SAMPLE_OUTPUT_LABEL, taskProvenance, type ModelProvenance } from "./model-provenance";
 
 /**
  * Read-only audit derivations for the merchant audit drawer (spec §8.3). Every source is labelled
@@ -22,7 +23,7 @@ export interface AuditSource {
 
 const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Option ranking and explanation" };
 
-export function auditSources(s: AuditState, run: RunRecord): AuditSource[] {
+export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay"): AuditSource[] {
   const out: AuditSource[] = [
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
     { item: "Merchant costs and rules", source: "Synthetic deal fixture" },
@@ -39,35 +40,71 @@ export function auditSources(s: AuditState, run: RunRecord): AuditSource[] {
   out.push({ item: "Offer figures and checks", source: "Deterministic calculation from configured inputs" });
   for (const st of run.steps) {
     if (st.outcome === "failed" || st.outcome === "rejected") continue;
+    // Each step is attributed to the provider recorded on that step; a sample never reads as an AI run.
+    const provenance = taskProvenance(run, st.task, viewing);
+    const model = provenance?.modelMade ? provenance : null;
     if (s.decisionBranch && st.task === "explain") {
-      out.push({ item: "Parent option ranking and explanation", source: `Parent AI run ${run.runId} · context only`, detail: "The parent model run did not process the changed answers and its recommendation output was not used for this branch." });
+      out.push(
+        model
+          ? { item: "Parent option ranking and explanation", source: `Parent ${model.providerName} run ${run.runId} · context only`, detail: "The parent model run did not process the changed answers and its recommendation output was not used for this branch." }
+          : { item: "Parent option ranking and explanation", source: `Parent sample output ${run.runId} · context only`, detail: "The hand-written parent sample did not cover the changed answers and its recommendation output was not used for this branch." },
+      );
       continue;
     }
-    out.push({ item: TASK_LABEL[st.task] ?? st.task, source: `AI run ${run.runId} · ${st.promptVersion}`, detail: `${st.provider} · ${st.model} · ${st.outcome.replace(/_/g, " ")}` });
+    out.push(
+      model
+        ? { item: TASK_LABEL[st.task] ?? st.task, source: `${model.label} · run ${run.runId} · ${st.promptVersion}`, detail: `${st.provider} · ${st.model} · ${st.outcome.replace(/_/g, " ")}` }
+        : { item: TASK_LABEL[st.task] ?? st.task, source: `${SAMPLE_OUTPUT_LABEL} · run ${run.runId}`, detail: `Written to the ${st.promptVersion} output format · ${st.outcome.replace(/_/g, " ")} by code validation` },
+    );
   }
   return out;
 }
 
 /** Who did what in this run, specific to the recorded outcomes. */
-export function whoDidWhat(run: RunRecord, source: ExplanationResult["source"] | null, s: AuditState): { ai: string[]; code: string[]; merchant: string[]; buyer: string[] } {
+export function whoDidWhat(
+  run: RunRecord,
+  source: ExplanationResult["source"] | null,
+  s: AuditState,
+  viewing: "replay" | "fresh" = "replay",
+): { ai: string[]; aiLabel: string | null; sample: string[]; code: string[]; merchant: string[]; buyer: string[] } {
   const step = (task: string) => run.steps.find((x) => x.task === task && x.outcome !== "failed" && x.outcome !== "rejected");
-  const ai: string[] = [];
   const extract = step("extract");
-  if (extract) ai.push(`Extracted the opening constraints (${extract.promptVersion})`);
   const clarify = step("clarify");
-  if (clarify && run.displayed.questions.some((q) => q.wording === "ai")) ai.push(`Drafted the clarification questions (${clarify.promptVersion})`);
   const explain = step("explain");
-  if (!s.decisionBranch && explain && source?.ranking === "ai") ai.push(`Suggested the order of eligible options (${explain.promptVersion})`);
-  if (!s.decisionBranch && explain && source?.text === "ai") ai.push(`Wrote the recommendation explanation (${explain.promptVersion})`);
+  const drafted = clarify && run.displayed.questions.some((q) => q.wording === "ai");
+  const ranked = !s.decisionBranch && explain && source?.ranking === "ai";
+  const explained = !s.decisionBranch && explain && source?.text === "ai";
 
+  // Each output is credited from the provider recorded on its own step: to AI only when a model
+  // produced it, otherwise under the hand-written sample heading.
+  const ai: string[] = [];
+  const sample: string[] = [];
+  const labels = new Set<string>();
+  const credit = (task: "extract" | "clarify" | "explain", done: unknown, byModel: string, bySample: string) => {
+    if (!done) return;
+    const provenance = taskProvenance(run, task, viewing);
+    if (provenance?.modelMade) {
+      ai.push(byModel);
+      labels.add(provenance.label);
+    } else sample.push(bySample);
+  };
+  credit("extract", extract, `Extracted the opening constraints (${extract?.promptVersion})`, "Constraint extraction");
+  credit("clarify", drafted, `Drafted the clarification questions (${clarify?.promptVersion})`, "Clarification question wording");
+  credit("explain", ranked, `Suggested the order of eligible options (${explain?.promptVersion})`, "Order of eligible options");
+  credit("explain", explained, `Wrote the recommendation explanation (${explain?.promptVersion})`, "Recommendation explanation");
+  const aiLabel = labels.size ? [...labels].join(" · ") : null;
+
+  const explainByModel = taskProvenance(run, "explain", viewing)?.modelMade ?? false;
+  const prose = explainByModel ? "AI" : "sample";
+  const parent = explainByModel ? "the parent model did not process the changed answers" : "the hand-written parent sample did not cover the changed answers";
   const code = [
     "Normalised supported values and verified every evidence quote",
     s.decisionBranch ? "Recalculated every permitted structure and every figure after the changed buyer answers" : "Evaluated every permitted structure and calculated every figure",
-    s.decisionBranch ? "Set the eligible option order through the documented code rule" : "Enforced the approval ordering and validated AI prose",
+    s.decisionBranch ? "Set the eligible option order through the documented code rule" : explain ? `Enforced the approval ordering and validated ${prose} prose` : "Enforced the approval ordering",
     "Read only the narrow supported payment-date reply (reply-rules.v1)",
   ];
-  if (s.decisionBranch) code.push("Wrote the recommendation explanation because the parent model did not process the changed answers");
-  else if (source?.text === "code_fallback") code.push("Wrote the recommendation explanation, because the AI wording did not pass validation");
+  if (s.decisionBranch) code.push(`Wrote the recommendation explanation because ${parent}`);
+  else if (source?.text === "code_fallback") code.push(`Wrote the recommendation explanation, because the ${prose} wording did not pass validation`);
 
   const merchant: string[] = [];
   const sent = s.conversation.filter((i) => i.kind === "clarification" && i.state === "approved_and_sent_by_merchant").length;
@@ -85,7 +122,7 @@ export function whoDidWhat(run: RunRecord, source: ExplanationResult["source"] |
     if (v.buyerAcceptance) buyer.push(`Accepted terms version ${v.version} (simulated buyer action)`);
     if (v.status === "buyer_rejected") buyer.push(`Declined terms version ${v.version} (simulated buyer action)`);
   }
-  return { ai, code, merchant, buyer };
+  return { ai, aiLabel, sample, code, merchant, buyer };
 }
 
 export interface BranchAudit {
@@ -98,7 +135,7 @@ export interface BranchAudit {
 }
 
 /** Technical provenance for a changed-answer branch. Kept inside the read-only audit drawer. */
-export function branchAudit(s: Pick<AuditState, "decisionBranch">, out: RunOutcome): BranchAudit | null {
+export function branchAudit(s: Pick<AuditState, "decisionBranch">, out: RunOutcome, provenance: ModelProvenance): BranchAudit | null {
   const branch = s.decisionBranch;
   if (!branch) return null;
   return {
@@ -107,7 +144,9 @@ export function branchAudit(s: Pick<AuditState, "decisionBranch">, out: RunOutco
     answers: branch.answers,
     engineFingerprint: createHash("sha256").update(canonicalJson(snapshotEvaluation(out.evaluation))).digest("hex"),
     explanationSource: branch.explanationSource,
-    notice: "The parent model run did not process the changed answers. The engine recalculated the decision and code wrote the explanation.",
+    notice: provenance.modelMade
+      ? "The parent model run did not process the changed answers. The engine recalculated the decision and code wrote the explanation."
+      : "The hand-written parent sample did not cover the changed answers. The engine recalculated the decision and code wrote the explanation.",
   };
 }
 

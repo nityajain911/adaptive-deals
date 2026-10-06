@@ -9,6 +9,7 @@ import type { ChangeRequest } from "@/domain/restructure";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { actionableChangeRequests, buyerProposalLifecycle, changeRequestDisplay, explanationAttribution, latestReplacementVersion, parseVersionSegment, pendingActions, proposalView } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
+import type { ModelProvenance } from "@/lib/model-provenance";
 import type { DecisionBranch } from "@/lib/decision-branch";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
@@ -152,13 +153,28 @@ describe("historical proposal replacement", () => {
 });
 
 describe("recommendation attribution follows the actual output source", () => {
-  it("AI wording only when the explanation text is AI", () => {
-    expect(explanationAttribution({ ranking: "ai", text: "ai" })).toMatch(/^Explanation written by AI · all figures calculated by the engine/);
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).toBe("Explanation written by code · all figures calculated by the engine · Order suggested by AI");
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).not.toMatch(/written by AI/);
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" })).not.toMatch(/did not pass validation/i);
-    expect(explanationAttribution({ ranking: "code", text: "code_fallback" })).toMatch(/Order set by code$/);
-    expect(explanationAttribution(null)).toBe("Explanation written by code · all figures calculated by the engine");
+  const groq: ModelProvenance = { source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" };
+  const sample: ModelProvenance = { source: "hand_written", modelMade: false, providerName: null, label: "Sample output written by hand · no model ran" };
+  it("names the model only for what a recorded model actually produced", () => {
+    expect(explanationAttribution({ ranking: "ai", text: "ai" }, groq)).toBe("Groq ranked and explained · recorded Groq output · all figures calculated by the engine · approval ordering enforced by code");
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq)).toBe("Groq ranked · code explained · recorded Groq output · all figures calculated by the engine");
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq)).not.toMatch(/did not pass validation/i);
+    expect(explanationAttribution({ ranking: "code", text: "ai" }, groq)).toBe("Groq explained · order set by code · recorded Groq output · all figures calculated by the engine");
+    expect(explanationAttribution({ ranking: "code", text: "code_fallback" }, groq)).toBe("Explanation written by code · all figures calculated by the engine · Order set by code");
+    expect(explanationAttribution(null, groq)).toBe("Explanation written by code · all figures calculated by the engine");
+  });
+  it("never credits AI or Groq for a hand-written sample", () => {
+    const lines = [
+      explanationAttribution({ ranking: "ai", text: "ai" }, sample),
+      explanationAttribution({ ranking: "ai", text: "code_fallback" }, sample),
+      explanationAttribution({ ranking: "code", text: "ai" }, sample),
+      explanationAttribution({ ranking: "code", text: "code_fallback" }, sample),
+      explanationAttribution(null, sample),
+    ];
+    expect(lines[0]).toBe("Sample order and explanation written by hand · no model ran · all figures calculated by the engine · approval ordering enforced by code");
+    expect(lines[1]).toBe("Sample order written by hand · no model ran · code explained · all figures calculated by the engine");
+    expect(lines[2]).toBe("Sample explanation written by hand · no model ran · order set by code · all figures calculated by the engine");
+    for (const line of lines) expect(line).not.toMatch(/\bAI\b|Groq/);
   });
   it("never credits AI with a changed-answer branch it did not process", () => {
     const branch = {
@@ -170,7 +186,7 @@ describe("recommendation attribution follows the actual output source", () => {
       reason: "changed_clarification_answers",
       explanationSource: "code_fallback",
     } satisfies DecisionBranch;
-    const copy = explanationAttribution({ ranking: "code", text: "code_fallback" }, branch);
+    const copy = explanationAttribution({ ranking: "code", text: "code_fallback" }, { source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" }, branch);
     expect(copy).toBe("Recalculated by the engine after the buyer's answer · explanation written by code.");
     expect(copy).not.toMatch(/AI ranked|AI explained|suggested by AI/i);
   });

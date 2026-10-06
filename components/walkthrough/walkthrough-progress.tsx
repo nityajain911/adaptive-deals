@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check, ChevronLeft, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
-import type { WalkthroughActor, WalkthroughProvenance, WalkthroughView } from "@/lib/walkthrough";
+import type { WalkthroughActor, WalkthroughView } from "@/lib/walkthrough";
 import { Button } from "@/components/client";
 
 const ACTOR_LABEL: Record<WalkthroughActor, string> = {
@@ -9,18 +9,8 @@ const ACTOR_LABEL: Record<WalkthroughActor, string> = {
   buyer: "Buyer action",
   system: "Simulated system action",
   ai: "AI analysis",
+  sample: "Sample analysis · written by hand",
   engine: "Deterministic engine",
-};
-
-const PROVENANCE_LABEL: Record<WalkthroughProvenance, string> = {
-  live_groq: "Live Groq response",
-  live_groq_replay: "Replay of an actual Groq run",
-  synthetic_replay: "Synthetic replay",
-  saved_groq_exact_match: "Saved Groq response · exact input match",
-  deterministic_engine: "Deterministic engine calculation",
-  merchant: "Merchant decision",
-  simulated_buyer: "Simulated buyer action",
-  razorpay_test_mode: "Razorpay Test Mode",
 };
 
 export function WalkthroughProgress({
@@ -65,7 +55,7 @@ export function WalkthroughProgress({
         <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue">DEMO WALKTHROUGH · {displayedStepLabel.toUpperCase()}</div>
         <h2 id="walkthrough-heading" tabIndex={-1} className="mt-2 text-[20px] font-bold tracking-tight text-ink">{objective.title}</h2>
         <div className="mt-2 inline-flex rounded-full border border-line bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-ink-2">{actor}</div>
-        {displayedObjectiveId === view.currentObjectiveId && view.provenance ? <div className="mt-2 text-[12px] text-muted">{PROVENANCE_LABEL[view.provenance]}</div> : null}
+        {displayedObjectiveId === view.currentObjectiveId && view.provenanceLabel ? <div className="mt-2 text-[12px] text-muted" data-testid="walkthrough-provenance">{view.provenanceLabel}</div> : null}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">

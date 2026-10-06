@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { DealProgress } from "@/lib/progress";
+import type { RunRecord } from "@/ai/run-record";
 import type { DemoState } from "@/lib/service";
 import { walkthroughCapabilities, walkthroughView } from "@/lib/walkthrough";
 
@@ -132,19 +133,52 @@ describe("capability and outcome honesty", () => {
 });
 
 describe("run provenance", () => {
-  it("preserves live, replayed-live and synthetic run origins", async () => {
+  const recordedRun = () => JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
+
+  it("describes a hand-written sample as a sample and never as AI", async () => {
     const p = await svc.progressOf(fresh);
-    const live = started();
-    live.run.record.kind = "live";
+    const view = resolve(started(), p);
+    expect(view.provenance).toBe("synthetic_replay");
+    expect(view.provenanceLabel).toBe("Sample output written by hand · no model ran");
+    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." });
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics.");
+    expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
+  });
+
+  it("names the provider for a recorded run and for a fresh live run", async () => {
+    const live = started(await svc.seedState(recordedRun(), "replay"));
+    const p = await svc.progressOf(live);
+    const replayed = resolve(live, p);
+    expect(replayed.provenance).toBe("live_groq_replay");
+    expect(replayed.provenanceLabel).toBe("Recorded Groq output");
+    expect(replayed.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
+    expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("Groq orders the eligible options; deterministic code calculates feasibility and economics and enforces approval ordering.");
+
     live.run.viewing = "fresh";
-    expect(resolve(live, p).provenance).toBe("live_groq");
+    expect(resolve(live, p)).toMatchObject({ provenance: "live_groq", provenanceLabel: "Live Groq output" });
+  });
 
-    live.run.viewing = "replay";
-    expect(resolve(live, p).provenance).toBe("live_groq_replay");
+  it("attributes each walkthrough step to its own stored step on a mixed run", async () => {
+    const live = started(await svc.seedState(recordedRun(), "replay"));
+    // Test-only: add a hand-written explanation step to an otherwise recorded Groq run.
+    live.run.record.steps = [...live.run.record.steps, { ...live.run.record.steps[0], task: "explain", provider: "synthetic_replay" }];
+    const view = resolve(live, await svc.progressOf(await svc.seedState(recordedRun(), "replay")));
+    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics.");
+  });
 
-    const synthetic = started();
-    synthetic.run.record.kind = "synthetic_replay";
-    synthetic.run.viewing = "replay";
-    expect(resolve(synthetic, p).provenance).toBe("synthetic_replay");
+  it("does not credit a model when a record marked live carries hand-written steps", async () => {
+    const mislabelled = started();
+    mislabelled.run.record.kind = "live";
+    const view = resolve(mislabelled, await svc.progressOf(fresh));
+    expect(view.provenance).toBe("synthetic_replay");
+    expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
+  });
+
+  it("credits code, not the parent run, on a changed-answer branch", async () => {
+    const branched = started();
+    branched.decisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "branch-1", parentRunId: branched.run.record.runId, createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
+    const view = resolve(branched, await svc.progressOf(fresh));
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The engine recalculated this decision after the buyer's answer; code set the order and wrote the explanation.");
   });
 });

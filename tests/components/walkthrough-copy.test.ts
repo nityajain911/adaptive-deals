@@ -24,7 +24,7 @@ const view: WalkthroughView = {
       actor: "ai",
       title: "Understand the buyer",
       instruction: "Review the extracted constraints and evidence.",
-      notice: "AI structures the conversation; code preserves uncertainty.",
+      notice: "Groq structures the conversation; code preserves uncertainty.",
       href: "/deals/hero/understand",
       anchorId: "buyer-conversation",
       optional: false,
@@ -45,6 +45,7 @@ const view: WalkthroughView = {
   },
   terminalOutcome: null,
   provenance: "live_groq_replay",
+  provenanceLabel: "Recorded Groq output",
   stepLabel: "Step 2 of 4",
 };
 
@@ -67,6 +68,7 @@ describe("buildathon walkthrough presentation", () => {
     expect(html).toContain("Review the extracted constraints and evidence.");
     expect(html).toContain("What to notice");
     expect(html).toContain("Merchant action");
+    expect(html).toContain("Recorded Groq output");
     expect(html.match(/data-walkthrough-primary=/g)).toHaveLength(1);
     expect(html).not.toMatch(/₹|contribution|invoice_[A-Za-z0-9]|model confidence/i);
   });
@@ -124,5 +126,31 @@ describe("buildathon walkthrough presentation", () => {
     }));
     expect(html).toContain("Simulated system action");
     expect(html).toContain("Simulated system event · buyer pays the upfront link");
+  });
+});
+
+describe("a hand-written sample in the walkthrough", () => {
+  it("shows the sample label and actor, with no AI or Groq wording", () => {
+    const sampleView: WalkthroughView = {
+      ...view,
+      objectives: view.objectives.map((objective) => (objective.id === "understand_buyer" ? { ...objective, actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran." } : objective)),
+      currentAction: null,
+      provenance: "synthetic_replay",
+      provenanceLabel: "Sample output written by hand · no model ran",
+    };
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, {
+      view: sampleView,
+      displayedObjectiveId: "understand_buyer",
+      primaryLabel: null,
+      primaryDisabled: false,
+      onPrimary: () => undefined,
+      onBack: () => undefined,
+      onNext: () => undefined,
+      onHide: () => undefined,
+      onRestart: () => undefined,
+    }));
+    expect(html).toContain("Sample analysis · written by hand");
+    expect(html).toContain("Sample output written by hand · no model ran");
+    expect(html).not.toMatch(/\bAI\b|Groq/);
   });
 });

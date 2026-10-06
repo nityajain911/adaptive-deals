@@ -779,6 +779,24 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 
 **Browser coverage:** first visit, complete core journey, reload and off-route recovery, hide and resume, confirmed restart, terminal outcomes, keyboard focus, compact 390 px presentation, and the existing preventive storyboard all run against the production build.
 
+### 2026-10-06 · Truthful model attribution and case-recording boundary (pre-call gate) [Claude Code]
+
+**Prompt (applicant):** fix attribution before any model call, add a separate store for case recordings, and stop at a gate before Groq is used.
+
+**Finding that prompted this:** all three commercial cases run on hand-written sample outputs (`data/synthetic/case-ai-outputs.ts`), yet the audit drawer, question badges and Offer card credited them to AI.
+
+**Built:**
+- `lib/model-provenance.ts`: attribution is derived from the stored run kind and the provider recorded on each step. A model is credited for a step only when that step names a real provider in a live run. A run of hand-written samples reads **Sample output written by hand · no model ran**; a recorded run reads **Recorded Groq output**. Mixed runs are credited step by step.
+- Every visible attribution now uses that rule: case cards, clarification badges, the conversation thread, the Offer card, the audit sources and **Who did what**, and the walkthrough. The Offer card attributes the text actually shown, so a recorded ranking with code-written text reads **Groq ranked · code explained**.
+- `lib/case-runs.ts` and `data/case-recorded-runs/`: a dedicated loader and directory for case recordings. A mapped recording is used only when it is a complete model run of exactly that case's conversation. The loader never reads `data/live-runs/`. `ADAPTIVE_DEALS_DEMO_RUN=synthetic` forces the labelled sample.
+- The presenter control is now **Pause suggested question drafts**.
+
+**AI boundary:** no prompt, schema, validator, provider, orchestrator, engine rule or evaluation asset changed. **No model call was made for this work.** No recording or case mapping exists yet; the three cases still run on labelled samples.
+
+**Verification:** 592 unit and integration tests, 30 browser journeys on the default build, typecheck, lint and the release build gate pass. All 43 protected repository files and the external freeze pack match the baseline.
+
+**Noted, not changed:** the model's overall comparison sentence is stored but never rendered; only a per-offer note is shown. Stored conversation drafts keep an internal `author: "ai"` field, which no view reads.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

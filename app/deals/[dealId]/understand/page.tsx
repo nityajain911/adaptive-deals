@@ -5,6 +5,7 @@ import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { Badge, Card } from "@/components/ui";
 import { loadDeal, stageHref } from "@/lib/deal-page";
+import { questionWordingLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import { originalProposal } from "@/lib/offer-copy";
 import { blockingLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion } from "@/lib/service";
@@ -24,6 +25,7 @@ const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
 export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
   const { dealId } = await props.params;
   const { s, out, progress, activeCase } = await loadDeal(dealId);
+  const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const current = progress.stages.understand === "current";
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposal());
@@ -124,7 +126,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                 {questions.map(({ q, draft, reply }, qi) => (
                   <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
                     <div className="flex flex-wrap items-center gap-2 text-[12px]">
-                      <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{q.wording === "ai" ? "Suggested by AI" : "Drafted by code"}</Badge>
+                      <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{questionWordingLabel(q.wording, provenance)}</Badge>
                       {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
                     </div>
                     <p className="mt-2 text-[14px] font-medium text-ink">{q.question}</p>

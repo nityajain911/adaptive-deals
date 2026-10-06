@@ -51,6 +51,7 @@ import {
 import { CLASSIFICATION_LABEL } from "@/domain/replies";
 import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision-evidence";
+import { caseRecordedRunById, mappedCaseRun } from "./case-runs";
 import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
 
 export const STORE_FILE = "store.json";
@@ -143,15 +144,14 @@ function dealForState(s: Pick<DemoState, "caseId" | "run">) {
   return s.run.record.inputs.dealId === HERO_DEAL_ID ? heroDeal() : activeCase(s).deal;
 }
 
-/** A mapped additive live run when available, otherwise the credential-free bundled replay. */
-export function demoCaseRunRecord(caseId: CaseId): RunRecord {
-  try {
-    const mapping = JSON.parse(readFileSync(path.join(process.cwd(), "data/case-runs.json"), "utf8")) as Partial<Record<CaseId, string>>;
-    const runId = mapping[caseId];
-    const live = runId ? committedLiveRun(runId) : null;
-    if (live?.kind === "live" && live.status === "complete" && live.inputs.dealId === demoCase(caseId)!.deal.dealId) return live;
-  } catch {
-    // The live mapping is additive and optional; synthetic replay is always available.
+/**
+ * The run a case starts from: its mapped recorded model run when one is committed, otherwise the
+ * credential-free hand-written sample. `ADAPTIVE_DEALS_DEMO_RUN=synthetic` always uses the sample.
+ */
+export function demoCaseRunRecord(caseId: CaseId, env: Record<string, string | undefined> = process.env): RunRecord {
+  if (env.ADAPTIVE_DEALS_DEMO_RUN?.trim() !== "synthetic") {
+    const recorded = mappedCaseRun(caseId);
+    if (recorded) return recorded;
   }
   return bundledCaseRun(caseId);
 }
@@ -376,10 +376,11 @@ function providerForContinuation(s: DemoState): ModelProvider {
   return new ReplayProvider(s.run.record.kind === "live" ? "recorded_replay" : "synthetic_replay", s.run.record.model, sourceSteps(s));
 }
 
+/** A sample workspace continues only from its own hand-written sample, never from a mapped recording. */
 function sourceSteps(s: DemoState) {
-  if (s.run.record.kind !== "live") return (s.run.record.inputs.dealId === HERO_DEAL_ID ? JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord : demoCaseRunRecord(s.caseId)).steps;
+  if (s.run.record.kind !== "live") return (s.run.record.inputs.dealId === HERO_DEAL_ID ? JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord : bundledCaseRun(s.caseId)).steps;
   const id = s.run.sourceRunId ?? s.run.record.runId;
-  return (committedLiveRunSync(id) ?? s.run.record).steps;
+  return (caseRecordedRunById(id) ?? committedLiveRunSync(id) ?? s.run.record).steps;
 }
 
 function committedLiveRunSync(runId: string): RunRecord | null {
@@ -391,9 +392,9 @@ function committedLiveRunSync(runId: string): RunRecord | null {
 }
 
 function sourceRecord(s: DemoState): RunRecord {
-  if (s.run.record.kind !== "live") return s.run.record.inputs.dealId === HERO_DEAL_ID ? (JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord) : demoCaseRunRecord(s.caseId);
+  if (s.run.record.kind !== "live") return s.run.record.inputs.dealId === HERO_DEAL_ID ? (JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/replay/hero-synthetic-run.json"), "utf8")) as RunRecord) : bundledCaseRun(s.caseId);
   const id = s.run.sourceRunId ?? s.run.record.runId;
-  return committedLiveRunSync(id) ?? s.run.record;
+  return caseRecordedRunById(id) ?? committedLiveRunSync(id) ?? s.run.record;
 }
 
 /** Replays only extraction and clarification from the immutable source, before any answer branch. */
@@ -1048,7 +1049,7 @@ export async function sendClarification(itemId: string): Promise<DemoState> {
 export async function setSuggestionsPaused(paused: boolean): Promise<DemoState> {
   return mutate((s) => {
     s.suggestionsPaused = paused;
-    event(s, "suggestions", paused ? "Suggested replies paused" : "Suggested replies resumed", "merchant", paused ? "Inbound messages are still recorded; no new AI drafts are created." : null);
+    event(s, "suggestions", paused ? "Suggested replies paused" : "Suggested replies resumed", "merchant", paused ? "Inbound messages are still recorded; no new suggested drafts are created." : null);
     if (!paused) draftMissingClarifications(s);
   });
 }

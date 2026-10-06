@@ -260,3 +260,14 @@ These are not built and do not appear as navigation:
 - The merchant preview includes the exact code-generated simulated WhatsApp message. It is derived from canonical terms and appears before approval and delivery.
 - Track calls the operational balance **Amount still to collect before GST**. The 90-day outcome measure remains separately labelled and keeps its existing definition.
 - The submission note reports the completed frozen evaluation and its agent-authored provenance. The role-based persona reviews are usability inspections, not interviews or independent demand evidence.
+
+## Model attribution follows the stored step, not the feature
+
+**A hand-written sample is never presented as AI output.** Attribution is derived from the stored run kind and the provider recorded on each step. Sample cases read **Sample output written by hand · no model ran** on the case card, question badges, conversation thread, Offer card, audit and walkthrough. A recorded run reads **Recorded Groq output**. A run with mixed sources is credited step by step.
+
+**The Offer card attributes the text it shows.** If a recorded model ranked the options but the visible reason is code-written, the card says **Groq ranked · code explained**.
+
+**Case recordings are separate from historical runs.** They live in `data/case-recorded-runs/` and are mapped by `data/case-runs.json`. A recording is used only when it is a complete model run of exactly that case's conversation; otherwise the product falls back to the labelled sample. `data/live-runs/` holds the earlier historical runs and is never read for cases.
+
+**A changed clarification answer remains a code-computed branch,** whether the parent is a sample or a recording.
+

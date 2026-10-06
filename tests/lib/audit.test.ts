@@ -6,6 +6,7 @@ import type { RunRecord } from "@/ai/run-record";
 import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
 import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
 import type { DecisionBranch } from "@/lib/decision-branch";
+import { modelProvenance } from "@/lib/model-provenance";
 
 /** Spec §8.3: truthful sources, run-specific attribution, read-only. */
 const run = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
@@ -19,6 +20,9 @@ const baseState = {
   decisionBranch: null,
 };
 const state = baseState as never;
+const groq = modelProvenance(run);
+const sampleRun = JSON.parse(readFileSync("data/synthetic/replay/reduced-scope-synthetic-run.json", "utf8")) as RunRecord;
+const sample = modelProvenance(sampleRun);
 
 const branch: DecisionBranch = {
   schema: "adaptive-deals.decision-branch.v1",
@@ -44,7 +48,19 @@ describe("audit sources", () => {
     expect(src.find((x) => x.item === "Payment state")!.source).toBe("Simulated payment record");
     expect(src.find((x) => x.item.startsWith("Interpretation of conv-3"))!.source).toBe("Merchant interpretation of buyer message");
     expect(src.find((x) => x.item === "Offer figures and checks")!.source).toBe("Deterministic calculation from configured inputs");
-    expect(src.find((x) => x.item === "Constraint extraction")!.source).toBe(`AI run ${run.runId} · extract.v2`);
+    expect(src.find((x) => x.item === "Constraint extraction")!.source).toBe(`Recorded Groq output · run ${run.runId} · extract.v2`);
+  });
+  it("never labels a hand-written sample as an AI run", () => {
+    const sampleSources = auditSources(state, sampleRun);
+    for (const item of ["Constraint extraction", "Clarification wording", "Option ranking and explanation"]) {
+      expect(sampleSources.find((x) => x.item === item)!.source).toBe(`Sample output written by hand · no model ran · run ${sampleRun.runId}`);
+    }
+    expect(sampleSources.map((x) => `${x.source} ${x.detail ?? ""}`).join(" ")).not.toMatch(/\bAI\b|Groq/);
+    const branched = auditSources(branchedState, sampleRun);
+    expect(branched.find((x) => x.item === "Parent option ranking and explanation")).toMatchObject({
+      source: `Parent sample output ${sampleRun.runId} · context only`,
+      detail: "The hand-written parent sample did not cover the changed answers and its recommendation output was not used for this branch.",
+    });
   });
 });
 
@@ -69,6 +85,30 @@ describe("who did what", () => {
     expect(w.code.join(" ")).toMatch(/wrote the recommendation explanation/i);
     expect(`${w.ai.join(" ")} ${w.code.join(" ")}`).not.toMatch(/AI ranked|AI explained/i);
   });
+  it("lists hand-written sample outputs under their own heading, never under AI", () => {
+    const w = whoDidWhat(sampleRun, { ranking: "ai", text: "ai" }, state);
+    expect(w.ai).toEqual([]);
+    expect(w.sample).toEqual(["Constraint extraction", "Clarification question wording", "Order of eligible options", "Recommendation explanation"]);
+    expect(w.code.join(" ")).not.toMatch(/\bAI\b/);
+    const fallback = whoDidWhat(sampleRun, { ranking: "ai", text: "code_fallback" }, state);
+    expect(fallback.sample).not.toContain("Recommendation explanation");
+    expect(fallback.code).toContain("Wrote the recommendation explanation, because the sample wording did not pass validation");
+  });
+  it("splits a mixed run step by step", () => {
+    const mixedRun = { ...run, steps: run.steps.map((step) => (step.task === "explain" ? { ...step, provider: "synthetic_replay" } : step)) } as RunRecord;
+    const w = whoDidWhat(mixedRun, { ranking: "ai", text: "ai" }, state);
+    expect(w.ai).toEqual(["Extracted the opening constraints (extract.v2)", "Drafted the clarification questions (clarify.v1)"]);
+    expect(w.aiLabel).toBe("Recorded Groq output");
+    expect(w.sample).toEqual(["Order of eligible options", "Recommendation explanation"]);
+    const sources = auditSources(state, mixedRun);
+    expect(sources.find((x) => x.item === "Constraint extraction")!.source).toBe(`Recorded Groq output · run ${run.runId} · extract.v2`);
+    expect(sources.find((x) => x.item === "Option ranking and explanation")!.source).toBe(`Sample output written by hand · no model ran · run ${run.runId}`);
+  });
+  it("keeps recorded model work out of the sample heading", () => {
+    expect(whoDidWhat(run, { ranking: "ai", text: "ai" }, state).aiLabel).toBe("Recorded Groq output");
+    expect(whoDidWhat(sampleRun, { ranking: "ai", text: "ai" }, state).aiLabel).toBeNull();
+    expect(whoDidWhat(run, { ranking: "ai", text: "ai" }, state).sample).toEqual([]);
+  });
 });
 
 describe("decision branch audit", () => {
@@ -77,7 +117,7 @@ describe("decision branch audit", () => {
     const seeded = await svc.seedState(run, "replay");
     const out = await svc.initialOutcomeForBranch(seeded);
     const derived = (await import("@/lib/decision-branch")).deriveBranchOutcome({ initial: out, branch, deal: (await import("@/data/synthetic/hero-run")).heroDeal() });
-    const audit = branchAudit(branchedState, derived);
+    const audit = branchAudit(branchedState, derived, groq);
     expect(audit).toMatchObject({ parentRunId: run.runId, branchId: "branch-changed", explanationSource: "code_fallback" });
     expect(audit?.answers.map((answer) => [answer.questionId, answer.value, answer.answerText])).toEqual([
       ["clar-gst", "no", "No, both exclude GST."],
@@ -85,6 +125,7 @@ describe("decision branch audit", () => {
     ]);
     expect(audit?.engineFingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(audit?.notice).toMatch(/parent model run did not process the changed answers/i);
+    expect(branchAudit(branchedState, derived, sample)?.notice).toBe("The hand-written parent sample did not cover the changed answers. The engine recalculated the decision and code wrote the explanation.");
   });
 });
 
@@ -113,5 +154,10 @@ describe("audit drawer content is read-only", () => {
     expect(html).not.toMatch(/<form|<button|\/api\/actions|data-action=/);
     for (const h of ["Evidence", "Applied merchant rules", "Approval and acceptance history", "Calculation provenance", "Who did what", "Schedules"]) expect(html).toContain(h);
     expect(html).toContain("Simulated WhatsApp conversation");
+    // The default case runs on a hand-written sample: the drawer must say so and credit no model.
+    expect(modelProvenance(s.run.record).modelMade).toBe(false);
+    expect(html).toContain("Sample output written by hand · no model ran");
+    expect(html).toContain("No model ran for this case.");
+    expect(html).not.toMatch(/AI run|Recorded Groq output|Suggested the order|Extracted the opening constraints/);
   });
 });

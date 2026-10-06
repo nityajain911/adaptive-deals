@@ -4,6 +4,7 @@ import type { EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
 import { heroPackages, heroTemplates } from "@/data/synthetic/hero";
 import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
+import { SAMPLE_OUTPUT_LABEL, taskOrRunProvenance } from "@/lib/model-provenance";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
@@ -39,9 +40,14 @@ function offerStructure(s: DemoState, out: RunOutcome): EvaluatedStructure | nul
 export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
   const run = s.run.record;
   const policy = run.inputs.policy;
-  const sources = auditSources(s, run);
-  const who = whoDidWhat(run, out.explanation?.source ?? null, s);
-  const branch = branchAudit(s, out);
+  const sources = auditSources(s, run, s.run.viewing);
+  const who = whoDidWhat(run, out.explanation?.source ?? null, s, s.run.viewing);
+  const branch = branchAudit(s, out, taskOrRunProvenance(run, "explain", s.run.viewing));
+  // Model outputs and hand-written samples keep separate headings; a case with no model output says so.
+  const modelRows: (readonly [string, string[]])[] = [
+    who.aiLabel ? ([`AI · ${who.aiLabel}`, who.ai] as const) : (["AI", ["No model ran for this case."]] as const),
+    ...(who.sample.length ? [[SAMPLE_OUTPUT_LABEL, who.sample] as const] : []),
+  ];
   const x = offerStructure(s, out);
   const e = x?.economics;
   return (
@@ -187,7 +193,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
         <dl className="mt-1 space-y-2">
           {(
             [
-              ["AI", who.ai],
+              ...modelRows,
               ["Code", who.code],
               ["Merchant", who.merchant],
               ["Buyer", who.buyer],

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MessageCircle } from "lucide-react";
-import { STATE_LABEL, type ConversationItem } from "@/domain/conversation";
+import type { ConversationItem } from "@/domain/conversation";
+import { clarificationDraftLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import type { Message } from "@/domain/types";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf, noticeReplyOutcome } from "@/lib/views";
@@ -43,6 +44,8 @@ function linkify(text: string): ReactNode[] {
 }
 
 export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2 }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number }) {
+  // Draft badges follow who actually produced this run's clarification wording.
+  const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -64,7 +67,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
       <li key={i.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", outbound ? cx("ml-auto", i.sentAt ? "border-[#d6defe] bg-blue-weak" : "border-dashed border-[#9fb3ff] bg-surface") : "border-line bg-surface")} data-testid={`thread-${i.id}`} data-kind={i.kind}>
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
           <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : `Buyer · ${buyerName}`}</span>
-          <Badge tone={STATE_TONE[i.state]}>{STATE_LABEL[i.state]}</Badge>
+          <Badge tone={STATE_TONE[i.state]}>{clarificationDraftLabel(i.state, provenance)}</Badge>
           {!outbound ? <Pill>{i.source === "buyer_proposal_page" ? "From the buyer proposal page" : "Simulated buyer reply"}</Pill> : null}
           <Pill>{fmtTime(i.sentAt ?? i.createdAt)}</Pill>
         </div>

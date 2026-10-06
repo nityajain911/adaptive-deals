@@ -99,12 +99,12 @@ export default async function PresenterPage() {
             <span className="w-full text-[12px] text-muted">Deterministic and one-shot. Applies only to the next initial proposal delivery, never to amendments. Stored outside the deal.</span>
           </div>
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
-            <span className="font-semibold text-ink">Pause AI suggestions</span>
+            <span className="font-semibold text-ink">Pause suggested question drafts</span>
             <Badge tone={s.suggestionsPaused ? "amber" : "neutral"}>{s.suggestionsPaused ? "Paused" : "Active"}</Badge>
             <ActionButton body={{ action: "presenter_pause_ai", paused: !s.suggestionsPaused }} variant="secondary">
               {s.suggestionsPaused ? "Resume" : "Pause"}
             </ActionButton>
-            <span className="w-full text-[12px] text-muted">While paused, no new AI-worded drafts are created. Existing drafts remain unchanged, and buyer messages are still recorded.</span>
+            <span className="w-full text-[12px] text-muted">While paused, no new suggested question drafts are created. Existing drafts remain unchanged, and buyer messages are still recorded.</span>
           </div>
         </div>
       </Card>

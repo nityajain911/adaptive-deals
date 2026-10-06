@@ -146,14 +146,19 @@ test("P0 · every clarification combination produces its engine decision and tru
     await expect(drawer).toBeVisible();
     if (c.recorded) {
       expect(state().decisionBranch).toBeNull();
-      await expect(drawer).not.toContainText("The parent model run did not process the changed answers");
+      await expect(drawer).not.toContainText("did not cover the changed answers");
     } else {
       expect(state().decisionBranch).not.toBeNull();
-      await expect(drawer).toContainText("The parent model run did not process the changed answers");
+      // The default case is a hand-written sample, so the branch never refers to a model run.
+      await expect(drawer).toContainText("The hand-written parent sample did not cover the changed answers");
+      await expect(drawer).not.toContainText("parent model run");
       await expect(drawer).toContainText("code_fallback");
       await expect(page.getByTestId("attribution")).toContainText("Recalculated by the engine after the buyer's answer");
       await expect(page.getByTestId("attribution")).not.toContainText(/AI ranked|AI explained/i);
     }
+    await expect(drawer).toContainText("No model ran for this case.");
+    await expect(drawer).toContainText("Sample output written by hand · no model ran");
+    await expect(drawer).not.toContainText(/AI run|Recorded Groq output|Suggested the order/);
     await page.keyboard.press("Escape");
   }
 });
@@ -391,6 +396,18 @@ test("merchant audit shows sources and attribution without presenter controls", 
   await expect(drawer).toContainText(/AI|code fallback|engine/i);
   await expect(page.getByText("Run live", { exact: false })).toHaveCount(0);
   await expect(page.getByText("Fail next send", { exact: false })).toHaveCount(0);
+});
+
+test("a hand-written sample case never presents its outputs as AI output", async ({ page }) => {
+  await reset(page);
+  await page.goto("/deals");
+  for (const id of ["reduced-scope", "preserve-scope", "no-fit"]) {
+    await expect(page.getByTestId(`case-model-output-${id}`)).toHaveText("Sample output written by hand · no model ran");
+  }
+  await page.goto("/deals/hero/understand");
+  await expect(page.getByTestId("questions-card")).toContainText("Sample wording written by hand");
+  await expect(page.getByTestId("thread-understand")).toContainText("Sample wording written by hand");
+  await expect(page.locator("main")).not.toContainText(/Suggested by AI|Groq|AI run/);
 });
 
 test("Other outcomes live on the presenter page only", async ({ page }) => {

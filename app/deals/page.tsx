@@ -4,7 +4,8 @@ import { MerchantHeader } from "@/components/merchant-header";
 import { WalkthroughWelcome } from "@/components/walkthrough/welcome";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 import { allDemoCases } from "@/data/synthetic/cases";
-import { getState } from "@/lib/service";
+import { modelProvenance } from "@/lib/model-provenance";
+import { demoCaseRunRecord, getState } from "@/lib/service";
 
 export const metadata = { title: "Commercial cases · Adaptive Deals" };
 
@@ -19,6 +20,7 @@ export default async function DealsPage() {
     barrier: item.barrier,
     proofPoint: item.proofPoint,
     provenance: item.provenance,
+    modelOutput: modelProvenance(demoCaseRunRecord(item.id)).label,
     current: item.id === s.caseId,
     actionLabel: "Start this case",
   }));

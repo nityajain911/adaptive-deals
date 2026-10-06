@@ -23,3 +23,23 @@ describe("Understand conversation order", () => {
     expect(contextLine(5_000_000, 6_000_000, false, false)).toContain("Payments above ₹60,000 excluding GST");
   });
 });
+
+describe("clarification draft attribution in the thread", () => {
+  it("labels hand-written sample drafts as samples, never as AI suggestions", async () => {
+    const state = await seedState(bundledSyntheticRun(), "replay");
+    expect(state.conversation.some((item) => item.state === "suggested_by_ai")).toBe(true);
+    const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", buyerName: "Kestrel Lane Clinics", opening: state.run.record.inputs.messages }));
+    expect(html).toContain("Sample wording written by hand");
+    expect(html).not.toMatch(/Suggested by AI|Groq/);
+  });
+
+  it("keeps the AI label for drafts a recorded model produced", async () => {
+    const { readFileSync } = await import("node:fs");
+    const recorded = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8"));
+    const state = await seedState(recorded, "replay");
+    const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", buyerName: "Kestrel Lane Clinics", opening: state.run.record.inputs.messages }));
+    expect(html).toContain("Suggested by AI");
+    expect(html).not.toContain("Sample wording written by hand");
+  });
+});
+

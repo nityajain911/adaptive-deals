@@ -1,12 +1,13 @@
 import type { DemoStep, DemoStepType } from "./demo-steps";
 import { demoStepConsequence, nextDemoStep } from "./demo-steps";
 import type { DealProgress } from "./progress";
+import { taskOrRunProvenance, type ModelProvenance } from "./model-provenance";
 import type { DemoState } from "./service";
 import { WALKTHROUGH_VERSION } from "./walkthrough-version";
 export { WALKTHROUGH_VERSION } from "./walkthrough-version";
 
 export type WalkthroughCapability = "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
-export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "engine";
+export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "sample" | "engine";
 export type WalkthroughProvenance = "live_groq" | "live_groq_replay" | "synthetic_replay" | "saved_groq_exact_match" | "deterministic_engine" | "merchant" | "simulated_buyer" | "razorpay_test_mode";
 
 export interface WalkthroughObjective {
@@ -40,6 +41,8 @@ export interface WalkthroughView {
   currentAction: WalkthroughAction | null;
   terminalOutcome: string | null;
   provenance: WalkthroughProvenance | null;
+  /** Display text for `provenance`; run-derived text names the actual source of the outputs. */
+  provenanceLabel: string | null;
   stepLabel: string;
 }
 
@@ -59,10 +62,10 @@ const REGISTRY: readonly WalkthroughObjective[] = [
   },
   {
     id: "understand_buyer",
-    actor: "ai",
+    actor: "sample",
     title: "Understand the buyer",
     instruction: "Review the extracted constraints, evidence and questions, then complete the merchant action in the product.",
-    notice: "AI structures the conversation; code preserves uncertainty and evidence.",
+    notice: "Code preserves uncertainty and evidence.",
     href: "/deals/:dealId/understand",
     anchorId: "buyer-conversation",
     optional: false,
@@ -73,7 +76,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "engine",
     title: "Review the commercial decision",
     instruction: "Review the recommendation and preview the buyer proposal in the product.",
-    notice: "AI explains the choice; deterministic code calculates feasibility and economics.",
+    notice: "Deterministic code calculates feasibility and economics.",
     href: "/deals/:dealId/offer",
     anchorId: "commercial-recommendation",
     optional: false,
@@ -141,9 +144,45 @@ function outcome(state: DemoState, progress: DealProgress): string | null {
   return null;
 }
 
+const RUN_PROVENANCE: Record<ModelProvenance["source"], WalkthroughProvenance> = { hand_written: "synthetic_replay", mixed: "synthetic_replay", recorded_model: "live_groq_replay", live_model: "live_groq" };
+
+const PROVENANCE_LABEL: Record<Exclude<WalkthroughProvenance, "live_groq" | "live_groq_replay" | "synthetic_replay">, string> = {
+  saved_groq_exact_match: "Saved Groq response · exact input match",
+  deterministic_engine: "Deterministic engine calculation",
+  merchant: "Merchant decision",
+  simulated_buyer: "Simulated buyer action",
+  razorpay_test_mode: "Razorpay Test Mode",
+};
+
+/** The stored step behind each model-task objective: extraction for Understand, ranking for the decision. */
+const taskSource = (state: DemoState, task: "extract" | "explain") => taskOrRunProvenance(state.run.record, task, state.run.viewing);
+
 function runProvenance(state: DemoState): WalkthroughProvenance {
-  if (state.run.record.kind === "synthetic_replay") return "synthetic_replay";
-  return state.run.viewing === "fresh" ? "live_groq" : "live_groq_replay";
+  return RUN_PROVENANCE[taskSource(state, "extract").source];
+}
+
+function provenanceLabel(provenance: WalkthroughProvenance | null, state: DemoState): string | null {
+  if (provenance === null) return null;
+  if (provenance === "live_groq" || provenance === "live_groq_replay" || provenance === "synthetic_replay") return taskSource(state, "extract").label;
+  return PROVENANCE_LABEL[provenance];
+}
+
+/** Model-task steps are described by who actually produced this run's outputs. */
+function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughObjective {
+  if (item.id === "understand_buyer") {
+    const source = taskSource(state, "extract");
+    return source.modelMade
+      ? { ...item, actor: "ai", notice: `${source.providerName} structures the conversation; code preserves uncertainty and evidence.` }
+      : { ...item, actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." };
+  }
+  if (item.id === "review_decision") {
+    if (state.decisionBranch) return { ...item, notice: "The engine recalculated this decision after the buyer's answer; code set the order and wrote the explanation." };
+    const source = taskSource(state, "explain");
+    return source.modelMade
+      ? { ...item, notice: `${source.providerName} orders the eligible options; deterministic code calculates feasibility and economics and enforces approval ordering.` }
+      : { ...item, notice: "The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics." };
+  }
+  return item;
 }
 
 function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProvenance | null {
@@ -156,7 +195,7 @@ function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProven
 }
 
 export function walkthroughView({ state, progress, dealId, capabilities }: { state: DemoState; progress: DealProgress; dealId: string; capabilities: ReadonlySet<WalkthroughCapability> }): WalkthroughView {
-  const objectives = REGISTRY.filter((item) => capabilities.has(item.capability)).map((item) => ({ ...item, href: item.href.replace(":dealId", dealId) }));
+  const objectives = REGISTRY.filter((item) => capabilities.has(item.capability)).map((item) => attributed({ ...item, href: item.href.replace(":dealId", dealId) }, state));
   const started = state.events.some((event) => event.kind === "case_started");
   const currentObjectiveId = started ? objectiveFor(progress) : "choose_case";
   const currentIndex = objectives.findIndex((item) => item.id === currentObjectiveId);
@@ -175,6 +214,8 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
     consequence: "Merchant action · choose a case in the product",
   };
 
+  const provenance = provenanceFor(currentObjectiveId, state);
+
   return {
     version: WALKTHROUGH_VERSION,
     objectives,
@@ -182,7 +223,8 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
     completedObjectiveIds,
     currentAction: started ? action(nextDemoStep(state, progress, dealId), dealId) : caseAction,
     terminalOutcome: started ? outcome(state, progress) : null,
-    provenance: provenanceFor(currentObjectiveId, state),
+    provenance,
+    provenanceLabel: provenanceLabel(provenance, state),
     stepLabel,
   };
 }

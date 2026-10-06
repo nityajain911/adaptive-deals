@@ -14,6 +14,7 @@ import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure }
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
 import { loadDeal, stageHref } from "@/lib/deal-page";
+import { taskOrRunProvenance } from "@/lib/model-provenance";
 import { headlineFor } from "@/lib/offer-copy";
 
 /** Stage 2 · Review the offer (spec §5). */
@@ -159,6 +160,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           policy={policy}
           context={context}
           presentation={explicitlySelected ? "merchant_selected" : "recommended"}
+          provenance={taskOrRunProvenance(s.run.record, "explain", s.run.viewing)}
           decisionBranch={s.decisionBranch}
           primary={
             <>

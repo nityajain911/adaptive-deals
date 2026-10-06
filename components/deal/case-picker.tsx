@@ -17,11 +17,13 @@ export interface CasePickerCard {
   barrier: string;
   proofPoint: string;
   provenance: DemoCase["provenance"];
+  /** Who produced this case's model-task outputs: a recorded model run or a hand-written sample. */
+  modelOutput: string;
   current: boolean;
   actionLabel: "Start this case";
 }
 
-export function casePickerCards(cases: DemoCase[], activeId: CaseId): CasePickerCard[] {
+export function casePickerCards(cases: DemoCase[], activeId: CaseId, modelOutput: Record<CaseId, string>): CasePickerCard[] {
   return cases.map((item) => ({
     id: item.id,
     title: item.title,
@@ -30,6 +32,7 @@ export function casePickerCards(cases: DemoCase[], activeId: CaseId): CasePicker
     barrier: item.barrier,
     proofPoint: item.proofPoint,
     provenance: item.provenance,
+    modelOutput: modelOutput[item.id],
     current: item.id === activeId,
     actionLabel: "Start this case",
   }));
@@ -60,6 +63,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                   {card.current ? <Badge tone="blue">Current case</Badge> : null}
                   {chosen ? <Check aria-hidden className="ml-auto h-4 w-4 text-blue" /> : null}
                 </div>
+                <p className="mt-2 text-[12px] text-muted" data-testid={`case-model-output-${card.id}`}>{card.modelOutput}</p>
                 <h2 className="mt-3 text-[17px] font-semibold leading-6 text-ink">{card.title}</h2>
                 <p className="mt-1 text-[14px] font-medium text-ink-2">{card.buyer}</p>
                 <dl className="mt-4 space-y-3 text-[13px] leading-5">

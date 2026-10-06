@@ -9,6 +9,7 @@ import type { CollectionAttempt } from "@/domain/collections";
 import type { ReplyClassification } from "@/domain/replies";
 import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
 import type { DecisionBranch } from "./decision-branch";
+import type { ModelProvenance } from "./model-provenance";
 
 /**
  * Pure view derivations shared by the merchant and buyer pages. Nothing here changes state;
@@ -219,14 +220,27 @@ export function pendingActions(s: { conversation: ConversationItem[]; changeRequ
 
 // ── Attribution ─────────────────────────────────────────────────────────────
 
-/** Accurate attribution for the recommendation text, following the actual output source. */
-export function explanationAttribution(source: ExplanationResult["source"] | null, branch: DecisionBranch | null = null): string {
+/**
+ * Accurate attribution for the recommendation text. `source.text` is the source of the text
+ * actually shown; a model is named only when a model produced the stored output.
+ */
+export function explanationAttribution(source: ExplanationResult["source"] | null, provenance: ModelProvenance, branch: DecisionBranch | null = null): string {
   if (branch) return "Recalculated by the engine after the buyer's answer · explanation written by code.";
-  if (!source) return "Explanation written by code · all figures calculated by the engine";
-  const order = source.ranking === "ai" ? "Order suggested by AI, approval ordering enforced by code" : "Order set by code";
-  if (source.text === "ai") return `Explanation written by AI · all figures calculated by the engine · ${order}`;
-  if (source.ranking === "ai") return "Explanation written by code · all figures calculated by the engine · Order suggested by AI";
-  return `Explanation written by code · all figures calculated by the engine · ${order}`;
+  const figures = "all figures calculated by the engine";
+  const ranked = source?.ranking === "ai";
+  const explained = source?.text === "ai";
+  if (!source) return `Explanation written by code · ${figures}`;
+  if (!ranked && !explained) return `Explanation written by code · ${figures} · Order set by code`;
+  if (provenance.modelMade) {
+    const who = provenance.providerName;
+    const recorded = provenance.label.replace(/^./, (c) => c.toLowerCase());
+    if (ranked && explained) return `${who} ranked and explained · ${recorded} · ${figures} · approval ordering enforced by code`;
+    if (ranked) return `${who} ranked · code explained · ${recorded} · ${figures}`;
+    return `${who} explained · order set by code · ${recorded} · ${figures}`;
+  }
+  if (ranked && explained) return `Sample order and explanation written by hand · no model ran · ${figures} · approval ordering enforced by code`;
+  if (ranked) return `Sample order written by hand · no model ran · code explained · ${figures}`;
+  return `Sample explanation written by hand · no model ran · order set by code · ${figures}`;
 }
 
 // ── Buyer proposal ──────────────────────────────────────────────────────────
