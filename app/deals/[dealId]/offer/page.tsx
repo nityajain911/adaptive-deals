@@ -137,7 +137,11 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   // Recommendation (current): review or review-updated.
   const eligible = r ? r.structures.filter((x) => x.approvable) : [];
   const ranked = (out.explanation?.order ?? []).map((id) => eligible.find((x) => x.structure.id === id)!).filter(Boolean);
-  const options = ranked.length ? ranked : eligible;
+  // The merchant's live counter-offer comes first; earlier counters are history, not alternatives.
+  const liveCounter = s.counterOffers.at(-1) ?? null;
+  const activeCounter = liveCounter && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
+  const isCounter = (id: string) => s.counterOffers.some((c) => c.evaluated.structure.id === id);
+  const options = [...(activeCounter ? [activeCounter.evaluated] : []), ...(ranked.length ? ranked : eligible).filter((o) => !isCounter(o.structure.id))];
   const selectedId = s.selectedOption && eligible.some((x) => x.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : options[0]?.structure.id;
   const x = options.find((o) => o.structure.id === selectedId);
   if (!x || !r) return <StageShell dealId={dealId} viewing="offer">{null}</StageShell>;
@@ -172,6 +176,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           presentation={explicitlySelected ? "merchant_selected" : "recommended"}
           provenance={taskOrRunProvenance(s.run.record, "explain", s.run.viewing)}
           decisionBranch={s.decisionBranch}
+          counter={activeCounter}
           primary={
             <>
               {primaryId === "review_new_evidence" ? null : (

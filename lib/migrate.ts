@@ -26,6 +26,7 @@ export function migrateState(raw: unknown): DemoState {
     s.caseId = DEFAULT_CASE_ID;
     s.reviewRequired = "The saved commercial case is unknown. Inspect records before continuing.";
   }
+  s.counterOffers ??= [];
   if (s.decisionBranch === undefined) s.decisionBranch = null;
   else if (s.decisionBranch !== null && !validDecisionBranch(s.decisionBranch)) {
     s.decisionBranch = null;

@@ -1,4 +1,5 @@
 import { explainCheck } from "@/domain/copy";
+import { failingCounterChecks } from "@/domain/counter";
 import { formatDate } from "@/domain/dates";
 import { failingChecks, featuredRejections, type EnumerationResult, type EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
@@ -9,6 +10,7 @@ import { alternativeContributionLine, approxINR, headlineFor, offerSummary, orig
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { explanationAttribution } from "@/lib/views";
 import type { DecisionBranch } from "@/lib/decision-branch";
+import type { CounterOffer } from "@/lib/deal-records";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
@@ -36,7 +38,7 @@ export function contextLine(budgetPaise: number | null, limitPaise: number | nul
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, exp, policy, context, primary, presentation, provenance, decisionBranch = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; provenance: ModelProvenance; decisionBranch?: DecisionBranch | null }) {
+export function Recommendation({ x, exp, policy, context, primary, presentation, provenance, decisionBranch = null, counter = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; provenance: ModelProvenance; decisionBranch?: DecisionBranch | null; counter?: CounterOffer | null }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const summary = offerSummary(x, originalProposal(), policy.gstRateBps);
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
@@ -51,7 +53,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
   return (
     <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation" data-walkthrough="commercial-recommendation">
       <div className="border-b border-line px-5 py-4">
-        <Badge tone="blue">{presentation === "merchant_selected" ? "Selected by you" : "Recommended offer"}</Badge>
+        <Badge tone="blue">{counter ? "Your counter-offer" : presentation === "merchant_selected" ? "Selected by you" : "Recommended offer"}</Badge>
         <h2 className="mt-2 text-[22px] font-bold tracking-tight text-ink" data-testid="offer-headline">
           {headlineFor(x)}
         </h2>
@@ -143,8 +145,13 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
         <span className="font-semibold text-ink">Why this offer: </span>
         <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
         <div className="mt-1 text-[13px] text-muted" data-testid="attribution">
-          {explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
+          {counter ? counterAttribution(counter) : explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
         </div>
+        {counter?.override ? (
+          <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
+            <span className="font-semibold text-amber">Rules you chose to override:</span> {failingCounterChecks(x).map((c) => explainCheck(c)).join("; ")}
+          </div>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>
     </article>
@@ -245,4 +252,11 @@ export function SuccessMeasure() {
       <InfoButton label="About this measure">Projected contribution is a forecast. Realised contribution depends on verified cash, refunds, payment fees and delivery costs.</InfoButton>
     </p>
   );
+}
+
+/** Who set the amount and who checked it, said plainly. */
+export function counterAttribution(c: CounterOffer): string {
+  return c.override
+    ? "You set this amount · the engine rechecked it and found rules not met · you chose to send it anyway · figures calculated by the engine."
+    : "You set this amount · the engine rechecked it and every rule passes · figures calculated by the engine.";
 }

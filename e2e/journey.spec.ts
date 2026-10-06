@@ -788,3 +788,42 @@ test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }
   await expect(page.getByTestId("compare-alternatives")).toContainText("Projected contribution about ₹19,330");
   await expect(page.locator("main")).not.toContainText(/permitted structures|merchant-approved template/i);
 });
+
+test("counter-offer · the merchant answers a buyer's request for a lower amount, overriding a failed rule on the record", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹40,000 instead?" });
+  await page.goto("/deals/hero/track");
+  // A pending buyer request opens its card by itself.
+  await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
+  const form = page.getByTestId("counter-form");
+  await expect(form).toContainText("Current offer: ₹46,020 including GST");
+
+  // The engine rechecks, names the failed rule, and the merchant cannot proceed without the override.
+  await form.getByTestId("counter-total").fill("40000");
+  await form.getByTestId("counter-check").click();
+  await expect(form.getByTestId("counter-fails")).toContainText("does not meet your rules");
+  await expect(form.getByTestId("counter-make")).toBeDisabled();
+  await form.getByTestId("counter-override").check();
+  await expect(form.getByTestId("counter-make")).toBeEnabled();
+  await form.getByTestId("counter-make").click();
+
+  // Back at Offer with the counter selected, attributed to the merchant and flagged as overridden.
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("recommendation")).toContainText("Your counter-offer");
+  await expect(page.getByTestId("attribution")).toContainText("you chose to send it anyway");
+  await expect(page.getByTestId("counter-override-note")).toBeVisible();
+  await expect(page.getByTestId("offer-total")).toContainText("₹40,0");
+  expect(state().counterOffers.at(-1)!.override).not.toBeNull();
+
+  // The usual preview, approval and send; the buyer's page now shows the new version.
+  await clickPrimary(page);
+  await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expectStage(page, "track", "Waiting for the buyer to review offer version 2", undefined);
+  await page.goto(`/proposal/${sent.agreementId}/v1`);
+  await expect(page.getByTestId("buyer-status")).toContainText("replaced");
+  await page.goto(`/proposal/${sent.agreementId}/v2`);
+  await expect(page.getByTestId("buyer-total")).toContainText("₹40,0");
+});

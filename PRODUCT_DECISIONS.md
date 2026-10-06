@@ -327,3 +327,17 @@ The model's explanation has two parts that code validates separately: a full com
 **Secondary text is larger and darker.** The muted colour is darker, nothing is smaller than 12px, and secondary lines on the offer, understand and track screens are 13px.
 
 **A phone shows a pointer to the one real action, never the action itself.** When exactly one primary action is on the page and it is off-screen, a bar names it; tapping scrolls to the real button and focuses it. It does not perform the action, because approving and sending to a buyer must be a deliberate tap on the button that says so.
+
+## The merchant can answer a buyer's request for a lower amount, with a recorded override
+
+**Before this, a buyer's request for a different amount had no merchant answer.** After a proposal was sent, the only choices were to keep the current terms, handle it outside the product, or mark a follow-up. The merchant could not issue a new version at an amount of their own.
+
+**The merchant types a new total including GST.** The same scope, dates and payment methods are kept. Payment lines are scaled in proportion, GST is recomputed per line by the engine's own rule, and the total lands exactly on what was typed whenever per-line rounding allows. The discount against list price is recorded and direct costs are unchanged, so the engine sees the real contribution.
+
+**The engine rechecks it and says what fails.** The buyer's budget and approval limit, the discount policy, the contribution floor and funding are all checked by the unchanged engine. A pass says so. A failure lists each rule not met (for example "Discount 13.08% is above the 0% limit").
+
+**A failed rule can be overridden, and the override is the merchant's.** Sending a failing amount needs an explicit tick, and is stored with who did it, when, and which rules. The offer card says "You set this amount · the engine rechecked it and found rules not met · you chose to send it anyway", and lists the overridden rules. The engine's verdict is never rewritten: the stored result still says it failed.
+
+**It becomes a new version through the usual path.** The sent version is withdrawn, the counter is selected, and the merchant previews, approves and sends it like any proposal. The buyer's old link shows "replaced" and the new link works once it is sent. Acceptance, payment link, mandate and collections then follow the countered amounts.
+
+**Scope limits.** This applies only while the buyer has not accepted. It does not change an amount after acceptance, does not answer a notice reply such as "up to ₹10K this month" (that is a partial payment of one debit and needs its own rules), and a counter must be lower than the current offer. The hero merchant allows no discount, so every price cut currently needs the override; a merchant whose policy allows the discount would see it pass without one.

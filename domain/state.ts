@@ -27,7 +27,7 @@ export const DEAL_TRANSITIONS: Record<DealStatus, DealStatus[]> = {
   no_feasible_structure: ["clarifying", "options_ready", "merchant_rejected", ...EXITS],
   options_ready: ["approved", "merchant_rejected", "clarifying", ...EXITS],
   approved: ["sent", "merchant_rejected", ...EXITS],
-  sent: ["accepted", "buyer_rejected", ...EXITS],
+  sent: ["accepted", "buyer_rejected", "options_ready", ...EXITS],
   accepted: ["active", ...EXITS],
   active: ["amending", "completed", ...EXITS],
   amending: ["active", ...EXITS],

@@ -38,6 +38,8 @@ const Action = z.discriminatedUnion("action", [
   // Split approval and delivery (spec §3.3).
   z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("review_buyer_proposal") }),
+  z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
+  z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean() }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
   z.object({ action: z.literal("retry_send"), version: z.number().int().positive() }),
   z.object({ action: z.literal("send_questions") }),
@@ -105,6 +107,12 @@ export async function POST(request: Request) {
         break;
       case "select_option":
         await svc.selectOption(a.structureId);
+        break;
+      case "check_counter_offer":
+        result = await svc.checkCounterOffer(a.totalPaise);
+        break;
+      case "counter_offer":
+        await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed);
         break;
       case "review_buyer_proposal": {
         const v = await svc.reviewBuyerProposal();

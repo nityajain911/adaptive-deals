@@ -7,7 +7,7 @@ type EvidenceState = {
   workDispositions: WorkDisposition[];
 };
 
-const isResolving = (d: WorkDisposition) => d.kind === "keep_current_terms" || d.kind === "handled_outside";
+const isResolving = (d: WorkDisposition) => d.kind === "keep_current_terms" || d.kind === "handled_outside" || d.kind === "countered";
 
 function clarificationReplyIds(s: EvidenceState): Set<string> {
   const questions = new Set(s.conversation.filter((m) => m.kind === "clarification").map((m) => m.id));

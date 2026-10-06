@@ -63,7 +63,7 @@ export interface ProgressFacts {
   lastFailure: string | null;
 }
 
-export type ProgressState = Pick<DemoState, "status" | "deliveries" | "agreements" | "amendments" | "changeRequests" | "reviewRequired" | "selectedOption">;
+export type ProgressState = Pick<DemoState, "status" | "deliveries" | "agreements" | "amendments" | "changeRequests" | "reviewRequired" | "selectedOption"> & { counterOffers?: DemoState["counterOffers"] };
 
 const ORDER: StageId[] = ["understand", "offer", "track"];
 const COUNT_WORD = ["no", "one", "two", "three", "four", "five", "six"];
@@ -111,8 +111,12 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     return act(s.agreements.length ? "offer" : "understand", "review.required", `Saved deal records need review before this deal can continue. ${s.reviewRequired}`, "inspect_records", "Inspect records");
   }
 
+  // A counter-offer in preparation: the earlier proposal was withdrawn and nothing newer has been delivered, so the merchant is back at Offer.
+  const counter = s.counterOffers?.at(-1);
+  const countering = !!counter && !s.deliveries.some((d) => d.deliveredAt !== null && d.version > counter.fromVersion);
+
   // 1. A proposal was ever delivered → Track, whatever historical fields say.
-  if (s.deliveries.some((d) => d.deliveredAt !== null)) {
+  if (!countering && s.deliveries.some((d) => d.deliveredAt !== null)) {
     const a = s.amendments.at(-1);
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);

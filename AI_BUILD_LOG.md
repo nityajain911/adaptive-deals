@@ -888,6 +888,14 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Evidence:** Screenshots under `artifacts/ui-review/ux-2026-10-06-*` are new; earlier files were not overwritten. The `desktop-*` and `mobile-*` sample screenshots are from the labelled hand-written sample run; the two `recorded-*` screenshots are from recorded Groq runs.
 
+### 2026-10-07 · Counter-offer on a buyer's request for a lower amount [Claude Code]
+
+**What changed:** After a proposal is sent, a buyer's request for a lower total can be answered with a counter-offer: the merchant types a total, the unchanged engine rechecks it, a failed rule needs an explicit override recorded as the merchant's decision, and the result goes through the usual preview, approval and send as a new version.
+
+**AI boundary:** No prompt, schema, recording, evaluation or engine rule changed, and no model call was made. The engine is only called to evaluate a structure it did not enumerate; its result is stored as it came and never rewritten. The override is attributed to the merchant in the offer card, the event log and the stored record.
+
+**Human decision:** The applicant chose that the engine's result is shown and an override is allowed, and that this applies to a buyer's change request. Not covered, by design: amount changes after acceptance, and the notice reply "up to ₹10K this month".
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

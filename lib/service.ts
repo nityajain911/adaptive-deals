@@ -8,13 +8,15 @@ import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/do
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
 import { compareDates, localDateOf } from "@/domain/dates";
-import type { EvaluatedStructure } from "@/domain/engine";
+import { evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
+import { CounterError, counterStructure, failingCounterChecks } from "@/domain/counter";
+import { explainCheck } from "@/domain/copy";
 import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate";
 import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
 import type { Message } from "@/domain/types";
-import { sum } from "@/domain/money";
+import { formatINR, sum } from "@/domain/money";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
 import { replayRun, runConstruct, type RunOutcome } from "@/ai/orchestrator";
@@ -28,7 +30,7 @@ import { allDemoCases, DEFAULT_CASE_ID, demoCase, type CaseId, type DemoCase } f
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
-import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
+import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type CounterOffer, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
 import { attemptDelivery } from "./delivery";
 import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
 import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
@@ -105,6 +107,8 @@ export interface DemoState {
   outcomes: OutcomeRecord[];
   handledMessages: HandledMessage[];
   workDispositions: WorkDisposition[];
+  /** The merchant's counters to a buyer's request for a lower total; the latest is the live one. */
+  counterOffers: CounterOffer[];
   interpretations: Interpretation[];
   /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
   decisionBranch: DecisionBranch | null;
@@ -260,6 +264,7 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
     outcomes: [],
     handledMessages: [],
     workDispositions: [],
+    counterOffers: [],
     interpretations: [],
     decisionBranch: null,
     reviewRequired: null,
@@ -338,9 +343,22 @@ export async function currentOutcome(s: DemoState): Promise<RunOutcome> {
   const deal = dealForState(s);
   if (s.decisionBranch) {
     const initial = await initialOutcomeForBranch(s);
-    return deriveBranchOutcome({ initial, branch: s.decisionBranch, deal });
+    return withCounterOffers(s, deriveBranchOutcome({ initial, branch: s.decisionBranch, deal }));
   }
-  return replayRun(s.run.record, deal, new FixedClock());
+  return withCounterOffers(s, await replayRun(s.run.record, deal, new FixedClock()));
+}
+
+/**
+ * The merchant's counter-offers join the engine's evaluated structures, so every place that looks a
+ * structure up by id keeps working. Each was rechecked by the engine when it was made; the stored
+ * result is used as is.
+ */
+function withCounterOffers(s: Pick<DemoState, "counterOffers">, out: RunOutcome): RunOutcome {
+  const r = out.evaluation.result;
+  if (!s.counterOffers?.length || !r) return out;
+  const have = new Set(r.structures.map((x) => x.structure.id));
+  const extra = s.counterOffers.map((c) => c.evaluated).filter((x) => !have.has(x.structure.id));
+  return extra.length ? { ...out, evaluation: { ...out.evaluation, result: { ...r, structures: [...r.structures, ...extra] } } } : out;
 }
 
 /** Answers that govern the current decision, whether recorded in the run or in an application branch. */
@@ -513,7 +531,10 @@ async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: Ev
 
 function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
   const item = activeCase(s);
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: 1, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
+  // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
+  const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
+  const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
 }
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
@@ -709,7 +730,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
   const clar = s.run.record.displayed.questions.map((question) => latestClarificationForQuestion(s, question.id)).filter((item): item is ConversationItem => item !== null);
   const active = activeVersion(s);
-  const resolved = new Set(s.workDispositions.filter((d) => d.kind === "keep_current_terms" || d.kind === "handled_outside").filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
+  const resolved = new Set(s.workDispositions.filter((d) => d.kind === "keep_current_terms" || d.kind === "handled_outside" || d.kind === "countered").filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
   const attention = s.conversation.filter((i) => {
     if (i.direction !== "inbound" || handled.has(i.id) || resolved.has(i.id)) return false;
@@ -1147,6 +1168,86 @@ export async function requestChange(version: number, text: string): Promise<Demo
     event(s, "change_request_received", `Buyer requested a change to version ${version}`, "buyer_demo", "Terms are unchanged; the merchant decides how to respond.");
     // The buyer's message is the source evidence; the outcome links to it rather than copying it.
     outcome(s, { type: "buyer_requested_change", reasonCode: null, note: null, actor: "buyer", version, source: { kind: "message", id: item.id } });
+  });
+}
+
+export interface CounterCheck {
+  currentTotalPaise: number;
+  totalPaise: number;
+  passes: boolean;
+  failing: { id: string; code: string; text: string }[];
+  contributionPaise: number;
+  discountBps: number;
+}
+
+/** Everything a counter-offer needs, computed from stored state and the unchanged engine. */
+async function buildCounter(s: DemoState, totalPaise: number) {
+  assertNoReview(s);
+  const v = [...s.agreements].reverse().find((x) => x.status === "sent");
+  if (s.status !== "sent" || !v) throw new ActionError("A counter-offer can be made only on a proposal the buyer has not yet accepted");
+  if (s.amendments.some((a) => a.toVersion === v.version)) throw new ActionError("A revision cannot be countered on its amount; the buyer can request another change");
+  const request = unresolvedWork(s).find((w) => w.kind === "buyer_request" && w.sourceKind === "message" && w.version === v.version);
+  if (!request) throw new ActionError("There is no open buyer request to answer");
+  const current = await structureForVersion(s, v);
+  const out = await currentOutcome(s);
+  const constraints = interpretations(out.profile)[0].constraints;
+  const item = activeCase(s);
+  let evaluated: EvaluatedStructure;
+  try {
+    const structure = counterStructure(current.structure, totalPaise, heroMerchant.policy.gstRateBps);
+    evaluated = evaluateStructure(structure, constraints, { merchant: heroMerchant, packages: item.deal.packages, templates: item.deal.templates });
+  } catch (e) {
+    if (e instanceof CounterError) throw new ActionError(e.message);
+    throw e;
+  }
+  const failing = failingCounterChecks(evaluated);
+  return { v, request, current, evaluated, failing };
+}
+
+const totalOf = (x: EvaluatedStructure) => sum(x.structure.payments.map((p) => p.totalPaise));
+
+/** Recheck a lower total with the engine, without changing anything. */
+export async function checkCounterOffer(totalPaise: number): Promise<CounterCheck> {
+  const s = await getState();
+  const b = await buildCounter(s, totalPaise);
+  return {
+    currentTotalPaise: totalOf(b.current),
+    totalPaise: totalOf(b.evaluated),
+    passes: b.failing.length === 0,
+    failing: b.failing.map((c) => ({ id: c.id, code: c.code, text: explainCheck(c) })),
+    contributionPaise: b.evaluated.economics.netContributionPaise,
+    discountBps: b.evaluated.structure.discountBps,
+  };
+}
+
+/**
+ * Answer a buyer's request for a lower total. The engine rechecks the new amount; a failed rule needs
+ * an explicit override, recorded as the merchant's decision. The sent version is withdrawn and the
+ * counter becomes the selected option, to be previewed, approved and sent like any proposal.
+ */
+export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean): Promise<DemoState> {
+  return mutate(async (s) => {
+    const b = await buildCounter(s, totalPaise);
+    if (b.failing.length && !overrideConfirmed) throw new ActionError("This amount does not meet your rules. Confirm the override to continue");
+    const at = clockOf(s).now();
+    const by = "Merchant (Pinecone Media Works)";
+    const evaluated: EvaluatedStructure = b.failing.length ? { ...b.evaluated, approvable: true } : b.evaluated;
+    s.counterOffers.push({
+      id: `counter-${s.counterOffers.length + 1}`,
+      fromVersion: b.v.version,
+      baseStructureId: b.v.structureId,
+      targetTotalPaise: totalPaise,
+      evaluated,
+      override: b.failing.length ? { by, at, checks: b.failing.map((c) => c.code) } : null,
+      requestMessageId: b.request.sourceId,
+      createdAt: at,
+    });
+    s.agreements = s.agreements.map((x) => (x.version === b.v.version ? { ...x, status: "superseded" as const } : x));
+    s.workDispositions.push({ id: `work-${s.workDispositions.length + 1}`, sourceKind: "message", sourceId: b.request.sourceId, kind: "countered", note: `Counter-offer at ${formatINR(totalOf(evaluated))}`, actor: "merchant", at });
+    setStatus(s, "options_ready", `Version ${b.v.version} withdrawn to answer the buyer's request`);
+    s.selectedOption = null;
+    await applySelection(s, evaluated.structure.id, { explicit: true });
+    event(s, "counter_offer_created", `Counter-offer at ${formatINR(totalOf(evaluated))} prepared`, "merchant", b.failing.length ? `Merchant override of: ${b.failing.map((c) => explainCheck(c)).join("; ")}` : "The engine rechecked it: every rule passes.");
   });
 }
 

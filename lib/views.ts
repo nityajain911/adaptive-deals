@@ -59,7 +59,7 @@ type WorkState = {
   events: { kind: string; title: string; detail: string | null; at: string }[];
 };
 
-const resolving = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside";
+const resolving = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside" || kind === "countered";
 
 const EXACT_DATE_REASONS = new Set(["unsupported_date_expression", "multiple_dates", "same_day_ambiguous"]);
 export const replyNeedsExactDate = (classification: ReplyClassification | null) => classification?.kind === "needs_attention" && EXACT_DATE_REASONS.has(classification.reason);

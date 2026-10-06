@@ -57,7 +57,23 @@ export interface HandledMessage {
 }
 
 export type WorkSourceKind = "message" | "change_request";
-export type WorkDispositionKind = "keep_current_terms" | "handled_outside" | "follow_up_pending";
+export type WorkDispositionKind = "keep_current_terms" | "handled_outside" | "follow_up_pending" | "countered";
+
+/**
+ * The merchant's answer to a buyer's request for a different total, on a proposal not yet accepted.
+ * `evaluated` is the engine's recheck of the counter structure. When a rule failed, `override`
+ * records that the merchant chose to send it anyway; `evaluated.verdict` keeps the engine's result.
+ */
+export interface CounterOffer {
+  id: string;
+  fromVersion: number;
+  baseStructureId: string;
+  targetTotalPaise: number;
+  evaluated: import("@/domain/engine").EvaluatedStructure;
+  override: { by: string; at: string; checks: string[] } | null;
+  requestMessageId: string;
+  createdAt: string;
+}
 
 /** A merchant's explicit resolution or follow-up decision for one buyer work item. */
 export interface WorkDisposition {
