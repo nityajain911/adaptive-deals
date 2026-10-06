@@ -471,7 +471,7 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await expect(drawer).toBeHidden();
   await expect(opener).toBeFocused();
 
-  await toggleDetails(page, ["see-economics", "compare-alternatives", "why-not-others"]);
+  await toggleDetails(page, ["see-economics", "why-not-others"]);
   await page.getByTestId("primary-action").click();
   await toggleDetails(page, ["preview-agreement-details"]);
   await page.getByTestId("primary-action").click();
@@ -488,7 +488,7 @@ test("initial Offer viewport keeps rejections and funding detail collapsed", asy
   await expect(page.getByText(/structures across .* templates evaluated/i)).toHaveCount(0);
   await expect(page.getByTestId("featured-buyer-rejection")).toBeHidden();
   await expect(page.getByTestId("featured-seller-rejection")).toBeHidden();
-  await page.getByTestId("compare-alternatives").locator(":scope > summary").click();
+  await expect(page.getByTestId("compare-alternatives")).toBeVisible();
   await expect(page.getByTestId("compare-alternatives")).toContainText("If the buyer secures MD approval: projected contribution");
   const fundingLabels = page.getByText("Peak funding requirement", { exact: false });
   let visibleFundingLabels = 0;
@@ -691,4 +691,43 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
 
   // Leave the existing hero journey as the selected case for subsequent manual testing.
   await api(page, { action: "start_case", caseId: "reduced-scope" });
+});
+
+test("step 3 · info buttons open on click and close on Escape, and the settled Understand stage carries a summary line", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await startCase(page);
+  await page.goto("/deals/hero/understand");
+  const why = page.getByTestId("why-clar-gst");
+  await expect(page.getByTestId("why-clar-gst-note")).toHaveCount(0);
+  await why.click();
+  await expect(why).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("why-clar-gst-note")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("why-clar-gst-note")).toHaveCount(0);
+
+  await prepareOptions(page);
+  await page.goto("/deals/hero/understand");
+  await expect(page.getByTestId("understand-summary")).toContainText("Budget ₹50,000 now including GST");
+});
+
+test("step 3 · Track leads with the next step, collapses the rest, and does not repeat the headline", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareSent(page);
+  await page.goto("/deals/hero/track");
+  const headline = (await page.getByTestId("status-headline").innerText()).trim();
+  await expect(page.getByTestId("now-card")).not.toContainText(headline);
+  await expect(page.getByTestId("now-card")).toContainText("Your next step");
+  await expect(page.getByTestId("track-outcome-details")).not.toHaveAttribute("open", "");
+  await expect(page.getByTestId("track-conversation-details")).not.toHaveAttribute("open", "");
+  await page.getByTestId("delivery-status").getByRole("button").click();
+  await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("simulated channel");
+});
+
+test("step 3 · alternatives are visible rows, not hidden behind a disclosure", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("alternative-1")).toBeVisible();
+  await expect(page.getByTestId("compare-alternatives").locator("summary")).toHaveCount(0);
 });

@@ -295,3 +295,13 @@ The model's explanation has two parts that code validates separately: a full com
 **The conversation looks like a chat, with no third-party branding.** Buyer messages sit on the left, the merchant's on the right, and one persistent "Simulated conversation" label replaces the per-message "simulated" tags. Unsent clarification drafts appear in a composer area under the thread, marked "Draft · not sent", never as sent messages.
 
 **Highlights come from stored evidence, never from new model calls.** A phrase is marked only when its stored offsets still reproduce the stored quote. Clicking it shows what the code understood and how it normalised it. A phrase the code could not map to a service (for example "complete annual package") is marked amber and says so, until the merchant confirms the services. The same code shows the buyer's own budget words beside the offer.
+
+## Less text on working screens: summaries by code, detail behind an "i"
+
+**Alternatives are visible.** The other offers the merchant could send are compact rows under the recommendation, each with its own "Select this offer" button. They are no longer behind a disclosure, because choosing a different offer is a real merchant decision.
+
+**Secondary explanation sits behind a click-to-open "i".** The success-measure caveat, why a clarification question matters, and the delivery details are short notes opened by click or keypress (not hover, so touch works; Esc closes). Honest attribution lines ("Groq ranked and wrote this reason · …") stay visible, because they say who did what.
+
+**A settled Understand stage shows one summary line built by code from stated or confirmed facts only.** A GST basis or approval scope the buyer did not confirm, and required services the merchant has not yet confirmed, are left out rather than guessed.
+
+**Track leads with the merchant's next step.** The step card no longer repeats the status headline; when nothing is needed it says so. Agreement detail, outcome and learning, and the conversation are collapsed while an action is pending.

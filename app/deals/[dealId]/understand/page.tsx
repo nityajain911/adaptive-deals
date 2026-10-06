@@ -4,7 +4,9 @@ import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/compo
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
+import { InfoButton } from "@/components/info-button";
 import { Badge, Card } from "@/components/ui";
+import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { questionWordingLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import { originalProposal } from "@/lib/offer-copy";
@@ -82,7 +84,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             Buyer constraints confirmed{offerVersion ? ` for offer version ${offerVersion}` : ""}
             {confirmedAt ? ` · ${fmtTime(confirmedAt)}` : ""}
           </div>
-          <p className="mt-1 text-[13px] text-muted">Buyer constraints confirmed from the conversation.</p>
+          <p className="mt-1 text-[14px] text-ink-2" data-testid="understand-summary">{understandSummary(out.profile, Object.fromEntries(packages.map((p) => [p.id, p.name])))}</p>
           <Link href={stageHref(dealId, progress.stage)} className="mt-2 inline-block text-[13px] font-semibold text-blue hover:underline">
             Go to the current stage →
           </Link>
@@ -154,8 +156,9 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                       <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{questionWordingLabel(q.wording, provenance)}</Badge>
                       {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
                     </div>
-                    <p className="mt-2 text-[14px] font-medium text-ink">{q.question}</p>
-                    <p className="mt-1 text-[12px] text-muted">Why it matters: {q.whyItMatters}</p>
+                    <p className="mt-2 text-[15px] font-medium text-ink">
+                      {q.question} <InfoButton label="Why this question matters" testId={`why-${q.id}`}>{q.whyItMatters}</InfoButton>
+                    </p>
                     {reply ? (
                       <div className="mt-2 text-[13px] text-ink-2">
                         Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>

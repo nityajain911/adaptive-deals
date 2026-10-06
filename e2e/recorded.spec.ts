@@ -163,7 +163,7 @@ test("recorded · the merchant overrides Groq's ranking, and the preventive rest
   await expect(page.getByTestId("attribution")).toHaveText("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
 
   // The merchant chooses the two-payment alternative.
-  await page.getByTestId("compare-alternatives").locator(":scope > summary").click();
+  await expect(page.getByTestId("compare-alternatives")).toBeVisible();
   await page.locator('[data-testid^="alternative-"]', { hasText: "two monthly payments" }).getByRole("button", { name: "Select this offer" }).click();
   await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
   await expect(page.getByTestId("offer-headline")).toHaveText("Start with a standalone three-month package · two monthly payments");

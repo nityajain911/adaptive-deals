@@ -8,6 +8,7 @@ import { fmtTime } from "@/components/evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
 import { CurrentAgreement } from "@/components/track/current-agreement";
+import { InfoButton } from "@/components/info-button";
 import { Card, Stat } from "@/components/ui";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import type { Structure } from "@/domain/structures";
@@ -40,6 +41,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const shown = s.agreements.find((v) => v.version === (active?.version ?? latestDelivered?.version));
   const primary = progress.primaryAction;
   const workItems = unresolvedWork(s);
+  const hasAction = !!primary && ["draft_revised_terms", "review_revised_terms", "review_buyer_message", "review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id);
   const buyerVersion = progress.kind === "waiting_on_buyer" && progress.version ? progress.version : (shown?.version ?? 1);
 
   // Change request or amendment for the active version (stale earlier-version requests excluded).
@@ -107,29 +109,37 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
       <div className="space-y-5">
         <div data-walkthrough="collection-setup">
         <Card className="space-y-3 p-5" data-testid="now-card">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Now</div>
-          <div className="text-[18px] font-semibold text-ink">{progress.headline}</div>
+          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Your next step</div>
           <div className="flex flex-wrap items-center gap-3">
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
             {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId="buyer-work-card">{primary.label}</RevealButton> : null}
+            {!hasAction ? <p className="text-[15px] text-ink-2" data-testid="no-action">Nothing for you to do right now.</p> : null}
             {shown && progress.kind !== "action_required" && progress.kind !== "terminal" ? (
               // While the buyer is asked to act, link the version they must act on (e.g. the revision).
-              <Link href={proposalLinkOf({ agreementId: shown.agreementId, version: buyerVersion })} className="text-[13px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
+              <Link href={proposalLinkOf({ agreementId: shown.agreementId, version: buyerVersion })} className="text-[14px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
                 Open buyer proposal (version {buyerVersion})
               </Link>
             ) : null}
+            {latestDelivered ? (
+              <span className="inline-flex items-center gap-1 text-[13px] text-muted" data-testid="delivery-status">
+                Offer version {latestDelivered.version} delivered
+                <InfoButton label="About this delivery">
+                  Delivered {fmtTime(latestDelivered.deliveredAt!)} · simulated channel · link {proposalLinkOf({ agreementId: shown?.agreementId ?? "agr-hero", version: latestDelivered.version })}
+                </InfoButton>
+              </span>
+            ) : null}
           </div>
-          {latestDelivered ? (
-            <p className="text-[12px] text-muted" data-testid="delivery-status">
-              Offer version {latestDelivered.version} delivered · {fmtTime(latestDelivered.deliveredAt!)} · simulated channel · link {proposalLinkOf({ agreementId: shown?.agreementId ?? "agr-hero", version: latestDelivered.version })}
-            </p>
-          ) : null}
         </Card>
         </div>
 
-        {agreementSummary ? <div data-walkthrough="final-terms"><CurrentAgreement summary={agreementSummary} /></div> : null}
+        {agreementSummary ? (
+          <details open={!hasAction} className="group" data-testid="track-agreement-details" data-walkthrough="final-terms">
+            <summary className="cursor-pointer rounded-xl border border-line bg-surface px-5 py-3 text-[15px] font-semibold text-ink group-open:hidden">Current agreement · version {agreementSummary.version}</summary>
+            <CurrentAgreement summary={agreementSummary} />
+          </details>
+        ) : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
@@ -209,9 +219,15 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           </Card>
         ) : null}
 
-        <OutcomeCard summary={summary} signals={outcomeSignals} />
+        <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-outcome-details">
+          <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">Outcome and learning</summary>
+          <OutcomeCard summary={summary} signals={outcomeSignals} />
+        </details>
 
-        <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} />
+        <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-conversation-details">
+          <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">Conversation since the offer</summary>
+          <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} />
+        </details>
       </div>
     </StageShell>
   );

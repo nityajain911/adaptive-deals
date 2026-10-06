@@ -1,4 +1,3 @@
-import { Info } from "lucide-react";
 import { explainCheck } from "@/domain/copy";
 import { formatDate } from "@/domain/dates";
 import { failingChecks, featuredRejections, type EnumerationResult, type EvaluatedStructure } from "@/domain/engine";
@@ -12,6 +11,7 @@ import { explanationAttribution } from "@/lib/views";
 import type { DecisionBranch } from "@/lib/decision-branch";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
+import { InfoButton } from "../info-button";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
 
@@ -151,16 +151,18 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
   );
 }
 
-/** Other eligible options, collapsed and visually secondary (spec §5.1 item 8). */
+/** Other eligible options, shown as compact rows so the merchant can see and choose them (not hidden). */
 export function Alternatives({ options, selectedId }: { options: EvaluatedStructure[]; selectedId: string }) {
   const others = options.filter((x) => x.structure.id !== selectedId);
   if (!others.length) return null;
   return (
-    <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="compare-alternatives">
-      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">Compare alternatives ({others.length})</summary>
+    <section className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="compare-alternatives" aria-labelledby="alternatives-heading">
+      <h2 id="alternatives-heading" className="px-5 py-3 text-[15px] font-semibold text-ink">
+        Other offers you could send ({others.length})
+      </h2>
       <ul className="divide-y divide-line border-t border-line">
         {others.map((x, i) => (
-          <li key={x.structure.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-[13px]" data-testid={`alternative-${i + 1}`}>
+          <li key={x.structure.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-[14px]" data-testid={`alternative-${i + 1}`}>
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-ink">{headlineFor(x)}</div>
               <div className="text-ink-2">{x.structure.label}</div>
@@ -170,7 +172,7 @@ export function Alternatives({ options, selectedId }: { options: EvaluatedStruct
             </div>
             <div className="tabular text-right text-ink-2">
               <div>{formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))}</div>
-              <div className="text-[12px]">{alternativeContributionLine(x)}</div>
+              <div className="text-[13px]">{alternativeContributionLine(x)}</div>
             </div>
             <ActionButton body={{ action: "select_option", structureId: x.structure.id }} variant="ghost" testId={`select-${i + 1}`}>
               Select this offer
@@ -178,7 +180,7 @@ export function Alternatives({ options, selectedId }: { options: EvaluatedStruct
           </li>
         ))}
       </ul>
-    </details>
+    </section>
   );
 }
 
@@ -238,11 +240,9 @@ export function Rejections({ r }: { r: EnumerationResult }) {
 
 export function SuccessMeasure() {
   return (
-    <p className="flex items-center gap-1.5 text-[12px] text-muted" data-testid="success-measure">
+    <p className="flex items-center gap-1 text-[13px] text-muted" data-testid="success-measure">
       Success measure: realised contribution from this deal within 90 days.
-      <span title="Projected contribution is a forecast. Realised contribution depends on verified cash, refunds, payment fees and delivery costs." aria-label="About this measure" className="inline-flex">
-        <Info aria-hidden className="h-3.5 w-3.5" />
-      </span>
+      <InfoButton label="About this measure">Projected contribution is a forecast. Realised contribution depends on verified cash, refunds, payment fees and delivery costs.</InfoButton>
     </p>
   );
 }

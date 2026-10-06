@@ -63,7 +63,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                   {card.current ? <Badge tone="blue">Current case</Badge> : null}
                   {chosen ? <Check aria-hidden className="ml-auto h-4 w-4 text-blue" /> : null}
                 </div>
-                <p className="mt-2 text-[12px] text-muted" data-testid={`case-model-output-${card.id}`}>{card.modelOutput}</p>
+                <p className="mt-2 text-[13px] text-muted" data-testid={`case-model-output-${card.id}`}>{card.modelOutput}</p>
                 <h2 className="mt-3 text-[17px] font-semibold leading-6 text-ink">{card.title}</h2>
                 <p className="mt-1 text-[14px] font-medium text-ink-2">{card.buyer}</p>
                 <dl className="mt-4 space-y-3 text-[13px] leading-5">
@@ -74,10 +74,6 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                   <div>
                     <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">Commercial barrier</dt>
                     <dd className="mt-0.5 text-ink">{card.barrier}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">What this case demonstrates</dt>
-                    <dd className="mt-0.5 text-ink-2">{card.proofPoint}</dd>
                   </div>
                 </dl>
               </button>
