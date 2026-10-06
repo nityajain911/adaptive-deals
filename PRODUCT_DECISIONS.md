@@ -275,3 +275,7 @@ These are not built and do not appear as navigation:
 
 A buyer or the model may name several packages in one sentence. Every known package named in a verified field is kept, each with the same evidence quote, and duplicates are removed. The field is rejected only when it names no known package. This corrected a normaliser defect found by the case probes on 6 October 2026; the frozen evaluation predates it and was not rerun.
 
+## Validated per-offer reasons are shown with field-level attribution
+
+The model's explanation has two parts that code validates separately: a full comparison and a short reason per offer. A reason that passes validation is shown on its offer card even when the full comparison fails. The card then reads **Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.** The product never says the model wrote a comparison that code wrote, and a changed-answer branch never shows its parent run's reason.
+

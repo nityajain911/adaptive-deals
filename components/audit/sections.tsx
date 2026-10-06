@@ -41,7 +41,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
   const run = s.run.record;
   const policy = run.inputs.policy;
   const sources = auditSources(s, run, s.run.viewing);
-  const who = whoDidWhat(run, out.explanation?.source ?? null, s, s.run.viewing);
+  const who = whoDidWhat(run, out.explanation?.source ?? null, s, s.run.viewing, out.explanation?.notes.length ?? 0);
   const branch = branchAudit(s, out, taskOrRunProvenance(run, "explain", s.run.viewing));
   // Model outputs and hand-written samples keep separate headings; a case with no model output says so.
   const modelRows: (readonly [string, string[]])[] = [

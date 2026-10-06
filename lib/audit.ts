@@ -66,6 +66,8 @@ export function whoDidWhat(
   source: ExplanationResult["source"] | null,
   s: AuditState,
   viewing: "replay" | "fresh" = "replay",
+  /** Per-offer reasons that passed validation on their own, even if the full comparison failed. */
+  validatedNotes = 0,
 ): { ai: string[]; aiLabel: string | null; sample: string[]; code: string[]; merchant: string[]; buyer: string[] } {
   const step = (task: string) => run.steps.find((x) => x.task === task && x.outcome !== "failed" && x.outcome !== "rejected");
   const extract = step("extract");
@@ -92,6 +94,8 @@ export function whoDidWhat(
   credit("clarify", drafted, `Drafted the clarification questions (${clarify?.promptVersion})`, "Clarification question wording");
   credit("explain", ranked, `Suggested the order of eligible options (${explain?.promptVersion})`, "Order of eligible options");
   credit("explain", explained, `Wrote the recommendation explanation (${explain?.promptVersion})`, "Recommendation explanation");
+  const notesOnly = !s.decisionBranch && explain && !explained && validatedNotes > 0;
+  credit("explain", notesOnly, `Wrote ${validatedNotes} per-offer reason${validatedNotes === 1 ? "" : "s"} that passed validation (${explain?.promptVersion})`, "Per-offer reasons");
   const aiLabel = labels.size ? [...labels].join(" · ") : null;
 
   const explainByModel = taskProvenance(run, "explain", viewing)?.modelMade ?? false;
@@ -104,7 +108,7 @@ export function whoDidWhat(
     "Read only the narrow supported payment-date reply (reply-rules.v1)",
   ];
   if (s.decisionBranch) code.push(`Wrote the recommendation explanation because ${parent}`);
-  else if (source?.text === "code_fallback") code.push(`Wrote the recommendation explanation, because the ${prose} wording did not pass validation`);
+  else if (source?.text === "code_fallback") code.push(notesOnly ? `Wrote the full comparison, because the ${prose} comparison did not pass validation` : `Wrote the recommendation explanation, because the ${prose} wording did not pass validation`);
 
   const merchant: string[] = [];
   const sent = s.conversation.filter((i) => i.kind === "clarification" && i.state === "approved_and_sent_by_merchant").length;

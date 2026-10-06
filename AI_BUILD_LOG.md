@@ -835,6 +835,12 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Proof without a further model call:** the saved probe extractions were replayed locally through the corrected normaliser. Reduced scope now records Website fixes and Search marketing as required; preserve scope and no-fit record all four packages. All three engine outcomes are unchanged.
 
+### 2026-10-06 · Show validated per-offer reasons [Claude Code]
+
+**Found by the probes:** Groq wrote four per-offer reasons that passed validation, but the Offer card discarded them because the full comparison sentence had failed. Accepted model work was hidden.
+
+**Change (applicant-approved):** a validated reason is shown on its own offer card, with attribution for exactly that field. The audit credits AI with the reasons that passed and code with the full comparison. No validator changed: the same checks decide what passes.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

@@ -42,8 +42,10 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
   const funding = [...x.sellerChecks].find((c) => c.id === "seller_cash_at_risk");
   const passesRules = contribution?.status === "pass" && funding?.status === "pass";
-  const aiNote = exp?.source.text === "ai" ? exp.notes.find((n) => n.structureId === x.structure.id)?.text : null;
-  // Attribute the text actually shown: without a stored note for this offer, the reason is code-written.
+  // A note is validated on its own, so it is shown even when the overall comparison failed.
+  // A changed-answer branch never shows its parent run's note.
+  const aiNote = decisionBranch ? null : (exp?.notes.find((n) => n.structureId === x.structure.id)?.text ?? null);
+  // Attribute the reason actually shown: without a stored note for this offer, it is code-written.
   const shownSource = exp ? { ranking: exp.source.ranking, text: aiNote ? ("ai" as const) : ("code_fallback" as const) } : null;
   const e = x.economics;
   return (
@@ -141,7 +143,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
         <span className="font-semibold text-ink">Why this offer: </span>
         <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
         <div className="mt-1 text-[12px] text-muted" data-testid="attribution">
-          {explanationAttribution(shownSource, provenance, decisionBranch)}
+          {explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text)}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>

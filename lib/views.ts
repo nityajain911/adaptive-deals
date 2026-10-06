@@ -221,26 +221,28 @@ export function pendingActions(s: { conversation: ConversationItem[]; changeRequ
 // ── Attribution ─────────────────────────────────────────────────────────────
 
 /**
- * Accurate attribution for the recommendation text. `source.text` is the source of the text
- * actually shown; a model is named only when a model produced the stored output.
+ * Accurate attribution for the recommendation card. `source.text` is the source of the reason
+ * shown on this card, and `comparison` is the source of the full comparison. A model is named
+ * only for what a model produced, and never for a comparison that code wrote.
  */
-export function explanationAttribution(source: ExplanationResult["source"] | null, provenance: ModelProvenance, branch: DecisionBranch | null = null): string {
+export function explanationAttribution(
+  source: ExplanationResult["source"] | null,
+  provenance: ModelProvenance,
+  branch: DecisionBranch | null = null,
+  comparison: ExplanationResult["source"]["text"] = source?.text ?? "code_fallback",
+): string {
   if (branch) return "Recalculated by the engine after the buyer's answer · explanation written by code.";
-  const figures = "all figures calculated by the engine";
   const ranked = source?.ranking === "ai";
-  const explained = source?.text === "ai";
-  if (!source) return `Explanation written by code · ${figures}`;
-  if (!ranked && !explained) return `Explanation written by code · ${figures} · Order set by code`;
-  if (provenance.modelMade) {
-    const who = provenance.providerName;
-    const recorded = provenance.label.replace(/^./, (c) => c.toLowerCase());
-    if (ranked && explained) return `${who} ranked and explained · ${recorded} · ${figures} · approval ordering enforced by code`;
-    if (ranked) return `${who} ranked · code explained · ${recorded} · ${figures}`;
-    return `${who} explained · order set by code · ${recorded} · ${figures}`;
-  }
-  if (ranked && explained) return `Sample order and explanation written by hand · no model ran · ${figures} · approval ordering enforced by code`;
-  if (ranked) return `Sample order written by hand · no model ran · code explained · ${figures}`;
-  return `Sample explanation written by hand · no model ran · order set by code · ${figures}`;
+  const reasoned = source?.text === "ai";
+  if (!source) return "Explanation written by code · all figures calculated by the engine";
+  if (!ranked && !reasoned) return "Explanation written by code · all figures calculated by the engine · Order set by code";
+  const who = provenance.modelMade ? provenance.providerName : null;
+  const origin = who ? provenance.label.replace(/^./, (c) => c.toLowerCase()) : "no model ran";
+  // Ranked only: the reason on the card is code-written.
+  if (!reasoned) return who ? `${who} ranked · code explained · ${origin} · all figures calculated by the engine` : `Sample order written by hand · ${origin} · code explained · all figures calculated by the engine`;
+  const subject = who ? (ranked ? `${who} ranked and wrote this reason` : `${who} wrote this reason · order set by code`) : ranked ? "Sample order and reason written by hand" : "Sample reason written by hand";
+  const order = who || ranked ? "" : " · order set by code";
+  return `${subject} · ${origin}${order} · figures calculated by the engine.${comparison === "code_fallback" ? " Full comparison written by code." : ""}`;
 }
 
 // ── Buyer proposal ──────────────────────────────────────────────────────────

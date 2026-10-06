@@ -6,6 +6,7 @@ import { heroMerchant } from "@/data/synthetic/hero";
 import { contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { alternativeContributionLine, headlineFor } from "@/lib/offer-copy";
 import type { ExplanationResult } from "@/ai/explain";
+import type { DecisionBranch } from "@/lib/decision-branch";
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
@@ -75,13 +76,15 @@ describe("rejection and needs-information reasons", () => {
 
 describe("recommendation attribution on the card", () => {
   const x = top();
-  const exp = (notes: ExplanationResult["notes"]): ExplanationResult => ({ order: [x.structure.id], options: [], comparisonTemplate: "", comparison: "", notes, source: { ranking: "ai", text: "ai" }, issues: [] });
-  const card = (e: ExplanationResult, provenance: ModelProvenance) =>
-    renderToStaticMarkup(Recommendation({ x, exp: e, policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "recommended", provenance }));
+  const NOTE = "Keeps the urgent work inside the confirmed limit.";
+  const exp = (notes: ExplanationResult["notes"], text: "ai" | "code_fallback" = "ai"): ExplanationResult => ({ order: [x.structure.id], options: [], comparisonTemplate: "", comparison: "", notes, source: { ranking: "ai", text }, issues: [] });
+  const noteFor = (structureId: string) => [{ structureId, text: NOTE }];
+  const card = (e: ExplanationResult, provenance: ModelProvenance, decisionBranch: DecisionBranch | null = null) =>
+    renderToStaticMarkup(Recommendation({ x, exp: e, policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "recommended", provenance, decisionBranch }));
   const attribution = (html: string) => /data-testid="attribution">([^<]*)</.exec(html)![1];
 
   it("credits a hand-written sample to nobody's model, with or without a note for this offer", () => {
-    for (const html of [card(exp([]), SAMPLE), card(exp([{ structureId: x.structure.id, text: "Keeps the urgent work inside the confirmed limit." }]), SAMPLE)]) {
+    for (const html of [card(exp([]), SAMPLE), card(exp(noteFor(x.structure.id)), SAMPLE)]) {
       expect(attribution(html)).toMatch(/^Sample order/);
       expect(attribution(html)).toContain("no model ran");
       expect(attribution(html)).not.toMatch(/\bAI\b|Groq/);
@@ -89,10 +92,24 @@ describe("recommendation attribution on the card", () => {
   });
   it("says code explained when the text shown is code's, even if the model wrote other text", () => {
     expect(attribution(card(exp([]), GROQ))).toBe("Groq ranked · code explained · recorded Groq output · all figures calculated by the engine");
+    // A validated note for a different offer is not this card's reason.
+    expect(attribution(card(exp(noteFor("another-structure")), GROQ))).toMatch(/^Groq ranked · code explained/);
   });
-  it("credits the recorded model with the explanation only when its note is the text shown", () => {
-    const html = card(exp([{ structureId: x.structure.id, text: "Keeps the urgent work inside the confirmed limit." }]), GROQ);
-    expect(html).toContain("Keeps the urgent work inside the confirmed limit.");
-    expect(attribution(html)).toMatch(/^Groq ranked and explained · recorded Groq output/);
+  it("shows a validated note even when the overall comparison failed, and says who wrote what", () => {
+    const html = card(exp(noteFor(x.structure.id), "code_fallback"), GROQ);
+    expect(html).toContain(NOTE);
+    expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+  });
+  it("omits the code-comparison clause when the model's comparison also passed", () => {
+    const html = card(exp(noteFor(x.structure.id), "ai"), GROQ);
+    expect(html).toContain(NOTE);
+    expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine.");
+  });
+  it("never shows a parent run's note on a changed-answer branch", () => {
+    const branch: DecisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "p", createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
+    const html = card(exp(noteFor(x.structure.id)), GROQ, branch);
+    expect(html).not.toContain(NOTE);
+    expect(attribution(html)).toMatch(/^Recalculated by the engine after the buyer.+answer · explanation written by code\.$/);
+    expect(attribution(html)).not.toMatch(/Groq/);
   });
 });

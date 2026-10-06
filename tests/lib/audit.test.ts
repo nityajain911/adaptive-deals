@@ -78,6 +78,19 @@ describe("who did what", () => {
     expect(w.ai).toContain("Wrote the recommendation explanation (explain.v3)");
     expect(w.code.join(" ")).not.toMatch(/did not pass validation/);
   });
+  it("credits validated per-offer reasons to AI and the failed comparison to code", () => {
+    const w = whoDidWhat(run, { ranking: "ai", text: "code_fallback" }, state, "replay", 4);
+    expect(w.ai).toContain("Wrote 4 per-offer reasons that passed validation (explain.v3)");
+    expect(w.ai.join(" ")).not.toMatch(/wrote the recommendation explanation/i);
+    expect(w.code).toContain("Wrote the full comparison, because the AI comparison did not pass validation");
+    expect(whoDidWhat(run, { ranking: "ai", text: "code_fallback" }, state, "replay", 1).ai).toContain("Wrote 1 per-offer reason that passed validation (explain.v3)");
+    // No validated note: code wrote the whole explanation, as before.
+    expect(whoDidWhat(run, { ranking: "ai", text: "code_fallback" }, state, "replay", 0).code).toContain("Wrote the recommendation explanation, because the AI wording did not pass validation");
+    // A hand-written sample's notes are listed under the sample heading, never under AI.
+    const s = whoDidWhat(sampleRun, { ranking: "ai", text: "code_fallback" }, state, "replay", 2);
+    expect(s.ai).toEqual([]);
+    expect(s.sample).toContain("Per-offer reasons");
+  });
   it("attributes a branch to the engine and code, never to the parent AI explanation", () => {
     const w = whoDidWhat(run, { ranking: "code", text: "code_fallback" }, branchedState);
     expect(w.ai.join(" ")).not.toMatch(/order|recommendation explanation/i);

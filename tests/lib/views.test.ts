@@ -156,24 +156,33 @@ describe("recommendation attribution follows the actual output source", () => {
   const groq: ModelProvenance = { source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" };
   const sample: ModelProvenance = { source: "hand_written", modelMade: false, providerName: null, label: "Sample output written by hand · no model ran" };
   it("names the model only for what a recorded model actually produced", () => {
-    expect(explanationAttribution({ ranking: "ai", text: "ai" }, groq)).toBe("Groq ranked and explained · recorded Groq output · all figures calculated by the engine · approval ordering enforced by code");
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq)).toBe("Groq ranked · code explained · recorded Groq output · all figures calculated by the engine");
-    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq)).not.toMatch(/did not pass validation/i);
-    expect(explanationAttribution({ ranking: "code", text: "ai" }, groq)).toBe("Groq explained · order set by code · recorded Groq output · all figures calculated by the engine");
-    expect(explanationAttribution({ ranking: "code", text: "code_fallback" }, groq)).toBe("Explanation written by code · all figures calculated by the engine · Order set by code");
+    // `text` is the reason shown on the card; the last argument is the full comparison's source.
+    expect(explanationAttribution({ ranking: "ai", text: "ai" }, groq, null, "code_fallback")).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+    expect(explanationAttribution({ ranking: "ai", text: "ai" }, groq, null, "ai")).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine.");
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq, null, "code_fallback")).toBe("Groq ranked · code explained · recorded Groq output · all figures calculated by the engine");
+    expect(explanationAttribution({ ranking: "ai", text: "code_fallback" }, groq, null, "code_fallback")).not.toMatch(/did not pass validation/i);
+    expect(explanationAttribution({ ranking: "code", text: "ai" }, groq, null, "code_fallback")).toBe("Groq wrote this reason · order set by code · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+    expect(explanationAttribution({ ranking: "code", text: "code_fallback" }, groq, null, "code_fallback")).toBe("Explanation written by code · all figures calculated by the engine · Order set by code");
     expect(explanationAttribution(null, groq)).toBe("Explanation written by code · all figures calculated by the engine");
+  });
+  it("never claims the model wrote the full comparison when code wrote it", () => {
+    for (const ranking of ["ai", "code"] as const) {
+      const line = explanationAttribution({ ranking, text: "ai" }, groq, null, "code_fallback");
+      expect(line).toContain("Full comparison written by code.");
+      expect(line).not.toMatch(/ranked and explained|Groq explained/);
+    }
   });
   it("never credits AI or Groq for a hand-written sample", () => {
     const lines = [
-      explanationAttribution({ ranking: "ai", text: "ai" }, sample),
-      explanationAttribution({ ranking: "ai", text: "code_fallback" }, sample),
-      explanationAttribution({ ranking: "code", text: "ai" }, sample),
-      explanationAttribution({ ranking: "code", text: "code_fallback" }, sample),
+      explanationAttribution({ ranking: "ai", text: "ai" }, sample, null, "code_fallback"),
+      explanationAttribution({ ranking: "ai", text: "code_fallback" }, sample, null, "code_fallback"),
+      explanationAttribution({ ranking: "code", text: "ai" }, sample, null, "ai"),
+      explanationAttribution({ ranking: "code", text: "code_fallback" }, sample, null, "code_fallback"),
       explanationAttribution(null, sample),
     ];
-    expect(lines[0]).toBe("Sample order and explanation written by hand · no model ran · all figures calculated by the engine · approval ordering enforced by code");
+    expect(lines[0]).toBe("Sample order and reason written by hand · no model ran · figures calculated by the engine. Full comparison written by code.");
     expect(lines[1]).toBe("Sample order written by hand · no model ran · code explained · all figures calculated by the engine");
-    expect(lines[2]).toBe("Sample explanation written by hand · no model ran · order set by code · all figures calculated by the engine");
+    expect(lines[2]).toBe("Sample reason written by hand · no model ran · order set by code · figures calculated by the engine.");
     for (const line of lines) expect(line).not.toMatch(/\bAI\b|Groq/);
   });
   it("never credits AI with a changed-answer branch it did not process", () => {
