@@ -35,7 +35,7 @@ export function Conversation({ messages, evidence, buyerName = "Buyer" }: { mess
               <span className="font-semibold text-ink-2">{m.author === "buyer" ? `Buyer · ${buyerName}` : "Merchant · Pinecone Media Works"}</span>
               <Pill>{m.source === "whatsapp" ? "WhatsApp (pasted)" : "Email (pasted)"}</Pill>
               <Pill>{fmtTime(m.timestamp)}</Pill>
-              <span className="font-mono text-[11px]">{m.id}</span>
+              <span className="font-mono text-[12px]">{m.id}</span>
               {m.inReplyTo ? <Badge tone="violet">Reply to {m.inReplyTo}</Badge> : null}
             </div>
             <p className="mt-1.5 text-[14px] leading-6 text-ink">{highlighted(m.text, spans)}</p>

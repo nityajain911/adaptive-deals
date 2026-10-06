@@ -35,7 +35,7 @@ export default async function PresenterPage() {
   const frozen = JSON.parse(readFileSync(path.join(process.cwd(), "evaluation/datasets/frozen/FREEZE.json"), "utf8")) as { promptHashes: Record<string, string> };
   const hashes = Object.entries(PROMPTS).map(([k, p]) => [k, p.version, promptHash(p), frozen.promptHashes[k]] as const);
   const r = s.run.record;
-  const json = (v: unknown) => <pre className="max-h-[320px] overflow-auto rounded-lg bg-surface-muted p-3 text-[11px] leading-4 text-ink-2">{JSON.stringify(v, null, 2)}</pre>;
+  const json = (v: unknown) => <pre className="max-h-[320px] overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] leading-4 text-ink-2">{JSON.stringify(v, null, 2)}</pre>;
 
   return (
     <main id="main" className="mx-auto w-full max-w-[1100px] flex-1 space-y-5 px-4 py-6" data-testid="presenter">

@@ -53,7 +53,7 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
                 <Checks title="Buyer checks" checks={a.revised.buyerChecks} />
                 <Checks title="Seller checks" checks={a.revised.sellerChecks} />
               </div>
-              <p className="pb-2 text-[12px] text-muted">
+              <p className="pb-2 text-[13px] text-muted">
                 Projected contribution {formatINR(a.revised.economics.netContributionPaise)} · peak funding requirement {formatINR(a.revised.economics.peakFundingPaise)} · amendment summary written by code from verified state.
               </p>
             </details>

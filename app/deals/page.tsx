@@ -34,7 +34,7 @@ export default async function DealsPage() {
         <div className="max-w-[760px]">
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Adaptive Deals</div>
           <h1 className="mt-1 text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Choose a commercial decision case</h1>
-          <p className="mt-2 text-[14px] leading-6 text-ink-2">Each fictional case starts from a different buyer constraint. Review how Adaptive Deals narrows the conversation into a structure the merchant can approve—or explains why it should abstain.</p>
+          <p className="mt-2 text-[14px] leading-6 text-ink-2">Each fictional case starts from a different buyer constraint. Review how Adaptive Deals narrows the conversation into an offer the merchant can approve—or explains why it should abstain.</p>
         </div>
         <div className="mt-6"><CasePicker cards={cards} activeCaseId={s.caseId} /></div>
       </main>

@@ -105,7 +105,7 @@ export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = 
               </div>
               <div className="tabular text-right">
                 <div className="text-[15px] font-semibold text-ink">{formatINR(p.totalPaise)}</div>
-                <div className="text-[11px] text-muted">incl. GST {formatINR(p.gstPaise)}</div>
+                <div className="text-[12px] text-muted">incl. GST {formatINR(p.gstPaise)}</div>
               </div>
             </li>
           ))}

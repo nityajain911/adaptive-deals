@@ -317,3 +317,13 @@ The model's explanation has two parts that code validates separately: a full com
 **Change requests start from a date or a scope, never an amount.** An amount change is a commercial renegotiation and goes back through the merchant's own offer choices, not a buyer-side shortcut.
 
 **The simulated buyer's reply is a set of choices.** Each scripted reply is a button, including the ones where the buyer is not sure; those leave the fact unresolved, exactly as before.
+
+## Plain terms, rounded forecasts, readable text
+
+**Merchant-facing words are plain.** "Structure" is now "offer" and "template" is now "approved offer type" on the screens a merchant reads (offer, understand, presenter, audit, guide). Engine states and code identifiers keep their names; they are not shown as working copy.
+
+**A forecast is rounded; an exact figure is kept where it is checked.** The projected contribution on the offer card, the alternatives and the full-contract forecast read "about ₹19,330". The economics detail and the audit keep the exact paise figure, so the number a merchant approves against can still be reproduced. A forecast is never presented as a result.
+
+**Secondary text is larger and darker.** The muted colour is darker, nothing is smaller than 12px, and secondary lines on the offer, understand and track screens are 13px.
+
+**A phone shows a pointer to the one real action, never the action itself.** When exactly one primary action is on the page and it is off-screen, a bar names it; tapping scrolls to the real button and focuses it. It does not perform the action, because approving and sending to a buyer must be a deliberate tap on the button that says so.

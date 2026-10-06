@@ -37,8 +37,14 @@ export function whyOffer(x: EvaluatedStructure): string {
   return `It fits the buyer's confirmed budget, timing and approval limit through ${payments}, and passes your rules.`;
 }
 
+/** A forecast rounded to the nearest rupee for the decision; exact figures stay in the economics detail. */
+export function approxINR(paise: number): string {
+  const rupees = Math.round(Math.abs(paise) / 100);
+  return `about ${formatINR(Math.sign(paise) * rupees * 100)}`;
+}
+
 export function alternativeContributionLine(x: EvaluatedStructure): string {
-  const contribution = `projected contribution ${formatINR(x.economics.netContributionPaise)}`;
+  const contribution = `projected contribution ${approxINR(x.economics.netContributionPaise)}`;
   return x.approval === "requires_approval" ? `If the buyer secures MD approval: ${contribution}` : contribution.replace(/^p/, "P");
 }
 
@@ -62,7 +68,7 @@ export function offerSummary(x: EvaluatedStructure, original: ReturnType<typeof 
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const phased = x.structure.template === "phased_scope";
   const months = phaseMonths(x);
-  const achieves = [`A proposed sale of ${formatINR(total)} including GST.`, `Projected contribution of ${formatINR(x.economics.netContributionPaise)}, based on configured costs and fees.`];
+  const achieves = [`A proposed sale of ${formatINR(total)} including GST.`, `Projected contribution of ${approxINR(x.economics.netContributionPaise)}, based on configured costs and fees.`];
   if (phased && x.approval === "within_limit") achieves.push(`A standalone ${word(months)}-month package the buyer can approve within the confirmed limit.`);
 
   const changes: string[] = [];

@@ -212,7 +212,7 @@ function objectiveFor(progress: DealProgress): string {
 
 function outcome(state: DemoState, progress: DealProgress): string | null {
   if (progress.rule === "offer.no_feasible") return "No offer fits the buyer's confirmed limits and the merchant's current rules.";
-  if (progress.rule === "offer.outside_templates") return "This request needs a custom arrangement outside the approved templates.";
+  if (progress.rule === "offer.outside_templates") return "This request needs a custom arrangement outside your approved offer types.";
   if (progress.rule === "offer.closed" || state.status === "merchant_rejected") return "Closed in Adaptive Deals by the merchant.";
   if (progress.rule === "track.terminal" && state.status === "buyer_rejected") return "Buyer declined the offer.";
   if (progress.rule === "track.terminal") return progress.headline;

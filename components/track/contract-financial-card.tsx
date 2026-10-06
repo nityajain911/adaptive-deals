@@ -8,7 +8,7 @@ export function ContractFinancialCard({ view }: { view: ContractFinancialView })
   if (view.state !== "accepted") {
     return (
       <Card className="p-5" data-testid="contract-financial-card">
-        <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Contract status</div>
+        <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Contract status</div>
         <h2 className="mt-1 text-[17px] font-semibold text-ink">{view.stateLabel}</h2>
         <p className="mt-2 text-[13px] text-ink-2">Proposed total: {formatINR(view.contractTotalPaise)} including GST. It is retained as history and is not shown as an amount owed.</p>
       </Card>
@@ -16,7 +16,7 @@ export function ContractFinancialCard({ view }: { view: ContractFinancialView })
   }
   return (
     <Card className="p-5" data-testid="contract-financial-card">
-      <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Current accepted contract</div>
+      <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Current accepted contract</div>
       <h2 className="mt-1 text-[17px] font-semibold text-ink">Remaining under the accepted contract</h2>
       <div className="tabular mt-2 text-[30px] font-bold tracking-tight text-ink" data-testid="contract-remaining">
         {formatINR(view.remainingPaise ?? 0)} <span className="text-[13px] font-medium text-muted">including GST</span>

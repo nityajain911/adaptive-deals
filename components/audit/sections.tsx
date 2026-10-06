@@ -99,7 +99,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
           </ul>
           <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
             <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>
-            <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-1 font-mono text-[11px]">
+            <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pb-1 font-mono text-[12px]">
               <dt>Parent run</dt><dd className="break-all">{branch.parentRunId}</dd>
               <dt>Branch</dt><dd className="break-all">{branch.branchId}</dd>
               <dt>Engine result</dt><dd className="break-all">{branch.engineFingerprint}</dd>
@@ -149,7 +149,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
         )}
         <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
           <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>
-          <ul className="mt-1 space-y-1 pb-1 font-mono text-[11px]">
+          <ul className="mt-1 space-y-1 pb-1 font-mono text-[12px]">
             {s.agreements.map((v) => (
               <li key={v.version} className="break-all">
                 v{v.version} terms hash {v.termsHash}
@@ -249,7 +249,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
         )}
         <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
           <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>
-          <ul className="mt-1 space-y-0.5 pb-1 font-mono text-[11px]">
+          <ul className="mt-1 space-y-0.5 pb-1 font-mono text-[12px]">
             {s.attempts.map((a) => (
               <li key={a.id} className="break-all">
                 {a.id} · {a.idempotencyKey}

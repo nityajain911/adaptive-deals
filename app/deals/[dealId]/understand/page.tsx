@@ -55,7 +55,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const evidenceDetails = (
     <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence" data-walkthrough="constraint-evidence">
       <summary className="cursor-pointer text-[13px] font-semibold text-ink">See evidence</summary>
-      <ul className="mt-2 space-y-2 pb-2 text-[12px] text-ink-2">
+      <ul className="mt-2 space-y-2 pb-2 text-[13px] text-ink-2">
         <li>
           <span className="font-semibold text-ink">Original annual proposal</span> · Source: synthetic deal fixture · ₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600
         </li>
@@ -152,7 +152,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               <ol className="mt-3 space-y-3">
                 {questions.map(({ q, draft, reply }, qi) => (
                   <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
-                    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                    <div className="flex flex-wrap items-center gap-2 text-[13px]">
                       <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{questionWordingLabel(q.wording, provenance)}</Badge>
                       {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
                     </div>

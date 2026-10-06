@@ -104,10 +104,10 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           <h2 className="text-[18px] font-semibold text-ink">{progress.headline}</h2>
           {primaryId === "close_in_adaptive_deals" && r ? (
             <div className="text-[13px] text-ink-2">
-              All {r.structures.length} structures across {r.templatesEvaluated.length} templates were evaluated. What blocks every one: {codes.map(shortReason).join("; ")}.
+              All {r.structures.length} possible offers across {r.templatesEvaluated.length} approved offer types were evaluated. What blocks every one: {codes.map(shortReason).join("; ")}.
             </div>
           ) : (
-            <p className="text-[13px] text-ink-2">The request can&apos;t be represented by the merchant&apos;s permitted structures. Adaptive Deals drafts no terms for it.</p>
+            <p className="text-[13px] text-ink-2">The request can&apos;t be represented by your approved offer types. Adaptive Deals drafts no terms for it.</p>
           )}
           <DontProceed variant={primaryId === "close_in_adaptive_deals" ? "no_feasible" : "outside"} primary />
         </Card>
@@ -159,7 +159,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         {buyerSaid ? (
           <figure className="rounded-lg rounded-tl-none bg-[#efeae2] p-3" data-testid="buyer-said">
             <div className="max-w-[90%] rounded-lg rounded-tl-none bg-white px-3 py-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
-              <figcaption className="text-[12px] font-semibold text-ink-2">{activeCase.buyer.name} said</figcaption>
+              <figcaption className="text-[13px] font-semibold text-ink-2">{activeCase.buyer.name} said</figcaption>
               <blockquote className="mt-1 text-[15px] leading-6 text-ink">“{buyerSaid.quote}”</blockquote>
             </div>
           </figure>
@@ -186,7 +186,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         <SuccessMeasure />
         <Alternatives options={options} selectedId={x.structure.id} />
         <Rejections r={r} />
-        <p className="text-[12px] text-muted">Every merchant-approved template was checked. Open the rejected options or Audit details for the full evaluation.</p>
+        <p className="text-[13px] text-muted">Every approved offer type was checked. Open the rejected options or Audit details for the full evaluation.</p>
       </div>
     </StageShell>
   );

@@ -12,8 +12,8 @@ const MISSING_QUESTION: Record<string, string> = {
 const OUTCOMES = [
   { state: "insufficient_information", scenarioId: "scenario-insufficient", title: "Missing information", action: "Draft the specific missing question" },
   { state: "ambiguous", scenarioId: null, title: "Ambiguous", action: "Draft the decision-relevant confirmation" },
-  { state: "outside_templates", scenarioId: "scenario-outside", title: "Outside supported templates", action: "Hand over to the merchant" },
-  { state: "no_feasible_deal", scenarioId: "scenario-no-feasible", title: "No feasible structure", action: "Explain the binding checks; close or reconsider inputs" },
+  { state: "outside_templates", scenarioId: "scenario-outside", title: "Outside approved offer types", action: "Hand over to the merchant" },
+  { state: "no_feasible_deal", scenarioId: "scenario-no-feasible", title: "No feasible offer", action: "Explain the binding checks; close or reconsider inputs" },
 ] as const;
 
 /**
@@ -58,9 +58,9 @@ export function OtherOutcomes({ scenario }: { scenario: { id: string; record: Ru
             <p className="text-[14px] leading-6 text-ink">“{scenario.record.inputs.messages[0].text}”</p>
             {e.state === "insufficient_information" ? (
               <Notice tone="amber" title="Engine state: Insufficient information">
-                Required information is missing ({e.missingRequired.join(", ")}). No structure is built until it is known.
+                Required information is missing ({e.missingRequired.join(", ")}). No offer is built until it is known.
                 <div className="mt-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid="next-action">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Next action · question drafted by code (not sent)</div>
+                  <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Next action · question drafted by code (not sent)</div>
                   {e.missingRequired.map((k) => (
                     <p key={k} className="mt-1 text-[13px] text-ink">
                       {MISSING_QUESTION[k] ?? `Please confirm ${k}.`}
@@ -69,22 +69,22 @@ export function OtherOutcomes({ scenario }: { scenario: { id: string; record: Ru
                 </div>
               </Notice>
             ) : e.state === "outside_templates" ? (
-              <Notice tone="red" title="Engine state: Outside supported templates">
+              <Notice tone="red" title="Engine state: Outside approved offer types">
                 {e.outsideTemplates.map((o) => `“${o.rawText}” (${o.kind.replace(/_/g, " ")})`).join("; ")} cannot be represented by split payment, phased scope, deferred start or shorter commitment.
                 <div className="mt-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid="next-action">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Next action</div>
+                  <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Next action</div>
                   <p className="mt-1 text-[13px] text-ink">Hand over to the merchant. Adaptive Deals drafts no terms and sends nothing for this request.</p>
                 </div>
               </Notice>
             ) : e.state === "no_feasible_deal" ? (
               <Notice tone="red" title="Engine state: No feasible deal">
-                All {e.structures.length} structures across {e.templatesEvaluated.length} templates were evaluated; none passes.
+                All {e.structures.length} possible offers across {e.templatesEvaluated.length} approved offer types were evaluated; none passes.
                 <div className="mt-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid="next-action">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Next action · binding checks</div>
+                  <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Next action · binding checks</div>
                   <ul className="mt-1 list-disc pl-5 text-[13px] text-ink">
                     {bindingChecks(e.structures).map(([code, n]) => (
                       <li key={code}>
-                        {shortReason(code)} <span className="text-muted">({n} of {e.structures.length} structures)</span>
+                        {shortReason(code)} <span className="text-muted">({n} of {e.structures.length} offers)</span>
                       </li>
                     ))}
                   </ul>

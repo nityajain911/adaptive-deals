@@ -1,6 +1,7 @@
 import { fmtTime } from "@/components/evidence";
 import { Badge, Card, Stat } from "@/components/ui";
 import { formatINR } from "@/domain/money";
+import { approxINR } from "@/lib/offer-copy";
 import { formatDate } from "@/domain/dates";
 import type { OutcomeSummary } from "@/lib/outcome";
 
@@ -18,7 +19,7 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
     <Card className="p-5" data-testid="outcome-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Outcome and learning</div>
+          <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Outcome and learning</div>
           <h2 className="mt-1 text-[17px] font-semibold text-ink">Provisional through {formatDate(summary.inputs.cutoff.slice(0, 10))}</h2>
         </div>
         <Badge tone="amber">{summary.label}</Badge>
@@ -27,14 +28,14 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
       <div className="tabular mt-3 text-[28px] font-semibold tracking-tight text-ink" data-testid="provisional-contribution">
         {formatINR(summary.provisionalContributionPaise)}
       </div>
-      <p className="mt-1 max-w-3xl text-[12px] leading-5 text-muted">
+      <p className="mt-1 max-w-3xl text-[13px] leading-5 text-muted">
         This is not a final realised-contribution result because refund data, actual payment fees and committed future costs are unavailable in the prototype.
       </p>
-      <p className="mt-2 text-[12px] text-ink-2">Target metric: realised contribution within 90 days per eligible stalled deal.</p>
+      <p className="mt-2 text-[13px] text-ink-2">Target metric: realised contribution within 90 days per eligible stalled deal.</p>
 
       {summary.fullContractForecastContributionPaise !== null ? (
         <div className="mt-3 max-w-sm">
-          <Stat label="Full-contract forecast" value={formatINR(summary.fullContractForecastContributionPaise)} hint="Based on the accepted structure's planned service dates" />
+          <Stat label="Full-contract forecast" value={approxINR(summary.fullContractForecastContributionPaise)} hint="Based on the accepted offer's planned service dates" />
         </div>
       ) : null}
 
@@ -47,7 +48,7 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
       <div className="mt-4 space-y-2">
         <details data-testid="outcome-calculation" className="rounded-xl border border-line px-4 py-2">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">How this was calculated</summary>
-          <div className="space-y-3 py-3 text-[12px] leading-5 text-ink-2">
+          <div className="space-y-3 py-3 text-[13px] leading-5 text-ink-2">
             <dl className="grid gap-2 sm:grid-cols-2">
               <div>
                 <dt className="text-muted">Cash received excl. GST</dt>
@@ -77,7 +78,7 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
         {signals.length ? (
           <details data-testid="outcome-signals" className="rounded-xl border border-line px-4 py-2">
             <summary className="cursor-pointer text-[13px] font-semibold text-blue">What happened in this deal</summary>
-            <ol className="space-y-2 py-3 text-[12px] text-ink-2">
+            <ol className="space-y-2 py-3 text-[13px] text-ink-2">
               {signals.map((signal) => (
                 <li key={signal.id}>
                   <span className="font-medium text-ink">{signal.label}</span> · {fmtTime(signal.at)}
@@ -89,7 +90,7 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
 
         <details data-testid="outcome-learning" className="rounded-xl border border-line px-4 py-2">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">How outcomes improve recommendations</summary>
-          <p className="py-3 text-[12px] leading-5 text-ink-2">{LEARNING_POLICY}</p>
+          <p className="py-3 text-[13px] leading-5 text-ink-2">{LEARNING_POLICY}</p>
         </details>
       </div>
     </Card>

@@ -60,9 +60,9 @@ export function WalkthroughProgress({
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-line px-5 py-4">
-        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue">DEMO WALKTHROUGH · {displayedStepLabel.toUpperCase()}</div>
+        <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-blue">DEMO WALKTHROUGH · {displayedStepLabel.toUpperCase()}</div>
         <h2 id="walkthrough-heading" tabIndex={-1} className="mt-2 text-[20px] font-bold tracking-tight text-ink">{objective.title}</h2>
-        <div className="mt-2 inline-flex rounded-full border border-line bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-ink-2">{actor}</div>
+        <div className="mt-2 inline-flex rounded-full border border-line bg-surface-muted px-2 py-0.5 text-[12px] font-semibold text-ink-2">{actor}</div>
         {displayedObjectiveId === view.currentObjectiveId && view.provenanceLabel ? <div className="mt-2 text-[12px] text-muted" data-testid="walkthrough-provenance">{view.provenanceLabel}</div> : null}
       </div>
 
@@ -98,7 +98,7 @@ export function WalkthroughProgress({
           </section>
         ) : yourTurn ? (
           <div className="mt-5 rounded-xl border border-[#cfd9ff] bg-surface p-4" data-testid="walkthrough-your-turn">
-            <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-blue">{yourTurn.who === "buyer" ? "Play the buyer" : "Your turn"}</div>
+            <div className="text-[12px] font-bold uppercase tracking-[0.1em] text-blue">{yourTurn.who === "buyer" ? "Play the buyer" : "Your turn"}</div>
             <p className="mt-1 text-[14px] leading-6 text-ink">
               Click <strong className="font-semibold">{yourTurn.label ? `“${yourTurn.label}”` : "the highlighted button"}</strong>
               {yourTurn.who === "buyer" ? " on the buyer's page." : "."}

@@ -61,5 +61,5 @@ export function uncapturedLines(evaluation: Pick<DealEvaluation, "state" | "ambi
   if (evaluation.state !== "options_ready") return [];
   return evaluation.ambiguities
     .filter((a) => !a.decisionRelevant)
-    .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not captured from the conversation. Every structure has the same outcome under either reading, so no question is needed.`);
+    .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not captured from the conversation. Every offer has the same outcome under either reading, so no question is needed.`);
 }

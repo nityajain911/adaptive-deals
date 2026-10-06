@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant } from "@/data/synthetic/hero";
-import { headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 /** Spec §5.1: code-written headlines and the original-proposal comparison. */
@@ -20,6 +20,18 @@ describe("code-written headlines by template", () => {
   });
 });
 
+describe("forecast figures are rounded for the decision", () => {
+  it("rounds a forecast to the nearest rupee with 'about', and leaves exact figures to the detail", () => {
+    expect(approxINR(1_932_960)).toBe("about ₹19,330");
+    expect(approxINR(1_932_949)).toBe("about ₹19,329");
+    expect(approxINR(0)).toBe("about ₹0");
+    expect(approxINR(-5_050)).toBe("about −₹51");
+  });
+  it("is used in the alternative rows", () => {
+    expect(alternativeContributionLine(heroTop())).toBe("Projected contribution about ₹19,330");
+  });
+});
+
 describe("original proposal and offer summary", () => {
   it("₹1,20,000 pre-GST + 18% GST = ₹1,41,600", () => {
     expect(originalProposal()).toEqual({ prePaise: 12_000_000, gstPaise: 2_160_000, totalPaise: 14_160_000, gstRateBps: 1800 });
@@ -28,7 +40,7 @@ describe("original proposal and offer summary", () => {
     const s = offerSummary(heroTop(), originalProposal(), GST);
     expect(s.achieves).toEqual([
       "A proposed sale of ₹46,020 including GST.",
-      "Projected contribution of ₹19,329.60, based on configured costs and fees.",
+      "Projected contribution of about ₹19,330, based on configured costs and fees.",
       "A standalone three-month package the buyer can approve within the confirmed limit.",
     ]);
     expect(s.changes).toEqual([

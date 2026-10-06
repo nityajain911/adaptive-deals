@@ -68,11 +68,11 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                 <p className="mt-1 text-[14px] font-medium text-ink-2">{card.buyer}</p>
                 <dl className="mt-4 space-y-3 text-[13px] leading-5">
                   <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">Proposal</dt>
+                    <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Proposal</dt>
                     <dd className="mt-0.5 text-ink-2">{card.proposal}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">Commercial barrier</dt>
+                    <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Commercial barrier</dt>
                     <dd className="mt-0.5 text-ink">{card.barrier}</dd>
                   </div>
                 </dl>
@@ -89,7 +89,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
               <ShieldCheck aria-hidden className="h-4 w-4 text-blue" /> Start {selectedCard.buyer}
             </div>
             <p className="mt-1 text-[13px] text-amber" data-testid="case-switch-warning">{CASE_SWITCH_WARNING}</p>
-            <p className="mt-0.5 text-[12px] text-muted">The selected case becomes the only active workspace. Its conversation, run record and outcomes start clean.</p>
+            <p className="mt-0.5 text-[13px] text-muted">The selected case becomes the only active workspace. Its conversation, run record and outcomes start clean.</p>
           </div>
           <Button variant="primary" onClick={start} disabled={pending} data-testid="start-selected-case" className="shrink-0">
             {pending ? "Starting…" : selectedCard.actionLabel} <ArrowRight aria-hidden className="h-4 w-4" />

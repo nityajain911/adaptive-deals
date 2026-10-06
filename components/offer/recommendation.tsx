@@ -5,7 +5,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
-import { alternativeContributionLine, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { explanationAttribution } from "@/lib/views";
 import type { DecisionBranch } from "@/lib/decision-branch";
@@ -62,7 +62,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
       <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
         <div className="space-y-3">
           <div>
-            <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Proposed customer total</div>
+            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Proposed customer total</div>
             <div className="tabular text-[30px] font-bold tracking-tight text-ink" data-testid="offer-total">
               {formatINR(total)} <span className="text-[14px] font-medium text-muted">including GST</span>
             </div>
@@ -75,29 +75,29 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
           </div>
           <dl className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-2">
             <div>
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">Included</dt>
+              <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Included</dt>
               <dd className="text-ink">{x.structure.scope.map((i) => `${pkg(i.packageId)}${i.months > 1 ? ` (${i.months} months)` : ""}`).join(", ")}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">Not included</dt>
+              <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Not included</dt>
               <dd className="text-ink">{x.structure.excludedPackageIds.length ? x.structure.excludedPackageIds.map(pkg).join(", ") : "Nothing"}</dd>
             </div>
           </dl>
         </div>
         <div className="space-y-2">
           <div className="rounded-xl border border-line px-4 py-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Projected contribution</div>
+            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Projected contribution</div>
             <div className="tabular text-[22px] font-semibold text-ink" data-testid="offer-contribution">
-              {formatINR(e.netContributionPaise)}
+              {approxINR(e.netContributionPaise)}
             </div>
-            <div className="text-[12px] text-muted">A forecast from configured costs and fees, not a result.</div>
+            <div className="text-[13px] text-muted">A forecast from configured costs and fees, not a result.</div>
           </div>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
             {passesRules ? "Passes your configured contribution and funding rules." : "Review the applied rules before sending."}
           </p>
           <details className="rounded-xl border border-line px-4 py-2" data-testid="see-economics">
             <summary className="cursor-pointer text-[13px] font-semibold text-blue">See economics and applied rules</summary>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pb-2 text-[12px] text-ink-2">
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pb-2 text-[13px] text-ink-2">
               <dt>Pre-GST value</dt>
               <dd className="tabular">{formatINR(x.structure.pricePaise)}</dd>
               <dt>GST</dt>
@@ -142,7 +142,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
         <span className="font-semibold text-ink">Why this offer: </span>
         <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
-        <div className="mt-1 text-[12px] text-muted" data-testid="attribution">
+        <div className="mt-1 text-[13px] text-muted" data-testid="attribution">
           {explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
         </div>
       </div>

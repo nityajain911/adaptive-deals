@@ -122,7 +122,7 @@ export function whoDidWhat(
   const parent = explainByModel ? `the parent model did not process ${notProcessed}` : `the hand-written parent sample did not cover ${notProcessed}`;
   const code = [
     "Normalised supported values and verified every evidence quote",
-    s.decisionBranch ? `Recalculated every permitted structure and every figure after ${branchRecalculatedAfter(s.decisionBranch)}` : "Evaluated every permitted structure and calculated every figure",
+    s.decisionBranch ? `Recalculated every permitted offer and every figure after ${branchRecalculatedAfter(s.decisionBranch)}` : "Evaluated every permitted offer and calculated every figure",
     s.decisionBranch ? "Set the eligible option order through the documented code rule" : explain ? `Enforced the approval ordering and validated ${prose} prose` : "Enforced the approval ordering",
     "Read only the narrow supported payment-date reply (reply-rules.v1)",
   ];
@@ -197,10 +197,10 @@ export function appliedRules(policy: MerchantPolicy, templates: TemplateConfig, 
   return [
     { id: "contribution_floor", name: "Contribution floor", value: floor, detail: "Projected net contribution after direct costs and expected payment fees must reach this." },
     { id: "cash_at_risk", name: "Cash-at-risk limit", value: formatINR(policy.cashAtRiskLimitPaise), detail: "Peak funding requirement (costs paid before cash arrives) may not exceed this." },
-    { id: "templates", name: "Permitted structure templates", value: `${enabled.length} of 4`, detail: enabled.map(([n, , xs]) => `${n}: ${xs.join(", ")}`).join(" · ") },
+    { id: "templates", name: "Approved offer types", value: `${enabled.length} of 4`, detail: enabled.map(([n, , xs]) => `${n}: ${xs.join(", ")}`).join(" · ") },
     { id: "max_tenure", name: "Maximum tenure", value: `${policy.maxTenureMonths} months`, detail: "From delivery start to the later of the last delivery and the last payment." },
     { id: "smallest_instalment", name: "Smallest instalment", value: `${formatINR(policy.smallestInstalmentPaise)} excl. GST`, detail: "No payment line may be smaller." },
-    { id: "discount", name: "Discount policy", value: policy.discountLimitBps === 0 ? "No discount" : `Up to ${pct(policy.discountLimitBps)}`, detail: `Discount levels templates may use: ${templates.discountsBps.map(pct).join(", ")}.` },
+    { id: "discount", name: "Discount policy", value: policy.discountLimitBps === 0 ? "No discount" : `Up to ${pct(policy.discountLimitBps)}`, detail: `Discount levels the offer types may use: ${templates.discountsBps.map(pct).join(", ")}.` },
     {
       id: "package_rules",
       name: "Package separability and independent value",

@@ -175,7 +175,7 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
       <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (!!authorityReason && !authority)} data-testid="accept">
         {pending ? "Accepting…" : action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal"}
       </Button>
-      <p className="text-center text-[11px] text-muted">
+      <p className="text-center text-[12px] text-muted">
         You accept version {version} exactly as shown (terms hash {termsHash.slice(0, 12)}…).
       </p>
       <ErrorText error={error} />

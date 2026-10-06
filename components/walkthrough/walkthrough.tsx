@@ -42,7 +42,7 @@ function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo
         ))}
       </div>
       {custom ? <textarea aria-label="Another simulated buyer reply" className="min-h-20 w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px]" value={typed} maxLength={500} onChange={(event) => setTyped(event.target.value)} /> : null}
-      <p className="text-[11px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
+      <p className="text-[12px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
       <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : "Send simulated buyer response"}</Button>
       {error ? <p role="alert" className="text-[12px] text-red">{error}</p> : null}
     </form>
@@ -156,7 +156,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
         <span className="flex min-w-0 items-center gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-weak text-blue"><Compass aria-hidden className="h-4 w-4" /></span>
           <span className="min-w-0">
-            <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-blue">Demo walkthrough</span>
+            <span className="block text-[12px] font-bold uppercase tracking-[0.1em] text-blue">Demo walkthrough</span>
             <span className="block truncate text-[13px] font-semibold text-ink">{displayed.title}</span>
           </span>
         </span>

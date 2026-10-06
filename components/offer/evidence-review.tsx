@@ -22,9 +22,9 @@ export function EvidenceReview({ s }: { s: DemoState }) {
           : null;
         return (
           <div key={message.id} className="rounded-xl border border-line bg-surface-muted p-4" data-testid={`evidence-${message.id}`}>
-            {previous ? <p className="text-[12px] text-muted">Value used for the selected offer: “{previous.text}”</p> : null}
+            {previous ? <p className="text-[13px] text-muted">Value used for the selected offer: “{previous.text}”</p> : null}
             <p className="mt-1 text-[14px] font-medium text-ink">New buyer message: “{message.text}”</p>
-            <p className="mt-1 text-[12px] text-muted">Buyer reply · simulated WhatsApp · {fmtTime(message.createdAt)}</p>
+            <p className="mt-1 text-[13px] text-muted">Buyer reply · simulated WhatsApp · {fmtTime(message.createdAt)}</p>
             <ReviewWorkForm sourceKind="message" sourceId={message.id} />
           </div>
         );

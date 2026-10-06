@@ -103,7 +103,7 @@ test("recorded · preserve scope holds at Understand until the merchant confirms
   await expect(page.getByTestId("scope-message")).toContainText("We couldn't map “complete annual package” to specific services.");
   await expect(page.getByTestId("scope-card")).toContainText("We need the complete annual package—Website fixes, Search marketing, Social media and Monthly reporting—for the admissions launch");
   await expect(page.getByTestId("scope-attribution")).toHaveText("Groq extracted the phrase · code could not map it to a service · you confirm the services.");
-  await expect(page.getByTestId("uncaptured")).toContainText("The GST basis was not captured from the conversation. Every structure has the same outcome under either reading, so no question is needed.");
+  await expect(page.getByTestId("uncaptured")).toContainText("The GST basis was not captured from the conversation. Every offer has the same outcome under either reading, so no question is needed.");
 
   // The offer cannot be reached by the page or by the endpoint.
   await page.goto("/deals/hero/offer");

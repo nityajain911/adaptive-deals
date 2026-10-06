@@ -109,7 +109,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
       <div className="space-y-5">
         <div data-walkthrough="collection-setup">
         <Card className="space-y-3 p-5" data-testid="now-card">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Your next step</div>
+          <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Your next step</div>
           <div className="flex flex-wrap items-center gap-3">
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
@@ -151,7 +151,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   <div className="mt-1 text-ink-2">{item.detail}</div>
                   {item.note ? <div className="mt-1 text-ink-2">Follow-up note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   <div className="mt-1 text-ink-2">Safe next step: {item.dateAmbiguity ? "Ask the buyer for one exact date." : "Review the buyer's request and agree the next step."}</div>
-                  <p className="mt-1 text-[12px] text-muted">These choices record your decision only. Terms, payments and the ledger stay unchanged.</p>
+                  <p className="mt-1 text-[13px] text-muted">These choices record your decision only. Terms, payments and the ledger stay unchanged.</p>
                   <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />
                 </li>
               ))}
@@ -178,7 +178,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                     <div className="mt-1 text-ink-2">
                       Safe next step: {claimed ? "Payment is not confirmed. Verify it against the payment record before taking action." : dateAmbiguity ? "Reply to the buyer personally and ask for one exact date." : "Reply to the buyer personally and agree the next step."}
                     </div>
-                    <p className="mt-1 text-[12px] text-muted">Marking it handled records only that you dealt with it outside the prototype. No reply is sent and no payment changes.</p>
+                    <p className="mt-1 text-[13px] text-muted">Marking it handled records only that you dealt with it outside the prototype. No reply is sent and no payment changes.</p>
                     <MarkHandledForm messageId={m.id} />
                   </li>
                 );
@@ -196,10 +196,10 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   <span className="text-ink">
                     {r.date}
                     {r.was ? <span className="text-muted"> (was {r.was})</span> : null}
-                    <span className="ml-2 text-[12px] text-muted">{r.method}</span>
+                    <span className="ml-2 text-[13px] text-muted">{r.method}</span>
                   </span>
                   <span className="tabular text-ink">
-                    {formatINR(r.amountPaise)} <span className="ml-2 text-[12px] font-medium text-ink-2">{r.status}</span>
+                    {formatINR(r.amountPaise)} <span className="ml-2 text-[13px] font-medium text-ink-2">{r.status}</span>
                   </span>
                 </li>
               ))}

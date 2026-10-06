@@ -48,11 +48,11 @@ export function DontProceed({ variant = "dont_proceed", primary = false }: { var
           </label>
         ))}
       </fieldset>
-      <label className="block text-[12px] font-medium text-muted">
+      <label className="block text-[13px] font-medium text-muted">
         Note (optional)
         <input className="mt-1 block w-full rounded-lg border border-line-strong px-3 py-2 text-[13px] text-ink" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
       </label>
-      <p className="text-[12px] text-muted">Closes this deal in Adaptive Deals. Nothing is sent to the buyer, and every record is kept.</p>
+      <p className="text-[13px] text-muted">Closes this deal in Adaptive Deals. Nothing is sent to the buyer, and every record is kept.</p>
       <div className="flex gap-2">
         <Button type="submit" variant="danger" disabled={pending || !reason} data-testid="confirm-close">
           {pending ? "Closing…" : "Confirm"}

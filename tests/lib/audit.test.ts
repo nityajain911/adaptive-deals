@@ -97,7 +97,7 @@ describe("who did what", () => {
   it("attributes a branch to the engine and code, never to the parent AI explanation", () => {
     const w = whoDidWhat(run, { ranking: "code", text: "code_fallback" }, branchedState);
     expect(w.ai.join(" ")).not.toMatch(/order|recommendation explanation/i);
-    expect(w.code.join(" ")).toMatch(/recalculated every permitted structure/i);
+    expect(w.code.join(" ")).toMatch(/recalculated every permitted offer/i);
     expect(w.code.join(" ")).toMatch(/wrote the recommendation explanation/i);
     expect(`${w.ai.join(" ")} ${w.code.join(" ")}`).not.toMatch(/AI ranked|AI explained/i);
   });
@@ -212,7 +212,7 @@ describe("an unmapped required scope and the merchant's confirmation", () => {
     const w = whoDidWhat(recorded, { ranking: "code", text: "code_fallback" }, confirmed);
     expect(w.ai).toContain("Extracted the opening constraints (extract.v2)");
     expect(w.merchant).toContain("Confirmed the required services (4 services)");
-    expect(w.code).toContain("Recalculated every permitted structure and every figure after the merchant confirmed the required services");
+    expect(w.code).toContain("Recalculated every permitted offer and every figure after the merchant confirmed the required services");
     expect(w.code).toContain("Wrote the recommendation explanation because the parent model did not process the merchant-confirmed services");
     expect(w.ai.join(" ")).not.toMatch(/order|recommendation/i);
   });

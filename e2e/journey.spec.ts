@@ -760,3 +760,31 @@ test("step 4 · the merchant preview says it is what the buyer will see, and the
   await expect(page.getByTestId("preview-frame")).toContainText("You're seeing what");
   await expect(page.getByTestId("preview-frame")).toContainText("will see");
 });
+
+test("step 5 · on a phone a bar points at the one real action when it is off-screen, and never performs it; on desktop it is hidden", async ({ page }) => {
+  await prepareOptions(page);
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("sticky-next")).toBeHidden();
+
+  await page.setViewportSize(MOBILE);
+  await page.goto("/deals/hero/offer");
+  const bar = page.getByTestId("sticky-next");
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText("Review buyer proposal");
+  const before = state().status;
+  await bar.getByRole("button").click();
+  await expect(page.getByTestId("primary-action")).toBeFocused();
+  await expect(bar).toHaveCount(0);
+  expect(state().status).toBe(before);
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+});
+
+test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
+  await expect(page.getByTestId("compare-alternatives")).toContainText("Projected contribution about ₹19,330");
+  await expect(page.locator("main")).not.toContainText(/permitted structures|merchant-approved template/i);
+});

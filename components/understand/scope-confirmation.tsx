@@ -26,7 +26,7 @@ export function ScopeConfirmationCard({ phrases, extraction, form }: { phrases: 
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[12px] text-muted" data-testid="scope-attribution">
+      <p className="mt-2 text-[13px] text-muted" data-testid="scope-attribution">
         {who} · code could not map it to a service · you confirm the services.
       </p>
       <p className="mt-2 text-[13px] text-ink-2">Choose the services the buyer requires. Your confirmation is recorded as yours, and the engine recalculates the options from it.</p>
@@ -42,7 +42,7 @@ export function ConfirmedServices({ names, phrases, extraction }: { names: strin
       <p>
         <span className="font-semibold text-ink">Required services confirmed by you: {names.join(", ")}</span> · from {quoted(phrases)}
       </p>
-      <p className="mt-1 text-[12px] text-muted">{scopeAttribution(extraction)}</p>
+      <p className="mt-1 text-[13px] text-muted">{scopeAttribution(extraction)}</p>
     </div>
   );
 }

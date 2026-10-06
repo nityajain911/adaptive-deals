@@ -39,7 +39,7 @@ describe("facts not captured that change nothing", () => {
     const evaluation = evaluateDeal(profile, input);
     expect(evaluation.state).toBe("options_ready");
     expect(profile.amountsIncludeGst.status).toBe("ambiguous");
-    expect(uncapturedLines(evaluation)).toEqual(["The GST basis was not captured from the conversation. Every structure has the same outcome under either reading, so no question is needed."]);
+    expect(uncapturedLines(evaluation)).toEqual(["The GST basis was not captured from the conversation. Every offer has the same outcome under either reading, so no question is needed."]);
   });
 
   it("is derived from the engine's own analysis: a fact that does change an outcome is not described this way", () => {

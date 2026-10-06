@@ -80,22 +80,22 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
       outbound ? "right" : "left",
       `thread-${i.id}`,
       <>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
           <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : buyerName}</span>
           {outbound ? <Badge tone={STATE_TONE[i.state]}>{draft ? "Draft · not sent" : clarificationDraftLabel(i.state, provenance)}</Badge> : null}
           {outbound && draft ? <Badge tone={STATE_TONE[i.state]}>{clarificationDraftLabel(i.state, provenance)}</Badge> : null}
           {!outbound && i.source === "buyer_proposal_page" ? <span>From the buyer proposal page</span> : null}
         </div>
         <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
-        <div className="mt-1 text-right text-[11px] text-muted">{fmtTime(i.sentAt ?? i.createdAt)}</div>
+        <div className="mt-1 text-right text-[13px] text-muted">{fmtTime(i.sentAt ?? i.createdAt)}</div>
         {outcome ? (
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
             <Badge tone={outcome.tone}>{outcome.label}</Badge>
             <span className="text-muted">Read by code (reply-rules.v1), not AI · {outcome.detail}</span>
           </div>
         ) : null}
         {disposition ? (
-          <div className="mt-1 text-[12px] text-muted" data-testid={`disposition-${i.id}`}>
+          <div className="mt-1 text-[13px] text-muted" data-testid={`disposition-${i.id}`}>
             Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : "Follow-up still pending"}
             {disposition.note ? ` · ${disposition.note}` : ""}
           </div>
@@ -111,9 +111,9 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
       buyer ? "left" : "right",
       `message-${message.id}`,
       <>
-        <div className="text-[12px] font-semibold text-ink-2">{buyer ? buyerName : "Pinecone Media Works"}</div>
+        <div className="text-[13px] font-semibold text-ink-2">{buyer ? buyerName : "Pinecone Media Works"}</div>
         {buyer && highlights.get(message.id)?.length ? <HighlightedText text={message.text} highlights={highlights.get(message.id)!} /> : <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{message.text}</p>}
-        <div className="mt-1 text-right text-[11px] text-muted">{fmtTime(message.timestamp)}</div>
+        <div className="mt-1 text-right text-[13px] text-muted">{fmtTime(message.timestamp)}</div>
       </>,
     );
   };
@@ -124,7 +124,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         <h2 id={`thread-${scope}`} className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           <MessageCircle aria-hidden className="h-4 w-4 text-green" /> {buyerName}
         </h2>
-        <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[12px] text-ink-2">Simulated conversation</span>
+        <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[13px] text-ink-2">Simulated conversation</span>
       </div>
       <ol className="space-y-2 bg-[#efeae2] p-4" aria-label="Messages">
         {openingChronological.map(openingBubble)}

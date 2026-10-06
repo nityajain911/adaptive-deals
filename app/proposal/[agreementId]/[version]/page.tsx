@@ -140,7 +140,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             <div>
               <dt className="text-muted">Terms hash (SHA-256)</dt>
               <dd>
-                <code className="break-all font-mono text-[11px] text-ink" data-testid="buyer-hash">
+                <code className="break-all font-mono text-[12px] text-ink" data-testid="buyer-hash">
                   {v.termsHash}
                 </code>
               </dd>
@@ -166,7 +166,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             </div>
           </dl>
         </details>
-        <p className="text-center text-[11px] text-muted">Fictional merchant and buyer · synthetic figures · no real payment is taken</p>
+        <p className="text-center text-[12px] text-muted">Fictional merchant and buyer · synthetic figures · no real payment is taken</p>
       </div>
     </article>
   );

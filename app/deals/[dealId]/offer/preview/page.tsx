@@ -54,7 +54,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
             <dd className="text-ink">{v.version} (draft)</dd>
             <dt className="text-muted">Terms hash (SHA-256)</dt>
             <dd>
-              <code className="break-all font-mono text-[11px] text-ink" data-testid="preview-hash">
+              <code className="break-all font-mono text-[12px] text-ink" data-testid="preview-hash">
                 {v.termsHash}
               </code>
             </dd>
