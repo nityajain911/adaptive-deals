@@ -29,6 +29,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
       <div className="mx-auto max-w-[560px] space-y-4">
         <div className="rounded-xl border border-[#f7dfb4] bg-amber-weak px-4 py-2 text-[13px] font-semibold text-amber" data-testid="preview-frame">
           Preview · Not sent to the buyer
+          <span className="mt-0.5 block font-normal text-ink-2">You&apos;re seeing what {activeCase.buyer.name} will see.</span>
         </div>
         {stale ? <Notice tone="amber" title="The offer changed since you reviewed it.">Go back to the offer and review the updated proposal.</Notice> : null}
         {newEvidence ? <EvidenceReview s={s} /> : null}

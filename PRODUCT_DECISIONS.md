@@ -305,3 +305,15 @@ The model's explanation has two parts that code validates separately: a full com
 **A settled Understand stage shows one summary line built by code from stated or confirmed facts only.** A GST basis or approval scope the buyer did not confirm, and required services the merchant has not yet confirmed, are left out rather than guessed.
 
 **Track leads with the merchant's next step.** The step card no longer repeats the status headline; when nothing is needed it says so. Agreement detail, outcome and learning, and the conversation are collapsed while an action is pending.
+
+## The buyer's page says what is being accepted, in the buyer's terms
+
+**A glance line comes first.** The total including GST, the number of payments and what is included, built by code from the canonical terms. The merchant preview shows the same content, with a line saying the merchant is seeing what the buyer will see.
+
+**The attestation names what is being accepted.** The checkbox reads "I confirm the required internal approval for this ₹1,41,600 agreement has been obtained" (or "…authorised to buy this standalone ₹46,020 package"). The disclosure that Adaptive Deals does not verify the approver stays as a separate note: approval is attested, not verified.
+
+**Recurring-payment wording does not imply the buyer can move a debit.** It says the buyer authorises collection of the scheduled payments, each up to a stated limit until a stated date, with a reminder before each, and that a payment date changes only if both sides accept a revised proposal.
+
+**Change requests start from a date or a scope, never an amount.** An amount change is a commercial renegotiation and goes back through the merchant's own offer choices, not a buyer-side shortcut.
+
+**The simulated buyer's reply is a set of choices.** Each scripted reply is a button, including the ones where the buyer is not sure; those leave the fact unresolved, exactly as before.

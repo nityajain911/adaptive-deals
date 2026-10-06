@@ -202,9 +202,13 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await clickPrimary(page);
   await expectStage(page, "understand", "Waiting for the buyer", undefined);
 
-  await page.getByTestId("walkthrough-reply-choice").selectOption("clar-gst-yes");
+  // The simulated buyer's replies are choices, including honest uncertainty.
+  await expect(page.getByTestId("walkthrough-reply-clar-gst-unclear")).toBeVisible();
+  await expect(page.getByTestId("walkthrough-reply-__typed")).toBeVisible();
+  await page.getByTestId("walkthrough-reply-clar-gst-yes").click();
+  await expect(page.getByTestId("walkthrough-reply-clar-gst-yes")).toHaveAttribute("aria-checked", "true");
   await walkthroughPrimary(page).click();
-  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveValue("clar-approval-contract");
+  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-approval-contract");
   await walkthroughPrimary(page).click();
   await expectStage(page, "understand", "The buyer answered", "Use these answers");
   await clickPrimary(page);
@@ -243,7 +247,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("Send scheduled advance notice");
   await walkthroughPrimary(page).click();
-  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveValue("notice-cash-tight");
+  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "notice-cash-tight");
   await walkthroughPrimary(page).click();
   await expectStage(page, "track", /can't pay until after 20 Dec 2026/, "Draft revised terms");
   await clickPrimary(page);
@@ -730,4 +734,29 @@ test("step 3 · alternatives are visible rows, not hidden behind a disclosure", 
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("alternative-1")).toBeVisible();
   await expect(page.getByTestId("compare-alternatives").locator("summary")).toHaveCount(0);
+});
+
+test("step 4 · the buyer's page leads with a glance line, words the attestation from the terms, and offers change starters without an amount", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  const agreement = await prepareSent(page);
+  await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
+  await expect(page.getByTestId("proposal-glance")).toContainText("including GST · 2 payments ·");
+  await expect(page.getByTestId("recurring")).toContainText("You authorise Pinecone Media Works to collect the scheduled payments above");
+  await expect(page.getByTestId("recurring")).toContainText("only if you both accept a revised proposal");
+  await page.getByTestId("request-change").click();
+  await expect(page.getByTestId("change-starter-date")).toBeVisible();
+  await expect(page.getByTestId("change-starter-scope")).toBeVisible();
+  await expect(page.getByTestId("change-starter-other")).toBeVisible();
+  await expect(page.getByText(/different amount/i)).toHaveCount(0);
+  await page.getByTestId("change-starter-date").click();
+  await expect(page.getByLabel("What would you like changed?")).toHaveValue(/^I'd like a different payment date: /);
+});
+
+test("step 4 · the merchant preview says it is what the buyer will see, and the simulated buyer reply is a set of choices", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await api(page, { action: "review_buyer_proposal" });
+  await page.goto("/deals/hero/offer/preview");
+  await expect(page.getByTestId("preview-frame")).toContainText("You're seeing what");
+  await expect(page.getByTestId("preview-frame")).toContainText("will see");
 });

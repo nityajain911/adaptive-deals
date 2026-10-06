@@ -3,6 +3,8 @@ import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import type { AmendmentDifference } from "@/lib/amendment-diff";
 import type { ProposalView } from "@/lib/views";
+import { heroMerchant } from "@/data/synthetic/hero";
+import { authorityStatement, proposalGlance, recurringStatement } from "@/lib/proposal-copy";
 import { cx } from "./ui";
 
 /**
@@ -40,6 +42,9 @@ export function AmendmentDifferences({ differences }: { differences: AmendmentDi
 export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [] }: { view: ProposalView; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[] }) {
   return (
     <div className="space-y-5" data-testid="proposal-content">
+      <p className="rounded-xl bg-blue-weak px-4 py-3 text-[15px] font-semibold leading-6 text-ink" data-testid="proposal-glance">
+        {proposalGlance(view)}
+      </p>
       {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} /> : null}
       <section aria-labelledby="scope">
         <h2 id="scope" className="text-[13px] font-semibold uppercase tracking-wide text-muted">
@@ -115,7 +120,7 @@ export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = 
               Recurring authorisation
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-ink-2" data-testid="recurring">
-              An e-mandate of up to {formatINR(view.recurring.perDebitLimitPaise)} per debit, ending {view.recurring.endDate}. You get a reminder {view.recurring.noticeDays} days before each debit. <span className="text-muted">(Simulated in this prototype.)</span>
+              {recurringStatement(view.recurring, heroMerchant.name)} <span className="text-muted">(Simulated in this prototype.)</span>
             </p>
           </div>
         </section>
@@ -123,9 +128,8 @@ export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = 
 
       {view.authorityReason ? (
         <section aria-label="Approval requirement" className="rounded-xl border border-line px-4 py-3 text-[13px] text-ink-2" data-testid="authority-requirement">
-          {view.authorityReason === "required_approval"
-            ? "Accepting requires confirming the required internal approval has been obtained. Adaptive Deals does not verify the approver's identity."
-            : "Accepting requires confirming you are authorised to purchase this standalone scope."}
+          {authorityStatement(view.authorityReason, view.totalPaise).label}
+          {authorityStatement(view.authorityReason, view.totalPaise).note ? <span className="text-muted"> {authorityStatement(view.authorityReason, view.totalPaise).note}</span> : null}
         </section>
       ) : null}
 

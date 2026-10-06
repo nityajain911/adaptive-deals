@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { BUYER_DECLINE_REASONS, type BuyerDeclineReason } from "@/lib/reason-codes";
+import { authorityStatement, CHANGE_STARTERS } from "@/lib/proposal-copy";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -151,7 +152,7 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
   );
 }
 
-export function AcceptForm({ action, version, termsHash, authorityReason }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null }) {
+export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number }) {
   const { run, pending, error } = useAction();
   const [authority, setAuthority] = useState(false);
   return (
@@ -165,7 +166,10 @@ export function AcceptForm({ action, version, termsHash, authorityReason }: { ac
       {authorityReason ? (
         <label className="flex items-start gap-2 text-[13px] text-ink-2">
           <input type="checkbox" className="mt-0.5" checked={authority} onChange={(e) => setAuthority(e.target.checked)} data-testid="authority" />
-          <span>{authorityReason === "required_approval" ? "I confirm the required internal approval has been obtained. Adaptive Deals does not verify the approver's identity." : "I confirm I am authorised to purchase this standalone scope."}</span>
+          <span>
+            {authorityStatement(authorityReason, totalPaise).label}
+            {authorityStatement(authorityReason, totalPaise).note ? <span className="block text-[12px] text-muted">{authorityStatement(authorityReason, totalPaise).note}</span> : null}
+          </span>
         </label>
       ) : null}
       <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (!!authorityReason && !authority)} data-testid="accept">
@@ -204,6 +208,13 @@ export function RequestChangeForm({ version }: { version: number }) {
         });
       }}
     >
+      <div className="flex flex-wrap gap-2" role="group" aria-label="What would you like to change?">
+        {CHANGE_STARTERS.map((c) => (
+          <button key={c.id} type="button" data-testid={`change-starter-${c.id}`} onClick={() => setText(c.text)} className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-muted">
+            {c.label}
+          </button>
+        ))}
+      </div>
       <label className="block text-[13px] font-semibold text-ink">
         What would you like changed?
         <textarea className="mt-1 block min-h-20 w-full rounded-lg border border-line-strong px-3 py-2 text-[14px] font-normal text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} autoFocus />

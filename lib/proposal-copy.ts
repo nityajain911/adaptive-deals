@@ -1,0 +1,29 @@
+import { formatINR } from "@/domain/money";
+import type { ProposalView } from "@/lib/views";
+
+const list = (items: string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+
+/** One line a buyer can read first: the total, how many payments, and what is included. */
+export function proposalGlance(v: Pick<ProposalView, "included" | "totalPaise" | "payments">): string {
+  const n = v.payments.length;
+  return `${formatINR(v.totalPaise)} including GST · ${n} payment${n === 1 ? "" : "s"} · ${list(v.included.map((i) => i.name))}`;
+}
+
+/** The attestation the buyer makes, worded from the terms they accept. The disclosure stays a separate note. */
+export function authorityStatement(reason: ProposalView["authorityReason"], totalPaise: number): { label: string | null; note: string | null } {
+  if (reason === "required_approval") return { label: `I confirm the required internal approval for this ${formatINR(totalPaise)} agreement has been obtained.`, note: "Adaptive Deals does not verify who approved it." };
+  if (reason === "phase_scope") return { label: `I confirm I am authorised to buy this standalone ${formatINR(totalPaise)} package.`, note: null };
+  return { label: null, note: null };
+}
+
+/** Collection happens on the scheduled dates; moving one needs a revised proposal that both sides accept. */
+export function recurringStatement(r: NonNullable<ProposalView["recurring"]>, merchantName: string): string {
+  return `You authorise ${merchantName} to collect the scheduled payments above, each up to ${formatINR(r.perDebitLimitPaise)}, until ${r.endDate}. You get a reminder ${r.noticeDays} days before each one. A payment date changes only if you both accept a revised proposal.`;
+}
+
+/** Starting points for a change request. An amount change is deliberately not offered. */
+export const CHANGE_STARTERS = [
+  { id: "date", label: "A different payment date", text: "I'd like a different payment date: " },
+  { id: "scope", label: "A different scope", text: "I'd like to change what's included: " },
+  { id: "other", label: "Something else", text: "" },
+] as const;

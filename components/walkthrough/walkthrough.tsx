@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Compass } from "lucide-react";
 import type { WalkthroughView } from "@/lib/walkthrough";
 import { confirmedRestartCommand, walkthroughCommand, type WalkthroughCommand } from "@/lib/walkthrough-actions";
 import { Button, useAction } from "@/components/client";
+import { cx } from "@/components/ui";
 import { notifyWalkthroughPreferences, readWalkthroughPreferences, subscribeWalkthroughPreferences, walkthroughPreferencesSnapshot, writeWalkthroughPreferences } from "./preferences";
 import { WalkthroughProgress } from "./walkthrough-progress";
 
@@ -32,12 +33,14 @@ function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo
         send(walkthroughCommand(custom ? { action: "buyer_reply", inReplyTo: reply.inReplyTo, text: typed } : { action: "buyer_reply", inReplyTo: reply.inReplyTo, scriptId: choice }));
       }}
     >
-      <label className="block text-[12px] font-semibold text-ink">Simulated buyer response
-        <select className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px] font-normal" value={choice} onChange={(event) => setChoice(event.target.value)} data-testid="walkthrough-reply-choice">
-          {reply.scripts.map((script) => <option key={script.id} value={script.id}>{script.text}</option>)}
-          <option value="__typed">Type another reply</option>
-        </select>
-      </label>
+      <div role="radiogroup" aria-label="Simulated buyer response" className="space-y-1.5" data-testid="walkthrough-reply-choice" data-value={choice}>
+        <div className="text-[12px] font-semibold text-ink">The buyer replies</div>
+        {[...reply.scripts, { id: "__typed", text: "Type another reply" }].map((script) => (
+          <button key={script.id} type="button" role="radio" aria-checked={choice === script.id} data-testid={`walkthrough-reply-${script.id}`} onClick={() => setChoice(script.id)} className={cx("w-full rounded-lg border px-3 py-2 text-left text-[13px] leading-5", choice === script.id ? "border-violet bg-surface font-medium text-ink ring-1 ring-violet" : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted")}>
+            {script.text}
+          </button>
+        ))}
+      </div>
       {custom ? <textarea aria-label="Another simulated buyer reply" className="min-h-20 w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px]" value={typed} maxLength={500} onChange={(event) => setTyped(event.target.value)} /> : null}
       <p className="text-[11px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
       <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : "Send simulated buyer response"}</Button>

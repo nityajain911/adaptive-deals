@@ -69,9 +69,9 @@ test("guide completes the core journey while every merchant decision stays in th
 
   await expect(guide(page)).toContainText("Merchant action");
   await productPrimary(page);
-  await expect(guide(page).getByTestId("walkthrough-reply-choice")).toHaveValue("clar-gst-yes");
+  await expect(guide(page).getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-gst-yes");
   await guide(page).locator("[data-walkthrough-primary]").click();
-  await expect(guide(page).getByTestId("walkthrough-reply-choice")).toHaveValue("clar-approval-contract");
+  await expect(guide(page).getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-approval-contract");
   await guide(page).locator("[data-walkthrough-primary]").click();
   await expect(page.getByTestId("primary-action")).toContainText("Use these answers");
   await productPrimary(page);
