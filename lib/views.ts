@@ -8,7 +8,7 @@ import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
 import type { ReplyClassification } from "@/domain/replies";
 import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
-import type { DecisionBranch } from "./decision-branch";
+import { branchCause, type DecisionBranch } from "./decision-branch";
 import type { ModelProvenance } from "./model-provenance";
 
 /**
@@ -231,7 +231,7 @@ export function explanationAttribution(
   branch: DecisionBranch | null = null,
   comparison: ExplanationResult["source"]["text"] = source?.text ?? "code_fallback",
 ): string {
-  if (branch) return "Recalculated by the engine after the buyer's answer · explanation written by code.";
+  if (branch) return `Recalculated by the engine after ${branchCause(branch)} · explanation written by code.`;
   const ranked = source?.ranking === "ai";
   const reasoned = source?.text === "ai";
   if (!source) return "Explanation written by code · all figures calculated by the engine";

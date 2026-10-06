@@ -332,6 +332,41 @@ export function InterpretForm({ messageId, buyerText, options, primary = false }
   );
 }
 
+/**
+ * The merchant confirms which services the buyer requires when the extraction named a scope that
+ * matched no package. At least one service is needed; code validates the choice again.
+ */
+export function ConfirmServicesForm({ packages, preselected = [], onDone }: { packages: { id: string; name: string }[]; preselected?: string[]; onDone?: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  const [chosen, setChosen] = useState<string[]>(preselected);
+  const toggle = (id: string) => setChosen((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
+  return (
+    <form
+      className="mt-3 space-y-3"
+      data-testid="confirm-services"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ action: "confirm_required_services", packageIds: chosen }, () => (onDone ? router.push(onDone) : undefined));
+      }}
+    >
+      <fieldset className="grid gap-2 sm:grid-cols-2">
+        <legend className="sr-only">Services the buyer requires</legend>
+        {packages.map((p) => (
+          <label key={p.id} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px]", chosen.includes(p.id) ? "border-blue bg-blue-weak" : "border-line bg-surface")}>
+            <input type="checkbox" name="service" value={p.id} checked={chosen.includes(p.id)} onChange={() => toggle(p.id)} data-testid={`service-${p.id}`} />
+            {p.name}
+          </label>
+        ))}
+      </fieldset>
+      <Button type="submit" variant="primary" className="min-h-10 px-4 text-[14px]" data-testid="primary-action" disabled={pending || chosen.length === 0}>
+        {pending ? "Confirming…" : "Confirm required services"}
+      </Button>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
 /** Opens a collapsed card (<details id=…>) and scrolls to it. Used as the Track Now card's primary action. */
 export function RevealButton({ targetId, children }: { targetId: string; children: ReactNode }) {
   return (

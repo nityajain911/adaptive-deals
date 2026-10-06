@@ -73,9 +73,28 @@ export function migrateState(raw: unknown): DemoState {
   return s;
 }
 
+function validScope(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "object") return false;
+  const scope = value as Partial<NonNullable<DecisionBranch["scope"]>>;
+  return (
+    scope.kind === "required_services" &&
+    typeof scope.confirmedAt === "string" &&
+    typeof scope.by === "string" &&
+    Array.isArray(scope.packageIds) &&
+    scope.packageIds.length > 0 &&
+    scope.packageIds.every((id) => typeof id === "string") &&
+    Array.isArray(scope.sources) &&
+    scope.sources.length > 0 &&
+    scope.sources.every((x) => !!x && typeof x.rawText === "string" && typeof x.evidenceQuote === "string" && typeof x.messageId === "string" && typeof x.extractInputHash === "string")
+  );
+}
+
 function validDecisionBranch(value: unknown): value is DecisionBranch {
   if (!value || typeof value !== "object") return false;
   const branch = value as Partial<DecisionBranch>;
+  const changed = branch.answersChanged !== false;
+  const hasScope = branch.scope !== undefined && branch.scope !== null;
   return (
     branch.schema === DECISION_BRANCH_SCHEMA &&
     typeof branch.branchId === "string" &&
@@ -83,10 +102,14 @@ function validDecisionBranch(value: unknown): value is DecisionBranch {
     typeof branch.parentRunId === "string" &&
     branch.parentRunId.length > 0 &&
     typeof branch.createdAt === "string" &&
-    branch.reason === "changed_clarification_answers" &&
+    (branch.reason === "changed_clarification_answers" || branch.reason === "merchant_scope_confirmation") &&
+    // A scope-only branch needs a confirmation; an answer branch needs changed answers.
+    (branch.reason === "merchant_scope_confirmation" ? !changed && hasScope : changed) &&
+    (branch.answersChanged === undefined || typeof branch.answersChanged === "boolean") &&
+    validScope(branch.scope) &&
     branch.explanationSource === "code_fallback" &&
     Array.isArray(branch.answers) &&
-    branch.answers.length > 0 &&
+    (changed ? branch.answers.length > 0 : true) &&
     branch.answers.every(
       (answer) =>
         !!answer &&

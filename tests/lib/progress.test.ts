@@ -13,6 +13,7 @@ const facts = (over: Partial<ProgressFacts> = {}): ProgressFacts => ({
   attentionMessages: 0,
   workItems: [],
   unreviewedDecisionEvidence: 0,
+  unmappedRequiredServices: 0,
   nextPayment: null,
   pendingDebit: null,
   buyerSetup: { linkUnpaid: false, mandatePending: false },
@@ -64,6 +65,18 @@ describe("Understand and Offer rows", () => {
     expect(U({}).primaryAction?.id).toBe("use_answers");
     expect(dealProgress(mk({ status: "needs_information" }), facts({ engineState: "insufficient_information" })).primaryAction?.id).toBe("send_missing_question");
     expect(U({}).stages).toEqual({ understand: "current", offer: "upcoming", track: "upcoming" });
+  });
+  it("an unmapped required scope holds the deal at Understand until the merchant confirms it", () => {
+    const p = dealProgress(mk(), facts({ unmappedRequiredServices: 1 }));
+    expect([p.stage, p.rule, p.kind, p.actor, p.primaryAction, p.headline]).toEqual(["understand", "understand.scope", "action_required", "merchant", { id: "confirm_required_services", label: "Confirm required services" }, "Confirm which services the buyer requires before we recommend an offer."]);
+    expect(p.stages).toEqual({ understand: "current", offer: "upcoming", track: "upcoming" });
+    // Only once options exist, and never after the deal has moved on.
+    expect(dealProgress(mk({ status: "clarifying" }), facts({ engineState: "ambiguous", questionCountUnsent: 2, unmappedRequiredServices: 1 })).rule).toBe("understand.send");
+    expect(dealProgress(mk({ status: "no_feasible_structure" }), facts({ engineState: "no_feasible_deal", unmappedRequiredServices: 1 })).rule).toBe("offer.no_feasible");
+    expect(dealProgress(mk({ status: "merchant_rejected" }), facts({ unmappedRequiredServices: 1 })).rule).toBe("offer.closed");
+    expect(dealProgress(mk({ deliveries: delivered, status: "sent", agreements: [{ version: 1, status: "sent" }] }), facts({ unmappedRequiredServices: 1 })).stage).toBe("track");
+    // Confirmed (nothing left unmapped): the offer is next.
+    expect(dealProgress(mk(), facts({ unmappedRequiredServices: 0 })).rule).toBe("offer.review");
   });
   it("offer: review, stale, retry, no-feasible, outside templates", () => {
     expect(dealProgress(mk(), facts()).primaryAction?.id).toBe("review_buyer_proposal");

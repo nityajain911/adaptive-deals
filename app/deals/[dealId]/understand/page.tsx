@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { ConversationThread } from "@/components/conversation-thread";
-import { InterpretForm, PrimaryActionButton } from "@/components/client";
+import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
+import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
 import { Badge, Card } from "@/components/ui";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { questionWordingLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import { originalProposal } from "@/lib/offer-copy";
-import { blockingLines } from "@/lib/understand-copy";
-import { decisionAnswers, latestClarificationForQuestion } from "@/lib/service";
+import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
+import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
+import { branchChangedAnswers } from "@/lib/decision-branch";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -29,6 +31,12 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const current = progress.stages.understand === "current";
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposal());
+  const uncaptured = uncapturedLines(out.evaluation);
+  const extraction = taskOrRunProvenance(r, "extract", s.run.viewing);
+  const unmapped = unmappedScopeOf(s, out);
+  const scope = s.decisionBranch?.scope ?? null;
+  const packages = activeCase.deal.packages;
+  const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} extraction={extraction ?? { modelMade: false, providerName: null }} /> : null;
   const evidence = r.engine.profile.filter((f) => f.evidence.length);
   const answers = decisionAnswers(s);
   const confirmedAt = answers.map((a) => a.answeredAt).sort().at(-1) ?? null;
@@ -55,7 +63,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             {f.confirmedBy ? ` · confirmed in a clarification reply` : ""}
           </li>
         ))}
-        {s.decisionBranch
+        {s.decisionBranch && branchChangedAnswers(s.decisionBranch)
           ? answers.map((answer) => (
               <li key={`branch-${answer.questionId}`}>
                 <span className="font-semibold text-ink">Changed clarification · {answer.questionId}</span> · Source: buyer clarification recorded by merchant · “{answer.answerText}”
@@ -84,7 +92,11 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               {lines.map((l) => (
                 <li key={l}>{l}</li>
               ))}
+              {uncaptured.map((l) => (
+                <li key={l} data-testid="uncaptured">{l}</li>
+              ))}
             </ul>
+            {confirmedServices ? <div className="mt-3">{confirmedServices}</div> : null}
             {questions.length ? (
               <dl className="mt-3 space-y-2 text-[13px]">
                 {questions.map(({ q, answer }) => (
@@ -115,9 +127,22 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               {lines.map((l) => (
                 <li key={l}>{l}</li>
               ))}
+              {uncaptured.map((l) => (
+                <li key={l} className="text-[13px] text-ink-2" data-testid="uncaptured">
+                  {l}
+                </li>
+              ))}
             </ul>
             {evidenceDetails}
           </Card>
+
+          {unmapped.length ? (
+            <ScopeConfirmationCard
+              phrases={unmapped.map((u) => ({ rawText: u.rawText, evidenceQuote: u.evidenceQuote }))}
+              extraction={extraction ?? { modelMade: false, providerName: null }}
+              form={<ConfirmServicesForm packages={packages.map((p) => ({ id: p.id, name: p.name }))} onDone={stageHref(dealId, "offer")} />}
+            />
+          ) : null}
 
           {questions.length ? (
             <Card className="p-5" data-testid="questions-card">

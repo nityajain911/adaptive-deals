@@ -1,6 +1,7 @@
 import type { DemoStep, DemoStepType } from "./demo-steps";
 import { demoStepConsequence, nextDemoStep } from "./demo-steps";
 import type { DealProgress } from "./progress";
+import { branchCause } from "./decision-branch";
 import { taskOrRunProvenance, type ModelProvenance } from "./model-provenance";
 import type { DemoState } from "./service";
 import { WALKTHROUGH_VERSION } from "./walkthrough-version";
@@ -176,7 +177,7 @@ function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughOb
       : { ...item, actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." };
   }
   if (item.id === "review_decision") {
-    if (state.decisionBranch) return { ...item, notice: "The engine recalculated this decision after the buyer's answer; code set the order and wrote the explanation." };
+    if (state.decisionBranch) return { ...item, notice: `The engine recalculated this decision after ${branchCause(state.decisionBranch)}; code set the order and wrote the explanation.` };
     const source = taskSource(state, "explain");
     return source.modelMade
       ? { ...item, notice: `${source.providerName} orders the eligible options; deterministic code calculates feasibility and economics and enforces approval ordering.` }

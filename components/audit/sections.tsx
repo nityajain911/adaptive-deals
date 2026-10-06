@@ -63,8 +63,8 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
       <section aria-labelledby="audit-evidence">
         <H id="audit-evidence">Evidence</H>
         <ul className="mt-1 space-y-1">
-          {sources.map((x) => (
-            <li key={x.item}>
+          {sources.map((x, i) => (
+            <li key={`${x.item}-${i}`}>
               <span className="font-medium text-ink">{x.item}</span> · Source: {x.source}
             </li>
           ))}
@@ -72,8 +72,8 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
         <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
           <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>
           <ul className="mt-1 space-y-1 pb-1 text-[12px]">
-            {sources.filter((x) => x.detail).map((x) => (
-              <li key={x.item}>
+            {sources.filter((x) => x.detail).map((x, i) => (
+              <li key={`${x.item}-${i}`}>
                 {x.item}: {x.detail}
               </li>
             ))}
@@ -91,6 +91,11 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
                 <span className="font-medium text-ink">{answer.questionId}</span> · “{answer.answerText}” → {answer.value} · confirmed via {answer.confirmedByBuyerVia}
               </li>
             ))}
+            {branch.scope ? (
+              <li data-testid="branch-scope">
+                <span className="font-medium text-ink">Required services</span> · merchant confirmed {branch.scope.packageIds.map((id) => heroPackages.find((p) => p.id === id)?.name ?? id).join(", ")} from “{branch.scope.sources.map((x) => x.rawText).join("”, “")}”
+              </li>
+            ) : null}
           </ul>
           <details className="mt-2 rounded-lg border border-line px-3 py-1.5">
             <summary className="cursor-pointer font-semibold text-ink">Advanced details</summary>

@@ -77,6 +77,7 @@ describe("walkthrough state comes from the deal", () => {
 
   it.each([
     ["understand.waiting", "understand", "buyer", "understand_buyer", "buyer"],
+    ["understand.scope", "understand", "merchant", "understand_buyer", "merchant"],
     ["offer.review", "offer", "merchant", "review_decision", "merchant"],
     ["track.sent_awaiting_buyer", "track", "buyer", "confirm_terms", "buyer"],
     ["track.buyer_setup", "track", "buyer", "setup_collection", "system"],
@@ -173,6 +174,13 @@ describe("run provenance", () => {
     const view = resolve(mislabelled, await svc.progressOf(fresh));
     expect(view.provenance).toBe("synthetic_replay");
     expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
+  });
+
+  it("says a merchant confirmation recalculated the decision, and credits no model for the order", async () => {
+    const branched = started();
+    branched.decisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "branch-1", parentRunId: branched.run.record.runId, createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "merchant_scope_confirmation", answersChanged: false, scope: { kind: "required_services", packageIds: ["website-fixes"], confirmedAt: "2026-10-01T09:30:00+05:30", by: "Merchant", sources: [{ rawText: "x", evidenceQuote: "x", messageId: "m1", extractInputHash: "h" }] }, explanationSource: "code_fallback" };
+    const view = resolve(branched, await svc.progressOf(fresh));
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The engine recalculated this decision after the merchant confirmed the services; code set the order and wrote the explanation.");
   });
 
   it("credits code, not the parent run, on a changed-answer branch", async () => {

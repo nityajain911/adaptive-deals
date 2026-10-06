@@ -31,6 +31,11 @@ describe("demo steps never perform merchant or buyer decisions", () => {
     expect(demoStepConsequence({ type: "buyer", label: "Next: simulated buyer reply to the question" })).toBe("Simulated buyer action · buyer reply to the question");
     expect(demoStepConsequence({ type: "merchant", label: "Next: review the buyer proposal" })).toBe("Merchant action · review the buyer proposal");
   });
+  it("points the merchant at confirming the required services without performing it", () => {
+    const step = nextDemoStep({} as never, { rule: "understand.scope", stage: "understand" } as never, "hero");
+    expect(step).toMatchObject({ id: "confirm_required_services", type: "merchant", systemAction: null, usesReplyControl: false, href: "/deals/hero/understand" });
+    expect(step!.label).toBe("Next: confirm the services the buyer requires");
+  });
   it("merchant steps only navigate", async () => {
     await svc.resetToSeed();
     const st = (await step())!;

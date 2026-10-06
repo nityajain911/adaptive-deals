@@ -1,0 +1,60 @@
+{
+  "note": "Real Groq output recorded for the preserve-scope case on 6 Oct 2026 (extract.v2). Used by tests only.",
+  "rawOutput": {
+    "fields": [
+      {
+        "key": "budget_now_amount",
+        "raw_text": "₹10,000",
+        "evidence_quote": "We have ₹10,000 available this quarter.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "budget_now_period",
+        "raw_text": "this quarter",
+        "evidence_quote": "We have ₹10,000 available this quarter.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_amount",
+        "raw_text": "₹15,000",
+        "evidence_quote": "The ₹10,000 budget and ₹15,000 approval limit per payment both exclude GST.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "approval_limit_scope",
+        "raw_text": "per payment",
+        "evidence_quote": "The ₹10,000 budget and ₹15,000 approval limit per payment both exclude GST.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "next_budget_date",
+        "raw_text": "1st May 2027",
+        "evidence_quote": "Our next campaign budget opens on 1st May 2027.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "required_package",
+        "raw_text": "complete annual package",
+        "evidence_quote": "We need the complete annual package—Website fixes, Search marketing, Social media and Monthly reporting—for the admissions launch",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      },
+      {
+        "key": "other_constraint",
+        "raw_text": "do not reduce the scope",
+        "evidence_quote": "so please do not reduce the scope.",
+        "message_id": "preserve-2",
+        "confidence": "high"
+      }
+    ],
+    "ambiguities": [],
+    "missing_required": [],
+    "unsupported_requests": [],
+    "suspected_instructions": []
+  }
+}

@@ -26,6 +26,7 @@ describe("walkthrough mutation authority", () => {
     "approve_amendment",
     "accept_amendment",
     "create_test_invoice",
+    "confirm_required_services",
   ])("rejects merchant-owned action %s", (action) => {
     expect(() => walkthroughCommand({ action })).toThrow(/walkthrough command/i);
   });

@@ -841,6 +841,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Change (applicant-approved):** a validated reason is shown on its own offer card, with attribution for exactly that field. The audit credits AI with the reasons that passed and code with the full comparison. No validator changed: the same checks decide what passes.
 
+### 2026-10-06 · Merchant confirmation of unmapped required services [Claude Code]
+
+**Found by the final recordings:** Groq returned the required scope of the preserve-scope case as "complete annual package", which names no package. Code correctly rejected it, but the deal continued to options and recommended full scope only because the buyer's budget happened to leave one option. The buyer's explicit scope requirement was not applied, silently.
+
+**Change (applicant-approved):** an unmapped required-service phrase now holds the deal at Understand the buyer. The merchant confirms the required services from the deal's package list; the confirmation is stored as a decision branch linked to the rejected phrase and its evidence, and the engine recalculates. Selecting, previewing and approving an offer are refused until then, at the service layer as well as in the UI. The recorded Groq extraction is not modified.
+
+**AI boundary:** no prompt, schema, validator, provider, orchestrator, engine rule, check, economics rule or evaluation asset changed. No model call was made for this work. The walkthrough cannot dispatch the confirmation: it is a merchant action performed in the product.
+
+**Also added:** an uncaptured fact that changes no structure's outcome (the GST basis in this case) is disclosed on Understand instead of asked about, from the engine's own ambiguity analysis.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

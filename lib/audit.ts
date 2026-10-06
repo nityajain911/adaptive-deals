@@ -7,7 +7,10 @@ import type { RunOutcome } from "@/ai/orchestrator";
 import { snapshotEvaluation, type RecordedAnswer } from "@/ai/run-record";
 import { canonicalJson } from "@/domain/agreement";
 import { createHash } from "node:crypto";
+import { heroPackages } from "@/data/synthetic/hero";
+import { branchChangedAnswers, branchNotProcessed, branchRecalculatedAfter, branchScope, type DecisionBranch } from "./decision-branch";
 import { SAMPLE_OUTPUT_LABEL, taskProvenance, type ModelProvenance } from "./model-provenance";
+import { unmappedRequiredServices } from "./scope-confirmation";
 
 /**
  * Read-only audit derivations for the merchant audit drawer (spec §8.3). Every source is labelled
@@ -23,7 +26,7 @@ export interface AuditSource {
 
 const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Option ranking and explanation" };
 
-export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay"): AuditSource[] {
+export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[] = heroPackages): AuditSource[] {
   const out: AuditSource[] = [
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
     { item: "Merchant costs and rules", source: "Synthetic deal fixture" },
@@ -32,8 +35,23 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
     if (f.evidence.length) out.push({ item: f.label, source: "Simulated WhatsApp conversation", detail: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" ") });
     if (f.confirmedBy) out.push({ item: `${f.label} (confirmation)`, source: "Clarification message", detail: `${f.confirmedBy.questionId}` });
   }
+  // A required-services phrase the model returned but code could not map, and the merchant's answer to it.
+  const extractStep = run.steps.find((st) => st.task === "extract" && st.failure === null);
+  const extraction = taskProvenance(run, "extract", viewing);
+  for (const u of unmappedRequiredServices({ rejectedFields: run.engine.rejectedFields }, extractStep, run.inputs.messages)) {
+    out.push({
+      item: "Required services (unmapped phrase)",
+      source: extraction?.modelMade ? `${extraction.label} · run ${run.runId} · ${extractStep!.promptVersion}` : `${SAMPLE_OUTPUT_LABEL} · run ${run.runId}`,
+      detail: `“${u.rawText}” matched no package in this deal · evidence “${u.evidenceQuote}” (${u.messageId})`,
+    });
+  }
+  const scope = branchScope({ scope: s.decisionBranch?.scope });
+  if (scope) {
+    const names = scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id);
+    out.push({ item: "Required services (merchant confirmation)", source: "Merchant confirmation of an unmapped extraction", detail: `${scope.sources.map((x) => `“${x.rawText}”`).join(", ")} → ${names.join(", ")} · ${scope.by} · ${scope.confirmedAt}` });
+  }
   for (const i of s.interpretations) out.push({ item: `Interpretation of ${i.messageId}`, source: "Merchant interpretation of buyer message", detail: `“${i.quote}” → ${i.value}` });
-  for (const answer of s.decisionBranch?.answers ?? []) {
+  for (const answer of s.decisionBranch && branchChangedAnswers(s.decisionBranch) ? s.decisionBranch.answers : []) {
     out.push({ item: `Changed answer · ${answer.questionId}`, source: "Buyer clarification recorded by merchant", detail: `“${answer.answerText}” → ${answer.value} · ${answer.confirmedByBuyerVia} · ${answer.answeredAt}` });
   }
   if (s.attempts.some((a) => a.status === "succeeded" || a.status === "failed")) out.push({ item: "Payment state", source: "Simulated payment record" });
@@ -46,8 +64,8 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
     if (s.decisionBranch && st.task === "explain") {
       out.push(
         model
-          ? { item: "Parent option ranking and explanation", source: `Parent ${model.providerName} run ${run.runId} · context only`, detail: "The parent model run did not process the changed answers and its recommendation output was not used for this branch." }
-          : { item: "Parent option ranking and explanation", source: `Parent sample output ${run.runId} · context only`, detail: "The hand-written parent sample did not cover the changed answers and its recommendation output was not used for this branch." },
+          ? { item: "Parent option ranking and explanation", source: `Parent ${model.providerName} run ${run.runId} · context only`, detail: `The parent model run did not process ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` }
+          : { item: "Parent option ranking and explanation", source: `Parent sample output ${run.runId} · context only`, detail: `The hand-written parent sample did not cover ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` },
       );
       continue;
     }
@@ -100,10 +118,11 @@ export function whoDidWhat(
 
   const explainByModel = taskProvenance(run, "explain", viewing)?.modelMade ?? false;
   const prose = explainByModel ? "AI" : "sample";
-  const parent = explainByModel ? "the parent model did not process the changed answers" : "the hand-written parent sample did not cover the changed answers";
+  const notProcessed = s.decisionBranch ? branchNotProcessed(s.decisionBranch) : "";
+  const parent = explainByModel ? `the parent model did not process ${notProcessed}` : `the hand-written parent sample did not cover ${notProcessed}`;
   const code = [
     "Normalised supported values and verified every evidence quote",
-    s.decisionBranch ? "Recalculated every permitted structure and every figure after the changed buyer answers" : "Evaluated every permitted structure and calculated every figure",
+    s.decisionBranch ? `Recalculated every permitted structure and every figure after ${branchRecalculatedAfter(s.decisionBranch)}` : "Evaluated every permitted structure and calculated every figure",
     s.decisionBranch ? "Set the eligible option order through the documented code rule" : explain ? `Enforced the approval ordering and validated ${prose} prose` : "Enforced the approval ordering",
     "Read only the narrow supported payment-date reply (reply-rules.v1)",
   ];
@@ -117,6 +136,8 @@ export function whoDidWhat(
   if (s.outcomes.some((o) => o.type === "option_selected")) merchant.push("Selected an alternative offer");
   if (s.outcomes.some((o) => o.type === "merchant_closed")) merchant.push("Closed the deal in Adaptive Deals");
   if (s.interpretations.length) merchant.push(`Interpreted ${s.interpretations.length} buyer repl${s.interpretations.length === 1 ? "y" : "ies"} (merchant judgement)`);
+  const confirmed = s.decisionBranch?.scope;
+  if (confirmed) merchant.push(`Confirmed the required services (${confirmed.packageIds.length} service${confirmed.packageIds.length === 1 ? "" : "s"})`);
   if (s.handledMessages.length) merchant.push(`Marked ${s.handledMessages.length} buyer message${s.handledMessages.length === 1 ? "" : "s"} handled`);
 
   const buyer: string[] = [];
@@ -132,25 +153,29 @@ export function whoDidWhat(
 export interface BranchAudit {
   parentRunId: string;
   branchId: string;
+  /** Only the changed clarification answers; a scope-only branch has none. */
   answers: RecordedAnswer[];
+  scope: NonNullable<DecisionBranch["scope"]> | null;
   engineFingerprint: string;
   explanationSource: "code_fallback";
   notice: string;
 }
 
-/** Technical provenance for a changed-answer branch. Kept inside the read-only audit drawer. */
+/** Technical provenance for a branch. Kept inside the read-only audit drawer. */
 export function branchAudit(s: Pick<AuditState, "decisionBranch">, out: RunOutcome, provenance: ModelProvenance): BranchAudit | null {
   const branch = s.decisionBranch;
   if (!branch) return null;
+  const notProcessed = branchNotProcessed(branch);
   return {
     parentRunId: branch.parentRunId,
     branchId: branch.branchId,
-    answers: branch.answers,
+    answers: branchChangedAnswers(branch) ? branch.answers : [],
+    scope: branch.scope ?? null,
     engineFingerprint: createHash("sha256").update(canonicalJson(snapshotEvaluation(out.evaluation))).digest("hex"),
     explanationSource: branch.explanationSource,
     notice: provenance.modelMade
-      ? "The parent model run did not process the changed answers. The engine recalculated the decision and code wrote the explanation."
-      : "The hand-written parent sample did not cover the changed answers. The engine recalculated the decision and code wrote the explanation.",
+      ? `The parent model run did not process ${notProcessed}. The engine recalculated the decision and code wrote the explanation.`
+      : `The hand-written parent sample did not cover ${notProcessed}. The engine recalculated the decision and code wrote the explanation.`,
   };
 }
 

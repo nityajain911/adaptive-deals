@@ -1,0 +1,15 @@
+{
+  "note": "Real Groq output that failed the explain.v3 schema (a per-offer note over 240 characters). Used by tests only.",
+  "rawOutput": {
+    "ranking": [
+      "A"
+    ],
+    "comparison": "Option {A.label} spreads the total of {A.total} over {A.payment_count} equal monthly payments of {A.largest_payment} each, starting {A.first_payment_date} and ending {A.last_payment_date}. The net contribution is {A.net_contribution} ({A.net_contribution_pct}) and the peak funding requirement is {A.peak_funding} with a peak unpaid value of {A.peak_unpaid_value}. Approval is {A.approval}.",
+    "option_notes": [
+      {
+        "option": "A",
+        "note": "The schedule offers predictable cash flow but requires a commitment for a full year, with the highest unpaid balance of {A.peak_unpaid_value} remaining on the books until the final payment. The net contribution of {A.net_contribution} represents {A.net_contribution_pct} of the overall cost."
+      }
+    ]
+  }
+}

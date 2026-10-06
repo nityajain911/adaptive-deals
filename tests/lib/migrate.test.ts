@@ -34,6 +34,32 @@ describe("migrateState (spec §9)", () => {
     expect(s.decisionBranch).toBeNull();
     expect(s.reviewRequired).toMatch(/decision branch/i);
   });
+  describe("a decision branch with a merchant's confirmed services", () => {
+    const scope = { kind: "required_services", packageIds: ["website-fixes", "search-marketing"], confirmedAt: "2026-10-01T09:30:00+05:30", by: "Merchant", sources: [{ rawText: "the set", evidenceQuote: "the set", messageId: "m1", extractInputHash: "h" }] };
+    const branch = (over: Record<string, unknown> = {}) => ({ schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "run-parent", createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "merchant_scope_confirmation", answersChanged: false, scope, explanationSource: "code_fallback", ...over });
+    it("keeps a valid scope-only branch, which needs no changed answers", () => {
+      const s = migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION, decisionBranch: branch() }));
+      expect(s.decisionBranch).toMatchObject({ reason: "merchant_scope_confirmation", scope: { packageIds: ["website-fixes", "search-marketing"] } });
+      expect(s.reviewRequired).toBeNull();
+    });
+    it("still reads a branch stored before confirmations existed as an answer branch", () => {
+      const answer = { questionId: "clar-gst", value: "no", answerText: "No.", recordedBy: "Merchant", confirmedByBuyerVia: "whatsapp", answeredAt: "2026-10-01T09:20:00+05:30" };
+      const legacy = { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "run-parent", createdAt: "t", answers: [answer], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
+      expect(migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION, decisionBranch: legacy })).decisionBranch).toMatchObject({ reason: "changed_clarification_answers" });
+    });
+    it.each([
+      ["a scope-only branch with no confirmation", { scope: null }],
+      ["a scope-only branch that claims changed answers", { answersChanged: true }],
+      ["a confirmation naming no service", { scope: { ...scope, packageIds: [] } }],
+      ["a confirmation with no source", { scope: { ...scope, sources: [] } }],
+      ["a confirmation without who confirmed", { scope: { ...scope, by: undefined } }],
+      ["an answer branch with no answers", { reason: "changed_clarification_answers", answersChanged: true, scope: null, answers: [] }],
+    ])("sends %s to review instead of guessing", (_name, over) => {
+      const s = migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION, decisionBranch: branch(over) }));
+      expect(s.decisionBranch).toBeNull();
+      expect(s.reviewRequired).toMatch(/decision branch/i);
+    });
+  });
   it("adds work dispositions to a schema-2 store without treating handled messages as resolved", () => {
     const handled = [{ messageId: "reply-1", handledAt: "2026-12-01T11:00:00+05:30", actor: "merchant", note: "Called buyer" }];
     const raw = base({

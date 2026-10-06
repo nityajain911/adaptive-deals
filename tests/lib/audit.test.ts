@@ -7,6 +7,9 @@ import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero
 import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
 import type { DecisionBranch } from "@/lib/decision-branch";
 import { modelProvenance } from "@/lib/model-provenance";
+import { scopeAttribution } from "@/lib/scope-confirmation";
+import { evaluateDeal } from "@/domain/engine";
+import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 /** Spec §8.3: truthful sources, run-specific attribution, read-only. */
 const run = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
@@ -172,5 +175,60 @@ describe("audit drawer content is read-only", () => {
     expect(html).toContain("Sample output written by hand · no model ran");
     expect(html).toContain("No model ran for this case.");
     expect(html).not.toMatch(/AI run|Recorded Groq output|Suggested the order|Extracted the opening constraints/);
+  });
+});
+
+/** A recorded Groq run whose required scope ("complete annual package") matched no package. */
+describe("an unmapped required scope and the merchant's confirmation", () => {
+  const phrase = "complete annual package";
+  const quote = "We need the complete annual package—Website fixes, Search marketing, Social media and Monthly reporting—for the admissions launch";
+  const recorded = {
+    ...run,
+    runId: "run-case-preserve-scope-0a1b2c3d",
+    inputs: { ...run.inputs, messages: [{ id: "preserve-2", dealId: "d", author: "buyer", text: `${quote}. Please do not reduce the scope.`, timestamp: "2026-10-01T09:00:00+05:30", source: "whatsapp" }] },
+    engine: { ...run.engine, rejectedFields: [{ key: "required_package", reason: "does not match a deal package", rawText: phrase }] },
+    steps: run.steps.map((step) => (step.task === "extract" ? { ...step, inputHash: "abc123", rawOutput: { fields: [{ key: "required_package", raw_text: phrase, evidence_quote: quote, message_id: "preserve-2", confidence: "high" }] } } : step)),
+  } as RunRecord;
+  const scope = { kind: "required_services" as const, packageIds: ["website-fixes", "search-marketing", "social-media", "monthly-reporting"], confirmedAt: "2026-10-01T09:05:00+05:30", by: "Merchant (Pinecone Media Works)", sources: [{ rawText: phrase, evidenceQuote: quote, messageId: "preserve-2", extractInputHash: "abc123" }] };
+  const confirmed = { ...baseState, decisionBranch: { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: recorded.runId, createdAt: "t", answers: [], reason: "merchant_scope_confirmation", answersChanged: false, scope, explanationSource: "code_fallback" } } as never;
+
+  it("shows the unmapped phrase as the model's own output, with its evidence", () => {
+    const row = auditSources(state, recorded).find((x) => x.item === "Required services (unmapped phrase)")!;
+    expect(row.source).toBe(`Recorded Groq output · run ${recorded.runId} · extract.v2`);
+    expect(row.detail).toBe(`“${phrase}” matched no package in this deal · evidence “${quote}” (preserve-2)`);
+  });
+
+  it("shows nothing for a run whose required services all mapped", () => {
+    expect(auditSources(state, run).some((x) => x.item.startsWith("Required services"))).toBe(false);
+  });
+
+  it("records the merchant's confirmation, who made it and which phrase it answers", () => {
+    const row = auditSources(confirmed, recorded).find((x) => x.item === "Required services (merchant confirmation)")!;
+    expect(row.source).toBe("Merchant confirmation of an unmapped extraction");
+    expect(row.detail).toBe(`“${phrase}” → Website fixes, Search marketing, Social media, Monthly reporting · Merchant (Pinecone Media Works) · ${scope.confirmedAt}`);
+  });
+
+  it("credits Groq with the phrase, the merchant with the services, and code with the recalculation", () => {
+    const w = whoDidWhat(recorded, { ranking: "code", text: "code_fallback" }, confirmed);
+    expect(w.ai).toContain("Extracted the opening constraints (extract.v2)");
+    expect(w.merchant).toContain("Confirmed the required services (4 services)");
+    expect(w.code).toContain("Recalculated every permitted structure and every figure after the merchant confirmed the required services");
+    expect(w.code).toContain("Wrote the recommendation explanation because the parent model did not process the merchant-confirmed services");
+    expect(w.ai.join(" ")).not.toMatch(/order|recommendation/i);
+  });
+
+  it("explains the branch as a recalculation from the confirmation", () => {
+    const outcome = { evaluation: evaluateDeal(clarifiedHeroProfile(), heroInput()) } as never;
+    const audit = branchAudit(confirmed, outcome, groq)!;
+    expect(audit.notice).toBe("The parent model run did not process the merchant-confirmed services. The engine recalculated the decision and code wrote the explanation.");
+    expect(audit.answers).toEqual([]);
+    expect(audit.scope?.packageIds).toHaveLength(4);
+    expect(branchAudit(confirmed, outcome, sample)!.notice).toBe("The hand-written parent sample did not cover the merchant-confirmed services. The engine recalculated the decision and code wrote the explanation.");
+  });
+
+  it("states what the confirmation did, in one plain line", () => {
+    expect(scopeAttribution(groq)).toBe("Groq extracted the phrase · merchant confirmed the services · engine recalculated the options.");
+    expect(scopeAttribution(sample)).toBe("Phrase from the hand-written sample extraction · merchant confirmed the services · engine recalculated the options.");
+    expect(scopeAttribution(modelProvenance({ ...run, steps: [] }))).not.toMatch(/Groq/);
   });
 });

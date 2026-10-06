@@ -279,3 +279,13 @@ A buyer or the model may name several packages in one sentence. Every known pack
 
 The model's explanation has two parts that code validates separately: a full comparison and a short reason per offer. A reason that passes validation is shown on its offer card even when the full comparison fails. The card then reads **Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.** The product never says the model wrote a comparison that code wrote, and a changed-answer branch never shows its parent run's reason.
 
+## The merchant confirms required services the extraction could not map
+
+**A required scope that names no package is not silently dropped.** When the model returns a required-service phrase that code verifies against the buyer's words but cannot map to any package in the deal (for example "complete annual package"), the deal stays at **Understand the buyer** and no offer can be selected, previewed or approved. The merchant sees the phrase, the buyer's exact words, and the deal's services as choices, and confirms which services the buyer requires.
+
+**The recorded run is never edited.** The confirmation is product state after the run: a merchant correction linked to the rejected phrase, its verbatim evidence and the extraction step it came from. The engine recalculates every structure from it. A confirmation can only be given once, before a proposal is sent.
+
+**Who did what is stated plainly.** Groq extracted the phrase · merchant confirmed the services · engine recalculated the options. The recorded model explanation described the unconfirmed profile, so after a confirmation the explanation is written by code and the Offer card says so. The confirmation is a decision branch, like a changed clarification answer.
+
+**An uncaptured fact that changes nothing is disclosed, not asked about.** If the conversation did not state a fact (for example the GST basis) and the engine finds every structure has the same verdict and approval status under either reading, Understand says the fact was not captured and that the outcome is the same either way. The statement comes from the engine's own ambiguity analysis.
+

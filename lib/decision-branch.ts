@@ -6,17 +6,54 @@ import { applyClarificationAnswer, type ClarifiableField } from "@/domain/constr
 import type { DateValue } from "@/domain/dates";
 import { evaluateDeal } from "@/domain/engine";
 import type { ApprovalScope, GstInclusion } from "@/domain/types";
+import { applyScopeConfirmation, type ScopeConfirmation } from "./scope-confirmation";
 
 export const DECISION_BRANCH_SCHEMA = "adaptive-deals.decision-branch.v1" as const;
 
+/**
+ * A decision the engine recalculated from inputs the recorded model run did not process: changed
+ * clarification answers, a merchant's confirmation of required services, or both. The parent run
+ * stays immutable evidence; code and the engine own the branch decision and its explanation.
+ */
 export interface DecisionBranch {
   schema: typeof DECISION_BRANCH_SCHEMA;
   branchId: string;
   parentRunId: string;
   createdAt: string;
+  /** The answers governing this decision. For a scope-only branch these are the parent run's own. */
   answers: RecordedAnswer[];
-  reason: "changed_clarification_answers";
+  reason: "changed_clarification_answers" | "merchant_scope_confirmation";
+  /** True when `answers` differ from the parent run's. Branches stored before scope confirmation are answer branches. */
+  answersChanged?: boolean;
+  scope?: ScopeConfirmation | null;
   explanationSource: "code_fallback";
+}
+
+export const branchChangedAnswers = (branch: Pick<DecisionBranch, "answersChanged">) => branch.answersChanged !== false;
+export const branchScope = (branch: Pick<DecisionBranch, "scope">) => branch.scope ?? null;
+
+/** What caused the recalculation, for the Offer card attribution. */
+export function branchCause(branch: Pick<DecisionBranch, "answersChanged" | "scope">): string {
+  const answers = branchChangedAnswers(branch);
+  const scope = branchScope(branch) !== null;
+  if (answers && scope) return "the buyer's answers and the merchant's confirmation of the services";
+  return scope ? "the merchant confirmed the services" : "the buyer's answer";
+}
+
+/** What the parent run did not process: the inputs a branch recalculates from. */
+export function branchNotProcessed(branch: Pick<DecisionBranch, "answersChanged" | "scope">): string {
+  const answers = branchChangedAnswers(branch);
+  const scope = branchScope(branch) !== null;
+  if (answers && scope) return "the changed answers and the merchant-confirmed services";
+  return scope ? "the merchant-confirmed services" : "the changed answers";
+}
+
+/** The audit's description of what the engine recalculated after. */
+export function branchRecalculatedAfter(branch: Pick<DecisionBranch, "answersChanged" | "scope">): string {
+  const answers = branchChangedAnswers(branch);
+  const scope = branchScope(branch) !== null;
+  if (answers && scope) return "the changed buyer answers and the merchant's confirmed services";
+  return scope ? "the merchant confirmed the required services" : "the changed buyer answers";
 }
 
 function canonicalAnswer(answer: RecordedAnswer) {
@@ -53,7 +90,7 @@ function answerValue(field: ClarifiableField, value: string): GstInclusion | App
 }
 
 /**
- * Re-evaluate changed clarification answers without fabricating a new model step.
+ * Re-evaluate changed inputs without fabricating a new model step.
  * The parent record remains the immutable evidence for extraction and question wording;
  * the domain engine and the documented code fallback own the branch decision.
  */
@@ -76,6 +113,9 @@ export function deriveBranchOutcome(args: { initial: RunOutcome; branch: Decisio
       coversAmounts: question.covers,
     });
   }
+
+  const scope = branchScope(branch);
+  if (scope) profile = applyScopeConfirmation(profile, scope, deal.messages, deal.packages);
 
   const evaluation = evaluateDeal(profile, {
     merchant: deal.merchant,

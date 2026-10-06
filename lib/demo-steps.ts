@@ -35,6 +35,8 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the question", at("understand"), true);
     case "understand.interpret":
       return nav("interpret_reply", "merchant", "Next: interpret the buyer's reply", at("understand"));
+    case "understand.scope":
+      return nav("confirm_required_services", "merchant", "Next: confirm the services the buyer requires", at("understand"));
     case "understand.use_answers":
       return nav("use_answers", "merchant", "Next: use the buyer's answers", at("understand"));
     case "understand.missing":

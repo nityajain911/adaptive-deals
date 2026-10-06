@@ -52,6 +52,7 @@ import { CLASSIFICATION_LABEL } from "@/domain/replies";
 import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision-evidence";
 import { caseRecordedRunById, mappedCaseRun } from "./case-runs";
+import { confirmScope, ScopeError, unmappedRequiredServices, type ScopeSource } from "./scope-confirmation";
 import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
 
 export const STORE_FILE = "store.json";
@@ -474,7 +475,7 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
       s.decisionBranch = null;
       // Keep the stored copy of a fresh live run complete, so it can later be replayed.
       await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
-    } else if (answersMatchRecorded(source, answers)) {
+    } else if (answersMatchRecorded(source, answers) && !s.decisionBranch?.scope) {
       out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: dealForState(s), answers, previous: s.run.record });
       s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
       s.decisionBranch = null;
@@ -487,6 +488,8 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
         createdAt: clockOf(s).now(),
         answers,
         reason: "changed_clarification_answers",
+        answersChanged: !answersMatchRecorded(source, answers),
+        scope: s.decisionBranch?.scope ?? null,
         explanationSource: "code_fallback",
       };
       // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
@@ -529,6 +532,20 @@ export async function isDraftStale(s: DemoState): Promise<boolean> {
   return cur.fingerprint === null || cur.fingerprint !== s.selectedOption.fingerprint || JSON.stringify(evidence) !== JSON.stringify(s.selectedOption.evidenceMessageIds);
 }
 
+/**
+ * Required-service phrases the model extracted and code verified but could not map to any package,
+ * until the merchant confirms the services. Read from the run's own extraction step.
+ */
+export function unmappedScopeOf(s: DemoState, out: Pick<RunOutcome, "profile">): ScopeSource[] {
+  if (s.decisionBranch?.scope) return [];
+  const step = s.run.record.steps.find((x) => x.task === "extract" && x.failure === null);
+  return unmappedRequiredServices(out.profile, step, dealForState(s).messages);
+}
+
+function assertScopeConfirmed(s: DemoState, out: RunOutcome) {
+  if (out.evaluation.state === "options_ready" && unmappedScopeOf(s, out).length) throw new ActionError("Confirm the required services before continuing this commercial decision");
+}
+
 function assertNoReview(s: DemoState) {
   if (s.reviewRequired) throw new ActionError(`Saved deal records need review: ${s.reviewRequired}`);
 }
@@ -549,7 +566,8 @@ function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">)
 async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }) {
   assertNoReview(s);
   if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
-  const { eligible } = await eligibleOf(s);
+  const { out, eligible } = await eligibleOf(s);
+  assertScopeConfirmed(s, out);
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
   const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x).terms);
@@ -573,6 +591,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
     assertNoReview(s);
     assertNoNewDecisionEvidence(s);
     if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
+    assertScopeConfirmed(s, (await eligibleOf(s)).out);
     if (!s.selectedOption || (await isDraftStale(s))) {
       const { out, eligible } = await eligibleOf(s);
       const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
@@ -720,6 +739,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
     attentionMessages: attention.length,
     workItems,
     unreviewedDecisionEvidence: unreviewedDecisionEvidence(s).length,
+    unmappedRequiredServices: unmappedScopeOf(s, out).length,
     nextPayment: scheduled[0] ? { amountPaise: scheduled[0].amountPaise, dueDate: scheduled[0].dueDate } : null,
     pendingDebit: submitted ? "submitted" : retry ? { retryOn: retry.dueDate } : null,
     buyerSetup: {
@@ -733,6 +753,51 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
 
 export async function progressOf(s: DemoState): Promise<DealProgress> {
   return dealProgress(s, await progressFacts(s));
+}
+
+// ── Required-services confirmation ───────────────────────────────────────────
+
+/**
+ * The merchant confirms which services the buyer requires when the extraction named a scope that
+ * matched no package ("complete annual package"). The recorded run is not edited: this is product
+ * state after the run, linked to the rejected phrase and its evidence, and the engine recalculates.
+ */
+export async function confirmRequiredServices(packageIds: string[]): Promise<DemoState> {
+  return mutate(async (s) => {
+    assertNoReview(s);
+    if (s.deliveries.some((d) => d.deliveredAt)) throw new ActionError("The required services cannot be confirmed after the proposal was sent");
+    if (s.decisionBranch?.scope) throw new ActionError("The required services are already confirmed for this deal");
+    const sources = unmappedScopeOf(s, await currentOutcome(s));
+    if (!sources.length) throw new ActionError("There is nothing to confirm: every required service was mapped");
+    if (s.status !== "options_ready") throw new ActionError(`Required services are confirmed once options are ready (deal is ${s.status})`);
+    let confirmation;
+    try {
+      confirmation = confirmScope({ sources, packageIds, packages: activeCase(s).deal.packages, confirmedAt: clockOf(s).now(), by: "Merchant (Pinecone Media Works)" });
+    } catch (e) {
+      if (e instanceof ScopeError) throw new ActionError(e.message);
+      throw e;
+    }
+    const branch: DecisionBranch = s.decisionBranch
+      ? { ...s.decisionBranch, scope: confirmation }
+      : {
+          schema: DECISION_BRANCH_SCHEMA,
+          branchId: `branch-${randomUUID()}`,
+          parentRunId: sourceRecord(s).runId,
+          createdAt: clockOf(s).now(),
+          answers: structuredClone(s.run.record.inputs.answers),
+          reason: "merchant_scope_confirmation",
+          answersChanged: false,
+          scope: confirmation,
+          explanationSource: "code_fallback",
+        };
+    // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
+    const derived = deriveBranchOutcome({ initial: await initialOutcomeForBranch(s), branch, deal: dealForState(s) });
+    s.decisionBranch = branch;
+    const names = confirmation.packageIds.map((id) => activeCase(s).deal.packages.find((p) => p.id === id)?.name ?? id);
+    event(s, "required_services_confirmed", "Merchant confirmed the required services", "merchant", `${names.join(", ")} · from “${confirmation.sources.map((x) => x.rawText).join("”, “")}”`);
+    const next = statusForEvaluation(derived.evaluation);
+    if (next !== s.status) setStatus(s, next, "Engine re-evaluated every template with the merchant-confirmed services");
+  });
 }
 
 // ── Closures, handled messages, interpretation (spec §3.3) ────────────────────

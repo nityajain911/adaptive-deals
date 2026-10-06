@@ -68,6 +68,9 @@ export const REPRESENTABLE_REQUEST_KINDS = new Set([
 
 export const REQUIRED_FIELDS = ["budgetNow"] as const;
 
+/** Why a verified package phrase is rejected: it names no package in this deal. */
+export const UNMAPPED_PACKAGE_REASON = "does not match a deal package";
+
 function verifyEvidence(quote: string, messageId: string, messages: Message[]): Evidence | string {
   const msg = messages.find((m) => m.id === messageId);
   if (!msg) return `message ${messageId} not found`;
@@ -276,7 +279,7 @@ export function buildConstraintProfile(args: {
     for (const v of verified.get(key) ?? []) {
       // One verified field may name several packages; each is kept once, with this field's evidence.
       const matched = matchPackages(v.field.rawText, packages);
-      if (!matched.length) rejected.push({ key, reason: "does not match a deal package", rawText: v.field.rawText });
+      if (!matched.length) rejected.push({ key, reason: UNMAPPED_PACKAGE_REASON, rawText: v.field.rawText });
       for (const pkg of matched) {
         if (ids.includes(pkg.id)) continue;
         ids.push(pkg.id);

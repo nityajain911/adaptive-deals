@@ -16,6 +16,7 @@ export type PrimaryActionId =
   | "use_answers"
   | "interpret_reply"
   | "send_missing_question"
+  | "confirm_required_services"
   | "review_buyer_proposal"
   | "review_updated_proposal"
   | "review_new_evidence"
@@ -53,6 +54,8 @@ export interface ProgressFacts {
   attentionMessages: number;
   workItems: UnresolvedWorkItem[];
   unreviewedDecisionEvidence: number;
+  /** Required-service phrases the extraction returned that code could not map and the merchant has not confirmed. */
+  unmappedRequiredServices: number;
   nextPayment: { amountPaise: number; dueDate: string } | null;
   pendingDebit: "submitted" | { retryOn: string } | null;
   buyerSetup: { linkUnpaid: boolean; mandatePending: boolean };
@@ -146,6 +149,10 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
 
   // 2–3. Offer, including closure before any successful send.
   if (s.status === "merchant_rejected") return info("offer", "offer.closed", "terminal", null, "Closed in Adaptive Deals.", latest);
+  // A buyer's required services that no package matched must be confirmed by the merchant before any offer.
+  if (f.engineState === "options_ready" && f.unmappedRequiredServices > 0) {
+    return act("understand", "understand.scope", "Confirm which services the buyer requires before we recommend an offer.", "confirm_required_services", "Confirm required services");
+  }
   if (f.unreviewedDecisionEvidence > 0) return act("offer", "offer.new_evidence", "Review newer buyer evidence before sending this offer.", "review_new_evidence", "Review buyer evidence", latest);
   if (s.status === "approved") return act("offer", "offer.approved_unsent", "Approved · not yet sent to the buyer.", "retry_sending", "Retry sending", latest, f.lastFailure);
   if (f.engineState === "options_ready") {

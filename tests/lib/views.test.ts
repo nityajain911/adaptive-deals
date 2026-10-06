@@ -185,6 +185,15 @@ describe("recommendation attribution follows the actual output source", () => {
     expect(lines[2]).toBe("Sample reason written by hand · no model ran · order set by code · figures calculated by the engine.");
     for (const line of lines) expect(line).not.toMatch(/\bAI\b|Groq/);
   });
+  it("says what recalculated the decision: the buyer's answer, the merchant's confirmed services, or both", () => {
+    const branch = (over: Partial<DecisionBranch>): DecisionBranch => ({ schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "p", createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback", ...over });
+    const scope = { kind: "required_services" as const, packageIds: ["website-fixes"], confirmedAt: "t", by: "m", sources: [{ rawText: "x", evidenceQuote: "x", messageId: "m1", extractInputHash: "h" }] };
+    const line = (b: DecisionBranch) => explanationAttribution({ ranking: "code", text: "code_fallback" }, groq, b);
+    expect(line(branch({}))).toBe("Recalculated by the engine after the buyer's answer · explanation written by code.");
+    expect(line(branch({ reason: "merchant_scope_confirmation", answersChanged: false, scope }))).toBe("Recalculated by the engine after the merchant confirmed the services · explanation written by code.");
+    expect(line(branch({ answersChanged: true, scope }))).toBe("Recalculated by the engine after the buyer's answers and the merchant's confirmation of the services · explanation written by code.");
+    for (const b of [branch({}), branch({ reason: "merchant_scope_confirmation", answersChanged: false, scope })]) expect(line(b)).not.toMatch(/Groq|AI/);
+  });
   it("never credits AI with a changed-answer branch it did not process", () => {
     const branch = {
       schema: "adaptive-deals.decision-branch.v1",

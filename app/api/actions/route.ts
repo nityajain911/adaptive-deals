@@ -69,6 +69,7 @@ const Action = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("interpret_reply"), messageId: z.string().max(40), value: z.string().max(20), quote: z.string().min(1).max(300) }),
   z.object({ action: z.literal("ask_clarification_again"), messageId: z.string().max(40) }),
+  z.object({ action: z.literal("confirm_required_services"), packageIds: z.array(z.string().max(60)).min(1).max(12) }),
 ]);
 
 export async function POST(request: Request) {
@@ -171,6 +172,9 @@ export async function POST(request: Request) {
         break;
       case "review_work":
         await svc.reviewWork(a.sourceKind, a.sourceId, a.disposition, a.note);
+        break;
+      case "confirm_required_services":
+        await svc.confirmRequiredServices(a.packageIds);
         break;
       case "interpret_reply":
         await svc.interpretClarificationReply(a.messageId, a.value, a.quote);

@@ -142,6 +142,8 @@ export interface ProfileField<T> {
   clarification?: ClarificationAnswer;
   /** GST basis only: the stated amounts this value was explicitly confirmed for. */
   covers?: AmountField[];
+  /** Required services only: set when the merchant confirmed services the extraction could not map. */
+  merchantConfirmation?: { confirmedAt: string; by: string; unmappedPhrases: string[] };
 }
 
 /** Amount-bearing profile fields whose GST basis must be confirmed explicitly. */

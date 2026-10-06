@@ -1,3 +1,4 @@
+import type { DealEvaluation } from "@/domain/engine";
 import type { ConstraintProfile } from "@/domain/types";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
@@ -43,4 +44,22 @@ export function blockingLines(p: ConstraintProfile, original: ReturnType<typeof 
     );
   }
   return lines;
+}
+
+const UNCAPTURED_LABEL: Record<string, string> = {
+  amountsIncludeGst: "The GST basis",
+  approvalScope: "Whether the approval limit is per payment or per contract",
+  nextBudget: "The exact next-budget date",
+};
+
+/**
+ * Facts the conversation did not state where the engine found no difference: every structure has the
+ * same verdict and approval status under either reading. They are disclosed rather than asked about.
+ * Derived from the engine's own ambiguity analysis, never from model output.
+ */
+export function uncapturedLines(evaluation: Pick<DealEvaluation, "state" | "ambiguities">): string[] {
+  if (evaluation.state !== "options_ready") return [];
+  return evaluation.ambiguities
+    .filter((a) => !a.decisionRelevant)
+    .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not captured from the conversation. Every structure has the same outcome under either reading, so no question is needed.`);
 }
