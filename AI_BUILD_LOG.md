@@ -797,6 +797,32 @@ No change to prompts, schemas, validators, frozen cases or results, live runs or
 
 **Noted, not changed:** the model's overall comparison sentence is stored but never rendered; only a per-offer note is shown. Stored conversation drafts keep an internal `author: "ai"` field, which no view reads.
 
+### 2026-10-06 · Development probes of the three cases (Groq, frozen prompts) [Claude Code]
+
+**Authorisation (applicant):** up to five probe calls; retries only for technical failures; a refusal is a valid outcome and is not retried. No prompt, schema, validator, engine rule, evaluation asset or case wording was changed.
+
+**Method:** `scripts/probe-cases.ts` runs the real orchestrator and engine with the live provider (`groq` · `openai/gpt-oss-120b`), with the SDK's silent retries disabled so every request is counted. Each task ran only if the same run chain reached it. The only non-model input was the simulated buyer's scripted answer to the two questions the reduced-scope chain itself asked. Records are in the git-ignored `.data/probes/`; none is mapped to a case or used as product evidence.
+
+| # | Case | Task | Prompt | Input hash | Result |
+|---|---|---|---|---|---|
+| 1 | reduced-scope | extract | extract.v2 | `c145376b74154de7` | Valid · accepted |
+| 2 | reduced-scope | clarify | clarify.v1 | `16ee2ed53200e960` | Valid · accepted, both questions model-worded |
+| 3 | reduced-scope | explain | explain.v3 | `a3016140febd37d0` | Valid · ranking accepted; comparison rejected by code ("contains a literal figure, date or percentage") → code-written text |
+| 4 | preserve-scope | extract | extract.v2 | `549cfbfe8112e2cd` | Valid · accepted |
+| 5 | no-fit | extract | extract.v2 | `b7fa28985103172c` | Technical failure · rate-limited; immediate retry also rate-limited |
+| 5, retried later | no-fit | extract | extract.v2 | `b7fa28985103172c` | Valid · accepted |
+
+Seven requests in total: five returned model output and two were rejected by the provider's rate limit before any output.
+
+**Outcomes:** all three chains reached the commercial outcome on the case card (phased scope ranked first; deferred start; no feasible deal).
+
+**Observed:**
+- **Code defect, not a model miss.** In all three cases the model returned every named package, with verified evidence, in one `required_package` field (for example "Website fixes and Search marketing"). The deterministic normaliser kept only the first package it matched, so only **Website fixes** was recorded as required.
+- **Model miss.** In preserve-scope the buyer's statement that both amounts exclude GST was not extracted; the field stayed ambiguous. It was not decision-relevant, so no question was asked.
+- **Validation outcome.** The explanation's comparison sentence failed validation, as it did in the earlier recorded hero run. Four per-offer notes passed validation but are not displayed, because the card shows model text only when the whole explanation passes.
+
+**Product change after the probes:** none.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
