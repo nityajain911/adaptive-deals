@@ -10,6 +10,7 @@ import { OpenAudit } from "@/components/audit/audit-drawer";
 import { ClosedSummary } from "@/components/offer/closed-summary";
 import { DontProceed } from "@/components/offer/dont-proceed";
 import { EvidenceReview } from "@/components/offer/evidence-review";
+import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
@@ -20,7 +21,7 @@ import { headlineFor } from "@/lib/offer-copy";
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
   const { dealId } = await props.params;
-  const { s, out, progress } = await loadDeal(dealId);
+  const { s, out, progress, activeCase } = await loadDeal(dealId);
   const st = progress.stages.offer;
   const r = out.evaluation.result;
   const policy = s.run.record.inputs.policy;
@@ -148,12 +149,21 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
     p.amountsIncludeGst.value === "yes",
   );
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
+  const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
   const explicitlySelected = s.outcomes.some((o) => o.type === "option_selected" && o.source?.kind === "action" && o.source.id === x.structure.id);
   return (
     <StageShell dealId={dealId} viewing="offer">
       <div className="space-y-4">
         {primaryId === "review_new_evidence" ? <EvidenceReview s={s} /> : null}
         {primaryId === "review_updated_proposal" ? <Notice tone="amber" title="The offer changed since you reviewed it.">Review the updated proposal before sending.</Notice> : null}
+        {buyerSaid ? (
+          <figure className="rounded-lg rounded-tl-none bg-[#efeae2] p-3" data-testid="buyer-said">
+            <div className="max-w-[90%] rounded-lg rounded-tl-none bg-white px-3 py-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
+              <figcaption className="text-[12px] font-semibold text-ink-2">{activeCase.buyer.name} said</figcaption>
+              <blockquote className="mt-1 text-[15px] leading-6 text-ink">“{buyerSaid.quote}”</blockquote>
+            </div>
+          </figure>
+        ) : null}
         <Recommendation
           x={x}
           exp={out.explanation}

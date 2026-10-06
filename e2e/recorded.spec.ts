@@ -247,3 +247,18 @@ test("recorded · no fit: Groq's extraction is clean and the engine rejects ever
   await expect(drawer).toContainText("Required packages");
   await expect(drawer).not.toContainText(/Suggested the order|Wrote the recommendation|Required services \(/);
 });
+
+test("recorded · the chat marks the buyer's own words, and the rejected phrase stands out until you confirm it", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await start(page, "preserve-scope");
+  await page.goto("/deals/hero/understand");
+  const thread = page.getByTestId("thread-understand");
+  await expect(thread.getByText("Simulated conversation")).toHaveCount(1);
+  const rejected = thread.locator('[data-testid="chat-highlight"][data-kind="rejected"]');
+  await expect(rejected).toHaveText("complete annual package");
+  await expect(thread.locator('[data-testid="chat-highlight"][data-kind="evidence"]').first()).toBeVisible();
+  await rejected.click();
+  await expect(thread.getByTestId("chat-highlight-note")).toContainText("Not matched to a service");
+  await rejected.click();
+  await expect(thread.getByTestId("chat-highlight-note")).toHaveCount(0);
+});

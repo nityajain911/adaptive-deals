@@ -6,8 +6,10 @@ import { clarificationDraftLabel, taskOrRunProvenance } from "@/lib/model-proven
 import type { Message } from "@/domain/types";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf, noticeReplyOutcome } from "@/lib/views";
+import { chatHighlights } from "@/lib/chat-highlights";
+import { HighlightedText } from "./chat/highlighted-text";
 import { fmtTime } from "./evidence";
-import { Badge, Pill, cx, type Tone } from "./ui";
+import { Badge, cx, type Tone } from "./ui";
 
 /**
  * The simulated conversation, scoped to a stage (spec §4, §6.1). It is an input surface only:
@@ -58,71 +60,89 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
   const shown = scope === "track" ? items.slice(-compact) : items;
   const hidden = scope === "track" ? items.slice(0, Math.max(0, items.length - compact)) : [];
 
+  const highlights = chatHighlights(s.run.record.engine.profile, s.run.record.engine.rejectedFields, opening);
+  const sentItems = shown.filter((i) => i.direction !== "outbound" || i.sentAt);
+  const drafts = scope === "understand" ? shown.filter((i) => i.direction === "outbound" && !i.sentAt) : [];
+
+  const bubbleShell = (side: "left" | "right", testId: string, children: ReactNode, extra?: Record<string, string>) => (
+    <li key={testId} className={cx("max-w-[88%] rounded-lg px-3 py-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]", side === "right" ? "ml-auto rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white")} data-testid={testId} data-side={side} {...extra}>
+      {children}
+    </li>
+  );
+
   const bubble = (i: ConversationItem) => {
     const outbound = i.direction === "outbound";
     const target = i.inReplyTo ? byId.get(i.inReplyTo) : null;
     const outcome = !outbound && target?.kind === "notice" ? noticeReplyOutcome(i, s, activeV) : null;
     const disposition = !outbound ? [...s.workDispositions].reverse().find((d) => d.sourceKind === "message" && d.sourceId === i.id) : null;
-    return (
-      <li key={i.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", outbound ? cx("ml-auto", i.sentAt ? "border-[#d6defe] bg-blue-weak" : "border-dashed border-[#9fb3ff] bg-surface") : "border-line bg-surface")} data-testid={`thread-${i.id}`} data-kind={i.kind}>
-        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-          <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : `Buyer · ${buyerName}`}</span>
-          <Badge tone={STATE_TONE[i.state]}>{clarificationDraftLabel(i.state, provenance)}</Badge>
-          {!outbound ? <Pill>{i.source === "buyer_proposal_page" ? "From the buyer proposal page" : "Simulated buyer reply"}</Pill> : null}
-          <Pill>{fmtTime(i.sentAt ?? i.createdAt)}</Pill>
+    const draft = outbound && !i.sentAt;
+    return bubbleShell(
+      outbound ? "right" : "left",
+      `thread-${i.id}`,
+      <>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+          <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : buyerName}</span>
+          {outbound ? <Badge tone={STATE_TONE[i.state]}>{draft ? "Draft · not sent" : clarificationDraftLabel(i.state, provenance)}</Badge> : null}
+          {outbound && draft ? <Badge tone={STATE_TONE[i.state]}>{clarificationDraftLabel(i.state, provenance)}</Badge> : null}
+          {!outbound && i.source === "buyer_proposal_page" ? <span>From the buyer proposal page</span> : null}
         </div>
-        <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
+        <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
+        <div className="mt-1 text-right text-[11px] text-muted">{fmtTime(i.sentAt ?? i.createdAt)}</div>
         {outcome ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
             <Badge tone={outcome.tone}>{outcome.label}</Badge>
             <span className="text-muted">Read by code (reply-rules.v1), not AI · {outcome.detail}</span>
           </div>
         ) : null}
         {disposition ? (
-          <div className="mt-2 text-[12px] text-muted" data-testid={`disposition-${i.id}`}>
+          <div className="mt-1 text-[12px] text-muted" data-testid={`disposition-${i.id}`}>
             Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : "Follow-up still pending"}
             {disposition.note ? ` · ${disposition.note}` : ""}
           </div>
         ) : null}
-      </li>
+      </>,
+      { "data-kind": i.kind },
     );
   };
 
   const openingBubble = (message: Message) => {
     const buyer = message.author === "buyer";
-    return (
-      <li key={message.id} className={cx("max-w-[92%] rounded-2xl border px-4 py-3", buyer ? "border-line bg-surface" : "ml-auto border-[#d6defe] bg-blue-weak")} data-testid={`message-${message.id}`}>
-        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-          <span className="font-semibold text-ink-2">{buyer ? `Buyer · ${buyerName}` : "Merchant · Pinecone Media Works"}</span>
-          {buyer ? <Badge tone="amber">Received from buyer</Badge> : <Badge tone="green">Sent by merchant</Badge>}
-          <Pill>Simulated WhatsApp conversation</Pill>
-          <Pill>{fmtTime(message.timestamp)}</Pill>
-        </div>
-        <p className="mt-1.5 text-[14px] leading-6 text-ink [overflow-wrap:anywhere]">{message.text}</p>
-      </li>
+    return bubbleShell(
+      buyer ? "left" : "right",
+      `message-${message.id}`,
+      <>
+        <div className="text-[12px] font-semibold text-ink-2">{buyer ? buyerName : "Pinecone Media Works"}</div>
+        {buyer && highlights.get(message.id)?.length ? <HighlightedText text={message.text} highlights={highlights.get(message.id)!} /> : <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{message.text}</p>}
+        <div className="mt-1 text-right text-[11px] text-muted">{fmtTime(message.timestamp)}</div>
+      </>,
     );
   };
 
   return (
-    <section aria-labelledby={`thread-${scope}`} className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid={`thread-${scope}`} data-walkthrough={scope === "understand" ? "buyer-conversation" : undefined}>
+    <section aria-labelledby={`thread-${scope}`} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface" data-testid={`thread-${scope}`} data-walkthrough={scope === "understand" ? "buyer-conversation" : undefined}>
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
         <h2 id={`thread-${scope}`} className="flex items-center gap-2 text-[15px] font-semibold text-ink">
-          <MessageCircle aria-hidden className="h-4 w-4 text-green" /> {scope === "understand" ? "Conversation" : "Conversation since the offer"}
+          <MessageCircle aria-hidden className="h-4 w-4 text-green" /> {buyerName}
         </h2>
-        <span className="text-[12px] text-muted">WhatsApp simulated · buyer replies selected by the demo operator</span>
+        <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[12px] text-ink-2">Simulated conversation</span>
       </div>
-      <ol className="space-y-3 p-5" aria-label="Messages">
+      <ol className="space-y-2 bg-[#efeae2] p-4" aria-label="Messages">
         {openingChronological.map(openingBubble)}
-        {shown.map(bubble)}
-        {!openingChronological.length && !shown.length ? <li className="text-[13px] text-muted">No messages yet.</li> : null}
+        {sentItems.map(bubble)}
+        {!openingChronological.length && !sentItems.length ? <li className="text-[13px] text-muted">No messages yet.</li> : null}
       </ol>
       {hidden.length ? (
         <details className="border-t border-line px-5 py-3">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">Show full conversation</summary>
-          <ol className="mt-3 space-y-3" aria-label="Earlier messages">
+          <ol className="mt-3 space-y-2 bg-[#efeae2] p-3" aria-label="Earlier messages">
             {hidden.map(bubble)}
           </ol>
         </details>
+      ) : null}
+      {drafts.length ? (
+        <div className="border-t border-line bg-[#f0f2f5] p-3" data-testid="chat-composer">
+          <ol className="space-y-2">{drafts.map(bubble)}</ol>
+        </div>
       ) : null}
     </section>
   );

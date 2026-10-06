@@ -289,3 +289,9 @@ The model's explanation has two parts that code validates separately: a full com
 
 **An uncaptured fact that changes nothing is disclosed, not asked about.** If the conversation did not state a fact (for example the GST basis) and the engine finds every structure has the same verdict and approval status under either reading, Understand says the fact was not captured and that the outcome is the same either way. The statement comes from the engine's own ambiguity analysis.
 
+
+## The conversation reads as a chat, and marks what was understood
+
+**The conversation looks like a chat, with no third-party branding.** Buyer messages sit on the left, the merchant's on the right, and one persistent "Simulated conversation" label replaces the per-message "simulated" tags. Unsent clarification drafts appear in a composer area under the thread, marked "Draft · not sent", never as sent messages.
+
+**Highlights come from stored evidence, never from new model calls.** A phrase is marked only when its stored offsets still reproduce the stored quote. Clicking it shows what the code understood and how it normalised it. A phrase the code could not map to a service (for example "complete annual package") is marked amber and says so, until the merchant confirms the services. The same code shows the buyer's own budget words beside the offer.
