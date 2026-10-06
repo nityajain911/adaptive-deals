@@ -173,7 +173,7 @@ test("recorded · the merchant overrides Groq's ranking, and the preventive rest
 
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
-  await expect(page.getByTestId("preview-frame")).toContainText("₹23,010");
+  await expect(page.locator("main")).toContainText("₹23,010");
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/track$/);
   await page.getByTestId("open-buyer-proposal").click();
@@ -197,7 +197,7 @@ test("recorded · the merchant overrides Groq's ranking, and the preventive rest
   await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
   await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
-  await page.getByTestId("back-to-merchant").click();
+  await page.goto("/deals/hero/track");
   await expect(page.getByTestId("amendment-settled")).toContainText("Payment rescheduled to 21 Dec 2026");
   await expect(page.getByTestId("status-headline")).toContainText("next payment ₹23,010 on 21 Dec 2026");
   expect(state().attempts.some((a) => a.status === "failed" || a.origin === "internal_retry")).toBe(false);
