@@ -274,9 +274,11 @@ export function buildConstraintProfile(args: {
     const ids: string[] = [];
     const ev: Evidence[] = [];
     for (const v of verified.get(key) ?? []) {
-      const pkg = matchPackage(v.field.rawText, packages);
-      if (!pkg) rejected.push({ key, reason: "does not match a deal package", rawText: v.field.rawText });
-      else {
+      // One verified field may name several packages; each is kept once, with this field's evidence.
+      const matched = matchPackages(v.field.rawText, packages);
+      if (!matched.length) rejected.push({ key, reason: "does not match a deal package", rawText: v.field.rawText });
+      for (const pkg of matched) {
+        if (ids.includes(pkg.id)) continue;
         ids.push(pkg.id);
         ev.push(v.evidence);
       }
@@ -375,9 +377,24 @@ function parseGstInclusion(raw: string): GstInclusion | null {
   return incl ? "yes" : "no";
 }
 
-function matchPackage(raw: string, packages: ServicePackage[]): ServicePackage | undefined {
-  const t = raw.toLowerCase();
-  return packages.find((p) => t.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(t));
+/**
+ * Every deal package named in the text, in catalogue order. Longer names are matched first and
+ * their text consumed, so a package whose name sits inside another's cannot match by accident.
+ * A shortened name ("search") still matches the one package whose name contains it.
+ */
+function matchPackages(raw: string, packages: ServicePackage[]): ServicePackage[] {
+  const text = raw.toLowerCase();
+  let rest = text;
+  const named = new Set<string>();
+  for (const p of [...packages].sort((a, b) => b.name.length - a.name.length)) {
+    const name = p.name.toLowerCase();
+    if (!name || !rest.includes(name)) continue;
+    named.add(p.id);
+    rest = rest.split(name).join(" ".repeat(name.length));
+  }
+  if (named.size) return packages.filter((p) => named.has(p.id));
+  const shortened = packages.find((p) => p.name.toLowerCase().includes(text));
+  return shortened ? [shortened] : [];
 }
 
 function dedupeEvidence(evs: Evidence[]): Evidence[] {

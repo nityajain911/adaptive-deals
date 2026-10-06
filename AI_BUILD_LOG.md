@@ -823,6 +823,18 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Product change after the probes:** none.
 
+### 2026-10-06 · Post-evaluation correction: keep every package named in a verified field [Claude Code]
+
+**Discovered through the case probes above.** Groq returned every named package, with verified evidence, in a single `required_package` field. The deterministic normaliser in `domain/constraints.ts` kept only the first package it matched. This was a code defect, not a model miss.
+
+**Correction (applicant-approved):** every known package named in a verified field is kept, each with that field's evidence; package IDs are deduplicated across fields; a field is rejected only when it names no known package; a longer package name is matched before a shorter one it contains. A single-package field normalises exactly as before.
+
+**Boundary:** this changes deterministic normalisation only. No prompt, schema, validator, engine rule, check, economics rule or evaluation asset changed. `domain/constraints.ts` is not one of the 43 protected files.
+
+**Evaluation status:** the frozen evaluation was **not rerun**, and its recorded results still describe the normaliser as it was on 1 October. Its stored results do not keep raw package fields, so whether any frozen case would score differently under the correction is unknown. The three historical live runs contain no package fields and replay unchanged.
+
+**Proof without a further model call:** the saved probe extractions were replayed locally through the corrected normaliser. Reduced scope now records Website fixes and Search marketing as required; preserve scope and no-fit record all four packages. All three engine outcomes are unchanged.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

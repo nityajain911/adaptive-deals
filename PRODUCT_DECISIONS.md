@@ -271,3 +271,7 @@ These are not built and do not appear as navigation:
 
 **A changed clarification answer remains a code-computed branch,** whether the parent is a sample or a recording.
 
+## A verified package field can name several packages
+
+A buyer or the model may name several packages in one sentence. Every known package named in a verified field is kept, each with the same evidence quote, and duplicates are removed. The field is rejected only when it names no known package. This corrected a normaliser defect found by the case probes on 6 October 2026; the frozen evaluation predates it and was not rerun.
+
