@@ -9,6 +9,7 @@ import type { DealBaseline } from "@/domain/deal-baseline";
 import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
@@ -114,7 +115,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
             <InfoButton label="About cash exposure">The most you would have paid out before being paid, on the worst day of this offer.</InfoButton>
           </p>
           <p className="text-[13px] text-muted" data-testid="offer-rules">
-            Based on version {economics.version} of your business economics{economics.overrides ? ` · ${economics.overrides} deal override${economics.overrides === 1 ? "" : "s"} applied` : ""}.
+            Based on version {economics.version} of your <Link href="/economics" className="font-medium text-blue hover:underline" data-testid="offer-economics-link">business economics</Link>{economics.overrides ? ` · ${economics.overrides} deal override${economics.overrides === 1 ? "" : "s"} applied` : ""}.
           </p>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
             {passesRules ? "Passes your configured contribution and funding rules." : "Review the applied rules before sending."}

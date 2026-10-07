@@ -117,8 +117,11 @@ describe("recommendation attribution on the card", () => {
     expect(html).not.toContain(NOTE);
   });
   it("says which version of the merchant's economics it is based on, and any deal overrides", () => {
-    expect(card()).toContain("Based on version 1 of your business economics.");
-    expect(card({ economics: { version: 2, overrides: 2 } })).toContain("Based on version 2 of your business economics · 2 deal overrides applied.");
+    // "business economics" is now a link to the page where the rules are set, so compare the visible text.
+    const text = (html: string) => html.replace(/<[^>]+>/g, "");
+    expect(text(card())).toContain("Based on version 1 of your business economics.");
+    expect(card()).toContain('href="/economics"');
+    expect(text(card({ economics: { version: 2, overrides: 2 } }))).toContain("Based on version 2 of your business economics · 2 deal overrides applied.");
   });
   it("states the cash exposure and keeps the forecast wording", () => {
     const html = card();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { economicsContentHash, economicsContentOf, type BusinessEconomics, type EconomicsContent } from "@/domain/business-economics";
 import type { EconomicsActivationPreview } from "@/lib/economics-activation";
@@ -20,7 +20,7 @@ async function action(body: Record<string, unknown>): Promise<unknown> {
 
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
 
-export function EconomicsEditor({ active }: { active: BusinessEconomics }) {
+export function EconomicsEditor({ active, children }: { active: BusinessEconomics; children?: ReactNode }) {
   const router = useRouter();
   const [content, setContent] = useState<EconomicsContent>(() => economicsContentOf(active));
   const [version, setVersion] = useState(active.version);
@@ -55,6 +55,7 @@ export function EconomicsEditor({ active }: { active: BusinessEconomics }) {
         <Button data-testid="economics-restore" disabled={pending} onClick={() => { if (!window.confirm("Restore the demo business economics as a new version?")) return; void run(async () => { const result = await action({ action: "restore_default_economics" }) as { version: number }; setVersion(result.version); setPreview(null); router.refresh(); window.location.reload(); }); }}>Restore demo defaults</Button>
         </div>
       </div>
+      {children}
       <ServicesTable services={content.services} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
       <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
       <div className="flex flex-wrap items-center gap-3">

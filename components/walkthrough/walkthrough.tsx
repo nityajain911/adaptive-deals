@@ -63,6 +63,8 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const current = displayedId === view.currentObjectiveId;
   const destination = current ? (view.currentAction?.href ?? displayed.href) : displayed.href;
   const offRoute = pathname !== destination;
+  // The economics step ends on its own page: the guide offers the way on, and never activates anything.
+  const economicsContinue = current && displayedId === "business_economics" && !offRoute;
 
   const update = (next: typeof preferences) => {
     writeWalkthroughPreferences(window.localStorage, next);
@@ -123,11 +125,15 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
       run(walkthroughCommand({ action: "demo_system_step", stepId: view.currentAction.systemAction }));
       return;
     }
+    if (economicsContinue) {
+      router.push("/deals");
+      return;
+    }
     focusTarget(displayed.anchorId);
   };
   // The product's own button is never duplicated in the guide: the person clicks it, and "Show me" points at it.
   const action = view.currentAction;
-  const inProduct = !offRoute && current && !!action && !action.systemAction && !action.usesReplyControl && !view.finish;
+  const inProduct = !offRoute && current && !!action && !action.systemAction && !action.usesReplyControl && !view.finish && !economicsContinue;
   const yourTurn = inProduct ? { who: action!.type === "buyer" ? ("buyer" as const) : ("merchant" as const), label: action!.productLabel } : null;
   const showMe = () => {
     const button = document.querySelector<HTMLElement>('[data-testid="primary-action"], [data-testid="accept"]');
@@ -167,7 +173,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
         <WalkthroughProgress
           view={view}
           displayedObjectiveId={displayedId}
-          primaryLabel={offRoute ? "Take me there" : current && view.currentAction?.systemAction ? view.currentAction.label : null}
+          primaryLabel={offRoute ? "Take me there" : economicsContinue ? "Continue: choose a buyer situation" : current && view.currentAction?.systemAction ? view.currentAction.label : null}
           primaryTone={offRoute ? "navigate" : "simulate"}
           yourTurn={yourTurn}
           onShowMe={showMe}
@@ -181,7 +187,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
             if (!command) return;
             run(walkthroughCommand(command), () => {
               update({ ...preferences, reviewingObjectiveId: null, open: true });
-              router.push("/deals");
+              router.push("/economics");
             });
           }}
           primaryControl={!offRoute && current && view.currentAction?.usesReplyControl && reply ? <BuyerReplyControl key={reply.inReplyTo} reply={reply} pending={pending} error={error} send={(command) => run(walkthroughCommand(command))} /> : undefined}

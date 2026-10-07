@@ -8,7 +8,7 @@ import type { DemoState } from "./service";
 import { WALKTHROUGH_VERSION } from "./walkthrough-version";
 export { WALKTHROUGH_VERSION } from "./walkthrough-version";
 
-export type WalkthroughCapability = "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
+export type WalkthroughCapability = "business_economics" | "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
 export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "sample" | "engine";
 export type WalkthroughProvenance = "live_groq" | "live_groq_replay" | "synthetic_replay" | "saved_groq_exact_match" | "deterministic_engine" | "merchant" | "simulated_buyer" | "razorpay_test_mode";
 
@@ -65,9 +65,20 @@ export interface WalkthroughView {
   finish: WalkthroughFinish | null;
 }
 
-const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["case_picker", "current_offer", "preventive_depth", "negotiation"]);
+const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation"]);
 
 const REGISTRY: readonly WalkthroughObjective[] = [
+  {
+    id: "business_economics",
+    actor: "merchant",
+    title: "Set your business economics",
+    instruction: "Review the delivery costs and rules every recommended offer must respect. Change a cost, or load the illustrative example, then review and activate it yourself.",
+    notice: "Code checks every offer against these rules before you see it. The guide never activates anything for you.",
+    href: "/economics",
+    anchorId: "economics-page",
+    optional: false,
+    capability: "business_economics",
+  },
   {
     id: "choose_case",
     actor: "merchant",
@@ -273,7 +284,7 @@ function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughOb
 }
 
 function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProvenance | null {
-  if (objectiveId === "choose_case") return "merchant";
+  if (objectiveId === "choose_case" || objectiveId === "business_economics") return "merchant";
   if (objectiveId === "understand_buyer") return runProvenance(state);
   if (objectiveId === "review_decision") return "deterministic_engine";
   if (objectiveId === "confirm_terms") return "merchant";
@@ -282,10 +293,10 @@ function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProven
   return null;
 }
 
-export function walkthroughView({ state, progress, dealId, capabilities }: { state: DemoState; progress: DealProgress; dealId: string; capabilities: ReadonlySet<WalkthroughCapability> }): WalkthroughView {
+export function walkthroughView({ state, progress, dealId, capabilities, route }: { state: DemoState; progress: DealProgress; dealId: string; capabilities: ReadonlySet<WalkthroughCapability>; route?: "economics" }): WalkthroughView {
   const objectives = REGISTRY.filter((item) => capabilities.has(item.capability)).map((item) => attributed({ ...item, href: item.href.replace(":dealId", dealId) }, state));
   const started = state.events.some((event) => event.kind === "case_started");
-  const currentObjectiveId = started ? objectiveFor(progress, state) : "choose_case";
+  const currentObjectiveId = started ? objectiveFor(progress, state) : route === "economics" && capabilities.has("business_economics") ? "business_economics" : "choose_case";
   const currentIndex = objectives.findIndex((item) => item.id === currentObjectiveId);
   const completedObjectiveIds = objectives.slice(0, Math.max(0, currentIndex)).map((item) => item.id);
   const core = objectives.filter((item) => !item.optional);
@@ -303,8 +314,19 @@ export function walkthroughView({ state, progress, dealId, capabilities }: { sta
     productLabel: "Start this case",
   };
 
+  const economicsAction: WalkthroughAction = {
+    id: "business_economics",
+    actor: "merchant",
+    type: "merchant",
+    label: "Review your business economics",
+    href: "/economics",
+    systemAction: null,
+    usesReplyControl: false,
+    consequence: "Merchant action · set the rules every recommendation must respect",
+    productLabel: "Review changes",
+  };
   const provenance = provenanceFor(currentObjectiveId, state);
-  const currentAction = started ? action(nextDemoStep(state, progress, dealId), dealId, progress) : caseAction;
+  const currentAction = started ? action(nextDemoStep(state, progress, dealId), dealId, progress) : currentObjectiveId === "business_economics" ? economicsAction : caseAction;
   const terminalOutcome = started ? outcome(state, progress) : null;
 
   return {

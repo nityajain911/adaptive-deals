@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Compass } from "lucide-react";
 import { Button } from "@/components/client";
 import { Card } from "@/components/ui";
 import { notifyWalkthroughPreferences, readWalkthroughPreferences, subscribeWalkthroughPreferences, type WalkthroughPreferences, walkthroughPreferencesSnapshot, writeWalkthroughPreferences } from "./preferences";
 
 export function WalkthroughWelcome() {
+  const router = useRouter();
   const raw = useSyncExternalStore(subscribeWalkthroughPreferences, walkthroughPreferencesSnapshot, () => "");
   const preferences = useMemo(() => readWalkthroughPreferences({ getItem: () => raw || null }), [raw]);
 
@@ -37,7 +39,11 @@ export function WalkthroughWelcome() {
           </Button>
           <Button
             variant="primary"
-            onClick={() => update({ version: preferences.version, dismissedWelcome: true, open: true, reviewingObjectiveId: null })}
+            onClick={() => {
+              update({ version: preferences.version, dismissedWelcome: true, open: true, reviewingObjectiveId: null });
+              // The guide starts with the merchant's own inputs: the business economics every recommendation uses.
+              router.push("/economics");
+            }}
             data-testid="start-walkthrough"
           >
             Start walkthrough <ArrowRight aria-hidden className="h-4 w-4" />

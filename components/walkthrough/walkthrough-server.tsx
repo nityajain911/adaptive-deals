@@ -3,7 +3,7 @@ import { replyContext } from "@/lib/demo-steps";
 import { walkthroughCapabilities, walkthroughView } from "@/lib/walkthrough";
 import { Walkthrough } from "./walkthrough";
 
-export async function WalkthroughServer({ dealId, backHref }: { dealId: string; backHref?: string }) {
+export async function WalkthroughServer({ dealId, backHref, route }: { dealId: string; backHref?: string; route?: "economics" }) {
   const { s, progress } = await loadDeal(dealId);
-  return <Walkthrough view={walkthroughView({ state: s, progress, dealId, capabilities: walkthroughCapabilities() })} reply={replyContext(s)} backHref={backHref} />;
+  return <Walkthrough view={walkthroughView({ state: s, progress, dealId, capabilities: walkthroughCapabilities(), route })} reply={replyContext(s)} backHref={backHref} />;
 }

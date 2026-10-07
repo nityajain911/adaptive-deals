@@ -53,11 +53,17 @@ test("first visit starts at case selection and deliberate selection advances to 
   await page.reload();
   await expect(page.getByTestId("walkthrough-welcome")).toBeVisible();
   await page.getByTestId("start-walkthrough").click();
-  await expect(guide(page)).toContainText("STEP 1 OF 4");
+  // The guide opens on the merchant's own inputs: the business economics.
+  await expect(page).toHaveURL(/\/economics$/);
+  await expect(guide(page)).toContainText("STEP 1 OF 5");
+  await expect(guide(page)).toContainText("Set your business economics");
+  await guide(page).getByRole("button", { name: "Continue: choose a buyer situation" }).click();
+  await expect(page).toHaveURL(/\/deals$/);
+  await expect(guide(page)).toContainText("STEP 2 OF 5");
   await page.getByTestId("select-case-reduced-scope").click();
   await page.getByTestId("start-selected-case").click();
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
-  await expect(guide(page)).toContainText("STEP 2 OF 4");
+  await expect(guide(page)).toContainText("STEP 3 OF 5");
   await expect(guide(page)).toContainText("Understand the buyer");
 });
 
@@ -77,14 +83,14 @@ test("guide completes the core journey while every merchant decision stays in th
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/offer$/);
-  await expect(guide(page)).toContainText("STEP 3 OF 4");
+  await expect(guide(page)).toContainText("STEP 4 OF 5");
   await productPrimary(page);
   await expect(page).toHaveURL(/\/offer\/preview$/);
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Approve and send to buyer");
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/track$/);
-  await expect(guide(page)).toContainText("STEP 4 OF 4");
+  await expect(guide(page)).toContainText("STEP 5 OF 5");
   await expect(guide(page).locator("[data-walkthrough-primary]")).toContainText("Take me there");
   await guide(page).locator("[data-walkthrough-primary]").click();
   await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
@@ -129,8 +135,8 @@ test("restart warns and atomically returns to case selection", async ({ page }) 
   await openGuide(page);
   page.once("dialog", (dialog) => dialog.accept());
   await guide(page).getByRole("button", { name: "Restart" }).click();
-  await expect(page).toHaveURL(/\/deals$/);
-  await expect(guide(page)).toContainText("STEP 1 OF 4");
+  await expect(page).toHaveURL(/\/economics$/);
+  await expect(guide(page)).toContainText("STEP 1 OF 5");
   expect(state().events.some((event) => event.kind === "case_started")).toBe(false);
 });
 
@@ -171,6 +177,8 @@ test("390 px uses a compact bottom sheet without covering the product action or 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.getByTestId("start-walkthrough").click();
+  await expect(page).toHaveURL(/\/economics$/);
+  await page.goto("/deals");
   const sheet = guide(page);
   await expect(sheet.getByTestId("walkthrough-mobile-toggle")).toBeFocused();
   await expect(sheet.getByTestId("walkthrough-mobile-toggle")).toHaveAttribute("aria-expanded", "false");
@@ -268,3 +276,34 @@ test("the first screen opens with the problem, not the product", async ({ page }
   await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("buyer and system events are clearly simulated");
 });
 
+
+
+test("business economics is the first tab, the guide's first step, and is tied to the recommendation", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await reset(page);
+  await page.goto("/economics");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  const tabs = page.getByRole("navigation", { name: "Products" }).getByRole("link");
+  await expect(tabs.nth(0)).toContainText("Business economics");
+  await expect(tabs.nth(1)).toContainText("Deals");
+  await expect(tabs.nth(2)).toContainText("Adaptive Deals");
+  // Before any case, the page says what the rules will do; after one is ready it shows the recommendation they produce.
+  await expect(page.getByTestId("rules-in-action-empty")).toBeVisible();
+  await expect(page.getByTestId("deals-economics-link")).toHaveCount(0);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await page.goto("/economics");
+  await expect(page.getByTestId("rules-in-action-leader")).toContainText("Protect contribution leads with");
+  await page.getByTestId("rules-in-action-link").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await page.getByTestId("offer-economics-link").click();
+  await expect(page).toHaveURL(/\/economics$/);
+  await page.goto("/deals");
+  await page.getByTestId("deals-economics-link").click();
+  await expect(page).toHaveURL(/\/economics$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});

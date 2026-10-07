@@ -65,7 +65,19 @@ describe("walkthrough state comes from the deal", () => {
     const view = resolve(fresh, p);
     expect(view.currentObjectiveId).toBe("choose_case");
     expect(view.currentAction).toMatchObject({ actor: "merchant", href: "/deals" });
-    expect(view.stepLabel).toBe("Step 1 of 4");
+    expect(view.stepLabel).toBe("Step 2 of 5"); // economics is now step 1 of the core journey
+    expect(view.completedObjectiveIds).toContain("business_economics");
+  });
+
+  it("opens on the business economics step when the guide is shown on that page, before any case", async () => {
+    const p = await svc.progressOf(fresh);
+    const view = walkthroughView({ state: fresh, progress: p, dealId: "hero", capabilities: walkthroughCapabilities(), route: "economics" });
+    expect(view.currentObjectiveId).toBe("business_economics");
+    expect(view.stepLabel).toBe("Step 1 of 5");
+    expect(view.currentAction).toMatchObject({ actor: "merchant", href: "/economics", systemAction: null, productLabel: "Review changes" });
+    expect(view.provenance).toBe("merchant");
+    // Once a case has started, the same page no longer claims the economics step.
+    expect(walkthroughView({ state: started(), progress: p, dealId: "hero", capabilities: walkthroughCapabilities(), route: "economics" }).currentObjectiveId).not.toBe("business_economics");
   });
 
   it("moves a deliberately started case to understanding the buyer", async () => {
@@ -132,11 +144,11 @@ describe("capability and outcome honesty", () => {
   });
 
   it("ships only capabilities that exist and omits their future steps from the count", async () => {
-    // Negotiation now exists (the corridor), as an optional step; the other future capabilities do not.
-    expect([...walkthroughCapabilities()]).toEqual(["case_picker", "current_offer", "preventive_depth", "negotiation"]);
+    // Negotiation (the corridor) and business economics now exist; the other future capabilities do not.
+    expect([...walkthroughCapabilities()]).toEqual(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation"]);
     const view = resolve(started(), await svc.progressOf(fresh));
     expect(view.objectives.map((x) => x.capability)).not.toEqual(expect.arrayContaining(["live_customisation", "test_invoice"]));
-    expect(view.stepLabel).toBe("Step 2 of 4");
+    expect(view.stepLabel).toBe("Step 3 of 5");
   });
 
   it("contains no copied commercial output", async () => {
