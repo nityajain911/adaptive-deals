@@ -810,6 +810,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await form.getByTestId("counter-total").fill("40000");
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-fails")).toBeVisible();
+  await shot(page, "counter-1-check-and-override");
   await form.getByTestId("counter-override").check();
   await expect(form.getByTestId("counter-make")).toBeEnabled();
   await form.getByTestId("counter-make").click();
@@ -820,6 +821,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await expect(page.getByTestId("attribution")).toContainText("you chose to override them");
   await expect(page.getByTestId("counter-override-note")).toBeVisible();
   await expect(page.getByTestId("offer-total")).toContainText("₹40,0");
+  await shot(page, "counter-2-offer");
   expect(state().counterOffers.at(-1)!.override).not.toBeNull();
 
   // The usual preview, approval and send; the buyer's page now shows the new version.
@@ -832,6 +834,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await expect(page.getByTestId("buyer-status")).toContainText("replaced");
   await page.goto(`/proposal/${sent.agreementId}/v2`);
   await expect(page.getByTestId("buyer-total")).toContainText("₹40,0");
+  await shot(page, "counter-3-buyer-version-2");
 });
 
 test("counter-offer · a request about a payment date is not offered a different-total answer", async ({ page }) => {

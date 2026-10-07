@@ -6,7 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ExplanationResult } from "@/ai/explain";
 import { heroPackages } from "@/data/synthetic/hero";
-import { alternativeContributionLine, approxINR, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { explanationAttribution } from "@/lib/views";
 import type { DecisionBranch } from "@/lib/decision-branch";
@@ -143,7 +143,7 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
       </div>
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
         <span className="font-semibold text-ink">Why this offer: </span>
-        <span className="text-ink-2">{aiNote ?? whyOffer(x)}</span>
+        <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : (aiNote ?? whyOffer(x))}</span>
         <div className="mt-1 text-[13px] text-muted" data-testid="attribution">
           {counter ? counterAttribution(counter) : explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
         </div>

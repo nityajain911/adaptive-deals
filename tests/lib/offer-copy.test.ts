@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant } from "@/data/synthetic/hero";
-import { alternativeContributionLine, approxINR, headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 /** Spec §5.1: code-written headlines and the original-proposal comparison. */
@@ -53,5 +53,16 @@ describe("original proposal and offer summary", () => {
   it("omits the difference when the GST bases differ", () => {
     const s = offerSummary(heroTop(), { ...originalProposal(), gstRateBps: 0 }, GST);
     expect(s.changes.join(" ")).not.toMatch(/₹95,580|lower than/);
+  });
+});
+
+describe("the reason shown for a merchant's counter-offer", () => {
+  it("never says the offer passes the rules when the merchant overrode one", () => {
+    const text = counterReason(["Discount 13.08% is above the 0% limit."]);
+    expect(text).toBe("You set this total in answer to the buyer's request. It does not meet: Discount 13.08% is above the 0% limit. You chose to override that.");
+    expect(text).not.toMatch(/passes your rules/i);
+  });
+  it("says so plainly when every rule passes", () => {
+    expect(counterReason([])).toBe("You set this total in answer to the buyer's request, and the engine found that every rule passes.");
   });
 });

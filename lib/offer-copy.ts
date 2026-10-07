@@ -81,3 +81,9 @@ export function offerSummary(x: EvaluatedStructure, original: ReturnType<typeof 
   if (!changes.length) changes.push("The scope and total are unchanged from the original annual proposal.");
   return { achieves, changes };
 }
+
+/** Why a merchant's counter-offer is on the table, without claiming it passes rules it does not. */
+export function counterReason(failingTexts: string[]): string {
+  if (!failingTexts.length) return "You set this total in answer to the buyer's request, and the engine found that every rule passes.";
+  return `You set this total in answer to the buyer's request. It does not meet: ${failingTexts.join("; ")} You chose to override that.`;
+}

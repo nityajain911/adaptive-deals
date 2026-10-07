@@ -28,9 +28,14 @@ Each case starts from its recorded Groq run, replayed from stored outputs: no mo
 
 > “When no approved offer works, the product says so and explains why, instead of inventing one.”
 
+**Answer a lower price with a counter-offer (about 35 s).** After the proposal is sent, open the buyer's page, choose **Request a change**, pick **A lower price**, and send "Could you do a lower total: 40000?". On **Track**, open **Buyer work needing a decision**: **Answer with a different total**. Enter 40000 and select **Check this amount**. The engine rechecks it and shows the rule it does not meet: *Discount 13.08% is above the 0% limit.* Tick the override, select **Prepare counter-offer**. The Offer card reads **Your counter-offer**, says *You set this amount · the engine rechecked it and found rules not met · you chose to override them*, and lists the overridden rule. Then **Review buyer proposal**, approve and send: the buyer's old link shows *replaced* and version 2 carries the new total.
+
+> “The buyer asks for less. The engine checks my own number and tells me which rule it breaks: my policy allows no discount. It is my call, so I can override, and the product records that as my decision, not the engine's. The buyer then gets a new version to accept, with the same scope and dates.”
+
 ## Recording guidance
 
 - Keep the main story on the preventive path. The failed-debit path belongs on `/presenter` for questions.
+- In the counter-offer, say that the merchant overrode a rule and that the engine's result still says it failed. Do not say the engine approved it. It applies only before the buyer accepts.
 - Say exactly what Groq did and no more. In these recordings Groq extracted constraints, worded the two questions, ranked the options and wrote per-offer reasons. Code wrote the comparison text in the first case and the whole explanation in the second, and decided every figure, check and approval.
 - The recordings are one real run per case, kept as they came, misses included. They are not an evaluation and show nothing about reliability. Do not claim they do.
 - Do not say that AI read the payment-change reply. The supported phrase is read by `reply-rules.v1`; unsupported phrases require merchant attention.
