@@ -12,17 +12,17 @@ export function MerchantHeader({ current = "adaptive" }: { current?: "deals" | "
           <span className="text-[#3d6bff]">/</span>Razorpay
         </span>
         <nav aria-label="Products" className="flex h-full items-center gap-3 sm:gap-5">
-          <Link href="/economics" aria-current={current === "economics" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] hover:text-white", current === "economics" ? "font-semibold text-white" : "font-medium text-white/75")}>
+          <Link href="/economics" aria-current={current === "economics" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 sm:whitespace-nowrap text-[14px] hover:text-white", current === "economics" ? "font-semibold text-white" : "font-medium text-white/75")}>
             <Calculator aria-hidden className="hidden h-4 w-4 sm:block" />
             <span className="hidden lg:inline">Business economics</span><span className="lg:hidden">Economics</span>
             {current === "economics" ? <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-[#3d6bff] shadow-[0_0_14px_#3d6bff]" /> : null}
           </Link>
-          <Link href="/deals" aria-current={current === "deals" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] hover:text-white", current === "deals" ? "font-semibold text-white" : "font-medium text-white/75")}>
+          <Link href="/deals" aria-current={current === "deals" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 sm:whitespace-nowrap text-[14px] hover:text-white", current === "deals" ? "font-semibold text-white" : "font-medium text-white/75")}>
             <BriefcaseBusiness aria-hidden className="hidden h-4 w-4 sm:block" />
             Deals
             {current === "deals" ? <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-[#3d6bff] shadow-[0_0_14px_#3d6bff]" /> : null}
           </Link>
-          <Link href="/deals/hero" aria-current={current === "adaptive" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 whitespace-nowrap text-[14px] hover:text-white", current === "adaptive" ? "font-semibold text-white" : "font-medium text-white/75")}>
+          <Link href="/deals/hero" aria-current={current === "adaptive" ? "page" : undefined} className={cx("relative flex h-full items-center gap-1.5 sm:whitespace-nowrap text-[14px] hover:text-white", current === "adaptive" ? "font-semibold text-white" : "font-medium text-white/75")}>
             <Handshake aria-hidden className="hidden h-4 w-4 sm:block" />
             Adaptive Deals
             {current === "adaptive" ? <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-[#3d6bff] shadow-[0_0_14px_#3d6bff]" /> : null}
