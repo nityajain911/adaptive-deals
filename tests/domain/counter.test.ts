@@ -25,6 +25,16 @@ describe("a counter-offer at a different total", () => {
     for (const target of [4_000_000, 3_800_000, 3_500_000, 4_200_000, 3_000_000]) expect(total(counterStructure(base(), target, GST))).toBe(target);
   });
 
+  it("counts any price cut as a discount, however small, so a rule of 'no discount' is never slipped past by rounding", () => {
+    const b = base();
+    for (const cut of [100, 200, 300, 1_000]) {
+      const c = counterStructure(b, total(b) - cut, GST);
+      expect(c.discountBps, `₹${cut / 100} off`).toBeGreaterThanOrEqual(1);
+      const failing = failingCounterChecks(evaluateStructure(c, constraints, input)).map((x) => x.id);
+      expect(failing, `₹${cut / 100} off`).toContain("discount_limit");
+    }
+  });
+
   it("never lands above the total that was asked for, and within two paise of it, at any amount", () => {
     for (let rupees = 500; rupees < 46_000; rupees += 137) {
       const target = rupees * 100;

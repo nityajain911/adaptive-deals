@@ -1,6 +1,6 @@
 import type { CheckResult } from "./checks";
 import type { EvaluatedStructure } from "./engine";
-import { derivePreGstFromInclusive, divRoundHalfUp, lineWithGst, sum, type Paise } from "./money";
+import { derivePreGstFromInclusive, lineWithGst, sum, type Paise } from "./money";
 import type { Structure } from "./structures";
 
 export class CounterError extends Error {}
@@ -52,7 +52,9 @@ export function counterStructure(base: Structure, targetTotalPaise: Paise, gstRa
   });
   const valueParts = proportional(pricePaise, base.deliveries.map((d) => d.valuePaise), "last");
   const deliveries = base.deliveries.map((d, i) => ({ ...d, valuePaise: valueParts[i] }));
-  const discountBps = base.listPricePaise > 0 ? Math.max(base.discountBps, divRoundHalfUp((base.listPricePaise - pricePaise) * 10_000, base.listPricePaise)) : base.discountBps;
+  // Rounded up: any real price cut is at least 1 bp of discount, so a 'no discount' rule cannot be slipped past by rounding.
+  const cutBps = base.listPricePaise > 0 ? Math.max(0, Math.ceil(((base.listPricePaise - pricePaise) * 10_000) / base.listPricePaise)) : 0;
+  const discountBps = Math.max(base.discountBps, cutBps);
 
   return {
     ...base,
