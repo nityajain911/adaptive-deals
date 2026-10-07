@@ -98,6 +98,11 @@ export function validateEconomics(c: EconomicsContent): EconomicsIssue[] {
   return issues;
 }
 
+/** The editable content of a version, copied, without its version, timestamps or hash. */
+export function economicsContentOf(e: EconomicsContent): EconomicsContent {
+  return structuredClone({ services: e.services, guardrails: e.guardrails, discountLadderBps: e.discountLadderBps, fixed: e.fixed });
+}
+
 export function activate(content: EconomicsContent, meta: { version: number; activatedAt: string; activatedBy: string }): BusinessEconomics {
   const errors = validateEconomics(content).filter((issue) => issue.level === "error");
   if (errors.length) throw new EconomicsError(errors.map((issue) => issue.message).join(" "));

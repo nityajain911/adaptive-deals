@@ -353,3 +353,13 @@ The model's explanation has two parts that code validates separately: a full com
 **New business economics are adopted explicitly.** Before a proposal is live, the merchant can preview the exact input changes, offers that become feasible or infeasible, and whether the recommendation changes. The preview changes nothing. An incompatible version is blocked with the specific missing service or dependency, and a version that changes only standard prices is not offered as a meaningful re-evaluation.
 
 **Sent terms keep their economics.** Once a proposal is approved or sent, the deal cannot adopt a different account version. Drafts and later agreement versions keep the exact economics version and effective input hash used to produce them; economics provenance never enters the buyer's contractual terms.
+
+## Business economics are the merchant's, versioned and reviewed before they apply
+
+**One page holds the merchant's economics.** Services (standard price, direct delivery cost, cost timing, removable, deferrable, valuable on its own, dependencies) and commercial guardrails (minimum contribution, maximum discount and the approved discount ladder, maximum cash exposure, minimum payment, maximum payment duration, expected payment fee). GST is shown but not editable: it is set by law, not by the merchant.
+
+**Nothing applies until it is reviewed and activated.** Editing creates a draft. "Review changes" shows each service's contribution and margin, any validation problem, a floor that no offer could ever meet, and the effect on the open demo deal. Activation creates a new numbered, timestamped version. A review with nothing changed says so and offers no activation, because a version identical to the active one would be a record of nothing.
+
+**An open deal is told, not changed.** When a newer version would change a deal's engine inputs, the deal shows a banner and keeps its pinned economics. The review names each changed input in the merchant's words ("Website fixes · direct delivery cost: ₹12,000 → ₹15,000"), says what happens to the available offers, the recommendation and any unsent draft, and states that service prices are unchanged for this deal. Only an explicit confirmation moves the deal to the new version. A version that changes standard prices alone raises no banner at all.
+
+**Only an input the product can name is described.** An engine input that has no plain-language label is shown as its raw field name rather than guessed at.

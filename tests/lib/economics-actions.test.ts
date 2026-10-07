@@ -1,7 +1,10 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { rmSync } from "node:fs";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { defaultEconomicsContent } from "@/lib/economics-default";
 
-process.env.ADAPTIVE_DEALS_DATA_DIR = `.data-e2e-economics-actions-${process.pid}`;
+// The reset action requires a directory named like the e2e ones, so this one is relative and removed afterwards.
+const DATA_DIR = `.data-e2e-economics-actions-${process.pid}`;
+process.env.ADAPTIVE_DEALS_DATA_DIR = DATA_DIR;
 
 const { POST } = await import("@/app/api/actions/route");
 const store = await import("@/lib/economics-store");
@@ -20,6 +23,8 @@ const post = async (body: unknown) => {
 beforeEach(async () => {
   await store.resetEconomicsStore();
 });
+
+afterAll(() => rmSync(DATA_DIR, { recursive: true, force: true }));
 
 describe("business economics actions", () => {
   it("validates and saves a draft, previews it, activates it, discards it and restores defaults", async () => {
@@ -78,5 +83,19 @@ describe("business economics actions", () => {
     process.env.ADAPTIVE_DEALS_DATA_DIR = isolated;
     expect(refused.response.status).toBe(409);
     expect(refused.body.error).toMatch(/test data directory/i);
+  });
+});
+
+describe("the activation preview says when nothing changed", () => {
+  it("marks a draft identical to the active version as unchanged, and a real change as changed", async () => {
+    await post({ action: "save_economics_draft", content: defaultEconomicsContent() });
+    const same = await post({ action: "preview_economics_activation" });
+    expect(same.body.result).toMatchObject({ unchanged: true });
+
+    const changed = defaultEconomicsContent();
+    changed.services[0]!.directCostPaise += 100;
+    await post({ action: "save_economics_draft", content: changed });
+    const different = await post({ action: "preview_economics_activation" });
+    expect(different.body.result).toMatchObject({ unchanged: false });
   });
 });

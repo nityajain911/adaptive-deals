@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activate, economicsContentHash, EconomicsError, validateEconomics, type EconomicsContent } from "@/domain/business-economics";
+import { activate, economicsContentHash, economicsContentOf, EconomicsError, validateEconomics, type EconomicsContent } from "@/domain/business-economics";
 import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
 
 const { discountsBps, ...offerTypes } = heroTemplates;
@@ -77,5 +77,22 @@ describe("activation", () => {
     const c = content();
     c.discountLadderBps = [0, 500];
     expect(() => activate(c, { version: 2, activatedAt: "x", activatedBy: "m" })).toThrow(EconomicsError);
+  });
+});
+
+describe("the editable content of an activated version", () => {
+  it("keeps only the editable content, so an editor never sends a version, hash or timestamp as a draft", () => {
+    const e = activate(content(), { version: 3, activatedAt: "2026-10-01T09:00:00+05:30", activatedBy: "m" });
+    const c = economicsContentOf(e);
+    expect(Object.keys(c).sort()).toEqual(["discountLadderBps", "fixed", "guardrails", "services"]);
+    expect(economicsContentHash(c)).toBe(e.hash);
+  });
+  it("is a copy: editing it never changes the version it came from", () => {
+    const e = activate(content(), { version: 1, activatedAt: "x", activatedBy: "m" });
+    const c = economicsContentOf(e);
+    c.services[0].directCostPaise += 1;
+    c.discountLadderBps.push(500);
+    expect(e.services[0].directCostPaise).not.toBe(c.services[0].directCostPaise);
+    expect(e.discountLadderBps).not.toContain(500);
   });
 });

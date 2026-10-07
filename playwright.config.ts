@@ -18,7 +18,7 @@ export default defineConfig({
   reporter: [["list"]],
   use: { trace: "retain-on-failure" },
   projects: [
-    { name: "sample", testMatch: ["journey.spec.ts", "walkthrough.spec.ts"], use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3200" } },
+    { name: "sample", testMatch: ["journey.spec.ts", "walkthrough.spec.ts", "economics.spec.ts"], use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3200" } },
     { name: "recorded", testMatch: ["recorded.spec.ts"], use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3201" } },
   ],
   webServer: [

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { activate, validateEconomics, type EconomicsIssue } from "@/domain/business-economics";
+import { activate, economicsContentHash, validateEconomics, type EconomicsIssue } from "@/domain/business-economics";
 import type { DealEvaluation } from "@/domain/engine";
 import { activeEconomics, getEconomicsStore } from "@/lib/economics-store";
 import { previewReevaluationCandidate } from "@/lib/service";
@@ -17,6 +17,8 @@ export interface ServiceEconomicsRow {
 
 export interface EconomicsActivationPreview {
   issues: EconomicsIssue[];
+  /** True when the draft has exactly the active version's content, so there is nothing to activate. */
+  unchanged: boolean;
   serviceEconomics: ServiceEconomicsRow[];
   demoDeal: ReevaluationPreview | null;
   unreachableFloor: boolean;
@@ -34,6 +36,7 @@ export async function previewEconomicsActivation(): Promise<EconomicsActivationP
   const content = store.draft;
   if (!content) throw new Error("There is no business economics draft to review");
   const issues = validateEconomics(content);
+  const unchanged = economicsContentHash(content) === (await activeEconomics()).hash;
   const serviceEconomics = content.services.map((service) => {
     const contributionPaise = service.listPricePaise - service.directCostPaise;
     return {
@@ -46,7 +49,7 @@ export async function previewEconomicsActivation(): Promise<EconomicsActivationP
     };
   });
   if (issues.some((issue) => issue.level === "error")) {
-    return { issues, serviceEconomics, demoDeal: null, unreachableFloor: false };
+    return { issues, unchanged, serviceEconomics, demoDeal: null, unreachableFloor: false };
   }
   const active = await activeEconomics();
   const candidate = activate(content, {
@@ -57,6 +60,7 @@ export async function previewEconomicsActivation(): Promise<EconomicsActivationP
   const deal = await previewReevaluationCandidate(candidate);
   return {
     issues,
+    unchanged,
     serviceEconomics,
     demoDeal: deal?.preview ?? null,
     unreachableFloor: floorUnreachable(deal?.evaluation ?? null),

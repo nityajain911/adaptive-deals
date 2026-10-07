@@ -1,0 +1,90 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { expect, test, type Page } from "@playwright/test";
+import type { DemoState } from "@/lib/service";
+
+const STORE = path.join(".data-e2e", "store.json");
+
+async function api(page: Page, data: Record<string, unknown>) {
+  const response = await page.request.post("/api/actions", { data });
+  const json = (await response.json()) as { ok: boolean; error?: string };
+  expect(json.ok, JSON.stringify(json)).toBe(true);
+}
+
+const state = () => JSON.parse(readFileSync(STORE, "utf8")) as DemoState;
+const clarification = (id: string) => state().conversation.find((m) => m.kind === "clarification" && m.refs?.questionId === id)!;
+
+async function prepareOptions(page: Page) {
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  expect(state().status).toBe("options_ready");
+}
+
+test.describe.configure({ mode: "serial" });
+
+test.beforeEach(async ({ page }) => {
+  await api(page, { action: "reset_economics_for_tests" });
+  await prepareOptions(page);
+});
+
+test("economics · a cost change is reviewed, activated as version 2, and offered to the open deal", async ({ page }) => {
+  await page.goto("/economics");
+  await expect(page.getByTestId("economics-version")).toContainText("Version 1");
+  await page.getByTestId("service-row-website-fixes").getByTestId("cost").fill("15000");
+  await page.getByTestId("economics-review-button").click();
+  await expect(page.getByTestId("economics-review")).toContainText("Website fixes");
+  await expect(page.getByTestId("economics-demo-effect")).toContainText("Website fixes · direct delivery cost: ₹12,000 → ₹15,000");
+  await page.getByTestId("economics-activate").click();
+  await expect(page.getByTestId("economics-version")).toContainText("Version 2");
+  await page.goto("/deals/hero/offer");
+  // The deal keeps its pinned economics until the merchant chooses to re-evaluate.
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
+  await expect(page.getByTestId("reevaluate-banner")).toContainText("Your business economics have changed since this deal was evaluated.");
+  await page.getByTestId("reevaluate-review").click();
+  await expect(page.getByTestId("reevaluate-changes")).toContainText("Website fixes · direct delivery cost: ₹12,000 → ₹15,000");
+  await expect(page.getByTestId("reevaluate-banner")).toContainText("1 input would change.");
+  await expect(page.getByTestId("reevaluate-effects")).toContainText("The recommended offer");
+  await expect(page.getByTestId("reevaluate-confirm")).toContainText("Re-evaluate with version 2");
+  await page.getByTestId("reevaluate-confirm").click();
+  await expect(page.getByTestId("reevaluate-banner")).toHaveCount(0);
+  // The new cost reaches the figures; the quoted prices and the offer's total do not move.
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹16,330");
+  await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
+  expect(state().economics.pinned.version).toBe(2);
+});
+
+test("economics · a standard-price change alone does not touch an existing deal", async ({ page }) => {
+  const before = state().economics.effectiveHash;
+  await page.goto("/economics");
+  await page.getByTestId("service-row-website-fixes").getByTestId("price").fill("30000");
+  await page.getByTestId("economics-review-button").click();
+  await page.getByTestId("economics-activate").click();
+  await expect(page.getByTestId("economics-version")).toContainText("Version 2");
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("reevaluate-banner")).toHaveCount(0);
+  expect(state().economics.effectiveHash).toBe(before);
+  await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
+});
+
+test("economics · an invalid ladder cannot be activated, and the page fits a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/economics");
+  await page.getByTestId("discount-limit").fill("0");
+  await page.getByTestId("discount-ladder").fill("0, 5");
+  await page.getByTestId("economics-review-button").click();
+  await expect(page.getByTestId("economics-issue-discountLadderBps")).toBeVisible();
+  await expect(page.getByTestId("economics-activate")).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("economics · reviewing with nothing changed says so and offers no activation", async ({ page }) => {
+  await page.goto("/economics");
+  await page.getByTestId("economics-review-button").click();
+  await expect(page.getByTestId("economics-unchanged")).toContainText("No changes");
+  await expect(page.getByTestId("economics-activate")).toBeDisabled();
+  await expect(page.getByTestId("economics-version")).toContainText("Version 1");
+});

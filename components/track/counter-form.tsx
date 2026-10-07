@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "../client";
 import { approxINR } from "@/lib/offer-copy";
 import { formatINR } from "@/domain/money";
+import { toPaise } from "@/lib/money-input";
 
 interface Check {
   currentTotalPaise: number;
@@ -13,14 +14,6 @@ interface Check {
   failing: { id: string; code: string; text: string }[];
   contributionPaise: number;
   discountBps: number;
-}
-
-/** "₹10,000" or "10000.50" → paise, or null when it is not a usable amount. */
-function toPaise(text: string): number | null {
-  const cleaned = text.replace(/[₹,\s]/g, "");
-  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
-  const paise = Math.round(Number(cleaned) * 100);
-  return paise > 0 ? paise : null;
 }
 
 /**
