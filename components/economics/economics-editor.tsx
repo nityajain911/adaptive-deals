@@ -9,6 +9,7 @@ import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-il
 import { ServicesTable } from "./services-table";
 import { GuardrailsForm } from "./guardrails-form";
 import { ReviewPanel } from "./review-panel";
+import { CommercialMemoryPanel, type MemorySourceSummary } from "@/components/commercial-memory/commercial-memory-panel";
 
 type Json = { ok: boolean; result?: unknown; error?: string };
 async function action(body: Record<string, unknown>): Promise<unknown> {
@@ -20,7 +21,7 @@ async function action(body: Record<string, unknown>): Promise<unknown> {
 
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
 
-export function EconomicsEditor({ active, children }: { active: BusinessEconomics; children?: ReactNode }) {
+export function EconomicsEditor({ active, memorySources, children }: { active: BusinessEconomics; memorySources: MemorySourceSummary[]; children?: ReactNode }) {
   const router = useRouter();
   const [content, setContent] = useState<EconomicsContent>(() => economicsContentOf(active));
   const [version, setVersion] = useState(active.version);
@@ -56,6 +57,7 @@ export function EconomicsEditor({ active, children }: { active: BusinessEconomic
         </div>
       </div>
       {children}
+      <CommercialMemoryPanel sources={memorySources} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
       <ServicesTable services={content.services} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
       <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
       <div className="flex flex-wrap items-center gap-3">

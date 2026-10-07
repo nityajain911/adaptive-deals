@@ -99,6 +99,23 @@ test("economics · reviewing with nothing changed says so and offers no activati
   await expect(page.getByTestId("economics-version")).toContainText("Version 1");
 });
 
+test("commercial memory · the merchant reviews exact evidence before it enters the economics draft", async ({ page }) => {
+  await page.goto("/economics");
+  const memory = page.getByTestId("commercial-memory");
+  await expect(memory).toContainText("9 connected sources");
+  await expect(memory).toContainText("Pinecone 2026 rate card");
+  await memory.getByTestId("memory-draft").click();
+  await expect(memory.getByTestId("memory-proposals")).toContainText("Website fixes");
+  await expect(memory.getByTestId("memory-proposals")).toContainText("Pinecone direct delivery costs");
+  await memory.getByTestId("memory-citation").first().click();
+  await expect(memory).toContainText("Website fixes,12000,start of delivery month");
+  await memory.getByTestId("memory-apply").click();
+  await expect(memory).toContainText("8 values copied into your draft");
+  await page.getByTestId("economics-review-button").click();
+  await expect(page.getByTestId("economics-unchanged")).toContainText("No changes");
+  await expect(page.getByTestId("economics-activate")).toBeDisabled();
+});
+
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");

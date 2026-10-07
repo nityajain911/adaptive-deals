@@ -4,18 +4,20 @@ import { RulesInAction } from "@/components/economics/rules-in-action";
 import { MerchantHeader } from "@/components/merchant-header";
 import { activeEconomics } from "@/lib/economics-store";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
+import { loadBundledKnowledgeSources } from "@/commercial-memory/source-schema";
 
 export const metadata = { title: "Business economics · Adaptive Deals" };
 
 export default async function EconomicsPage() {
   await connection();
   const active = await activeEconomics();
+  const memorySources = loadBundledKnowledgeSources().map(({ id, title, kind, status, effectiveFrom, access }) => ({ id, title, kind, status, effectiveFrom, access }));
   return (
     <>
       <WalkthroughServer dealId="hero" route="economics" />
       <MerchantHeader current="economics" />
       <main id="main" className="mx-auto w-full max-w-[1200px] flex-1 px-3 py-5 sm:px-6 sm:py-7" data-walkthrough="economics-page">
-        <EconomicsEditor active={active}>
+        <EconomicsEditor active={active} memorySources={memorySources}>
           <RulesInAction />
         </EconomicsEditor>
       </main>

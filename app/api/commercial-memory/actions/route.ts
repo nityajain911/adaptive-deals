@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         reason: null,
       });
     }
-    return reply({ ok: true, result: { savedDraft: true, confirmed: input.proposalIds.length, economicsVersion: active.version, sourceCount: sources.length } });
+    return reply({ ok: true, result: { savedDraft: true, confirmed: input.proposalIds.length, economicsVersion: active.version, sourceCount: sources.length, content } });
   } catch (error) {
     const message = error instanceof z.ZodError ? "Invalid Commercial Memory action" : error instanceof Error ? error.message : "Commercial Memory action failed";
     return reply({ ok: false, error: message }, 400);
