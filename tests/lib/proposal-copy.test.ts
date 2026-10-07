@@ -41,8 +41,8 @@ describe("recurring-payment wording", () => {
 });
 
 describe("change-request starters", () => {
-  it("offer a payment date, a scope, or something else, and never a different amount", () => {
-    expect(CHANGE_STARTERS.map((x) => x.label)).toEqual(["A different payment date", "A different scope", "Something else"]);
-    expect(JSON.stringify(CHANGE_STARTERS)).not.toMatch(/amount|price|discount/i);
+  it("offer a payment date, a scope, a lower price, or something else, and each carries its topic", () => {
+    expect(CHANGE_STARTERS.map((x) => [x.id, x.label])).toEqual([["date", "A different payment date"], ["scope", "A different scope"], ["price", "A lower price"], ["other", "Something else"]]);
+    expect(JSON.stringify(CHANGE_STARTERS)).not.toMatch(/discount/i);
   });
 });

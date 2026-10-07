@@ -123,8 +123,10 @@ export function createAgreementVersion(args: {
   policy: MerchantPolicy;
   clock: Clock;
   supersedes?: number | null;
+  /** The merchant's explicit, recorded decision to send a structure the engine rejected. The engine's result is never changed. */
+  merchantOverride?: { by: string } | null;
 }): AgreementVersion {
-  if (!args.evaluated.approvable) {
+  if (!args.evaluated.approvable && !args.merchantOverride) {
     throw new AgreementError(`Structure ${args.evaluated.structure.id} is ${args.evaluated.verdict}; only feasible structures can become agreements`);
   }
   const baseTerms = buildCanonicalTerms({

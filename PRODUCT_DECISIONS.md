@@ -336,7 +336,11 @@ The model's explanation has two parts that code validates separately: a full com
 
 **The engine rechecks it and says what fails.** The buyer's budget and approval limit, the discount policy, the contribution floor and funding are all checked by the unchanged engine. A pass says so. A failure lists each rule not met (for example "Discount 13.08% is above the 0% limit").
 
-**A failed rule can be overridden, and the override is the merchant's.** Sending a failing amount needs an explicit tick, and is stored with who did it, when, and which rules. The offer card says "You set this amount · the engine rechecked it and found rules not met · you chose to send it anyway", and lists the overridden rules. The engine's verdict is never rewritten: the stored result still says it failed.
+**A failed rule can be overridden, and the override is the merchant's.** Sending a failing amount needs an explicit tick, and is stored with who did it, when, and which rules. The merchant must acknowledge exactly the rules that were shown for that amount; if the rules differ when it is submitted, the request is refused. The offer card says "You set this amount · the engine rechecked it and found rules not met · you chose to override them", and lists the overridden rules. The engine's result is stored exactly as it returned it (`approvable` stays false, the verdict stays rejected); the recorded override is a separate permission that lets only that one counter become a draft.
+
+**The buyer's request is answered only when the counter reaches the buyer.** Preparing a counter does not mark the request resolved. It is recorded as answered when the counter version is delivered; if the merchant sends a different offer or closes the deal instead, the request stays as it was.
+
+**Only a price request can be answered this way.** A change request carries its topic (a different date, a different scope, a lower price, or something else). A date or scope request is not offered the different-total answer, and the service refuses it. This reverses my earlier choice not to let a buyer ask about price: the counter-offer is the merchant's answer to exactly that, and the topic keeps it from being applied to anything else.
 
 **It becomes a new version through the usual path.** The sent version is withdrawn, the counter is selected, and the merchant previews, approves and sends it like any proposal. The buyer's old link shows "replaced" and the new link works once it is sent. Acceptance, payment link, mandate and collections then follow the countered amounts.
 

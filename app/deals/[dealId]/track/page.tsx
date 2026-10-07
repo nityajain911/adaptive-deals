@@ -153,7 +153,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   {item.note ? <div className="mt-1 text-ink-2">Follow-up note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   <div className="mt-1 text-ink-2">Safe next step: {item.dateAmbiguity ? "Ask the buyer for one exact date." : "Review the buyer's request and agree the next step."}</div>
                   <p className="mt-1 text-[13px] text-muted">These choices record your decision only. Terms, payments and the ledger stay unchanged.</p>
-                  {item.kind === "buyer_request" && item.sourceKind === "message" && s.status === "sent" && !s.amendments.some((a) => a.toVersion === item.version) ? (
+                  {item.kind === "buyer_request" && item.sourceKind === "message" && s.status === "sent" && !s.amendments.some((a) => a.toVersion === item.version) && !["date", "scope"].includes(s.conversation.find((m) => m.id === item.sourceId)?.refs.topic ?? "") ? (
                     <CounterForm currentTotalPaise={s.agreements.find((v) => v.version === item.version)?.terms.pricing.totalPaise ?? 0} onDone={stageHref(dealId, "offer")} />
                   ) : null}
                   <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />

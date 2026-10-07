@@ -257,6 +257,6 @@ export function SuccessMeasure() {
 /** Who set the amount and who checked it, said plainly. */
 export function counterAttribution(c: CounterOffer): string {
   return c.override
-    ? "You set this amount · the engine rechecked it and found rules not met · you chose to send it anyway · figures calculated by the engine."
+    ? "You set this amount · the engine rechecked it and found rules not met · you chose to override them · figures calculated by the engine."
     : "You set this amount · the engine rechecked it and every rule passes · figures calculated by the engine.";
 }

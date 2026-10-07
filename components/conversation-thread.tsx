@@ -97,7 +97,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         ) : null}
         {disposition ? (
           <div className="mt-1 text-[13px] text-muted" data-testid={`disposition-${i.id}`}>
-            Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : "Follow-up still pending"}
+            Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : disposition.kind === "countered" ? "Answered with a counter-offer" : "Follow-up still pending"}
             {disposition.note ? ` · ${disposition.note}` : ""}
           </div>
         ) : null}

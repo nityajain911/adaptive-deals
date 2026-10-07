@@ -205,8 +205,8 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   // The simulated buyer's replies are choices, including honest uncertainty.
   await expect(page.getByTestId("walkthrough-reply-clar-gst-unclear")).toBeVisible();
   await expect(page.getByTestId("walkthrough-reply-__typed")).toBeVisible();
-  await page.getByTestId("walkthrough-reply-clar-gst-yes").click();
-  await expect(page.getByTestId("walkthrough-reply-clar-gst-yes")).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("walkthrough-reply-clar-gst-yes").check();
+  await expect(page.getByTestId("walkthrough-reply-clar-gst-yes")).toBeChecked();
   await walkthroughPrimary(page).click();
   await expect(page.getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-approval-contract");
   await walkthroughPrimary(page).click();
@@ -747,7 +747,7 @@ test("step 4 · the buyer's page leads with a glance line, words the attestation
   await expect(page.getByTestId("change-starter-date")).toBeVisible();
   await expect(page.getByTestId("change-starter-scope")).toBeVisible();
   await expect(page.getByTestId("change-starter-other")).toBeVisible();
-  await expect(page.getByText(/different amount/i)).toHaveCount(0);
+  await expect(page.getByTestId("change-starter-price")).toBeVisible();
   await page.getByTestId("change-starter-date").click();
   await expect(page.getByLabel("What would you like changed?")).toHaveValue(/^I'd like a different payment date: /);
 });
@@ -792,7 +792,7 @@ test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }
 test("counter-offer · the merchant answers a buyer's request for a lower amount, overriding a failed rule on the record", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   const sent = await prepareSent(page);
-  await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹40,000 instead?" });
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹40,000 instead?", topic: "price" });
   await page.goto("/deals/hero/track");
   // A pending buyer request opens its card by itself.
   await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
@@ -804,6 +804,12 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-fails")).toContainText("does not meet your rules");
   await expect(form.getByTestId("counter-make")).toBeDisabled();
+  // An answer belongs to the amount it was checked for: editing the amount removes it.
+  await form.getByTestId("counter-total").fill("6000");
+  await expect(form.getByTestId("counter-result")).toHaveCount(0);
+  await form.getByTestId("counter-total").fill("40000");
+  await form.getByTestId("counter-check").click();
+  await expect(form.getByTestId("counter-fails")).toBeVisible();
   await form.getByTestId("counter-override").check();
   await expect(form.getByTestId("counter-make")).toBeEnabled();
   await form.getByTestId("counter-make").click();
@@ -811,7 +817,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   // Back at Offer with the counter selected, attributed to the merchant and flagged as overridden.
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
   await expect(page.getByTestId("recommendation")).toContainText("Your counter-offer");
-  await expect(page.getByTestId("attribution")).toContainText("you chose to send it anyway");
+  await expect(page.getByTestId("attribution")).toContainText("you chose to override them");
   await expect(page.getByTestId("counter-override-note")).toBeVisible();
   await expect(page.getByTestId("offer-total")).toContainText("₹40,0");
   expect(state().counterOffers.at(-1)!.override).not.toBeNull();
@@ -826,4 +832,15 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await expect(page.getByTestId("buyer-status")).toContainText("replaced");
   await page.goto(`/proposal/${sent.agreementId}/v2`);
   await expect(page.getByTestId("buyer-total")).toContainText("₹40,0");
+});
+
+test("counter-offer · a request about a payment date is not offered a different-total answer", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could we pay on 15 November?", topic: "date" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("buyer-work-card")).toBeVisible();
+  await expect(page.getByTestId("counter-form")).toHaveCount(0);
+  const refused = await api(page, { action: "counter_offer", totalPaise: 4_000_000, overrideConfirmed: true, acknowledgedChecks: ["DISCOUNT_ABOVE_LIMIT"] }, false);
+  expect(JSON.stringify(refused)).toMatch(/not about the price/);
 });

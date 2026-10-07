@@ -11,6 +11,7 @@ import { ClosedSummary } from "@/components/offer/closed-summary";
 import { DontProceed } from "@/components/offer/dont-proceed";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
+import { eligibleStructures } from "@/lib/counter-eligibility";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
@@ -135,7 +136,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   }
 
   // Recommendation (current): review or review-updated.
-  const eligible = r ? r.structures.filter((x) => x.approvable) : [];
+  const eligible = r ? eligibleStructures(s, r.structures) : [];
   const ranked = (out.explanation?.order ?? []).map((id) => eligible.find((x) => x.structure.id === id)!).filter(Boolean);
   // The merchant's live counter-offer comes first; earlier counters are history, not alternatives.
   const liveCounter = s.counterOffers.at(-1) ?? null;

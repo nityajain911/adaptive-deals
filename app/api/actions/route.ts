@@ -39,7 +39,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("review_buyer_proposal") }),
   z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
-  z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean() }),
+  z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20) }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
   z.object({ action: z.literal("retry_send"), version: z.number().int().positive() }),
   z.object({ action: z.literal("send_questions") }),
@@ -58,7 +58,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
   // Buyer proposal page (demo buyer view).
-  z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500) }),
+  z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500), topic: z.enum(["date", "scope", "price", "other"]).optional() }),
   z.object({ action: z.literal("decline"), version: z.number().int().positive(), reason: z.enum(Object.keys(BUYER_DECLINE_REASONS) as [BuyerDeclineReason, ...BuyerDeclineReason[]]).optional() }),
   z.object({ action: z.literal("close_by_merchant"), reason: z.enum(Object.keys(MERCHANT_CLOSE_REASONS) as [MerchantCloseReason, ...MerchantCloseReason[]]), note: z.string().max(300).optional() }),
   z.object({ action: z.literal("mark_message_handled"), messageId: z.string().max(40), note: z.string().max(300).optional() }),
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
         result = await svc.checkCounterOffer(a.totalPaise);
         break;
       case "counter_offer":
-        await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed);
+        await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed, a.acknowledgedChecks);
         break;
       case "review_buyer_proposal": {
         const v = await svc.reviewBuyerProposal();
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
         await svc.adoptRepliesAsAnswers();
         break;
       case "request_change":
-        await svc.requestChange(a.version, a.text);
+        await svc.requestChange(a.version, a.text, a.topic);
         break;
       case "decline":
         await svc.declineAgreement(a.version, a.reason);

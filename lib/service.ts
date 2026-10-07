@@ -9,6 +9,7 @@ import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttemp
 import { interpretations } from "@/domain/constraints";
 import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
+import { eligibleStructures } from "./counter-eligibility";
 import { CounterError, counterStructure, failingCounterChecks } from "@/domain/counter";
 import { explainCheck } from "@/domain/copy";
 import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate";
@@ -526,7 +527,7 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
 async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: EvaluatedStructure[] }> {
   const out = await currentOutcome(s);
   const r = out.evaluation.result;
-  return { out, eligible: r ? r.structures.filter((x) => x.approvable) : [] };
+  return { out, eligible: r ? eligibleStructures(s, r.structures) : [] };
 }
 
 function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
@@ -534,7 +535,7 @@ function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
   // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
   const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
   const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s) });
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null });
 }
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
@@ -696,6 +697,11 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
     rec.reference = msg.id;
     setStatus(s, "sent", "Proposal delivered to the buyer (simulated channel)");
     event(s, "proposal_delivered", `Proposal version ${version} delivered`, "simulated", key);
+    // A buyer's request is answered by a counter-offer only once that counter has reached the buyer.
+    const answered = s.counterOffers.find((c) => c.fromVersion === v.supersedes && c.evaluated.structure.id === v.structureId);
+    if (answered) {
+      s.workDispositions.push({ id: `work-${s.workDispositions.length + 1}`, sourceKind: "message", sourceId: answered.requestMessageId, kind: "countered", note: `Counter-offer at ${formatINR(v.terms.pricing.totalPaise)} delivered as version ${v.version}`, actor: "merchant", at: clockOf(s).now() });
+    }
     delivered = true;
   });
   return { state, delivered, failureReason };
@@ -1158,13 +1164,14 @@ export async function adoptRepliesAsAnswers(): Promise<DemoState> {
 }
 
 /** Buyer asks for a change from the proposal page. Terms are not touched. */
-export async function requestChange(version: number, text: string): Promise<DemoState> {
+export async function requestChange(version: number, text: string, topic?: "date" | "scope" | "price" | "other"): Promise<DemoState> {
   return mutate((s) => {
     const v = s.agreements.find((x) => x.version === version);
     if (!v || v.status !== "sent") throw new ActionError("Only a sent proposal can receive a change request");
     const proposal = [...s.conversation].reverse().find((i) => (i.kind === "proposal" || i.kind === "amendment") && i.refs.agreementVersion === version);
     if (!proposal) throw new ActionError("No proposal message for this version");
     const item = applyBuyerReply(s, { inReplyTo: proposal.id, text, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
+    if (topic) s.conversation = s.conversation.map((m) => (m.id === item.id ? { ...m, refs: { ...m.refs, topic } } : m));
     event(s, "change_request_received", `Buyer requested a change to version ${version}`, "buyer_demo", "Terms are unchanged; the merchant decides how to respond.");
     // The buyer's message is the source evidence; the outcome links to it rather than copying it.
     outcome(s, { type: "buyer_requested_change", reasonCode: null, note: null, actor: "buyer", version, source: { kind: "message", id: item.id } });
@@ -1188,6 +1195,8 @@ async function buildCounter(s: DemoState, totalPaise: number) {
   if (s.amendments.some((a) => a.toVersion === v.version)) throw new ActionError("A revision cannot be countered on its amount; the buyer can request another change");
   const request = unresolvedWork(s).find((w) => w.kind === "buyer_request" && w.sourceKind === "message" && w.version === v.version);
   if (!request) throw new ActionError("There is no open buyer request to answer");
+  const topic = s.conversation.find((m) => m.id === request.sourceId)?.refs.topic;
+  if (topic === "date" || topic === "scope") throw new ActionError("This request is not about the price, so it cannot be answered with a different total");
   const current = await structureForVersion(s, v);
   const out = await currentOutcome(s);
   const constraints = interpretations(out.profile)[0].constraints;
@@ -1225,13 +1234,17 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
  * an explicit override, recorded as the merchant's decision. The sent version is withdrawn and the
  * counter becomes the selected option, to be previewed, approved and sent like any proposal.
  */
-export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean): Promise<DemoState> {
+export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean, acknowledgedChecks: string[]): Promise<DemoState> {
   return mutate(async (s) => {
     const b = await buildCounter(s, totalPaise);
     if (b.failing.length && !overrideConfirmed) throw new ActionError("This amount does not meet your rules. Confirm the override to continue");
+    // The merchant overrides exactly the rules they were shown, never ones that appeared since.
+    const failingCodes = b.failing.map((c) => c.code).sort();
+    if (b.failing.length && JSON.stringify([...acknowledgedChecks].sort()) !== JSON.stringify(failingCodes)) throw new ActionError("Acknowledge the rules shown for this amount. They have changed; check the amount again");
     const at = clockOf(s).now();
     const by = "Merchant (Pinecone Media Works)";
-    const evaluated: EvaluatedStructure = b.failing.length ? { ...b.evaluated, approvable: true } : b.evaluated;
+    // Stored exactly as the engine returned it. A failed rule is not made to pass: the merchant's override is a separate record.
+    const evaluated: EvaluatedStructure = b.evaluated;
     s.counterOffers.push({
       id: `counter-${s.counterOffers.length + 1}`,
       fromVersion: b.v.version,
@@ -1243,7 +1256,6 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
       createdAt: at,
     });
     s.agreements = s.agreements.map((x) => (x.version === b.v.version ? { ...x, status: "superseded" as const } : x));
-    s.workDispositions.push({ id: `work-${s.workDispositions.length + 1}`, sourceKind: "message", sourceId: b.request.sourceId, kind: "countered", note: `Counter-offer at ${formatINR(totalOf(evaluated))}`, actor: "merchant", at });
     setStatus(s, "options_ready", `Version ${b.v.version} withdrawn to answer the buyer's request`);
     s.selectedOption = null;
     await applySelection(s, evaluated.structure.id, { explicit: true });

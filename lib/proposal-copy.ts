@@ -21,9 +21,13 @@ export function recurringStatement(r: NonNullable<ProposalView["recurring"]>, me
   return `You authorise ${merchantName} to collect the scheduled payments above, each up to ${formatINR(r.perDebitLimitPaise)}, until ${r.endDate}. You get a reminder ${r.noticeDays} days before each one. A payment date changes only if you both accept a revised proposal.`;
 }
 
-/** Starting points for a change request. An amount change is deliberately not offered. */
+/**
+ * Starting points for a change request. The chosen topic travels with the request, so the merchant is
+ * offered a different-total answer only for a request about the price, never for a date or a scope.
+ */
 export const CHANGE_STARTERS = [
   { id: "date", label: "A different payment date", text: "I'd like a different payment date: " },
   { id: "scope", label: "A different scope", text: "I'd like to change what's included: " },
+  { id: "price", label: "A lower price", text: "Could you do a lower total? " },
   { id: "other", label: "Something else", text: "" },
 ] as const;

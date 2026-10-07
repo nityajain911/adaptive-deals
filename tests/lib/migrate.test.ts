@@ -21,6 +21,12 @@ describe("migrateState (spec §9)", () => {
     expect(s.decisionBranch).toBeNull();
     expect(s.caseId).toBe(DEFAULT_CASE_ID);
   });
+  it("gives a store saved before counter-offers an empty list, at the current schema too", () => {
+    expect(migrateState(base()).counterOffers).toEqual([]);
+    expect(migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION })).counterOffers).toEqual([]);
+    const kept = [{ id: "counter-1" }];
+    expect(migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION, counterOffers: kept })).counterOffers).toEqual(kept);
+  });
   it("requires review when a stored decision branch is incomplete", () => {
     const s = migrateState(base({
       schemaVersion: STORE_SCHEMA_VERSION - 1,

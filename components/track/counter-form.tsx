@@ -32,9 +32,10 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
   const check = useAction();
   const make = useAction();
   const [text, setText] = useState("");
-  const [result, setResult] = useState<Check | null>(null);
+  const [checked, setChecked] = useState<{ paise: number; result: Check } | null>(null);
   const [override, setOverride] = useState(false);
   const paise = toPaise(text);
+  const result = checked && checked.paise === paise ? checked.result : null;
 
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-[#d6defe] bg-blue-weak/40 p-3" data-testid="counter-form">
@@ -48,7 +49,8 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
           e.preventDefault();
           if (paise === null) return;
           setOverride(false);
-          check.run({ action: "check_counter_offer", totalPaise: paise }, (r) => setResult(r as Check));
+          // The answer is kept with the amount that produced it, so an older answer can never sit beside a newer amount.
+          check.run({ action: "check_counter_offer", totalPaise: paise }, (r) => setChecked({ paise, result: r as Check }));
         }}
       >
         <label className="text-[13px] font-medium text-ink">
@@ -59,7 +61,6 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
             value={text}
             onChange={(e) => {
               setText(e.target.value);
-              setResult(null);
               setOverride(false);
             }}
             data-testid="counter-total"
@@ -96,7 +97,7 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
             disabled={make.pending || (!result.passes && !override)}
             data-testid="counter-make"
             onClick={() =>
-              make.run({ action: "counter_offer", totalPaise: paise!, overrideConfirmed: !result.passes && override }, () => router.push(onDone))
+              make.run({ action: "counter_offer", totalPaise: paise!, overrideConfirmed: !result.passes && override, acknowledgedChecks: result.failing.map((f) => f.code) }, () => router.push(onDone))
             }
           >
             {make.pending ? "Preparing…" : "Prepare counter-offer"}

@@ -33,14 +33,15 @@ function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo
         send(walkthroughCommand(custom ? { action: "buyer_reply", inReplyTo: reply.inReplyTo, text: typed } : { action: "buyer_reply", inReplyTo: reply.inReplyTo, scriptId: choice }));
       }}
     >
-      <div role="radiogroup" aria-label="Simulated buyer response" className="space-y-1.5" data-testid="walkthrough-reply-choice" data-value={choice}>
-        <div className="text-[12px] font-semibold text-ink">The buyer replies</div>
+      <fieldset className="space-y-1.5" data-testid="walkthrough-reply-choice" data-value={choice}>
+        <legend className="text-[12px] font-semibold text-ink">The buyer replies</legend>
         {[...reply.scripts, { id: "__typed", text: "Type another reply" }].map((script) => (
-          <button key={script.id} type="button" role="radio" aria-checked={choice === script.id} data-testid={`walkthrough-reply-${script.id}`} onClick={() => setChoice(script.id)} className={cx("w-full rounded-lg border px-3 py-2 text-left text-[13px] leading-5", choice === script.id ? "border-violet bg-surface font-medium text-ink ring-1 ring-violet" : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted")}>
-            {script.text}
-          </button>
+          <label key={script.id} className={cx("flex w-full cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-left text-[13px] leading-5", choice === script.id ? "border-violet bg-surface font-medium text-ink ring-1 ring-violet" : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted")}>
+            <input type="radio" name={`reply-${reply.inReplyTo}`} className="mt-1 accent-[var(--violet)]" checked={choice === script.id} onChange={() => setChoice(script.id)} data-testid={`walkthrough-reply-${script.id}`} />
+            <span>{script.text}</span>
+          </label>
         ))}
-      </div>
+      </fieldset>
       {custom ? <textarea aria-label="Another simulated buyer reply" className="min-h-20 w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px]" value={typed} maxLength={500} onChange={(event) => setTyped(event.target.value)} /> : null}
       <p className="text-[12px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
       <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : "Send simulated buyer response"}</Button>

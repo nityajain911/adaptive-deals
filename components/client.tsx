@@ -191,6 +191,7 @@ export function RequestChangeForm({ version }: { version: number }) {
   const { run, pending, error } = useAction();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [topic, setTopic] = useState<"date" | "scope" | "price" | "other" | undefined>(undefined);
   if (!open)
     return (
       <Button className="w-full" onClick={() => setOpen(true)} data-testid="request-change" aria-expanded={false}>
@@ -202,15 +203,19 @@ export function RequestChangeForm({ version }: { version: number }) {
       className="space-y-2 rounded-xl border border-line p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        run({ action: "request_change", version, text }, () => {
+        run({ action: "request_change", version, text, topic }, () => {
           setText("");
+          setTopic(undefined);
           setOpen(false);
         });
       }}
     >
       <div className="flex flex-wrap gap-2" role="group" aria-label="What would you like to change?">
         {CHANGE_STARTERS.map((c) => (
-          <button key={c.id} type="button" data-testid={`change-starter-${c.id}`} onClick={() => setText(c.text)} className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-muted">
+          <button key={c.id} type="button" data-testid={`change-starter-${c.id}`} onClick={() => {
+              setText(c.text);
+              setTopic(c.id);
+            }} className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-muted">
             {c.label}
           </button>
         ))}
