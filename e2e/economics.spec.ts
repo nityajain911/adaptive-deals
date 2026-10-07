@@ -247,3 +247,24 @@ test("preset · the illustrative example fills the draft, activates as an Illust
   await page.getByTestId("audit-details").click();
   await expect(page.locator("body")).not.toContainText("illustrative example");
 });
+
+test("preset · restoring the defaults after the example says the values match version 1", async ({ page }) => {
+  const content = defaultEconomicsContent();
+  content.guardrails.discountLimitBps = 1000;
+  content.discountLadderBps = [0, 500, 1000];
+  await api(page, { action: "save_economics_draft", content });
+  await api(page, { action: "activate_economics" });
+  await page.goto("/economics");
+  await expect(page.getByTestId("economics-version")).toContainText("Version 2 · Illustrative");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("economics-restore").click();
+  await expect(page.getByTestId("economics-version")).toContainText("Version 3 · Demo defaults · same values as version 1");
+});
+
+test("strategies · rows that lead with the same offer say so", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("strategy-some-same")).toContainText("changing between them changes nothing");
+  await expect(page.getByTestId("strategy-same-lower_buyer_commitment")).toContainText("Same offer as Protect contribution");
+  await expect(page.getByTestId("strategy-same-minimise_cash_exposure")).toContainText("Same offer as Preserve scope");
+  await expect(page.getByTestId("strategy-same-protect_contribution")).toHaveCount(0);
+});

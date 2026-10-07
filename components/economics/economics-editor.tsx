@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { economicsContentHash, economicsContentOf, type BusinessEconomics, type EconomicsContent } from "@/domain/business-economics";
 import type { EconomicsActivationPreview } from "@/lib/economics-activation";
 import { Button } from "@/components/client";
-import { illustrativeEconomicsContent, isIllustrativeHash } from "@/lib/economics-illustrative";
+import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-illustrative";
 import { ServicesTable } from "./services-table";
 import { GuardrailsForm } from "./guardrails-form";
 import { ReviewPanel } from "./review-panel";
@@ -48,7 +48,7 @@ export function EconomicsEditor({ active, children }: { active: BusinessEconomic
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Adaptive Deals</div>
           <h1 className="mt-1 text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Business economics</h1>
           <p className="mt-1 text-[14px] leading-6 text-ink-2">Set the delivery costs and rules every recommended offer must respect.</p>
-          <p className="mt-1 text-[13px] font-medium text-muted" data-testid="economics-version">Version {version}{isIllustrativeHash(hash) ? " · Illustrative" : ""} · activated {dateLabel(activatedAt)}</p>
+          <p className="mt-1 text-[13px] font-medium text-muted" data-testid="economics-version">Version {version}{economicsLabel(hash, version) ? ` · ${economicsLabel(hash, version)}` : ""} · activated {dateLabel(activatedAt)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
         <Button data-testid="economics-illustrative-preset" disabled={pending} onClick={() => { const example = illustrativeEconomicsContent(); setContent(example); setLadderText(example.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }}>Load illustrative example: 10% maximum discount with 0%, 5%, 10% approved</Button>

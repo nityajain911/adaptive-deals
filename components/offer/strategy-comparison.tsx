@@ -5,12 +5,28 @@ import type { DealBaseline } from "@/domain/deal-baseline";
 import { approxINR, headlineFor } from "@/lib/offer-copy";
 import { cx } from "../ui";
 
+/** Strategies that lead with the same offer, in the order shown: each later one points back to the first. */
+export function sameLeaderNotes(rows: { id: StrategyId; leaderId: string | null }[]): Partial<Record<StrategyId, StrategyId>> {
+  const first = new Map<string, StrategyId>();
+  const notes: Partial<Record<StrategyId, StrategyId>> = {};
+  for (const row of rows) {
+    if (!row.leaderId) continue;
+    const earlier = first.get(row.leaderId);
+    if (earlier) notes[row.id] = earlier;
+    else first.set(row.leaderId, row.id);
+  }
+  return notes;
+}
+
 /** What each strategy would recommend for this deal, computed by code from the same feasible offers. */
 export function StrategyComparison({ feasible, baseline, current }: { feasible: EvaluatedStructure[]; baseline: DealBaseline; current: StrategyId }) {
   const rows = STRATEGY_IDS.map((id) => ({ id, view: strategyView(feasible, id, baseline) }));
+  const notes = sameLeaderNotes(rows.map(({ id, view }) => ({ id, leaderId: view.leader?.structure.id ?? null })));
+  const distinct = new Set(rows.map(({ view }) => view.leader?.structure.id).filter(Boolean)).size;
   return (
     <section aria-label="What each strategy would recommend" data-testid="strategy-comparison">
       <h3 className="text-[13px] font-semibold text-ink">What changes under another strategy</h3>
+      {distinct === 1 ? <p className="mt-1 text-[13px] text-ink-2" data-testid="strategy-all-same">Every strategy leads with the same offer for this deal.</p> : distinct < rows.length ? <p className="mt-1 text-[13px] text-ink-2" data-testid="strategy-some-same">Some strategies lead with the same offer, so changing between them changes nothing here.</p> : null}
       <div className="mt-2 overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
@@ -27,7 +43,7 @@ export function StrategyComparison({ feasible, baseline, current }: { feasible: 
               const x = view.leader;
               return (
                 <tr key={id} data-testid={`strategy-row-${id}`} data-current={id === current ? "true" : undefined} className={cx("border-b border-line last:border-0", id === current && "bg-blue-weak font-medium")}>
-                  <th scope="row" className="py-1.5 pr-3 text-left font-semibold text-ink">{STRATEGY_LABEL[id]}{id === current ? " · current" : ""}</th>
+                  <th scope="row" className="py-1.5 pr-3 text-left font-semibold text-ink">{STRATEGY_LABEL[id]}{id === current ? " · current" : ""}{notes[id] ? <span className="block text-[12px] font-normal text-muted" data-testid={`strategy-same-${id}`}>Same offer as {STRATEGY_LABEL[notes[id]!]}</span> : null}</th>
                   <td className="py-1.5 pr-3 text-ink">
                     {x ? headlineFor(x) : "No offer"}
                     {x ? <span className="mt-0.5 block text-ink-2 sm:hidden">{formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))} · you keep {approxINR(x.economics.netContributionPaise)} · {x.approval === "requires_approval" ? "Needs MD approval" : "Within limit"}</span> : null}

@@ -13,3 +13,12 @@ const ILLUSTRATIVE_HASH = economicsContentHash(illustrativeEconomicsContent());
 
 /** True when a version's content is exactly the illustrative example, so it can be labelled as one. */
 export const isIllustrativeHash = (hash: string) => hash === ILLUSTRATIVE_HASH;
+
+const DEFAULT_HASH = economicsContentHash(defaultEconomicsContent());
+
+/** A short label for a version whose content is exactly a known example, so a higher number is not mistaken for new values. */
+export function economicsLabel(hash: string, version: number): string | null {
+  if (hash === ILLUSTRATIVE_HASH) return "Illustrative";
+  if (hash === DEFAULT_HASH) return version > 1 ? "Demo defaults · same values as version 1" : "Demo defaults";
+  return null;
+}
