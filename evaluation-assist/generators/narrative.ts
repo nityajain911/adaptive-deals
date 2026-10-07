@@ -29,7 +29,8 @@ async function main() {
   const { illustrativeEconomicsContent } = await import("@/lib/economics-illustrative");
   const { defaultEconomicsContent } = await import("@/lib/economics-default");
   const { genEconomics, rng } = await import("../../tests/helpers/gen");
-  const out = path.join("evaluation-assist", "cases", "strategy_narrative", SET);
+  // Hold-out sets stay out of version control (only their hashes are committed) until the final run.
+  const out = SET === "dev" ? path.join("evaluation-assist", "cases", "strategy_narrative", SET) : path.join("evaluation-assist", "holdout-private", "strategy_narrative", SET);
   mkdirSync(out, { recursive: true });
 
   const sets: unknown[] = [];

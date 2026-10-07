@@ -57,3 +57,4 @@ next-env.d.ts
 
 # isolated agent worktrees
 /.worktrees/
+/evaluation-assist/holdout-private/

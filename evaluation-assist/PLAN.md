@@ -1,6 +1,6 @@
 # Pre-registered evaluation plan for the three assist tasks
 
-Status: **approved by the applicant on 2026-10-08** (decisions 1, 2 and 6 in §9; decisions 3 to 5 are still open, see Amendment 1). Originally proposed the same day. No prompt, schema, case file or model call exists. Written 2026-10-08 on branch `codex/merchant-profit-strategy`, after the deterministic gate was approved. Spec: `docs/superpowers/specs/2026-10-07-merchant-profit-strategy-design.md` §11.
+Status: **approved by the applicant on 2026-10-08** (decisions 1, 2 and 6 in §9; decision 3 is settled in Amendment 2; 4 and 5 are open). Originally proposed the same day. No prompt, schema, case file or model call exists. Written 2026-10-08 on branch `codex/merchant-profit-strategy`, after the deterministic gate was approved. Spec: `docs/superpowers/specs/2026-10-07-merchant-profit-strategy-design.md` §11.
 
 The frozen evaluation (`evaluation/`) is not reused, edited or re-run. Everything below is new.
 
@@ -126,3 +126,11 @@ Submission is 13 Oct 2026; this plan is written 8 Oct. Recommended order, cheape
 **Change:** the 24 development sets all use the `reduced-scope` case, with 8 from the two named economics (version 1 and the illustrative example, × 4 strategies) and 16 from generated economics (seeds 1001 upward, one strategy each, requiring at least two offers to compare). The generator is `evaluation-assist/generators/narrative.ts` and the skipped economics are listed in `_generation.json`. Hold-out economics will use seeds from 2001, which no test uses. The call budget is unchanged. Single-offer and discount-only sets stay in the adversarial group.
 
 **Cases written so far (no prompt exists, no call made):** development only: 16 `profile_extract` (12 plus 4 adversarial), 24 `strategy_narrative`, 15 `negotiation_message` (10 plus 5 adversarial). All are agent-authored. Hold-out and adversarial hold-out cases wait on decision 3 (who writes the adversarial cases).
+
+## Amendment 2 · 2026-10-08 · Authorship settled; hold-out written and hashed
+
+**Decision 3:** the applicant asked the coding agent to write **all** cases. Results will therefore be labelled "agent-authored cases, same author as the prompts" (§6). No case is attributed to the applicant.
+
+**Hold-out written and hashed (no prompt exists, no call made):** `profile_extract` 12 + 8 adversarial; `strategy_narrative` 40 generated from seeds 2001 upward + 10 hand-built adversarial; `negotiation_message` 15 + 15 adversarial. The files are kept locally in the git-ignored `evaluation-assist/holdout-private/`. `evaluation-assist/holdout-manifest.json` lists the SHA-256 of every file and of the whole set; `npx tsx evaluation-assist/generators/hash-holdout.ts check` fails if any file changed. The coding agent wrote the hold-out and can read it, so the hashes show it was not changed after the prompts, not that it was independent of them.
+
+**Decision 4 (provider limits):** the agent cannot see the applicant's Groq account. Published free-tier sample limits for `openai/gpt-oss-120b` are 8,000 tokens per minute and 200,000 tokens per day. At about 1.1M planned tokens that is at least 6 days on the free tier, longer than the time left. The Developer plan lists the same model at $0.15 per million input and $0.60 per million output tokens, about $0.40 for the whole 1.4M-token cap. The applicant must confirm their plan in the Groq console before the first call.
