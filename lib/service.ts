@@ -1564,6 +1564,8 @@ export interface CounterCheck {
   totalPaise: number;
   passes: boolean;
   failing: { id: string; code: string; text: string }[];
+  /** Every rule checked, passed or failed, in the merchant's words. */
+  rules: { id: string; side: "buyer" | "seller"; passed: boolean; text: string }[];
   contributionPaise: number;
   /** The amount is below the direct cost of the work, whatever the merchant's rules say. */
   negativeContribution: boolean;
@@ -1612,6 +1614,7 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
     totalPaise: totalOf(b.evaluated),
     passes: b.failing.length === 0,
     failing: b.failing.map((c) => ({ id: c.id, code: c.code, text: explainCheck(c) })),
+    rules: [...b.evaluated.buyerChecks, ...b.evaluated.sellerChecks].map((c) => ({ id: c.id, side: c.side, passed: c.status !== "fail" && c.status !== "needs_information", text: explainCheck(c) })),
     contributionPaise: b.evaluated.economics.netContributionPaise,
     negativeContribution: b.evaluated.economics.netContributionPaise < 0,
     discountBps: b.evaluated.structure.discountBps,

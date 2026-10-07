@@ -83,6 +83,19 @@ describe("with a merchant who permits no discount", () => {
     expect(view.check!.failing.map((f) => f.code)).toContain("DISCOUNT_ABOVE_LIMIT");
   });
 
+  it("names every rule it checked, the failed ones and the ones that passed", async () => {
+    await sentWithRequest();
+    const { check } = await svc.corridorFor({ requestedPaise: 4_000_000, gstBasis: "including" });
+    const failed = check!.rules.filter((r) => !r.passed);
+    const passed = check!.rules.filter((r) => r.passed);
+    expect(failed.map((r) => r.id)).toEqual(["discount_limit"]);
+    expect(failed[0].text).toMatch(/Discount .* above the 0% limit/);
+    expect(passed.length).toBeGreaterThan(3);
+    expect(passed.every((r) => r.text.length > 0)).toBe(true);
+    // The failing list the exception controls use is exactly the failed rules.
+    expect(check!.failing.map((f) => f.id)).toEqual(failed.map((r) => r.id));
+  });
+
   it("converts an amount the buyer gave excluding GST before checking it, and says what it checked", async () => {
     await sentWithRequest();
     const view = await svc.corridorFor({ requestedPaise: 3_000_000, gstBasis: "excluding" });

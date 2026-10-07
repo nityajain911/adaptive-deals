@@ -6,93 +6,119 @@ import { Button, ErrorText, useAction } from "../client";
 import { approxINR } from "@/lib/offer-copy";
 import { formatINR } from "@/domain/money";
 import { toPaise } from "@/lib/money-input";
-
-interface Check {
-  currentTotalPaise: number;
-  totalPaise: number;
-  passes: boolean;
-  failing: { id: string; code: string; text: string }[];
-  contributionPaise: number;
-  negativeContribution: boolean;
-  discountBps: number;
-}
+import type { CorridorView } from "@/lib/service";
 
 const LOSS_CONFIRMATION = "SELL AT A LOSS";
+type Basis = "including" | "excluding";
 
 /**
- * The merchant's answer to a buyer's request for a lower total. The engine rechecks the amount first;
- * a failed rule can be sent anyway only after an explicit override, which is recorded as the merchant's.
+ * Check the buyer's amount against the merchant's rules, then answer with it. The engine rechecks the
+ * amount first; a failed rule can be sent anyway only after an explicit override with a reason, which
+ * is recorded as the merchant's decision, and a loss also needs a typed confirmation.
  */
-export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: number; onDone: string }) {
+export function CounterForm({ onDone }: { onDone: string }) {
   const router = useRouter();
   const check = useAction();
   const make = useAction();
   const [text, setText] = useState("");
-  const [checked, setChecked] = useState<{ paise: number; result: Check } | null>(null);
+  const [basis, setBasis] = useState<Basis | null>(null);
+  // The answer is kept with the amount and basis that produced it, so an older answer can never sit beside newer inputs.
+  const [checked, setChecked] = useState<{ paise: number; basis: Basis; view: CorridorView } | null>(null);
   const [override, setOverride] = useState(false);
   const [reason, setReason] = useState("");
   const [typed, setTyped] = useState("");
   const paise = toPaise(text);
-  const result = checked && checked.paise === paise ? checked.result : null;
+  const view = checked && checked.paise === paise && checked.basis === basis ? checked.view : null;
+  const result = view?.check ?? null;
   const needsException = !!result && (!result.passes || result.negativeContribution);
   const ready = !!result && override && reason.trim().length >= 5 && (!result.negativeContribution || typed.trim() === LOSS_CONFIRMATION);
+  const reset = () => {
+    setOverride(false);
+    setReason("");
+    setTyped("");
+  };
+  const failedRules = result?.rules.filter((r) => !r.passed) ?? [];
+  const passedRules = result?.rules.filter((r) => r.passed) ?? [];
 
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-[#d6defe] bg-blue-weak/40 p-3" data-testid="counter-form">
       <div>
-        <h3 className="text-[14px] font-semibold text-ink">Answer with a different total</h3>
-        <p className="text-[13px] text-ink-2">Current offer: {formatINR(currentTotalPaise)} including GST. The same scope and dates are kept; the engine rechecks the new amount.</p>
+        <h3 className="text-[14px] font-semibold text-ink">Check the buyer&apos;s amount</h3>
+        <p className="text-[13px] text-ink-2">The same scope and dates are kept; the engine rechecks the new amount against every rule.</p>
       </div>
       <form
-        className="flex flex-wrap items-end gap-2"
+        className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (paise === null) return;
-          setOverride(false);
-          // The answer is kept with the amount that produced it, so an older answer can never sit beside a newer amount.
-          check.run({ action: "check_counter_offer", totalPaise: paise }, (r) => setChecked({ paise, result: r as Check }));
+          if (paise === null || basis === null) return;
+          reset();
+          const asked = { paise, basis };
+          check.run({ action: "corridor_view", requestedPaise: paise, gstBasis: basis }, (r) => setChecked({ ...asked, view: r as CorridorView }));
         }}
       >
-        <label className="text-[13px] font-medium text-ink">
-          New total including GST (₹)
-          <input
-            className="mt-1 block w-44 rounded-lg border border-line-strong bg-surface px-3 py-2 text-[15px] text-ink"
-            inputMode="decimal"
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setOverride(false);
-              setReason("");
-              setTyped("");
-            }}
-            data-testid="counter-total"
-          />
-        </label>
-        <Button type="submit" disabled={check.pending || paise === null} data-testid="counter-check">
-          {check.pending ? "Checking…" : "Check this amount"}
-        </Button>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-[13px] font-medium text-ink">
+            The buyer&apos;s amount (₹)
+            <input
+              className="mt-1 block w-44 rounded-lg border border-line-strong bg-surface px-3 py-2 text-[15px] text-ink"
+              inputMode="decimal"
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                reset();
+              }}
+              data-testid="counter-total"
+            />
+          </label>
+          <Button type="submit" disabled={check.pending || paise === null || basis === null} data-testid="counter-check">
+            {check.pending ? "Checking…" : "Check this amount"}
+          </Button>
+        </div>
+        <fieldset className="text-[13px] text-ink" data-testid="corridor-basis">
+          <legend className="font-medium">Does the buyer&apos;s amount include GST?</legend>
+          <div className="mt-1 flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="gst-basis" checked={basis === "including"} onChange={() => { setBasis("including"); reset(); }} data-testid="corridor-basis-including" /> Including GST
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="gst-basis" checked={basis === "excluding"} onChange={() => { setBasis("excluding"); reset(); }} data-testid="corridor-basis-excluding" /> Excluding GST
+            </label>
+          </div>
+        </fieldset>
       </form>
       <ErrorText error={check.error} />
-      {result ? (
+      {view && result ? (
         <div className="space-y-2 text-[14px]" data-testid="counter-result">
-          <p className="text-ink">
-            New total <span className="font-semibold">{formatINR(result.totalPaise)}</span> including GST · projected contribution {approxINR(result.contributionPaise)}
+          <p className="text-ink" data-testid="counter-checked-total">
+            {view.gstBasis === "excluding" ? `${formatINR(paise!)} excluding GST is ` : "Checked as "}
+            <span className="font-semibold">{formatINR(view.requestedTotalPaise!)}</span> including GST.
           </p>
-          {result.passes ? (
-            <p className="font-medium text-green" data-testid="counter-passes">The engine rechecked it: every rule passes.</p>
-          ) : null}
+          <p className="text-ink" data-testid="corridor-contribution">
+            {result.contributionPaise < 0 ? `You would lose about ${approxINR(-result.contributionPaise).replace(/^about /, "")}.` : `You would keep about ${approxINR(result.contributionPaise).replace(/^about /, "")}.`}
+          </p>
+          {result.passes ? <p className="font-medium text-green" data-testid="counter-passes">The engine rechecked it: every rule passes.</p> : null}
+          <div data-testid="corridor-rules">
+            {failedRules.length ? (
+              <ul className="space-y-0.5 text-red" data-testid="corridor-rules-failed">
+                {failedRules.map((r) => (
+                  <li key={r.id}>✕ {r.text}</li>
+                ))}
+              </ul>
+            ) : null}
+            {passedRules.length ? (
+              <details className="mt-1 text-[13px] text-ink-2" data-testid="corridor-rules-passed">
+                <summary className="cursor-pointer font-medium text-ink">{passedRules.length} rule{passedRules.length === 1 ? "" : "s"} passed</summary>
+                <ul className="mt-1 space-y-0.5">
+                  {passedRules.map((r) => (
+                    <li key={r.id}>✓ {r.text}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
           {needsException ? (
             <div className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2" data-testid={result.passes ? "counter-loss-only" : "counter-fails"}>
-              {!result.passes ? (
-                <>
-                  <p className="font-semibold text-amber">This amount does not meet your rules:</p>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink-2">
-                    {result.failing.map((f) => (
-                      <li key={f.id}>{f.text}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
+              {!result.passes ? <p className="font-semibold text-amber">This amount does not meet your rules.</p> : null}
               {result.negativeContribution ? (
                 <p className="mt-1 font-semibold text-red" data-testid="counter-loss">This amount is below your direct costs: you would lose {approxINR(-result.contributionPaise)}.</p>
               ) : null}
@@ -118,7 +144,7 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
             data-testid="counter-make"
             onClick={() =>
               make.run(
-                { action: "counter_offer", totalPaise: paise!, overrideConfirmed: needsException && override, acknowledgedChecks: result.failing.map((f) => f.code), reason: reason.trim(), typedConfirmation: typed },
+                { action: "counter_offer", totalPaise: view.requestedTotalPaise!, overrideConfirmed: needsException && override, acknowledgedChecks: result.failing.map((f) => f.code), reason: reason.trim(), typedConfirmation: typed },
                 () => router.push(onDone),
               )
             }

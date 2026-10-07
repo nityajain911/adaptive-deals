@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import type { DemoState } from "@/lib/service";
+import { defaultEconomicsContent } from "@/lib/economics-default";
 
 const STORE = path.join(".data-e2e", "store.json");
 
@@ -25,6 +26,10 @@ async function prepareOptions(page: Page) {
 }
 
 test.describe.configure({ mode: "serial" });
+
+test.afterAll(async ({ request }) => {
+  await request.post("/api/actions", { data: { action: "reset_economics_for_tests" } });
+});
 
 test.beforeEach(async ({ page }) => {
   await api(page, { action: "reset_economics_for_tests" });
@@ -151,4 +156,65 @@ test("overrides · once the proposal is sent, overrides can no longer be changed
   const refused = await page.request.post("/api/actions", { data: { action: "add_input_override", field: "cash_exposure", value: 0, reason: "Too late to change" } });
   expect((await refused.json()).ok).toBe(false);
   expect(state().agreements.find((a) => a.status === "sent")!.economics?.effectiveHash).toBe(state().economics.effectiveHash);
+});
+
+
+/** Activate a 10% maximum discount with 0/5/10% approved, then start a fresh deal under it and send the proposal. */
+async function sentUnderIllustrativeLadder(page: Page) {
+  const content = defaultEconomicsContent();
+  content.guardrails.discountLimitBps = 1000;
+  content.discountLadderBps = [0, 500, 1000];
+  await api(page, { action: "save_economics_draft", content });
+  await api(page, { action: "activate_economics" });
+  await prepareOptions(page);
+  expect(state().economics.pinned.version).toBe(2);
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  const sent = state().agreements.find((a) => a.status === "sent")!;
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do a little better on price?", topic: "price" });
+  await page.goto("/deals/hero/track");
+  return sent;
+}
+
+test("corridor · the ladder is shown, and the 5% row prepares an offer that passes with no override", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await sentUnderIllustrativeLadder(page);
+  const corridor = page.getByTestId("negotiation-corridor");
+  await expect(corridor).toBeVisible();
+  await expect(corridor.getByTestId("corridor-lowest")).toContainText("meets every rule");
+  await expect(corridor.getByTestId("ladder-0")).toBeVisible();
+  await expect(corridor.getByTestId("ladder-500")).toBeVisible();
+  await expect(corridor.getByTestId("ladder-1000")).toBeVisible();
+  const offerButton = corridor.getByTestId("ladder-500").locator("[data-testid^='offer-this-']");
+  await offerButton.click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  const counter = state().counterOffers.at(-1)!;
+  expect(counter.source).toBe("listed_offer");
+  expect(counter.override).toBeNull();
+});
+
+test("corridor · the buyer's page never shows the merchant's limits, and the corridor fits a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const sent = await sentUnderIllustrativeLadder(page);
+  await expect(page.getByTestId("negotiation-corridor")).toBeVisible();
+  await expect(page.getByTestId("corridor-private")).toContainText("Your limits are never sent");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await expect(page.getByTestId("buyer-view")).toBeVisible();
+  const text = (await page.locator("body").innerText()).toLowerCase();
+  for (const leak of ["contribution", "floor", "lowest", "cash exposure", "direct delivery cost"]) expect(text).not.toContain(leak);
+});
+
+test("corridor · with no discount permitted the ladder says so", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const sent = await (async () => {
+    await api(page, { action: "review_buyer_proposal" });
+    const draft = state().agreements.find((a) => a.status === "draft")!;
+    await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+    return state().agreements.find((a) => a.status === "sent")!;
+  })();
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do a little better on price?", topic: "price" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("corridor-ladder")).toContainText("Your business economics permit no discount.");
 });

@@ -797,10 +797,11 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   // A pending buyer request opens its card by itself.
   await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
   const form = page.getByTestId("counter-form");
-  await expect(form).toContainText("Current offer: ₹46,020 including GST");
+  await expect(page.getByTestId("negotiation-corridor")).toContainText("Current offer: ₹46,020 including GST");
 
   // The engine rechecks, names the failed rule, and the merchant cannot proceed without the override.
   await form.getByTestId("counter-total").fill("40000");
+  await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-fails")).toContainText("does not meet your rules");
   await expect(form.getByTestId("counter-make")).toBeDisabled();
@@ -948,6 +949,7 @@ test("exceptions · an amount below direct costs also needs the exact typed phra
   await page.goto("/deals/hero/track");
   const form = page.getByTestId("counter-form");
   await form.getByTestId("counter-total").fill("5000");
+  await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-loss")).toContainText("below your direct costs");
   await form.getByTestId("counter-override").check();
