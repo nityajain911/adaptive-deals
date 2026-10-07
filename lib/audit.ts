@@ -10,12 +10,13 @@ import { createHash } from "node:crypto";
 import { branchChangedAnswers, branchNotProcessed, branchRecalculatedAfter, branchScope, type DecisionBranch } from "./decision-branch";
 import { SAMPLE_OUTPUT_LABEL, taskProvenance, type ModelProvenance } from "./model-provenance";
 import { unmappedRequiredServices } from "./scope-confirmation";
+import { STRATEGY_LABEL } from "@/domain/strategy";
 
 /**
  * Read-only audit derivations for the merchant audit drawer (spec §8.3). Every source is labelled
  * truthfully, and attribution follows what actually happened in this run.
  */
-type AuditState = Pick<DemoState, "conversation" | "agreements" | "attempts" | "outcomes" | "interpretations" | "handledMessages" | "decisionBranch">;
+type AuditState = Pick<DemoState, "conversation" | "agreements" | "attempts" | "outcomes" | "interpretations" | "handledMessages" | "decisionBranch"> & Partial<Pick<DemoState, "economics" | "events">>;
 
 export interface AuditSource {
   item: string;
@@ -23,7 +24,7 @@ export interface AuditSource {
   detail?: string;
 }
 
-const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Option ranking and explanation" };
+const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Recorded option order and reasons (not used for the recommendation)" };
 
 export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[]): AuditSource[] {
   const out: AuditSource[] = [
@@ -63,8 +64,8 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
     if (s.decisionBranch && st.task === "explain") {
       out.push(
         model
-          ? { item: "Parent option ranking and explanation", source: `Parent ${model.providerName} run ${run.runId} · context only`, detail: `The parent model run did not process ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` }
-          : { item: "Parent option ranking and explanation", source: `Parent sample output ${run.runId} · context only`, detail: `The hand-written parent sample did not cover ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` },
+          ? { item: "Parent option order and reasons", source: `Parent ${model.providerName} run ${run.runId} · context only`, detail: `The parent model run did not process ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` }
+          : { item: "Parent option order and reasons", source: `Parent sample output ${run.runId} · context only`, detail: `The hand-written parent sample did not cover ${branchNotProcessed(s.decisionBranch)} and its recommendation output was not used for this branch.` },
       );
       continue;
     }
@@ -109,12 +110,14 @@ export function whoDidWhat(
   };
   credit("extract", extract, `Extracted the opening constraints (${extract?.promptVersion})`, "Constraint extraction");
   credit("clarify", drafted, `Drafted the clarification questions (${clarify?.promptVersion})`, "Clarification question wording");
-  credit("explain", ranked, `Suggested the order of eligible options (${explain?.promptVersion})`, "Order of eligible options");
-  credit("explain", explained, `Wrote the recommendation explanation (${explain?.promptVersion})`, "Recommendation explanation");
+  // The recorded run is historical evidence. Code now ranks the offers, so these are credited as history only.
+  credit("explain", ranked, `Suggested an order of eligible options (${explain?.promptVersion}) · historical, not used for the recommendation`, "Order of eligible options · historical, not used for the recommendation");
+  credit("explain", explained, `Wrote a recommendation explanation (${explain?.promptVersion}) · historical, not the reason now shown`, "Recommendation explanation · historical, not the reason now shown");
   const notesOnly = !s.decisionBranch && explain && !explained && validatedNotes > 0;
   credit("explain", notesOnly, `Wrote ${validatedNotes} per-offer reason${validatedNotes === 1 ? "" : "s"} that passed validation (${explain?.promptVersion})`, "Per-offer reasons");
   const aiLabel = labels.size ? [...labels].join(" · ") : null;
 
+  const strategyLabel = s.economics ? STRATEGY_LABEL[s.economics.strategy] : null;
   const explainByModel = taskProvenance(run, "explain", viewing)?.modelMade ?? false;
   const prose = explainByModel ? "AI" : "sample";
   const notProcessed = s.decisionBranch ? branchNotProcessed(s.decisionBranch) : "";
@@ -122,7 +125,7 @@ export function whoDidWhat(
   const code = [
     "Normalised supported values and verified every evidence quote",
     s.decisionBranch ? `Recalculated every permitted offer and every figure after ${branchRecalculatedAfter(s.decisionBranch)}` : "Evaluated every permitted offer and calculated every figure",
-    s.decisionBranch ? "Set the eligible option order through the documented code rule" : explain ? `Enforced the approval ordering and validated ${prose} prose` : "Enforced the approval ordering",
+    `Ranked the feasible offers by ${strategyLabel ? `the strategy ${strategyLabel}` : "the deal's strategy"}${!s.decisionBranch && explain ? ` and validated ${prose} prose` : ""}`,
     "Read only the narrow supported payment-date reply (reply-rules.v1)",
   ];
   if (s.decisionBranch) code.push(`Wrote the recommendation explanation because ${parent}`);
@@ -132,6 +135,7 @@ export function whoDidWhat(
   const sent = s.conversation.filter((i) => i.kind === "clarification" && i.state === "approved_and_sent_by_merchant").length;
   if (sent) merchant.push(`Sent ${sent} clarification question${sent === 1 ? "" : "s"}`);
   for (const v of s.agreements) if (v.merchantApproval) merchant.push(`Approved terms version ${v.version}`);
+  if (s.events?.some((e) => e.kind === "strategy_changed")) merchant.push(`Chose the strategy ${strategyLabel ?? "for this deal"}`);
   if (s.outcomes.some((o) => o.type === "option_selected")) merchant.push("Selected an alternative offer");
   if (s.outcomes.some((o) => o.type === "merchant_closed")) merchant.push("Closed the deal in Adaptive Deals");
   if (s.interpretations.length) merchant.push(`Interpreted ${s.interpretations.length} buyer repl${s.interpretations.length === 1 ? "y" : "ies"} (merchant judgement)`);

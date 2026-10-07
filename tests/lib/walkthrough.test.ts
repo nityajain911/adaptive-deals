@@ -142,7 +142,7 @@ describe("run provenance", () => {
     expect(view.provenance).toBe("synthetic_replay");
     expect(view.provenanceLabel).toBe("Sample output written by hand · no model ran");
     expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." });
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics.");
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only.");
     expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
   });
 
@@ -153,7 +153,7 @@ describe("run provenance", () => {
     expect(replayed.provenance).toBe("live_groq_replay");
     expect(replayed.provenanceLabel).toBe("Recorded Groq output");
     expect(replayed.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
-    expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("Groq orders the eligible options; deterministic code calculates feasibility and economics and enforces approval ordering.");
+    expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The recorded model order is kept as evidence only.");
 
     live.run.viewing = "fresh";
     expect(resolve(live, p)).toMatchObject({ provenance: "live_groq", provenanceLabel: "Live Groq output" });
@@ -165,7 +165,7 @@ describe("run provenance", () => {
     live.run.record.steps = [...live.run.record.steps, { ...live.run.record.steps[0], task: "explain", provider: "synthetic_replay" }];
     const view = resolve(live, await svc.progressOf(await svc.seedState(recordedRun(), "replay")));
     expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics.");
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only.");
   });
 
   it("does not credit a model when a record marked live carries hand-written steps", async () => {

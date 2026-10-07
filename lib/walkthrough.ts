@@ -254,8 +254,8 @@ function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughOb
     if (state.decisionBranch) return { ...item, notice: `The engine recalculated this decision after ${branchCause(state.decisionBranch)}; code set the order and wrote the explanation.` };
     const source = taskSource(state, "explain");
     return source.modelMade
-      ? { ...item, notice: `${source.providerName} orders the eligible options; deterministic code calculates feasibility and economics and enforces approval ordering.` }
-      : { ...item, notice: "The option order in this case is sample output written by hand; no model ran. Deterministic code calculates feasibility and economics." };
+      ? { ...item, notice: "You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The recorded model order is kept as evidence only." }
+      : { ...item, notice: "You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only." };
   }
   return item;
 }

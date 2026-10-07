@@ -802,6 +802,9 @@ export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
   return strategyView(feasible, s.economics.strategy, s.baseline);
 }
 
+/** Whether the merchant has ever chosen a strategy for this deal, rather than being given the default. */
+export const strategyChosen = (s: Pick<DemoState, "events">): boolean => s.events.some((e) => e.kind === "strategy_changed");
+
 /**
  * Choose how feasible offers are ranked. It never adds an offer or relaxes a check. An automatic
  * selection follows the new leader; an explicit choice, and its draft, are kept.
@@ -811,7 +814,11 @@ export async function setStrategy(strategy: StrategyId): Promise<DemoState> {
   return mutate((s) => {
     assertNoReview(s);
     if (!REEVALUATION_STATUSES.has(s.status)) throw new ActionError("A sent or accepted version keeps the strategy it was sent under");
-    if (s.economics.strategy === strategy) return;
+    if (s.economics.strategy === strategy) {
+      // Confirming the default is the merchant's own choice, recorded once.
+      if (!strategyChosen(s)) event(s, "strategy_changed", `Strategy: ${STRATEGY_LABEL[strategy]}`, "merchant", null);
+      return;
+    }
     s.economics = { ...s.economics, strategy };
     if (s.selectedOption && !s.selectedOption.explicit) {
       s.agreements = s.agreements.filter((v) => v.status !== "draft");

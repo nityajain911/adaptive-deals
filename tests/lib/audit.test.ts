@@ -55,12 +55,12 @@ describe("audit sources", () => {
   });
   it("never labels a hand-written sample as an AI run", () => {
     const sampleSources = auditSources(state, sampleRun, "replay", heroPackages);
-    for (const item of ["Constraint extraction", "Clarification wording", "Option ranking and explanation"]) {
+    for (const item of ["Constraint extraction", "Clarification wording", "Recorded option order and reasons (not used for the recommendation)"]) {
       expect(sampleSources.find((x) => x.item === item)!.source).toBe(`Sample output written by hand · no model ran · run ${sampleRun.runId}`);
     }
     expect(sampleSources.map((x) => `${x.source} ${x.detail ?? ""}`).join(" ")).not.toMatch(/\bAI\b|Groq/);
     const branched = auditSources(branchedState, sampleRun, "replay", heroPackages);
-    expect(branched.find((x) => x.item === "Parent option ranking and explanation")).toMatchObject({
+    expect(branched.find((x) => x.item === "Parent option order and reasons")).toMatchObject({
       source: `Parent sample output ${sampleRun.runId} · context only`,
       detail: "The hand-written parent sample did not cover the changed answers and its recommendation output was not used for this branch.",
     });
@@ -70,7 +70,7 @@ describe("audit sources", () => {
 describe("who did what", () => {
   it("credits code, not AI, when AI prose failed validation", () => {
     const w = whoDidWhat(run, { ranking: "ai", text: "code_fallback" }, state);
-    expect(w.ai).toContain("Suggested the order of eligible options (explain.v3)");
+    expect(w.ai).toContain("Suggested an order of eligible options (explain.v3) · historical, not used for the recommendation");
     expect(w.ai.join(" ")).not.toMatch(/wrote the recommendation explanation/i);
     expect(w.code).toContain("Wrote the recommendation explanation, because the AI wording did not pass validation");
     expect(w.code).toContain("Read only the narrow supported payment-date reply (reply-rules.v1)");
@@ -78,7 +78,7 @@ describe("who did what", () => {
   });
   it("credits AI with the explanation only when its prose was used", () => {
     const w = whoDidWhat(run, { ranking: "ai", text: "ai" }, state);
-    expect(w.ai).toContain("Wrote the recommendation explanation (explain.v3)");
+    expect(w.ai).toContain("Wrote a recommendation explanation (explain.v3) · historical, not the reason now shown");
     expect(w.code.join(" ")).not.toMatch(/did not pass validation/);
   });
   it("credits validated per-offer reasons to AI and the failed comparison to code", () => {
@@ -104,10 +104,10 @@ describe("who did what", () => {
   it("lists hand-written sample outputs under their own heading, never under AI", () => {
     const w = whoDidWhat(sampleRun, { ranking: "ai", text: "ai" }, state);
     expect(w.ai).toEqual([]);
-    expect(w.sample).toEqual(["Constraint extraction", "Clarification question wording", "Order of eligible options", "Recommendation explanation"]);
+    expect(w.sample).toEqual(["Constraint extraction", "Clarification question wording", "Order of eligible options · historical, not used for the recommendation", "Recommendation explanation · historical, not the reason now shown"]);
     expect(w.code.join(" ")).not.toMatch(/\bAI\b/);
     const fallback = whoDidWhat(sampleRun, { ranking: "ai", text: "code_fallback" }, state);
-    expect(fallback.sample).not.toContain("Recommendation explanation");
+    expect(fallback.sample).not.toContain("Recommendation explanation · historical, not the reason now shown");
     expect(fallback.code).toContain("Wrote the recommendation explanation, because the sample wording did not pass validation");
   });
   it("splits a mixed run step by step", () => {
@@ -115,10 +115,10 @@ describe("who did what", () => {
     const w = whoDidWhat(mixedRun, { ranking: "ai", text: "ai" }, state);
     expect(w.ai).toEqual(["Extracted the opening constraints (extract.v2)", "Drafted the clarification questions (clarify.v1)"]);
     expect(w.aiLabel).toBe("Recorded Groq output");
-    expect(w.sample).toEqual(["Order of eligible options", "Recommendation explanation"]);
+    expect(w.sample).toEqual(["Order of eligible options · historical, not used for the recommendation", "Recommendation explanation · historical, not the reason now shown"]);
     const sources = auditSources(state, mixedRun, "replay", heroPackages);
     expect(sources.find((x) => x.item === "Constraint extraction")!.source).toBe(`Recorded Groq output · run ${run.runId} · extract.v2`);
-    expect(sources.find((x) => x.item === "Option ranking and explanation")!.source).toBe(`Sample output written by hand · no model ran · run ${run.runId}`);
+    expect(sources.find((x) => x.item === "Recorded option order and reasons (not used for the recommendation)")!.source).toBe(`Sample output written by hand · no model ran · run ${run.runId}`);
   });
   it("keeps recorded model work out of the sample heading", () => {
     expect(whoDidWhat(run, { ranking: "ai", text: "ai" }, state).aiLabel).toBe("Recorded Groq output");
@@ -174,7 +174,7 @@ describe("audit drawer content is read-only", () => {
     expect(modelProvenance(s.run.record).modelMade).toBe(false);
     expect(html).toContain("Sample output written by hand · no model ran");
     expect(html).toContain("No model ran for this case.");
-    expect(html).not.toMatch(/AI run|Recorded Groq output|Suggested the order|Extracted the opening constraints/);
+    expect(html).not.toMatch(/AI run|Recorded Groq output|Suggested the order|Suggested an order|Extracted the opening constraints/);
   });
 });
 

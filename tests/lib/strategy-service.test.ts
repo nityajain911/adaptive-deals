@@ -99,6 +99,15 @@ describe("changing the strategy", () => {
     expect(s.events.at(-1)).toMatchObject({ kind: "strategy_changed", provenance: "merchant" });
   });
 
+  it("counts confirming the default as the merchant's own choice, once", async () => {
+    expect(svc.strategyChosen(await svc.getState())).toBe(false);
+    await svc.setStrategy("protect_contribution");
+    expect(svc.strategyChosen(await svc.getState())).toBe(true);
+    const events = (await svc.getState()).events.length;
+    await svc.setStrategy("protect_contribution");
+    expect((await svc.getState()).events.length).toBe(events);
+  });
+
   it("refuses a strategy that does not exist, and changes nothing", async () => {
     const before = await svc.getState();
     await expect(svc.setStrategy("maximise_everything" as never)).rejects.toThrow(/unknown strategy/i);
