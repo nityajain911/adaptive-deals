@@ -4,6 +4,11 @@ import { expect, test, type Page } from "@playwright/test";
 import type { DemoState } from "@/lib/service";
 import { defaultEconomicsContent } from "@/lib/economics-default";
 
+const shot = (page: Page, name: string) => {
+  if (process.env.ADAPTIVE_E2E_NO_SHOTS === "1") return Promise.resolve(Buffer.alloc(0));
+  const prefix = process.env.ADAPTIVE_E2E_SHOT_PREFIX ?? "";
+  return page.screenshot({ path: `artifacts/ui-review/${prefix}${name}.png`, fullPage: true });
+};
 const STORE = path.join(".data-e2e", "store.json");
 
 async function api(page: Page, data: Record<string, unknown>) {
@@ -186,6 +191,7 @@ test("corridor · the ladder is shown, and the 5% row prepares an offer that pas
   await expect(corridor.getByTestId("ladder-0")).toBeVisible();
   await expect(corridor.getByTestId("ladder-500")).toBeVisible();
   await expect(corridor.getByTestId("ladder-1000")).toBeVisible();
+  await shot(page, "corridor-1-desktop");
   const offerButton = corridor.getByTestId("ladder-500").locator("[data-testid^='offer-this-']");
   await offerButton.click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
@@ -203,6 +209,7 @@ test("corridor · the buyer's page never shows the merchant's limits, and the co
   await expect(page.getByTestId("negotiation-corridor")).toBeVisible();
   await expect(page.getByTestId("corridor-private")).toContainText("Your limits are never sent");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await shot(page, "corridor-2-mobile");
   await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
   await expect(page.getByTestId("buyer-view")).toBeVisible();
   const text = (await page.locator("body").innerText()).toLowerCase();
