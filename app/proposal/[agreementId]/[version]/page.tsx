@@ -10,7 +10,7 @@ import { cx } from "@/components/ui";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
 import { activeCase, AGREEMENT_ID, proposalLink } from "@/lib/service";
-import { isDelivered } from "@/lib/deal-records";
+import { isDelivered, isResolvingDisposition } from "@/lib/deal-records";
 import { buyerProposalLifecycle, latestReplacementVersion, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
 
@@ -41,7 +41,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const myRequests = s.conversation.filter((i) => i.kind === "change_request" && i.refs.agreementVersion === v.version);
   const currentLineIds = new Set(v.terms.paymentSchedule.map((line) => line.id));
   const versionAttempts = s.attempts.filter((attempt) => attempt.agreementId === v.agreementId && currentLineIds.has(attempt.scheduleLineId));
-  const openBuyerRequest = myRequests.some((request) => !s.workDispositions.some((disposition) => disposition.sourceKind === "message" && disposition.sourceId === request.id && (disposition.kind === "keep_current_terms" || disposition.kind === "handled_outside")));
+  const openBuyerRequest = myRequests.some((request) => !s.workDispositions.some((disposition) => disposition.sourceKind === "message" && disposition.sourceId === request.id && isResolvingDisposition(disposition.kind)));
   const paidLines = new Map(versionAttempts.filter((attempt) => attempt.status === "succeeded").map((attempt) => [attempt.scheduleLineId, attempt.amountPaise]));
   const lifecycle = buyerProposalLifecycle({
     agreement: v,

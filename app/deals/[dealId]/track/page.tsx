@@ -14,7 +14,7 @@ import { Card, Stat } from "@/components/ui";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import type { Structure } from "@/domain/structures";
 import { loadDeal, stageHref } from "@/lib/deal-page";
-import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
+import { isResolvingDisposition, BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 import { outcomeSummary } from "@/lib/outcome";
 import { activeVersionOf, noticeReplyOutcome, replyNeedsExactDate, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
@@ -53,7 +53,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
 
   // Buyer messages awaiting the merchant.
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
-  const resolvedWork = new Set(s.workDispositions.filter((d) => d.sourceKind === "message" && (d.kind === "keep_current_terms" || d.kind === "handled_outside")).map((d) => d.sourceId));
+  const resolvedWork = new Set(s.workDispositions.filter((d) => d.sourceKind === "message" && isResolvingDisposition(d.kind)).map((d) => d.sourceId));
   const attention = s.conversation.filter((i) => {
     if (i.direction !== "inbound" || handled.has(i.id) || resolvedWork.has(i.id)) return false;
     if (s.conversation.find((x) => x.id === i.inReplyTo)?.kind !== "notice") return false;
@@ -153,7 +153,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   {item.note ? <div className="mt-1 text-ink-2">Follow-up note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   <div className="mt-1 text-ink-2">Safe next step: {item.dateAmbiguity ? "Ask the buyer for one exact date." : "Review the buyer's request and agree the next step."}</div>
                   <p className="mt-1 text-[13px] text-muted">These choices record your decision only. Terms, payments and the ledger stay unchanged.</p>
-                  {item.kind === "buyer_request" && item.sourceKind === "message" && s.status === "sent" && !s.amendments.some((a) => a.toVersion === item.version) && !["date", "scope"].includes(s.conversation.find((m) => m.id === item.sourceId)?.refs.topic ?? "") ? (
+                  {item.kind === "buyer_request" && item.sourceKind === "message" && s.status === "sent" && !s.amendments.some((a) => a.toVersion === item.version) && s.conversation.find((m) => m.id === item.sourceId)?.refs.topic === "price" ? (
                     <CounterForm currentTotalPaise={s.agreements.find((v) => v.version === item.version)?.terms.pricing.totalPaise ?? 0} onDone={stageHref(dealId, "offer")} />
                   ) : null}
                   <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />

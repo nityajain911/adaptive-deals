@@ -57,7 +57,7 @@ export interface HandledMessage {
 }
 
 export type WorkSourceKind = "message" | "change_request";
-export type WorkDispositionKind = "keep_current_terms" | "handled_outside" | "follow_up_pending" | "countered";
+export type WorkDispositionKind = "keep_current_terms" | "handled_outside" | "follow_up_pending" | "countered" | "answered_with_offer";
 
 /**
  * The merchant's answer to a buyer's request for a different total, on a proposal not yet accepted.
@@ -74,6 +74,9 @@ export interface CounterOffer {
   requestMessageId: string;
   createdAt: string;
 }
+
+/** A disposition that settles a buyer work item. A follow-up still pending does not. */
+export const isResolvingDisposition = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside" || kind === "countered" || kind === "answered_with_offer";
 
 /** A merchant's explicit resolution or follow-up decision for one buyer work item. */
 export interface WorkDisposition {

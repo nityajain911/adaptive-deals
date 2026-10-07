@@ -7,7 +7,7 @@ import type { ChangeRequest } from "@/domain/restructure";
 import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
 import type { ReplyClassification } from "@/domain/replies";
-import type { DeliveryRecord, HandledMessage, WorkDisposition, WorkDispositionKind, WorkSourceKind } from "./deal-records";
+import { isResolvingDisposition, type DeliveryRecord, type HandledMessage, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
 import { branchCause, type DecisionBranch } from "./decision-branch";
 import type { ModelProvenance } from "./model-provenance";
 
@@ -59,7 +59,7 @@ type WorkState = {
   events: { kind: string; title: string; detail: string | null; at: string }[];
 };
 
-const resolving = (kind: WorkDispositionKind) => kind === "keep_current_terms" || kind === "handled_outside" || kind === "countered";
+const resolving = isResolvingDisposition;
 
 const EXACT_DATE_REASONS = new Set(["unsupported_date_expression", "multiple_dates", "same_day_ambiguous"]);
 export const replyNeedsExactDate = (classification: ReplyClassification | null) => classification?.kind === "needs_attention" && EXACT_DATE_REASONS.has(classification.reason);

@@ -34,7 +34,7 @@ async function sentWithRequest() {
   const d = await svc.reviewBuyerProposal();
   await svc.approveDraft(d.version, d.termsHash);
   await svc.sendProposal(d.version);
-  await svc.requestChange(d.version, "Could you do ₹40,000 instead?");
+  await svc.requestChange(d.version, "Could you do ₹40,000 instead?", "price");
   return d;
 }
 
@@ -157,17 +157,26 @@ describe("review findings: the engine's result, delivery, and what the merchant 
     expect(original.version).toBe(1);
   });
 
-  it("records nothing if the merchant sends a different offer instead of the counter", async () => {
+  it("records the request as answered with a different offer when that is what the merchant delivers", async () => {
     await sentWithRequest();
-    await svc.makeCounterOffer(ASK, true, FAILS);
+    const prepared = await svc.makeCounterOffer(ASK, true, FAILS);
+    const requestId = prepared.counterOffers.at(-1)!.requestMessageId;
     const out = await svc.currentOutcome(await svc.getState());
     const other = out.explanation!.order[0];
     await svc.selectOption(other);
     const draft = await svc.reviewBuyerProposal();
     expect(draft.structureId).toBe(other);
     await svc.approveDraft(draft.version, draft.termsHash);
+    // Nothing is recorded before delivery.
+    expect((await svc.getState()).workDispositions.some((d) => d.sourceId === requestId)).toBe(false);
     await svc.sendProposal(draft.version);
-    expect((await svc.getState()).workDispositions.some((d) => d.kind === "countered")).toBe(false);
+    const s = await svc.getState();
+    expect(s.workDispositions.some((d) => d.kind === "countered")).toBe(false);
+    expect(s.workDispositions.at(-1)).toMatchObject({ kind: "answered_with_offer", sourceKind: "message", sourceId: requestId });
+    expect(s.workDispositions.at(-1)!.note).toMatch(/version 2/);
+    // The request no longer sits unanswered, and nothing is hidden: the decision is on the record.
+    const { unresolvedWork } = await import("@/lib/views");
+    expect(unresolvedWork(s).some((w) => w.sourceId === requestId)).toBe(false);
   });
 
   it("allows a second counter, and a withdrawn version can never be accepted", async () => {
@@ -176,7 +185,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
     const d2 = await svc.reviewBuyerProposal();
     await svc.approveDraft(d2.version, d2.termsHash);
     await svc.sendProposal(d2.version);
-    await svc.requestChange(d2.version, "Still too high, could you do ₹38,000?");
+    await svc.requestChange(d2.version, "Still too high, could you do ₹38,000?", "price");
     const s = await svc.makeCounterOffer(3_800_000, true, FAILS);
     expect(s.counterOffers).toHaveLength(2);
     expect(s.agreements.map((v) => [v.version, v.status])).toEqual([[1, "superseded"], [2, "superseded"]]);
@@ -196,7 +205,19 @@ describe("review findings: the engine's result, delivery, and what the merchant 
     await expect(svc.makeCounterOffer(ASK, true, FAILS)).rejects.toThrow(/price/i);
   });
 
-  it("offers the counter for a price request, or one with no stated topic", async () => {
+  it.each([["other", "other" as const], ["no stated topic", undefined]])("refuses the counter for a request whose topic is %s", async (_n, topic) => {
+    await svc.resetToSeed();
+    await presenter.setFailNextSend(false);
+    await driveTo(svc, (s) => s.status === "options_ready");
+    const d = await svc.reviewBuyerProposal();
+    await svc.approveDraft(d.version, d.termsHash);
+    await svc.sendProposal(d.version);
+    await svc.requestChange(d.version, "Could you look at the numbers again?", topic);
+    await expect(svc.checkCounterOffer(ASK)).rejects.toThrow(/not about the price/i);
+    await expect(svc.makeCounterOffer(ASK, true, FAILS)).rejects.toThrow(/not about the price/i);
+  });
+
+  it("offers the counter for a price request", async () => {
     await svc.resetToSeed();
     await presenter.setFailNextSend(false);
     await driveTo(svc, (s) => s.status === "options_ready");

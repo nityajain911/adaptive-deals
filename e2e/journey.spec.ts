@@ -844,3 +844,31 @@ test("counter-offer · a request about a payment date is not offered a different
   const refused = await api(page, { action: "counter_offer", totalPaise: 4_000_000, overrideConfirmed: true, acknowledgedChecks: ["DISCOUNT_ABOVE_LIMIT"] }, false);
   expect(JSON.stringify(refused)).toMatch(/not about the price/);
 });
+
+test("counter-offer · only a request the buyer marked as about the price is answered with a different total", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  // Typed without choosing a starter: recorded as "something else", so no price counter.
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await page.getByTestId("request-change").click();
+  await page.getByLabel("What would you like changed?").fill("Could you do 40000?");
+  await page.getByTestId("send-change-request").click();
+  await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("buyer-work-card")).toBeVisible();
+  await expect(page.getByTestId("counter-form")).toHaveCount(0);
+  expect(state().conversation.find((m) => m.kind === "change_request")!.refs.topic).toBe("other");
+});
+
+test("counter-offer · choosing 'A lower price' makes the counter available", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await page.getByTestId("request-change").click();
+  await page.getByTestId("change-starter-price").click();
+  await page.getByLabel("What would you like changed?").fill("Could you do a lower total: 40000?");
+  await page.getByTestId("send-change-request").click();
+  await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("counter-form")).toBeVisible();
+});

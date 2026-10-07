@@ -31,7 +31,7 @@ import { allDemoCases, DEFAULT_CASE_ID, demoCase, type CaseId, type DemoCase } f
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
-import { BUYER_DECLINE_REASONS, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type CounterOffer, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
+import { BUYER_DECLINE_REASONS, isResolvingDisposition, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type CounterOffer, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
 import { attemptDelivery } from "./delivery";
 import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
 import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
@@ -698,9 +698,19 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
     setStatus(s, "sent", "Proposal delivered to the buyer (simulated channel)");
     event(s, "proposal_delivered", `Proposal version ${version} delivered`, "simulated", key);
     // A buyer's request is answered by a counter-offer only once that counter has reached the buyer.
-    const answered = s.counterOffers.find((c) => c.fromVersion === v.supersedes && c.evaluated.structure.id === v.structureId);
-    if (answered) {
-      s.workDispositions.push({ id: `work-${s.workDispositions.length + 1}`, sourceKind: "message", sourceId: answered.requestMessageId, kind: "countered", note: `Counter-offer at ${formatINR(v.terms.pricing.totalPaise)} delivered as version ${v.version}`, actor: "merchant", at: clockOf(s).now() });
+    // The same goes for a different offer sent in its place: the request is then answered with that offer, on the record.
+    const withdrawn = [...s.counterOffers].reverse().find((c) => c.fromVersion === v.supersedes);
+    if (withdrawn) {
+      const isCounter = withdrawn.evaluated.structure.id === v.structureId;
+      s.workDispositions.push({
+        id: `work-${s.workDispositions.length + 1}`,
+        sourceKind: "message",
+        sourceId: withdrawn.requestMessageId,
+        kind: isCounter ? "countered" : "answered_with_offer",
+        note: `${isCounter ? "Counter-offer" : "A different offer"} at ${formatINR(v.terms.pricing.totalPaise)} delivered as version ${v.version}`,
+        actor: "merchant",
+        at: clockOf(s).now(),
+      });
     }
     delivered = true;
   });
@@ -736,7 +746,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
   const clar = s.run.record.displayed.questions.map((question) => latestClarificationForQuestion(s, question.id)).filter((item): item is ConversationItem => item !== null);
   const active = activeVersion(s);
-  const resolved = new Set(s.workDispositions.filter((d) => d.kind === "keep_current_terms" || d.kind === "handled_outside" || d.kind === "countered").filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
+  const resolved = new Set(s.workDispositions.filter((d) => isResolvingDisposition(d.kind)).filter((d) => d.sourceKind === "message").map((d) => d.sourceId));
   const handled = new Set(s.handledMessages.map((h) => h.messageId));
   const attention = s.conversation.filter((i) => {
     if (i.direction !== "inbound" || handled.has(i.id) || resolved.has(i.id)) return false;
@@ -1196,7 +1206,7 @@ async function buildCounter(s: DemoState, totalPaise: number) {
   const request = unresolvedWork(s).find((w) => w.kind === "buyer_request" && w.sourceKind === "message" && w.version === v.version);
   if (!request) throw new ActionError("There is no open buyer request to answer");
   const topic = s.conversation.find((m) => m.id === request.sourceId)?.refs.topic;
-  if (topic === "date" || topic === "scope") throw new ActionError("This request is not about the price, so it cannot be answered with a different total");
+  if (topic !== "price") throw new ActionError("This request is not about the price, so it cannot be answered with a different total. Record your decision on it instead");
   const current = await structureForVersion(s, v);
   const out = await currentOutcome(s);
   const constraints = interpretations(out.profile)[0].constraints;

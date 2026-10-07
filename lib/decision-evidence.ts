@@ -1,5 +1,5 @@
 import type { ConversationItem } from "@/domain/conversation";
-import type { SelectedOption, WorkDisposition } from "./deal-records";
+import { isResolvingDisposition, type SelectedOption, type WorkDisposition } from "./deal-records";
 
 type EvidenceState = {
   conversation: ConversationItem[];
@@ -7,7 +7,7 @@ type EvidenceState = {
   workDispositions: WorkDisposition[];
 };
 
-const isResolving = (d: WorkDisposition) => d.kind === "keep_current_terms" || d.kind === "handled_outside" || d.kind === "countered";
+const isResolving = (d: WorkDisposition) => isResolvingDisposition(d.kind);
 
 function clarificationReplyIds(s: EvidenceState): Set<string> {
   const questions = new Set(s.conversation.filter((m) => m.kind === "clarification").map((m) => m.id));

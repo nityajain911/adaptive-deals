@@ -191,7 +191,7 @@ export function RequestChangeForm({ version }: { version: number }) {
   const { run, pending, error } = useAction();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [topic, setTopic] = useState<"date" | "scope" | "price" | "other" | undefined>(undefined);
+  const [topic, setTopic] = useState<"date" | "scope" | "price" | "other">("other");
   if (!open)
     return (
       <Button className="w-full" onClick={() => setOpen(true)} data-testid="request-change" aria-expanded={false}>
@@ -205,7 +205,7 @@ export function RequestChangeForm({ version }: { version: number }) {
         e.preventDefault();
         run({ action: "request_change", version, text, topic }, () => {
           setText("");
-          setTopic(undefined);
+          setTopic("other");
           setOpen(false);
         });
       }}
