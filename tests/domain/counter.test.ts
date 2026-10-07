@@ -25,6 +25,16 @@ describe("a counter-offer at a different total", () => {
     for (const target of [4_000_000, 3_800_000, 3_500_000, 4_200_000, 3_000_000]) expect(total(counterStructure(base(), target, GST))).toBe(target);
   });
 
+  it("never lands above the total that was asked for, and within two paise of it, at any amount", () => {
+    for (let rupees = 500; rupees < 46_000; rupees += 137) {
+      const target = rupees * 100;
+      const t = total(counterStructure(base(), target, GST));
+      expect(t, `₹${rupees}`).toBeLessThanOrEqual(target);
+      expect(target - t, `₹${rupees}`).toBeLessThanOrEqual(2);
+    }
+    expect(total(counterStructure(base(), 500_000, GST))).toBeLessThanOrEqual(500_000);
+  });
+
   it("splits money exactly: every line's GST is per line, invoices match payments, deliveries sum to the price", () => {
     const c = counterStructure(base(), 3_999_999, GST);
     for (const p of c.payments) expect(p.totalPaise).toBe(p.prePaise + p.gstPaise);

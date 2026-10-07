@@ -72,7 +72,8 @@ export interface CounterOffer {
   baseStructureId: string;
   targetTotalPaise: number;
   evaluated: import("@/domain/engine").EvaluatedStructure;
-  override: { by: string; at: string; checks: string[] } | null;
+  /** The merchant's decision to send an amount the engine reported as failing a rule, or as below direct costs. */
+  override: { by: string; at: string; checks: string[]; reason: string; negativeContribution: boolean } | null;
   requestMessageId: string;
   createdAt: string;
   economics?: EconomicsRef;

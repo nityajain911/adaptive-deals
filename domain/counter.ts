@@ -26,8 +26,8 @@ export function counterStructure(base: Structure, targetTotalPaise: Paise, gstRa
   const currentTotal = sum(base.payments.map((p) => p.totalPaise));
   if (targetTotalPaise >= currentTotal) throw new CounterError("A counter-offer must be lower than the current offer");
 
-  // The largest pre-GST price whose per-line GST keeps the total within the target; a slightly higher one can
-  // land exactly on the target when per-line rounding allows, which is what the merchant typed.
+  // Per-line GST rounding means the aggregate price is only a starting point. Try the prices around it: an exact
+  // landing on what the merchant typed if one exists, otherwise the closest total that does not exceed it.
   const basePre = derivePreGstFromInclusive(targetTotalPaise, gstRateBps).prePaise;
   const lines = (pre: Paise) => {
     const parts = proportional(pre, base.payments.map((p) => p.prePaise), "first");
@@ -35,10 +35,13 @@ export function counterStructure(base: Structure, targetTotalPaise: Paise, gstRa
   };
   const totalFor = (pre: Paise) => sum(lines(pre).map((p) => p.totalPaise));
   let pre = basePre;
-  for (let extra = 0; extra <= 4; extra++) {
-    if (totalFor(basePre + extra) === targetTotalPaise) {
-      pre = basePre + extra;
-      break;
+  let best = -Infinity;
+  for (let candidate = basePre - 4; candidate <= basePre + 4; candidate++) {
+    if (candidate <= 0) continue;
+    const t = totalFor(candidate);
+    if (t <= targetTotalPaise && t > best) {
+      best = t;
+      pre = candidate;
     }
   }
   const payments = lines(pre);

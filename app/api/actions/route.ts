@@ -103,7 +103,7 @@ const Action = z.discriminatedUnion("action", [
     .strict(),
   z.object({ action: z.literal("remove_input_override"), id: z.string().max(60) }).strict(),
   z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
-  z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20) }),
+  z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20), reason: z.string().max(300).optional(), typedConfirmation: z.string().max(40).optional() }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
   z.object({ action: z.literal("retry_send"), version: z.number().int().positive() }),
   z.object({ action: z.literal("send_questions") }),
@@ -205,7 +205,7 @@ export async function POST(request: Request) {
         result = await svc.checkCounterOffer(a.totalPaise);
         break;
       case "counter_offer":
-        await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed, a.acknowledgedChecks);
+        await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed, a.acknowledgedChecks, { reason: a.reason ?? "", typedConfirmation: a.typedConfirmation });
         break;
       case "set_strategy":
         await svc.setStrategy(a.strategy);

@@ -31,6 +31,12 @@ export function migrateState(raw: unknown): DemoState {
     s.reviewRequired = "The saved commercial case is unknown. Inspect records before continuing.";
   }
   s.counterOffers ??= [];
+  for (const c of s.counterOffers) {
+    if (c.override) {
+      c.override.reason ??= "Recorded before a reason was required";
+      c.override.negativeContribution ??= false;
+    }
+  }
   if (s.decisionBranch === undefined) s.decisionBranch = null;
   else if (s.decisionBranch !== null && !validDecisionBranch(s.decisionBranch)) {
     s.decisionBranch = null;

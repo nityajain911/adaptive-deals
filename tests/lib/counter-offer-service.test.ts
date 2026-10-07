@@ -26,6 +26,8 @@ afterAll(() => fetchSpy.mockRestore());
 const TOTAL = 4_602_000; // the sent proposal's total
 const ASK = 4_000_000;
 const FAILS = ["DISCOUNT_ABOVE_LIMIT"];
+// A failing amount needs the merchant's reason, recorded with the override.
+const EXC = { reason: "The buyer orders often and pays on time" };
 
 async function sentWithRequest() {
   await svc.resetToSeed();
@@ -76,7 +78,7 @@ describe("making a counter-offer", () => {
 
   it("with an explicit override, records it, withdraws the old version and prepares a new draft for the usual preview", async () => {
     const original = await sentWithRequest();
-    const s = await svc.makeCounterOffer(ASK, true, FAILS);
+    const s = await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const counter = s.counterOffers.at(-1)!;
     expect(counter).toMatchObject({ fromVersion: original.version, requestMessageId: expect.any(String) });
     expect(counter.override).toMatchObject({ by: "Merchant (Pinecone Media Works)", checks: expect.arrayContaining(["DISCOUNT_ABOVE_LIMIT"]) });
@@ -95,7 +97,7 @@ describe("making a counter-offer", () => {
 
   it("goes through approve and send like any proposal, and the buyer's page then shows the new version", async () => {
     const original = await sentWithRequest();
-    await svc.makeCounterOffer(ASK, true, FAILS);
+    await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const draft = await svc.reviewBuyerProposal();
     await svc.approveDraft(draft.version, draft.termsHash);
     const sent = await svc.sendProposal(draft.version);
@@ -108,7 +110,7 @@ describe("making a counter-offer", () => {
 
   it("can be accepted by the buyer, and the collection then follows the countered amounts", async () => {
     await sentWithRequest();
-    await svc.makeCounterOffer(ASK, true, FAILS);
+    await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const draft = await svc.reviewBuyerProposal();
     await svc.approveDraft(draft.version, draft.termsHash);
     await svc.sendProposal(draft.version);
@@ -119,7 +121,7 @@ describe("making a counter-offer", () => {
 
   it("shows the audit who decided: the engine's failed rule, and the merchant's override", async () => {
     await sentWithRequest();
-    const s = await svc.makeCounterOffer(ASK, true, FAILS);
+    const s = await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     expect(s.events.some((e) => e.kind === "counter_offer_created" && e.provenance === "merchant")).toBe(true);
   });
 });
@@ -128,7 +130,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
   it("never rewrites the engine's result: a failing counter is stored exactly as the engine returned it", async () => {
     await sentWithRequest();
     const check = await svc.checkCounterOffer(ASK);
-    const s = await svc.makeCounterOffer(ASK, true, FAILS);
+    const s = await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const stored = s.counterOffers.at(-1)!.evaluated;
     expect(stored.verdict).toBe("rejected");
     expect(stored.approvable).toBe(false);
@@ -147,7 +149,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
 
   it("leaves the buyer's request open until the counter is delivered, then records it", async () => {
     const original = await sentWithRequest();
-    const prepared = await svc.makeCounterOffer(ASK, true, FAILS);
+    const prepared = await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     expect(prepared.workDispositions.some((d) => d.kind === "countered")).toBe(false);
     const draft = await svc.reviewBuyerProposal();
     await svc.approveDraft(draft.version, draft.termsHash);
@@ -159,7 +161,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
 
   it("records the request as answered with a different offer when that is what the merchant delivers", async () => {
     await sentWithRequest();
-    const prepared = await svc.makeCounterOffer(ASK, true, FAILS);
+    const prepared = await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const requestId = prepared.counterOffers.at(-1)!.requestMessageId;
     const out = await svc.currentOutcome(await svc.getState());
     const other = out.explanation!.order[0];
@@ -181,12 +183,12 @@ describe("review findings: the engine's result, delivery, and what the merchant 
 
   it("allows a second counter, and a withdrawn version can never be accepted", async () => {
     const original = await sentWithRequest();
-    await svc.makeCounterOffer(ASK, true, FAILS);
+    await svc.makeCounterOffer(ASK, true, FAILS, EXC);
     const d2 = await svc.reviewBuyerProposal();
     await svc.approveDraft(d2.version, d2.termsHash);
     await svc.sendProposal(d2.version);
     await svc.requestChange(d2.version, "Still too high, could you do ₹38,000?", "price");
-    const s = await svc.makeCounterOffer(3_800_000, true, FAILS);
+    const s = await svc.makeCounterOffer(3_800_000, true, FAILS, EXC);
     expect(s.counterOffers).toHaveLength(2);
     expect(s.agreements.map((v) => [v.version, v.status])).toEqual([[1, "superseded"], [2, "superseded"]]);
     await expect(svc.acceptAgreement(original.version, original.termsHash, true)).rejects.toThrow();
@@ -202,7 +204,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
     await svc.sendProposal(d.version);
     await svc.requestChange(d.version, "Could we pay on 15 November?", "date");
     await expect(svc.checkCounterOffer(ASK)).rejects.toThrow(/price/i);
-    await expect(svc.makeCounterOffer(ASK, true, FAILS)).rejects.toThrow(/price/i);
+    await expect(svc.makeCounterOffer(ASK, true, FAILS, EXC)).rejects.toThrow(/price/i);
   });
 
   it.each([["other", "other" as const], ["no stated topic", undefined]])("refuses the counter for a request whose topic is %s", async (_n, topic) => {
@@ -214,7 +216,7 @@ describe("review findings: the engine's result, delivery, and what the merchant 
     await svc.sendProposal(d.version);
     await svc.requestChange(d.version, "Could you look at the numbers again?", topic);
     await expect(svc.checkCounterOffer(ASK)).rejects.toThrow(/not about the price/i);
-    await expect(svc.makeCounterOffer(ASK, true, FAILS)).rejects.toThrow(/not about the price/i);
+    await expect(svc.makeCounterOffer(ASK, true, FAILS, EXC)).rejects.toThrow(/not about the price/i);
   });
 
   it("offers the counter for a price request", async () => {

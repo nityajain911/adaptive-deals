@@ -6,7 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ServicePackage } from "@/domain/types";
 import type { DealBaseline } from "@/domain/deal-baseline";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
 import type { ReactNode } from "react";
@@ -182,7 +182,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
         {counter?.override ? (
           <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
-            <span className="font-semibold text-amber">Rules you chose to override:</span> {failingCounterChecks(x).map((c) => explainCheck(c)).join("; ")}
+            <span className="font-semibold text-amber">Rules you chose to override:</span> {joinRules(failingCounterChecks(x).map((c) => explainCheck(c)))}
           </div>
         ) : null}
       </div>

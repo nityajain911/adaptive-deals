@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, joinRules, headlineFor, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf } from "@/lib/deal-context";
 import { clarifiedHeroProfile, heroBaseline, heroInput } from "../helpers";
 
@@ -63,6 +63,13 @@ describe("the reason shown for a merchant's counter-offer", () => {
     const text = counterReason(["Discount 13.08% is above the 0% limit."]);
     expect(text).toBe("You set this total in answer to the buyer's request. It does not meet: Discount 13.08% is above the 0% limit. You chose to override that.");
     expect(text).not.toMatch(/passes your rules/i);
+  });
+  it("joins several failed rules cleanly, without a stray full stop before each semicolon", () => {
+    const text = counterReason(["Projected contribution is below the 35% floor.", "Discount 13.08% is above the 0% limit."]);
+    expect(text).toBe("You set this total in answer to the buyer's request. It does not meet: Projected contribution is below the 35% floor; Discount 13.08% is above the 0% limit. You chose to override that.");
+    expect(text).not.toContain(".;");
+    expect(joinRules(["A is wrong.", "B is wrong."])).toBe("A is wrong; B is wrong.");
+    expect(joinRules(["Only one."])).toBe("Only one.");
   });
   it("says so plainly when every rule passes", () => {
     expect(counterReason([])).toBe("You set this total in answer to the buyer's request, and the engine found that every rule passes.");

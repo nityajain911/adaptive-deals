@@ -113,6 +113,22 @@ describe("answers the buyer already gave", () => {
   });
 });
 
+describe("a deal that started under other economics", () => {
+  it("keeps a valid record when the buyer's answers match the recording: the cause is the economics, not the answers", async () => {
+    const { defaultEconomicsContent } = await import("@/lib/economics-default");
+    const draft = defaultEconomicsContent();
+    draft.guardrails.cashAtRiskLimitPaise = 2_000_000;
+    await store.saveEconomicsDraft(draft);
+    await store.activateEconomicsDraft("Merchant (Pinecone Media Works)", "2026-10-06T10:00:00+05:30");
+    await svc.resetToSeed();
+    await driveTo(svc, (s) => s.status === "options_ready");
+    const s = await svc.getState();
+    expect(s.reviewRequired).toBeNull();
+    expect(s.decisionBranch).toMatchObject({ reason: "economics_changed", answersChanged: false, economics: { version: 2 } });
+    expect(await svc.progressOf(s)).toMatchObject({ stage: "offer" });
+  });
+});
+
 describe("removing an input override", () => {
   it("restores the original effective hash, and the recorded run's economics", async () => {
     const original = await svc.getState();

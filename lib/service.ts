@@ -61,6 +61,8 @@ import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type
 import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
 import { activeEconomics, economicsVersion, getEconomicsStore } from "./economics-store";
 import type { BusinessEconomics } from "@/domain/business-economics";
+import { overrideValueText } from "./override-copy";
+import { joinRules } from "./offer-copy";
 import { effectiveHashOf, engineInputFor, overrideDirection, pinConflicts, type DealEconomics, type InputOverride, type OverrideField } from "./deal-economics";
 import { ActionError } from "./action-error";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
@@ -680,14 +682,16 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
       s.decisionBranch = null;
     } else {
       const initial = await initialOutcomeForBranch(s);
+      // What caused this recalculation: answers the recording never had, a service confirmation, or only the economics.
+      const answersChanged = !answersMatchRecorded(source, answers);
       const branch: DecisionBranch = {
         schema: DECISION_BRANCH_SCHEMA,
         branchId: `branch-${randomUUID()}`,
         parentRunId: source.runId,
         createdAt: clockOf(s).now(),
         answers,
-        reason: "changed_clarification_answers",
-        answersChanged: !answersMatchRecorded(source, answers),
+        reason: answersChanged ? "changed_clarification_answers" : s.decisionBranch?.scope ? "merchant_scope_confirmation" : "economics_changed",
+        answersChanged,
         scope: s.decisionBranch?.scope ?? null,
         explanationSource: "code_fallback",
       };
@@ -899,7 +903,7 @@ export async function addInputOverride(req: InputOverrideRequest): Promise<DemoS
     await applyOverrides(s, version, [...rest, override], "The engine re-evaluated this deal with the merchant's override");
     const word = override.direction === "loosens" ? "loosens" : override.direction === "tightens" ? "tightens" : "matches";
     event(s, "input_override_added", `Override for this deal: ${overrideLabel(override, version)}`, "merchant", `${word} the account rule${replaced ? " · replaces an earlier override" : ""} · reason: ${override.reason}`);
-    if (replaced) event(s, "input_override_replaced", `Earlier override replaced: ${overrideLabel(replaced, version)}`, "merchant", `was ${JSON.stringify(replaced.value)} · reason: ${replaced.reason}`);
+    if (replaced) event(s, "input_override_replaced", `Earlier override replaced: ${overrideLabel(replaced, version)}`, "merchant", `was ${overrideValueText(replaced.field, replaced.value)} · reason: ${replaced.reason}`);
   });
 }
 
@@ -1557,6 +1561,8 @@ export interface CounterCheck {
   passes: boolean;
   failing: { id: string; code: string; text: string }[];
   contributionPaise: number;
+  /** The amount is below the direct cost of the work, whatever the merchant's rules say. */
+  negativeContribution: boolean;
   discountBps: number;
 }
 
@@ -1598,6 +1604,7 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
     passes: b.failing.length === 0,
     failing: b.failing.map((c) => ({ id: c.id, code: c.code, text: explainCheck(c) })),
     contributionPaise: b.evaluated.economics.netContributionPaise,
+    negativeContribution: b.evaluated.economics.netContributionPaise < 0,
     discountBps: b.evaluated.structure.discountBps,
   };
 }
@@ -1607,15 +1614,30 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
  * an explicit override, recorded as the merchant's decision. The sent version is withdrawn and the
  * counter becomes the selected option, to be previewed, approved and sent like any proposal.
  */
-export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean, acknowledgedChecks: string[]): Promise<DemoState> {
+/** What the merchant must type to send an amount that is below the direct cost of the work. */
+export const LOSS_CONFIRMATION = "SELL AT A LOSS";
+
+export interface CounterException {
+  reason: string;
+  typedConfirmation?: string;
+}
+
+export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean, acknowledgedChecks: string[], exception: CounterException = { reason: "" }): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     const b = await buildCounter(s, totalPaise, deal);
-    if (b.failing.length && !overrideConfirmed) throw new ActionError("This amount does not meet your rules. Confirm the override to continue");
+    // A loss is its own condition: a merchant whose rules have no floor would otherwise be able to send one unchallenged.
+    const negative = b.evaluated.economics.netContributionPaise < 0;
+    const needsException = b.failing.length > 0 || negative;
+    if (needsException && !overrideConfirmed) throw new ActionError(b.failing.length ? "This amount does not meet your rules. Confirm the override to continue" : "This amount is below your direct costs. Confirm the override to continue");
     // The merchant overrides exactly the rules they were shown, never ones that appeared since.
     const failingCodes = b.failing.map((c) => c.code).sort();
     if (b.failing.length && JSON.stringify([...acknowledgedChecks].sort()) !== JSON.stringify(failingCodes)) throw new ActionError("Acknowledge the rules shown for this amount. They have changed; check the amount again");
+    const reason = (exception.reason ?? "").trim();
+    if (needsException && reason.length < 5) throw new ActionError("Give a short reason for sending this amount (at least 5 characters)");
+    if (reason.length > 300) throw new ActionError("Keep the reason under 300 characters");
+    if (negative && (exception.typedConfirmation ?? "").trim() !== LOSS_CONFIRMATION) throw new ActionError(`This amount is below your direct costs. Type ${LOSS_CONFIRMATION} to continue`);
     const at = clockOf(s).now();
     const by = "Merchant (Pinecone Media Works)";
     // Stored exactly as the engine returned it. A failed rule is not made to pass: the merchant's override is a separate record.
@@ -1626,7 +1648,7 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
       baseStructureId: b.v.structureId,
       targetTotalPaise: totalPaise,
       evaluated,
-      override: b.failing.length ? { by, at, checks: b.failing.map((c) => c.code) } : null,
+      override: needsException ? { by, at, checks: b.failing.map((c) => c.code), reason, negativeContribution: negative } : null,
       requestMessageId: b.request.sourceId,
       createdAt: at,
       economics: economicsRef(s),
@@ -1635,7 +1657,7 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
     setStatus(s, "options_ready", `Version ${b.v.version} withdrawn to answer the buyer's request`);
     s.selectedOption = null;
     await applySelection(s, evaluated.structure.id, { explicit: true }, b.deal);
-    event(s, "counter_offer_created", `Counter-offer at ${formatINR(totalOf(evaluated))} prepared`, "merchant", b.failing.length ? `Merchant override of: ${b.failing.map((c) => explainCheck(c)).join("; ")}` : "The engine rechecked it: every rule passes.");
+    event(s, "counter_offer_created", `Counter-offer at ${formatINR(totalOf(evaluated))} prepared`, "merchant", needsException ? `Merchant override${negative ? " of a loss" : ""}${b.failing.length ? ` of: ${joinRules(b.failing.map((c) => explainCheck(c)))}` : ""} · reason: ${reason}` : "The engine rechecked it: every rule passes.");
   });
 }
 

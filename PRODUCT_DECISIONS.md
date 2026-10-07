@@ -377,3 +377,17 @@ The model's explanation has two parts that code validates separately: a full com
 **The merchant's own choice survives a strategy change; a recommendation does not.** An offer the merchant selected, and its draft, stay selected when the strategy changes, and the screen says what the strategy would now recommend. An offer that only followed the recommendation, and its unsent draft, simply follow the new leader. A sent version keeps the strategy it was sent under.
 
 **Who did what is stated plainly.** "Default strategy · offers ranked by code · explained by code · figures calculated by the engine", "Strategy selected by you · …", or "You selected this offer · …". No model is named on the card, because none ranked or explained what it shows.
+
+## What the merchant changes, and what the engine decided, are kept apart
+
+**Two different things, two different records.** An *input override* changes an assumption for one deal before the engine runs: a service's direct cost, the minimum contribution, the maximum cash exposure or the maximum discount. A *failed-rule exception* is the merchant sending an amount the engine had already reported as failing a rule. They are never merged. The audit lists them under separate headings, each with who, when, why and which version of the business economics applied.
+
+**An input override needs a reason, and says which way it moves your rule.** The reason is required, at least five characters. The product records whether the override tightens or loosens the account rule (a higher cost or a lower cash limit tightens; a higher cash limit or discount limit loosens) and shows it in amber when it loosens. It changes this deal only: the account's business economics are not changed, and a quoted price cannot be overridden. It changes the deal's effective hash, so an unsent draft is set aside and the engine runs again. Once a proposal is live it can neither be added nor removed, because the sent version keeps the economics it was made with. Replacing or removing an override keeps the earlier one in the history.
+
+**A failed-rule exception needs a reason, an acknowledgement of exactly the rules shown, and a confirmation.** The engine's result is stored as it came (it still says the rule failed), and the exception is a separate record beside it.
+
+**An amount below direct costs also needs the exact phrase SELL AT A LOSS.** This is its own condition, not a consequence of a failed rule: a merchant whose economics have no contribution floor could otherwise send a loss that fails no rule at all. The phrase is case-sensitive, because a deliberate confirmation should not be satisfiable by autocomplete.
+
+**An answer the buyer gave still applies.** If an override makes a question the buyer already answered irrelevant to the decision, the recorded answer is still applied. The buyer said it; the merchant's change does not unsay it.
+
+**No model can make any of these changes.** The demo guide's actions are a short fixed list, and none of these is on it.

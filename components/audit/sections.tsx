@@ -3,7 +3,7 @@ import { formatDate } from "@/domain/dates";
 import type { EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
 import type { DealContext } from "@/ai/orchestrator";
-import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
+import { appliedRules, auditSources, branchAudit, merchantExceptions, whoDidWhat } from "@/lib/audit";
 import { SAMPLE_OUTPUT_LABEL, taskOrRunProvenance } from "@/lib/model-provenance";
 import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
@@ -16,6 +16,7 @@ import { fmtTime } from "../evidence";
 const NAV: [string, string][] = [
   ["audit-evidence", "Evidence"],
   ["audit-rules", "Applied merchant rules"],
+  ["audit-exceptions", "Exceptions and overrides"],
   ["audit-history", "Approval and acceptance history"],
   ["audit-economics", "Calculation provenance"],
   ["audit-who", "Who did what"],
@@ -48,6 +49,7 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
     who.aiLabel ? ([`AI · ${who.aiLabel}`, who.ai] as const) : (["AI", ["No model ran for this case."]] as const),
     ...(who.sample.length ? [[SAMPLE_OUTPUT_LABEL, who.sample] as const] : []),
   ];
+  const exceptions = merchantExceptions(s, Object.fromEntries(deal.packages.map((p) => [p.id, p.name])));
   const x = offerStructure(s, out);
   const e = x?.economics;
   return (
@@ -111,7 +113,7 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
 
       <section aria-labelledby="audit-rules">
         <H id="audit-rules">Applied merchant rules</H>
-        <p className="text-[12px] text-muted">From the merchant&apos;s configuration (synthetic fixture). Read-only in this prototype.</p>
+        <p className="text-[12px] text-muted">From your business economics, version {s.economics.pinned.version}{s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""}. Synthetic demo data, read-only here.</p>
         <ul className="mt-1 space-y-2">
           {appliedRules(policy, deal.templates, deal.packages).map((r) => (
             <li key={r.id} data-rule={r.id} className="rounded-lg border border-line px-3 py-2">
@@ -123,6 +125,49 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
             </li>
           ))}
         </ul>
+      </section>
+
+      <section aria-labelledby="audit-exceptions" data-testid="audit-exceptions">
+        <H id="audit-exceptions">Exceptions and overrides</H>
+        <p className="text-[12px] text-muted">What you chose to do outside the engine&apos;s own result. The engine&apos;s verdict is never changed.</p>
+        {exceptions.inputOverrides.length || exceptions.failedRuleExceptions.length || exceptions.history.length ? (
+          <div className="mt-1 space-y-3">
+            <div data-testid="audit-input-overrides">
+              <h4 className="font-semibold text-ink">Assumptions changed for this deal</h4>
+              {exceptions.inputOverrides.length ? (
+                <ul className="mt-1 space-y-1.5">
+                  {exceptions.inputOverrides.map((o) => (
+                    <li key={o.what} className="rounded-lg border border-line px-3 py-2">
+                      <div className="font-medium text-ink">{o.what}</div>
+                      <div>{o.direction} · reason: {o.reason}</div>
+                      <div className="text-[12px] text-muted">{o.by} · {fmtTime(o.at)} · business economics version {o.economicsVersion}</div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-muted">None are applied now.</p>}
+              {exceptions.history.length ? (
+                <ul className="mt-1 space-y-1 text-[12px] text-muted">
+                  {exceptions.history.map((h) => <li key={`${h.at}-${h.title}`}>{fmtTime(h.at)} · {h.title}{h.detail ? ` · ${h.detail}` : ""}</li>)}
+                </ul>
+              ) : null}
+            </div>
+            <div data-testid="audit-failed-rule-exceptions">
+              <h4 className="font-semibold text-ink">Amounts sent although a rule failed</h4>
+              {exceptions.failedRuleExceptions.length ? (
+                <ul className="mt-1 space-y-1.5">
+                  {exceptions.failedRuleExceptions.map((x) => (
+                    <li key={x.at} className="rounded-lg border border-[#f7dfb4] bg-amber-weak/40 px-3 py-2">
+                      <div className="font-medium text-ink">Counter-offer at {x.total}{x.negativeContribution ? " · below direct costs (typed confirmation given)" : ""}</div>
+                      {x.rules.length ? <div>Rules overridden: {x.rules.join("; ")}</div> : null}
+                      <div>Reason: {x.reason}</div>
+                      <div className="text-[12px] text-muted">{x.by} · {fmtTime(x.at)}{x.economicsVersion !== null ? ` · business economics version ${x.economicsVersion}` : ""}</div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-muted">None.</p>}
+            </div>
+          </div>
+        ) : <p className="mt-1 text-muted">You have not overridden an assumption or sent an amount that failed a rule.</p>}
       </section>
 
       <section aria-labelledby="audit-history">

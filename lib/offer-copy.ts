@@ -80,5 +80,10 @@ export function offerSummary(x: EvaluatedStructure, baseline: DealBaseline, pack
 /** Why a merchant's counter-offer is on the table, without claiming it passes rules it does not. */
 export function counterReason(failingTexts: string[]): string {
   if (!failingTexts.length) return "You set this total in answer to the buyer's request, and the engine found that every rule passes.";
-  return `You set this total in answer to the buyer's request. It does not meet: ${failingTexts.join("; ")} You chose to override that.`;
+  return `You set this total in answer to the buyer's request. It does not meet: ${joinRules(failingTexts)} You chose to override that.`;
+}
+
+/** Several rule explanations as one sentence: each already ends in a full stop, so those are dropped before joining. */
+export function joinRules(texts: string[]): string {
+  return `${texts.map((t) => t.replace(/\.\s*$/, "")).join("; ")}.`;
 }

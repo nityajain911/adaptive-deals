@@ -812,6 +812,9 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await expect(form.getByTestId("counter-fails")).toBeVisible();
   await shot(page, "counter-1-check-and-override");
   await form.getByTestId("counter-override").check();
+  // Acknowledging is not enough: sending an amount that fails a rule also needs a reason.
+  await expect(form.getByTestId("counter-make")).toBeDisabled();
+  await form.getByTestId("counter-reason").fill("The buyer orders often and pays on time");
   await expect(form.getByTestId("counter-make")).toBeEnabled();
   await form.getByTestId("counter-make").click();
 
@@ -936,4 +939,48 @@ test("step 5 · the strategy control works from the keyboard, and a sent version
   expect(state().agreements.find((a) => a.status === "sent")!.economics?.strategy).toBe("protect_contribution");
   const refused = await page.request.post("/api/actions", { data: { action: "set_strategy", strategy: "preserve_scope" } });
   expect((await refused.json()).ok).toBe(false);
+});
+
+test("exceptions · an amount below direct costs also needs the exact typed phrase, and the audit records the decision with its reason", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹5,000 instead?", topic: "price" });
+  await page.goto("/deals/hero/track");
+  const form = page.getByTestId("counter-form");
+  await form.getByTestId("counter-total").fill("5000");
+  await form.getByTestId("counter-check").click();
+  await expect(form.getByTestId("counter-loss")).toContainText("below your direct costs");
+  await form.getByTestId("counter-override").check();
+  await form.getByTestId("counter-reason").fill("Loss leader to win the annual contract");
+  // Reason and acknowledgement are not enough: the exact phrase is required.
+  await expect(form.getByTestId("counter-make")).toBeDisabled();
+  await form.getByTestId("counter-loss-confirm").fill("sell at a loss");
+  await expect(form.getByTestId("counter-make")).toBeDisabled();
+  await form.getByTestId("counter-loss-confirm").fill("SELL AT A LOSS");
+  await expect(form.getByTestId("counter-make")).toBeEnabled();
+  await shot(page, "exceptions-1-loss-confirmation");
+  await form.getByTestId("counter-make").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  expect(state().counterOffers.at(-1)!.override).toMatchObject({ negativeContribution: true, reason: "Loss leader to win the annual contract" });
+  expect(state().counterOffers.at(-1)!.evaluated.approvable).toBe(false);
+
+  await page.getByTestId("audit-details").click();
+  const audit = page.getByTestId("audit-exceptions");
+  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("below direct costs (typed confirmation given)");
+  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("Reason: Loss leader to win the annual contract");
+  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("Merchant (Pinecone Media Works)");
+  await shot(page, "exceptions-2-audit");
+});
+
+test("exceptions · the audit lists an input override separately from a failed-rule exception", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await api(page, { action: "add_input_override", field: "cash_exposure", value: 2_000_000, reason: "Client pays a deposit first" });
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("audit-details").click();
+  const audit = page.getByTestId("audit-exceptions");
+  await expect(audit.getByTestId("audit-input-overrides")).toContainText("Maximum cash exposure: ₹10,000 → ₹20,000");
+  await expect(audit.getByTestId("audit-input-overrides")).toContainText("Loosens your account rule · reason: Client pays a deposit first");
+  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("None.");
+  await expect(page.getByTestId("audit-drawer")).toContainText("Your business economics, version 1, with 1 deal override");
 });

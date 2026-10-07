@@ -914,6 +914,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Effect on the demo:** On the recorded hero case the first recommendation changes from the single upfront payment to the two-payment offer. The browser journey and the demo script were rewritten as a strategy demonstration. Assertions about the old ranking wording were changed deliberately; the rule that a sample never reads as AI output was not.
 
+### 2026-10-08 · Deal overrides and failed-rule exceptions [Claude Code]
+
+**What changed:** The merchant can override one assumption for one deal (a service's direct cost, the contribution floor, the cash exposure limit, the discount limit), with a required reason and a recorded direction (tightens or loosens). A counter-offer that fails a rule now also needs a reason, and an amount below direct costs needs the exact typed phrase. The audit has a section listing both kinds, separately.
+
+**AI boundary:** No prompt, schema, recording, evaluation or engine file changed, and no model call was made. No model can add or remove an override, change a strategy, or make a counter-offer: the demo guide's allowed actions are a fixed short list, and a test confirms none of these is on it.
+
+**Bugs found by the new tests:** (1) a derived decision crashed when an override made an already-answered buyer question irrelevant; the answer now still applies. (2) Recording the buyer's answers on a deal started under non-default economics produced a decision record labelled "changed answers" that failed validation and marked the deal "needs review"; the cause is now recorded as the economics. Both came from an earlier phase.
+
+**Human decision:** The applicant's design required reasons, a separate record for each kind of exception, and a typed confirmation for a loss. I made the loss rule independent of failed rules, because an economics with no floor would otherwise let a loss through unchallenged.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

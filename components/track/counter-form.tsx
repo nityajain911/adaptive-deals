@@ -13,8 +13,11 @@ interface Check {
   passes: boolean;
   failing: { id: string; code: string; text: string }[];
   contributionPaise: number;
+  negativeContribution: boolean;
   discountBps: number;
 }
+
+const LOSS_CONFIRMATION = "SELL AT A LOSS";
 
 /**
  * The merchant's answer to a buyer's request for a lower total. The engine rechecks the amount first;
@@ -27,8 +30,12 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
   const [text, setText] = useState("");
   const [checked, setChecked] = useState<{ paise: number; result: Check } | null>(null);
   const [override, setOverride] = useState(false);
+  const [reason, setReason] = useState("");
+  const [typed, setTyped] = useState("");
   const paise = toPaise(text);
   const result = checked && checked.paise === paise ? checked.result : null;
+  const needsException = !!result && (!result.passes || result.negativeContribution);
+  const ready = !!result && override && reason.trim().length >= 5 && (!result.negativeContribution || typed.trim() === LOSS_CONFIRMATION);
 
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-[#d6defe] bg-blue-weak/40 p-3" data-testid="counter-form">
@@ -55,6 +62,8 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
             onChange={(e) => {
               setText(e.target.value);
               setOverride(false);
+              setReason("");
+              setTyped("");
             }}
             data-testid="counter-total"
           />
@@ -71,26 +80,47 @@ export function CounterForm({ currentTotalPaise, onDone }: { currentTotalPaise: 
           </p>
           {result.passes ? (
             <p className="font-medium text-green" data-testid="counter-passes">The engine rechecked it: every rule passes.</p>
-          ) : (
-            <div className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2" data-testid="counter-fails">
-              <p className="font-semibold text-amber">This amount does not meet your rules:</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink-2">
-                {result.failing.map((f) => (
-                  <li key={f.id}>{f.text}</li>
-                ))}
-              </ul>
+          ) : null}
+          {needsException ? (
+            <div className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2" data-testid={result.passes ? "counter-loss-only" : "counter-fails"}>
+              {!result.passes ? (
+                <>
+                  <p className="font-semibold text-amber">This amount does not meet your rules:</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink-2">
+                    {result.failing.map((f) => (
+                      <li key={f.id}>{f.text}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {result.negativeContribution ? (
+                <p className="mt-1 font-semibold text-red" data-testid="counter-loss">This amount is below your direct costs: you would lose {approxINR(-result.contributionPaise)}.</p>
+              ) : null}
               <label className="mt-2 flex items-start gap-2 text-[13px] text-ink">
                 <input type="checkbox" className="mt-0.5" checked={override} onChange={(e) => setOverride(e.target.checked)} data-testid="counter-override" />
-                <span>I understand these rules are not met and I want to send this amount anyway. This is recorded as my decision, not the engine&apos;s.</span>
+                <span>{result.passes ? "I understand this amount is below my costs and I want to send it anyway." : "I understand these rules are not met and I want to send this amount anyway."} This is recorded as my decision, not the engine&apos;s.</span>
               </label>
+              <label className="mt-2 block text-[13px] font-medium text-ink">
+                Reason for sending this amount
+                <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] font-normal text-ink" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="A short reason you can read back later" data-testid="counter-reason" />
+              </label>
+              {result.negativeContribution ? (
+                <label className="mt-2 block text-[13px] font-medium text-ink">
+                  Type {LOSS_CONFIRMATION} to continue
+                  <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] font-normal text-ink" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="counter-loss-confirm" />
+                </label>
+              ) : null}
             </div>
-          )}
+          ) : null}
           <Button
             variant="primary"
-            disabled={make.pending || (!result.passes && !override)}
+            disabled={make.pending || (needsException && !ready)}
             data-testid="counter-make"
             onClick={() =>
-              make.run({ action: "counter_offer", totalPaise: paise!, overrideConfirmed: !result.passes && override, acknowledgedChecks: result.failing.map((f) => f.code) }, () => router.push(onDone))
+              make.run(
+                { action: "counter_offer", totalPaise: paise!, overrideConfirmed: needsException && override, acknowledgedChecks: result.failing.map((f) => f.code), reason: reason.trim(), typedConfirmation: typed },
+                () => router.push(onDone),
+              )
             }
           >
             {make.pending ? "Preparing…" : "Prepare counter-offer"}

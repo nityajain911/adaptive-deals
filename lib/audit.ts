@@ -11,6 +11,9 @@ import { branchChangedAnswers, branchNotProcessed, branchRecalculatedAfter, bran
 import { SAMPLE_OUTPUT_LABEL, taskProvenance, type ModelProvenance } from "./model-provenance";
 import { unmappedRequiredServices } from "./scope-confirmation";
 import { STRATEGY_LABEL } from "@/domain/strategy";
+import { explainCheck } from "@/domain/copy";
+import { failingCounterChecks } from "@/domain/counter";
+import { OVERRIDE_DIRECTION_TEXT, OVERRIDE_FIELD_LABEL, overrideValueText } from "./override-copy";
 
 /**
  * Read-only audit derivations for the merchant audit drawer (spec §8.3). Every source is labelled
@@ -29,7 +32,7 @@ const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", c
 export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[]): AuditSource[] {
   const out: AuditSource[] = [
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
-    { item: "Merchant costs and rules", source: "Synthetic deal fixture" },
+    { item: "Merchant costs and rules", source: s.economics ? `Your business economics, version ${s.economics.pinned.version}${s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""} · synthetic demo data` : "Synthetic deal fixture" },
   ];
   for (const f of run.engine.profile) {
     if (f.evidence.length) out.push({ item: f.label, source: "Simulated WhatsApp conversation", detail: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" ") });
@@ -213,4 +216,57 @@ export function appliedRules(policy: MerchantPolicy, templates: TemplateConfig, 
         .join(" · "),
     },
   ];
+}
+
+export interface InputOverrideAudit {
+  at: string;
+  by: string;
+  what: string;
+  direction: string;
+  reason: string;
+  economicsVersion: number;
+}
+export interface FailedRuleExceptionAudit {
+  at: string;
+  by: string;
+  total: string;
+  rules: string[];
+  reason: string;
+  negativeContribution: boolean;
+  economicsVersion: number | null;
+}
+
+/**
+ * Everything the merchant chose to do outside the engine's own result, kept apart: assumptions they
+ * changed for this deal before it ran, and amounts they sent although the engine reported a failed rule.
+ */
+export function merchantExceptions(
+  s: Pick<DemoState, "economics" | "counterOffers" | "events">,
+  serviceNames: Record<string, string> = {},
+): { inputOverrides: InputOverrideAudit[]; failedRuleExceptions: FailedRuleExceptionAudit[]; history: { at: string; title: string; detail: string | null }[] } {
+  const inputOverrides = s.economics.overrides.map((o) => ({
+    at: o.at,
+    by: o.by,
+    what: `${o.field === "direct_cost" ? `${serviceNames[o.packageId ?? ""] ?? o.packageId} · direct delivery cost` : OVERRIDE_FIELD_LABEL[o.field]}: ${overrideValueText(o.field, o.accountValue)} → ${overrideValueText(o.field, o.value)}`,
+    direction: OVERRIDE_DIRECTION_TEXT[o.direction],
+    reason: o.reason,
+    economicsVersion: s.economics.pinned.version,
+  }));
+  const failedRuleExceptions = s.counterOffers.flatMap((c) =>
+    c.override
+      ? [
+          {
+            at: c.override.at,
+            by: c.override.by,
+            total: formatINR(c.evaluated.structure.payments.reduce((n, p) => n + p.totalPaise, 0)),
+            rules: failingCounterChecks(c.evaluated).filter((check) => c.override!.checks.includes(check.code)).map((check) => explainCheck(check)),
+            reason: c.override.reason,
+            negativeContribution: c.override.negativeContribution,
+            economicsVersion: c.economics?.version ?? null,
+          },
+        ]
+      : [],
+  );
+  const history = s.events.filter((e) => e.kind === "input_override_replaced" || e.kind === "input_override_removed").map((e) => ({ at: e.at, title: e.title, detail: e.detail }));
+  return { inputOverrides, failedRuleExceptions, history };
 }
