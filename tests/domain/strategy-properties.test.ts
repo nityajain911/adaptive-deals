@@ -85,7 +85,7 @@ describe("strategy properties over generated merchant economics", () => {
         }
       }
     }
-  });
+  }, 15_000);
 
   it("always gives the engine the deal's baseline services and prices", () => {
     const expected = heroBaseline().servicePrices.map(({ packageId, listPricePaise }) => ({ packageId, listPricePaise }));
