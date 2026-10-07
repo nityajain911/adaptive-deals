@@ -934,6 +934,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Human decision:** The applicant's design required the corridor to be computed by code, to show only what the merchant's own rules allow, and never to reach the buyer.
 
+### 2026-10-08 · Assist tasks built and evaluation prepared, with no model call [Claude Code]
+
+**What changed:** A new top-level `assist/` module holds three tasks, each with a schema, a code validator or verifier, a versioned prompt and a Groq adapter: `strategy_narrative.v1` (one sentence per offer from fact IDs), `profile_extract.v1` (proposed services, prices and costs from a pasted note or CSV; code finds each quote's offsets and drops any value it cannot see in the source or that sits inside an instruction) and `negotiation_message.v1` (connective text around code-filled slots). `evaluation-assist/` holds the pre-registered plan (with three dated amendments), the development cases, a hold-out kept locally with a committed hash manifest, a budget ledger that refuses to pass the approved 581 calls, and dry-run runners.
+
+**AI boundary:** The frozen `ai/` and `evaluation/` files, the recordings and the engine are unchanged, and **no model call has been made**: the runners are dry-run by default and need `--execute`, a run name and a key in the environment. No task can rank, activate economics, record an exception, send or approve; none is wired into any screen yet.
+
+**Decisions:** The applicant asked the coding agent to write every case, so results will say "agent-authored, same author as the prompts". The applicant kept the third task in scope despite the schedule. The plan was corrected once: the narrative development set could not use three cases because two have fewer than two offers.
+
+**Human decision:** The applicant approved the plan and the 581-call cap.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
