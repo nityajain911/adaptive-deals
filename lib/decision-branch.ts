@@ -116,7 +116,9 @@ export function deriveBranchOutcome(args: { initial: RunOutcome; branch: Decisio
     return recorded ? { ...question, question: recorded.question, wording: recorded.wording } : question;
   });
   for (const answer of branch.answers) {
-    const question = questions.find((candidate) => candidate.id === answer.questionId);
+    // Under other economics a question may no longer change the outcome and so is no longer asked. The buyer's
+    // answer is still what they said, so it is applied through the question the parent run asked.
+    const question = questions.find((candidate) => candidate.id === answer.questionId) ?? initial.questions.find((candidate) => candidate.id === answer.questionId);
     if (!question) throw new Error(`Answer ${answer.questionId} does not match a parent clarification question`);
     profile = applyClarificationAnswer(profile, question.field, answerValue(question.field, answer.value), {
       clarificationId: question.id,

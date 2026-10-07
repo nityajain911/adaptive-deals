@@ -88,3 +88,67 @@ test("economics · reviewing with nothing changed says so and offers no activati
   await expect(page.getByTestId("economics-activate")).toBeDisabled();
   await expect(page.getByTestId("economics-version")).toContainText("Version 1");
 });
+
+test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
+  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
+  await page.getByTestId("override-field").selectOption("direct_cost:website-fixes");
+  await expect(page.getByTestId("override-account")).toContainText("₹12,000");
+  await page.getByTestId("override-value").fill("15000");
+  // No reason, no override.
+  await expect(page.getByTestId("override-apply")).toBeDisabled();
+  await page.getByTestId("override-reason").fill("Extra migration work");
+  await expect(page.getByTestId("override-apply")).toBeEnabled();
+  await page.getByTestId("override-apply").click();
+
+  const row = page.getByTestId("override-direct_cost-website-fixes");
+  await expect(row).toContainText("Website fixes · direct delivery cost: ₹12,000 → ₹15,000");
+  await expect(row).toContainText("Tightens your account rule");
+  await expect(row).toContainText("Reason: Extra migration work");
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹16,330");
+  await expect(page.getByTestId("offer-rules")).toContainText("1 deal override applied");
+  await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
+  expect(state().economics.overrides).toHaveLength(1);
+
+  // The account's business economics did not change.
+  await page.goto("/economics");
+  await expect(page.getByTestId("economics-version")).toContainText("Version 1");
+  await expect(page.getByTestId("service-row-website-fixes").getByTestId("cost")).toHaveValue("12000");
+
+  // Removing it brings the original figures back.
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("override-list").getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
+  await expect(page.getByTestId("offer-rules")).not.toContainText("override");
+  expect(state().economics.overrides).toEqual([]);
+});
+
+test("overrides · loosening a rule is labelled as loosening, and the panel fits a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
+  await page.getByTestId("override-field").selectOption("cash_exposure");
+  await page.getByTestId("override-value").fill("20000");
+  await page.getByTestId("override-reason").fill("Client pays a deposit first");
+  await page.getByTestId("override-apply").click();
+  await expect(page.getByTestId("override-cash_exposure")).toContainText("Maximum cash exposure: ₹10,000 → ₹20,000");
+  await expect(page.getByTestId("override-cash_exposure")).toContainText("Loosens your account rule");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("overrides · once the proposal is sent, overrides can no longer be changed", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
+  await page.getByTestId("override-field").selectOption("cash_exposure");
+  await page.getByTestId("override-value").fill("20000");
+  await page.getByTestId("override-reason").fill("Client pays a deposit first");
+  await page.getByTestId("override-apply").click();
+  await expect(page.getByTestId("override-cash_exposure")).toBeVisible();
+  await page.getByTestId("primary-action").click();
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  const refused = await page.request.post("/api/actions", { data: { action: "add_input_override", field: "cash_exposure", value: 0, reason: "Too late to change" } });
+  expect((await refused.json()).ok).toBe(false);
+  expect(state().agreements.find((a) => a.status === "sent")!.economics?.effectiveHash).toBe(state().economics.effectiveHash);
+});

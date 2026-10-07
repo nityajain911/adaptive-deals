@@ -92,6 +92,16 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("review_buyer_proposal") }),
   z.object({ action: z.literal("set_strategy"), strategy: z.enum(STRATEGY_IDS) }).strict(),
+  z
+    .object({
+      action: z.literal("add_input_override"),
+      field: z.enum(["direct_cost", "contribution_floor", "cash_exposure", "discount_limit"]),
+      packageId: z.string().max(60).optional(),
+      value: z.union([z.number().int(), z.object({ minPercentBps: z.number().int().nullable(), minPaise: z.number().int().nullable(), combine: z.enum(["both", "either"]) }).strict()]),
+      reason: z.string().max(300),
+    })
+    .strict(),
+  z.object({ action: z.literal("remove_input_override"), id: z.string().max(60) }).strict(),
   z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
   z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20) }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
@@ -199,6 +209,12 @@ export async function POST(request: Request) {
         break;
       case "set_strategy":
         await svc.setStrategy(a.strategy);
+        break;
+      case "add_input_override":
+        await svc.addInputOverride({ field: a.field, packageId: a.packageId, value: a.value, reason: a.reason });
+        break;
+      case "remove_input_override":
+        await svc.removeInputOverride(a.id);
         break;
       case "review_buyer_proposal": {
         const v = await svc.reviewBuyerProposal();

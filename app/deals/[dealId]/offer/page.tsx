@@ -13,11 +13,13 @@ import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
+import { DealOverrides, type OverrideAccount } from "@/components/offer/deal-overrides";
 import { StrategyComparison } from "@/components/offer/strategy-comparison";
 import { StrategyControl } from "@/components/offer/strategy-control";
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
 import { loadDeal, stageHref } from "@/lib/deal-page";
+import { pinnedEconomicsOf } from "@/lib/deal-context";
 import { headlineFor } from "@/lib/offer-copy";
 import { offerNarrative } from "@/lib/offer-narrative";
 import { strategyFeasibleOf } from "@/lib/service";
@@ -150,6 +152,14 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const x = eligible.find((e) => e.structure.id === selectedId);
   const strategyLabel = STRATEGY_LABEL[s.economics.strategy];
   const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} />;
+  const pinned = await pinnedEconomicsOf(s);
+  const account: OverrideAccount = {
+    services: s.baseline.servicePrices.map((price) => ({ id: price.packageId, name: pinned.services.find((x) => x.id === price.packageId)?.name ?? price.packageId, costPaise: pinned.services.find((x) => x.id === price.packageId)?.directCostPaise ?? 0 })),
+    floor: pinned.guardrails.contributionFloor,
+    cashPaise: pinned.guardrails.cashAtRiskLimitPaise,
+    discountBps: pinned.guardrails.discountLimitBps,
+  };
+  const overridesPanel = <DealOverrides account={account} overrides={s.economics.overrides} />;
   if (!x && view.mode === "discount_only" && r) {
     // Nothing fits at the quoted prices. A discount is permitted, never recommended, so none is called recommended.
     return (
@@ -161,6 +171,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             <p className="text-[14px] text-ink-2">Your approved discounts would allow the offers below, lowest discount first. Choose one yourself if you want to offer a discount.</p>
           </Card>
           <Alternatives options={view.discounted} selectedId="" heading="Offers your approved discounts allow" testId="discount-only-offers" />
+          {overridesPanel}
           <DontProceed />
         </div>
       </StageShell>
@@ -240,6 +251,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         />
         <SuccessMeasure />
         <Alternatives options={options} selectedId={x.structure.id} />
+        {overridesPanel}
         <Rejections r={r} />
         <p className="text-[13px] text-muted">Every approved offer type was checked. Open the rejected options or Audit details for the full evaluation.</p>
       </div>

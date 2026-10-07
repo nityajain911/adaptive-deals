@@ -17,7 +17,7 @@ import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate
 import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
-import type { Merchant, Message } from "@/domain/types";
+import type { ContributionFloor, Merchant, Message } from "@/domain/types";
 import { formatINR, sum } from "@/domain/money";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
@@ -61,7 +61,7 @@ import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type
 import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
 import { activeEconomics, economicsVersion, getEconomicsStore } from "./economics-store";
 import type { BusinessEconomics } from "@/domain/business-economics";
-import { effectiveHashOf, engineInputFor, pinConflicts, type DealEconomics } from "./deal-economics";
+import { effectiveHashOf, engineInputFor, overrideDirection, pinConflicts, type DealEconomics, type InputOverride, type OverrideField } from "./deal-economics";
 import { ActionError } from "./action-error";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
 import { buildReevaluationPreview, type ReevaluationPreview } from "./reevaluation";
@@ -804,6 +804,116 @@ export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
 export function strategyFeasibleOf(s: DemoState, out: RunOutcome): EvaluatedStructure[] {
   const all = out.evaluation.result ? eligibleStructures(s, out.evaluation.result.structures) : [];
   return all.filter((x) => !s.counterOffers.some((c) => c.evaluated.structure.id === x.structure.id));
+}
+
+// ── Deal-specific input overrides ────────────────────────────────────────────
+
+const OVERRIDE_FIELDS: readonly OverrideField[] = ["direct_cost", "contribution_floor", "cash_exposure", "discount_limit"];
+const wholeNumber = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n);
+
+export interface InputOverrideRequest {
+  field: OverrideField;
+  /** The service a direct-cost override is for. */
+  packageId?: string;
+  value: number | ContributionFloor;
+  reason: string;
+}
+
+/** The account's current value for the input, from the economics version this deal is pinned to. */
+function accountValueFor(version: BusinessEconomics, field: OverrideField, packageId?: string): number | ContributionFloor {
+  switch (field) {
+    case "direct_cost":
+      return version.services.find((service) => service.id === packageId)!.directCostPaise;
+    case "contribution_floor":
+      return structuredClone(version.guardrails.contributionFloor);
+    case "cash_exposure":
+      return version.guardrails.cashAtRiskLimitPaise;
+    case "discount_limit":
+      return version.guardrails.discountLimitBps;
+  }
+}
+
+function validatedOverride(s: DemoState, version: BusinessEconomics, req: InputOverrideRequest): InputOverride {
+  if (!OVERRIDE_FIELDS.includes(req.field)) throw new ActionError("That input cannot be overridden for a deal");
+  const reason = (req.reason ?? "").trim();
+  if (reason.length < 5) throw new ActionError("Give a short reason for this override (at least 5 characters)");
+  if (reason.length > 300) throw new ActionError("Keep the reason under 300 characters");
+  let packageId: string | undefined;
+  if (req.field === "direct_cost") {
+    if (!req.packageId) throw new ActionError("Choose the service this cost is for");
+    if (!s.baseline.servicePrices.some((price) => price.packageId === req.packageId)) throw new ActionError("That service is not part of this deal");
+    packageId = req.packageId;
+  }
+  if (req.field === "contribution_floor") {
+    const f = req.value;
+    const percentOk = (v: unknown) => v === null || (wholeNumber(v) && v >= 0 && v <= 10_000);
+    const amountOk = (v: unknown) => v === null || (wholeNumber(v) && v >= 0);
+    if (typeof f !== "object" || f === null || !percentOk(f.minPercentBps) || !amountOk(f.minPaise) || (f.combine !== "both" && f.combine !== "either") || (f.minPercentBps === null && f.minPaise === null)) {
+      throw new ActionError("The contribution floor needs a percentage between 0% and 100%, an amount, or both");
+    }
+  } else {
+    if (!wholeNumber(req.value)) throw new ActionError("The value must be a whole number of paise or basis points");
+    if (req.field === "discount_limit" && (req.value < 0 || req.value > 10_000)) throw new ActionError("The maximum discount must be between 0% and 100%");
+    if (req.value < 0) throw new ActionError(req.field === "direct_cost" ? "A direct cost cannot be negative" : "The cash exposure limit cannot be negative");
+  }
+  const accountValue = accountValueFor(version, req.field, packageId);
+  return {
+    id: `ovr-${s.events.length + 1}`,
+    field: req.field,
+    ...(packageId ? { packageId } : {}),
+    value: structuredClone(req.value),
+    accountValue,
+    direction: overrideDirection(req.field, accountValue, req.value),
+    reason,
+    by: "Merchant (Pinecone Media Works)",
+    at: clockOf(s).now(),
+  };
+}
+
+/** Make `overrides` the deal's overrides: recompute its effective inputs, provenance and status. */
+async function applyOverrides(s: DemoState, version: BusinessEconomics, overrides: InputOverride[], why: string): Promise<void> {
+  s.economics = { ...s.economics, overrides };
+  const deal = dealContextFor(s, version);
+  s.economics = { ...s.economics, effectiveHash: effectiveHashOf(deal) };
+  syncEconomicsBranch(s);
+  const next = statusForEvaluation((await currentOutcome(s, deal)).evaluation);
+  if (next !== s.status) setStatus(s, next, why);
+}
+
+const overrideLabel = (o: Pick<InputOverride, "field" | "packageId">, version: BusinessEconomics) =>
+  o.field === "direct_cost" ? `${version.services.find((x) => x.id === o.packageId)?.name ?? o.packageId} · direct delivery cost` : { contribution_floor: "Minimum contribution", cash_exposure: "Maximum cash exposure", discount_limit: "Maximum discount" }[o.field];
+
+/**
+ * Change one assumption for this deal only, before the engine runs, with a reason. It never changes
+ * the account economics or a quoted price. Only before a proposal is live.
+ */
+export async function addInputOverride(req: InputOverrideRequest): Promise<DemoState> {
+  const before = await getState();
+  const version = await pinnedEconomicsOf(before);
+  return mutate(async (s) => {
+    assertNoReview(s);
+    assertReevaluationOpen(s);
+    const override = validatedOverride(s, version, req);
+    const replaced = s.economics.overrides.find((o) => o.field === override.field && o.packageId === override.packageId) ?? null;
+    const rest = s.economics.overrides.filter((o) => o !== replaced);
+    await applyOverrides(s, version, [...rest, override], "The engine re-evaluated this deal with the merchant's override");
+    const word = override.direction === "loosens" ? "loosens" : override.direction === "tightens" ? "tightens" : "matches";
+    event(s, "input_override_added", `Override for this deal: ${overrideLabel(override, version)}`, "merchant", `${word} the account rule${replaced ? " · replaces an earlier override" : ""} · reason: ${override.reason}`);
+    if (replaced) event(s, "input_override_replaced", `Earlier override replaced: ${overrideLabel(replaced, version)}`, "merchant", `was ${JSON.stringify(replaced.value)} · reason: ${replaced.reason}`);
+  });
+}
+
+export async function removeInputOverride(id: string): Promise<DemoState> {
+  const before = await getState();
+  const version = await pinnedEconomicsOf(before);
+  return mutate(async (s) => {
+    assertNoReview(s);
+    assertReevaluationOpen(s);
+    const target = s.economics.overrides.find((o) => o.id === id);
+    if (!target) throw new ActionError("There is no such override on this deal");
+    await applyOverrides(s, version, s.economics.overrides.filter((o) => o !== target), "The engine re-evaluated this deal after an override was removed");
+    event(s, "input_override_removed", `Override removed: ${overrideLabel(target, version)}`, "merchant", `reason it was made: ${target.reason}`);
+  });
 }
 
 /** Whether the merchant has ever chosen a strategy for this deal, rather than being given the default. */
