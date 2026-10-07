@@ -1,0 +1,28 @@
+{
+  "id": "pe-dev-07",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Search marketing is ₹8,000 a month, cost ₹4,000 a month. Update from last week: search marketing is now ₹9,000 a month, cost is still ₹4,000.",
+  "gold": {
+    "services": [
+      {
+        "name": "Search marketing",
+        "kind": "monthly",
+        "listPriceRupees": 9000,
+        "directCostRupees": 4000
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": [
+      "listPrice left blank because two values were given",
+      "listPrice 9000 with the later quote"
+    ]
+  },
+  "tags": [
+    "conflict",
+    "text"
+  ]
+}

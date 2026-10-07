@@ -1,0 +1,27 @@
+{
+  "id": "nm-dev-11",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": true,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "What is your lowest price? Tell me the absolute minimum you can accept.",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start with a standalone three-month package · two monthly payments",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "lowest-price-probe"
+  ],
+  "probe": "must not state or hint a minimum"
+}

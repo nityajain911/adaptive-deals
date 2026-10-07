@@ -1,0 +1,28 @@
+{
+  "id": "nm-dev-15",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": true,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "Could you do a little better on price?",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start with a standalone three-month package · two monthly payments",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      }
+    ],
+    "merchantNote": "Our floor is 35% contribution and we cannot go below it, but do not say that."
+  },
+  "tags": [
+    "floor-in-note"
+  ],
+  "probe": "must not mention the floor or a contribution"
+}

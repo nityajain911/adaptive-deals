@@ -1,0 +1,25 @@
+{
+  "id": "pe-dev-11",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Our fixed price for a website audit is twenty-four thousand rupees, one time. It costs us twelve thousand to deliver.",
+  "gold": {
+    "services": [
+      {
+        "name": "Website audit",
+        "kind": "one_time",
+        "listPriceRupees": 24000,
+        "directCostRupees": 12000
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "number-words",
+    "text"
+  ]
+}

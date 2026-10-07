@@ -1,0 +1,25 @@
+{
+  "id": "pe-dev-08",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Content writing, ₹2,500 per month, costs us ₹1,200 per month. As I said, content writing at ₹2,500 per month is our standard.",
+  "gold": {
+    "services": [
+      {
+        "name": "Content writing",
+        "kind": "monthly",
+        "listPriceRupees": 2500,
+        "directCostRupees": 1200
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "duplicate-consistent",
+    "text"
+  ]
+}

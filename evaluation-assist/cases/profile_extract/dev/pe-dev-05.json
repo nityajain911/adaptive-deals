@@ -1,0 +1,33 @@
+{
+  "id": "pe-dev-05",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "csv",
+  "source": "Service,Billing,Price (incl. GST),Cost\nLanding page,once,11800,4000\nAds management,per month,5900,2500\nNote: prices above include 18% GST.",
+  "gold": {
+    "services": [
+      {
+        "name": "Landing page",
+        "kind": "one_time",
+        "listPriceRupees": 11800,
+        "directCostRupees": 4000
+      },
+      {
+        "name": "Ads management",
+        "kind": "monthly",
+        "listPriceRupees": 5900,
+        "directCostRupees": 2500
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": [
+      "price may be recorded as stated with a flag that it includes GST; it must not be silently converted"
+    ]
+  },
+  "tags": [
+    "gst-inclusive-note",
+    "csv"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "nm-dev-04",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "Is it possible to pay in smaller chunks?",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Keep the annual scope and split the payments",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "payments"
+  ]
+}

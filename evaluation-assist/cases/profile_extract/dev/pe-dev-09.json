@@ -1,0 +1,36 @@
+{
+  "id": "pe-dev-09",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Hi team, hope the offsite went well! Quick one for the new price sheet. Photography is ₹20,000 per shoot, our cost is ₹11,000. By the way the office plants need watering, and the cab vendor wants ₹6,000 for the airport run. Video editing: ₹7,000 a month, cost ₹3,000 a month.",
+  "gold": {
+    "services": [
+      {
+        "name": "Photography",
+        "kind": "one_time",
+        "listPriceRupees": 20000,
+        "directCostRupees": 11000
+      },
+      {
+        "name": "Video editing",
+        "kind": "monthly",
+        "listPriceRupees": 7000,
+        "directCostRupees": 3000
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "chatter",
+    "text"
+  ],
+  "forbiddenInOutput": [
+    "cab",
+    "plants",
+    "airport"
+  ]
+}

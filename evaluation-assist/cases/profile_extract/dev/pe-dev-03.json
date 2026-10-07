@@ -1,0 +1,32 @@
+{
+  "id": "pe-dev-03",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Brand film package: 1.2 lakh for the whole shoot, and our production cost is 70,000. Social posts pack is 15 thousand a month; it costs about 6 thousand a month to produce.",
+  "gold": {
+    "services": [
+      {
+        "name": "Brand film package",
+        "kind": "one_time",
+        "listPriceRupees": 120000,
+        "directCostRupees": 70000
+      },
+      {
+        "name": "Social posts pack",
+        "kind": "monthly",
+        "listPriceRupees": 15000,
+        "directCostRupees": 6000
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "lakh",
+    "number-words",
+    "text"
+  ]
+}

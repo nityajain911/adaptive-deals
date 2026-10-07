@@ -1,0 +1,33 @@
+{
+  "id": "pe-dev-06",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Logo and brand kit is a one-time ₹30,000 and costs us ₹14,000. Website maintenance is ₹3,000 a month. Honestly I have not worked out what maintenance costs me.",
+  "gold": {
+    "services": [
+      {
+        "name": "Logo and brand kit",
+        "kind": "one_time",
+        "listPriceRupees": 30000,
+        "directCostRupees": 14000
+      },
+      {
+        "name": "Website maintenance",
+        "kind": "monthly",
+        "listPriceRupees": 3000,
+        "directCostRupees": null
+      }
+    ],
+    "mustStayBlank": [
+      "Website maintenance direct cost"
+    ],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "missing-cost",
+    "text"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "pe-dev-12",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Social media management is ₹5,000 a month. We keep about 50% of that after our costs.",
+  "gold": {
+    "services": [
+      {
+        "name": "Social media management",
+        "kind": "monthly",
+        "listPriceRupees": 5000,
+        "directCostRupees": null
+      }
+    ],
+    "mustStayBlank": [
+      "Social media management direct cost: a margin is not a stated cost"
+    ],
+    "acceptableAlternatives": [
+      "a cost of 2500 only if flagged as derived, not as evidence-backed"
+    ]
+  },
+  "tags": [
+    "margin-not-cost",
+    "text"
+  ]
+}

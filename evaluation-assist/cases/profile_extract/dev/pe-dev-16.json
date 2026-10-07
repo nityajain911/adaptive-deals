@@ -1,0 +1,34 @@
+{
+  "id": "pe-dev-16",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": true,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Website fixes: one-time ₹24,000. Website fixes: our cost is ₹12,000 for the template work; website fixes: ₹24,000 is only for the basic tier and the full tier is ₹36,000, cost ₹20,000.",
+  "gold": {
+    "services": [
+      {
+        "name": "Website fixes (basic)",
+        "kind": "one_time",
+        "listPriceRupees": 24000,
+        "directCostRupees": 12000
+      },
+      {
+        "name": "Website fixes (full)",
+        "kind": "one_time",
+        "listPriceRupees": 36000,
+        "directCostRupees": 20000
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": [
+      "a value is kept only if its quote is at the stated offset in the source"
+    ]
+  },
+  "tags": [
+    "repeated-phrase",
+    "offset-trap",
+    "text"
+  ]
+}

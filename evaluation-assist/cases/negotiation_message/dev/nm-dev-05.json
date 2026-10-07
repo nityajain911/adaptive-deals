@@ -1,0 +1,39 @@
+{
+  "id": "nm-dev-05",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "Thoda sasta ho sakta hai kya? Budget tight hai.",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start with a standalone three-month package · two monthly payments",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      },
+      {
+        "alias": "B",
+        "headline": "Start with a standalone three-month package · paid upfront",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "price",
+    "hinglish",
+    "two-offers"
+  ]
+}

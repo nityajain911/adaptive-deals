@@ -1,0 +1,37 @@
+{
+  "id": "nm-dev-10",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "Either the three-month package paid upfront or the annual plan split up would work for us. What do you suggest?",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start with a standalone three-month package · paid upfront",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      },
+      {
+        "alias": "B",
+        "headline": "Keep the annual scope and split the payments",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "choice",
+    "two-offers"
+  ]
+}

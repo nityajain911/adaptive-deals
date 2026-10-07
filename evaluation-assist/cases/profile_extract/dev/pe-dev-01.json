@@ -1,0 +1,37 @@
+{
+  "id": "pe-dev-01",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Our rate card, as of this month.\nWebsite fixes: one-time, ₹24,000. It costs us ₹12,000 to deliver.\nSearch marketing: ₹4,000 per month, and our cost is ₹2,000 per month.\nMonthly reporting: ₹1,000 a month, cost to us ₹500 a month.",
+  "gold": {
+    "services": [
+      {
+        "name": "Website fixes",
+        "kind": "one_time",
+        "listPriceRupees": 24000,
+        "directCostRupees": 12000
+      },
+      {
+        "name": "Search marketing",
+        "kind": "monthly",
+        "listPriceRupees": 4000,
+        "directCostRupees": 2000
+      },
+      {
+        "name": "Monthly reporting",
+        "kind": "monthly",
+        "listPriceRupees": 1000,
+        "directCostRupees": 500
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "clean",
+    "text"
+  ]
+}

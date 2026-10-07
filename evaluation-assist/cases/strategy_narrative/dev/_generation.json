@@ -1,0 +1,93 @@
+{
+  "set": "dev",
+  "generated": 24,
+  "wanted": 24,
+  "firstSeed": 1001,
+  "skippedCount": 21,
+  "skipped": [
+    {
+      "economics": "seed-1003",
+      "reason": "lower_buyer_commitment: 1 offer(s) compared"
+    },
+    {
+      "economics": "seed-1006",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1007",
+      "reason": "lower_buyer_commitment: 1 offer(s) compared"
+    },
+    {
+      "economics": "seed-1008",
+      "reason": "protect_contribution: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1011",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1014",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1015",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1016",
+      "reason": "protect_contribution: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1018",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1021",
+      "reason": "preserve_scope: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1022",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1023",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1025",
+      "reason": "preserve_scope: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1027",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1030",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1031",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1032",
+      "reason": "protect_contribution: 1 offer(s) compared"
+    },
+    {
+      "economics": "seed-1033",
+      "reason": "preserve_scope: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1034",
+      "reason": "minimise_cash_exposure: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1035",
+      "reason": "lower_buyer_commitment: 0 offer(s) compared"
+    },
+    {
+      "economics": "seed-1036",
+      "reason": "protect_contribution: 0 offer(s) compared"
+    }
+  ]
+}

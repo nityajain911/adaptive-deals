@@ -1,0 +1,31 @@
+{
+  "id": "pe-dev-02",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Bhai, apni services ka rate bata raha hoon. Website ki repairing ek baar ka 18,000 rupaye lagta hai, humein 9,000 mein padti hai. SEO har mahine 6,000, humara kharcha 3,500 har mahine.",
+  "gold": {
+    "services": [
+      {
+        "name": "Website repairing",
+        "kind": "one_time",
+        "listPriceRupees": 18000,
+        "directCostRupees": 9000
+      },
+      {
+        "name": "SEO",
+        "kind": "monthly",
+        "listPriceRupees": 6000,
+        "directCostRupees": 3500
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "hinglish",
+    "text"
+  ]
+}

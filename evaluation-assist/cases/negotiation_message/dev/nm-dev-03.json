@@ -1,0 +1,25 @@
+{
+  "id": "nm-dev-03",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "We'd like to start later, maybe after April.",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start when the buyer's next budget opens",
+        "slots": [
+          "total",
+          "payment_count",
+          "start_date",
+          "included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "timing"
+  ]
+}

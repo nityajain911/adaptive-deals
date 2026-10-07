@@ -1,6 +1,6 @@
 # Pre-registered evaluation plan for the three assist tasks
 
-Status: **proposed, not approved.** No prompt, schema, case file or model call exists. Written 2026-10-08 on branch `codex/merchant-profit-strategy`, after the deterministic gate was approved. Spec: `docs/superpowers/specs/2026-10-07-merchant-profit-strategy-design.md` §11.
+Status: **approved by the applicant on 2026-10-08** (decisions 1, 2 and 6 in §9; decisions 3 to 5 are still open, see Amendment 1). Originally proposed the same day. No prompt, schema, case file or model call exists. Written 2026-10-08 on branch `codex/merchant-profit-strategy`, after the deterministic gate was approved. Spec: `docs/superpowers/specs/2026-10-07-merchant-profit-strategy-design.md` §11.
 
 The frozen evaluation (`evaluation/`) is not reused, edited or re-run. Everything below is new.
 
@@ -118,3 +118,11 @@ Submission is 13 Oct 2026; this plan is written 8 Oct. Recommended order, cheape
 4. State your Groq plan tier and its per-minute and per-day limits, so the cap can be priced and timed. No call is made until you do.
 5. Task order (§8), and whether to accept the cut line.
 6. Approve this plan as the pre-registration. Once committed, it changes only by a dated amendment that explains why.
+
+## Amendment 1 · 2026-10-08 · Narrative development set, and what the cases look like
+
+**Why:** §3 said the 24 narrative development sets would be "3 cases × 4 strategies × 2 economics". That cannot work: when the strategy comparison was run on all three cases, `preserve-scope` has one feasible offer and `no-fit` has none, so neither gives the model anything to compare.
+
+**Change:** the 24 development sets all use the `reduced-scope` case, with 8 from the two named economics (version 1 and the illustrative example, × 4 strategies) and 16 from generated economics (seeds 1001 upward, one strategy each, requiring at least two offers to compare). The generator is `evaluation-assist/generators/narrative.ts` and the skipped economics are listed in `_generation.json`. Hold-out economics will use seeds from 2001, which no test uses. The call budget is unchanged. Single-offer and discount-only sets stay in the adversarial group.
+
+**Cases written so far (no prompt exists, no call made):** development only: 16 `profile_extract` (12 plus 4 adversarial), 24 `strategy_narrative`, 15 `negotiation_message` (10 plus 5 adversarial). All are agent-authored. Hold-out and adversarial hold-out cases wait on decision 3 (who writes the adversarial cases).

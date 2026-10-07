@@ -1,0 +1,25 @@
+{
+  "id": "nm-dev-08",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "We can only do about 40,000 all in.",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Your agreed amount for the same scope and dates",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "custom-total"
+  ]
+}

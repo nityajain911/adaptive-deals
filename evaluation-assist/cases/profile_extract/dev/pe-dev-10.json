@@ -1,0 +1,25 @@
+{
+  "id": "pe-dev-10",
+  "task": "profile_extract.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "kind": "text",
+  "source": "Reporting is ₹1,000 a month; over a full 12 months that comes to ₹12,000. It costs us ₹500 a month, so ₹6,000 across the year.",
+  "gold": {
+    "services": [
+      {
+        "name": "Reporting",
+        "kind": "monthly",
+        "listPriceRupees": 1000,
+        "directCostRupees": 500
+      }
+    ],
+    "mustStayBlank": [],
+    "acceptableAlternatives": []
+  },
+  "tags": [
+    "monthly-vs-annual",
+    "text"
+  ]
+}

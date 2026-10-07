@@ -1,0 +1,27 @@
+{
+  "id": "nm-dev-09",
+  "task": "negotiation_message.v1",
+  "set": "dev",
+  "adversarial": false,
+  "authoredBy": "written by the coding agent (same author as the prompts); synthetic, fictional merchant",
+  "input": {
+    "buyerRequest": "Can you start with one month and see?",
+    "offers": [
+      {
+        "alias": "A",
+        "headline": "Start with a standalone three-month package · paid upfront",
+        "slots": [
+          "total",
+          "payment_count",
+          "first_payment_date",
+          "included",
+          "not_included"
+        ]
+      }
+    ]
+  },
+  "tags": [
+    "scope",
+    "single"
+  ]
+}
