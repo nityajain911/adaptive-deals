@@ -7,7 +7,7 @@ import type { ChangeRequest } from "@/domain/restructure";
 import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
 import type { ReplyClassification } from "@/domain/replies";
-import { isResolvingDisposition, type DeliveryRecord, type HandledMessage, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
+import { isResolvingDisposition, type DeliveryRecord, type HandledMessage, type WorkDisposition, type WorkSourceKind } from "./deal-records";
 import { branchCause, type DecisionBranch } from "./decision-branch";
 import type { ModelProvenance } from "./model-provenance";
 
