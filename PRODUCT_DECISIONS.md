@@ -345,3 +345,11 @@ The model's explanation has two parts that code validates separately: a full com
 **It becomes a new version through the usual path.** The sent version is withdrawn, the counter is selected, and the merchant previews, approves and sends it like any proposal. The buyer's old link shows "replaced" and the new link works once it is sent. Acceptance, payment link, mandate and collections then follow the countered amounts.
 
 **Scope limits.** This applies only while the buyer has not accepted. It does not change an amount after acceptance, does not answer a notice reply such as "up to ₹10K this month" (that is a partial payment of one debit and needs its own rules), and a counter must be lower than the current offer. The hero merchant allows no discount, so every price cut currently needs the override; a merchant whose policy allows the discount would see it pass without one.
+
+## A deal keeps the prices it was quoted at
+
+**Quoted prices are a deal snapshot.** Changing an account's standard service prices applies to new quotes only. An existing deal always evaluates its original service prices, scope and GST rate, including after it adopts newer costs, delivery rules or guardrails.
+
+**New business economics are adopted explicitly.** Before a proposal is live, the merchant can preview the exact input changes, offers that become feasible or infeasible, and whether the recommendation changes. The preview changes nothing. An incompatible version is blocked with the specific missing service or dependency, and a version that changes only standard prices is not offered as a meaningful re-evaluation.
+
+**Sent terms keep their economics.** Once a proposal is approved or sent, the deal cannot adopt a different account version. Drafts and later agreement versions keep the exact economics version and effective input hash used to produce them; economics provenance never enters the buyer's contractual terms.

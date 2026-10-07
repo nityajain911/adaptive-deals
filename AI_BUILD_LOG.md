@@ -896,6 +896,14 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Human decision:** The applicant chose that the engine's result is shown and an override is allowed, and that this applies to a buyer's change request. Not covered, by design: amount changes after acceptance, and the notice reply "up to ₹10K this month".
 
+### 2026-10-07 · Versioned business economics and immutable deal prices [Codex]
+
+**What changed:** Merchant costs, delivery flags, guardrails and discount levels now live in a versioned account store. Every deal snapshots the service prices, scope and GST rate it was originally quoted with, pins the account version used by its decision, and can preview and explicitly adopt a compatible newer version before a proposal is live. Drafts, agreements, amendments and counter-offers record the effective economics hash outside the contractual terms.
+
+**AI boundary:** No prompt, schema, validator, recorded run, frozen evaluation asset or model output changed, and no model call was made. A stored recording replays only when the deal's effective engine inputs match the inputs it was recorded against. If economics change, code recomputes the decision and states that code ranked and explained it.
+
+**Price boundary:** A later standard-price edit applies to new quotes only. Re-evaluation of an existing deal continues to use its immutable quoted prices and can adopt only the newer costs, operational flags, guardrails and discount ladder that are compatible with the original deal.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
