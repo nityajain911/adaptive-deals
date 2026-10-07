@@ -15,11 +15,12 @@ const termsOf = (i: number) => {
 describe("decision fingerprint (spec §3.2)", () => {
   const ids = result().structures.filter((x) => x.approvable).map((x) => x.structure.id);
   it("is deterministic and ignores display order", () => {
-    expect(decisionFingerprint(ids, termsOf(0))).toBe(decisionFingerprint([...ids].reverse(), termsOf(0)));
+    expect(decisionFingerprint(ids, termsOf(0), "h1")).toBe(decisionFingerprint([...ids].reverse(), termsOf(0), "h1"));
   });
   it("changes when the eligible set or the selected terms change", () => {
-    expect(decisionFingerprint(ids.slice(1), termsOf(0))).not.toBe(decisionFingerprint(ids, termsOf(0)));
-    expect(decisionFingerprint(ids, termsOf(1))).not.toBe(decisionFingerprint(ids, termsOf(0)));
+    expect(decisionFingerprint(ids.slice(1), termsOf(0), "h1")).not.toBe(decisionFingerprint(ids, termsOf(0), "h1"));
+    expect(decisionFingerprint(ids, termsOf(1), "h1")).not.toBe(decisionFingerprint(ids, termsOf(0), "h1"));
+    expect(decisionFingerprint(ids, termsOf(0), "h2")).not.toBe(decisionFingerprint(ids, termsOf(0), "h1"));
   });
 });
 

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { canonicalJson, termsHash, type CanonicalTerms } from "@/domain/agreement";
+import { canonicalJson, termsHash, type CanonicalTerms, type EconomicsRef } from "@/domain/agreement";
 export { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS } from "./reason-codes";
 export type { BuyerDeclineReason, MerchantCloseReason } from "./reason-codes";
 
@@ -73,6 +73,7 @@ export interface CounterOffer {
   override: { by: string; at: string; checks: string[] } | null;
   requestMessageId: string;
   createdAt: string;
+  economics?: EconomicsRef;
 }
 
 /** A disposition that settles a buyer work item. A follow-up still pending does not. */
@@ -100,8 +101,8 @@ export interface Interpretation {
 }
 
 /** Deterministic: sorted eligible option IDs plus the selected option's canonical terms hash. */
-export function decisionFingerprint(eligibleIds: string[], selectedTerms: CanonicalTerms): string {
-  const payload = canonicalJson({ eligible: [...eligibleIds].sort(), selected: termsHash(selectedTerms) });
+export function decisionFingerprint(eligibleIds: string[], selectedTerms: CanonicalTerms, effectiveHash: string): string {
+  const payload = canonicalJson({ eligible: [...eligibleIds].sort(), selected: termsHash(selectedTerms), effectiveHash });
   return createHash("sha256").update(payload, "utf8").digest("hex");
 }
 

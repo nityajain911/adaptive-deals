@@ -627,8 +627,10 @@ function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof d
   // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
   const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
   const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null });
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null, economics: economicsRef(s) });
 }
+
+const economicsRef = (s: DemoState) => ({ version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash, strategy: s.economics.strategy });
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
 export async function currentFingerprint(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
@@ -636,7 +638,7 @@ export async function currentFingerprint(s: DemoState, knownDeal?: ReturnType<ty
   const { eligible } = await eligibleOf(s, deal);
   const ids = eligible.map((x) => x.structure.id);
   const sel = eligible.find((x) => x.structure.id === s.selectedOption?.structureId);
-  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal).terms) : null };
+  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal).terms, s.economics.effectiveHash) : null };
 }
 
 /** Stale: the decision changed since selection, or the selected option is no longer eligible. */
@@ -685,7 +687,7 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
   assertScopeConfirmed(s, out);
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
-  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal).terms);
+  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal).terms, s.economics.effectiveHash);
   const evidenceMessageIds = decisionEvidenceSnapshot(s);
   if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) return; // same and still valid: no-op
   s.agreements = s.agreements.filter((v) => v.status !== "draft");
@@ -1375,6 +1377,7 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
       override: b.failing.length ? { by, at, checks: b.failing.map((c) => c.code) } : null,
       requestMessageId: b.request.sourceId,
       createdAt: at,
+      economics: economicsRef(s),
     });
     s.agreements = s.agreements.map((x) => (x.version === b.v.version ? { ...x, status: "superseded" as const } : x));
     setStatus(s, "options_ready", `Version ${b.v.version} withdrawn to answer the buyer's request`);
@@ -1458,6 +1461,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       trigger: cr.timing === "preventive" ? "buyer_message" : "failed_debit",
       triggerRefs: [cr.attemptId, cr.noticeId!, cr.replyId],
       at: clockOf(s).now(),
+      economics: economicsRef(s),
     });
     s.amendments.push(amendment);
     const from = current.structure.payments.find((p) => p.id === cr.scheduleLineId)!.dueDate;
@@ -1467,7 +1471,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
       return;
     }
-    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version }));
+    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version, economics: economicsRef(s) }));
     s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
     event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
     setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");

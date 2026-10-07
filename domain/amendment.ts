@@ -4,7 +4,7 @@ import { evaluateStructure, type EngineInput, type EvaluatedStructure } from "./
 import { checkMandateFit, type Mandate, type MandateFit } from "./mandate";
 import type { Structure } from "./structures";
 import type { BuyerConstraints } from "./types";
-import type { AgreementVersion } from "./agreement";
+import type { AgreementVersion, EconomicsRef } from "./agreement";
 
 export type AmendmentState = "proposed" | "merchant_approved" | "buyer_accepted" | "collection_updated" | "active" | "rejected";
 
@@ -29,6 +29,7 @@ export interface Amendment {
   mandateFit: MandateFit;
   revised: EvaluatedStructure;
   history: { at: string; state: AmendmentState }[];
+  economics?: EconomicsRef;
 }
 
 export const RETRY_REMOVED_COPY = "Adaptive Deals retry removed; revised payment scheduled.";
@@ -69,6 +70,7 @@ export function proposeReschedule(args: {
   trigger: Amendment["trigger"];
   triggerRefs: string[];
   at: string;
+  economics?: EconomicsRef;
 }): Amendment {
   const original = args.structure.payments.find((p) => p.id === args.lineId);
   if (!original) throw new Error(`Unknown payment line ${args.lineId}`);
@@ -89,6 +91,7 @@ export function proposeReschedule(args: {
     mandateFit: checkMandateFit(args.mandate, debits),
     revised,
     history: [{ at: args.at, state: revised.approvable ? "proposed" : "rejected" }],
+    economics: args.economics ? structuredClone(args.economics) : undefined,
   };
 }
 

@@ -5,6 +5,7 @@ import type { EvaluatedStructure } from "./engine";
 import { CURRENCY, sum, type Paise } from "./money";
 import type { Structure } from "./structures";
 import type { MerchantPolicy } from "./types";
+import type { StrategyId } from "./strategy-id";
 
 export const TERMS_SCHEMA_VERSION = "adaptive-deals.terms.v1";
 
@@ -96,6 +97,13 @@ export interface Signature {
   termsHash: string;
 }
 
+/** Non-contractual provenance for the merchant economics behind a version. */
+export interface EconomicsRef {
+  version: number;
+  effectiveHash: string;
+  strategy: StrategyId;
+}
+
 export interface AgreementVersion {
   agreementId: string;
   version: number;
@@ -109,6 +117,7 @@ export interface AgreementVersion {
   /** Set when the buyer declines a sent version. */
   buyerDecline?: { by: string; at: string };
   supersedes: number | null;
+  economics?: EconomicsRef;
 }
 
 export class AgreementError extends Error {}
@@ -125,6 +134,7 @@ export function createAgreementVersion(args: {
   supersedes?: number | null;
   /** The merchant's explicit, recorded decision to send a structure the engine rejected. The engine's result is never changed. */
   merchantOverride?: { by: string } | null;
+  economics?: EconomicsRef;
 }): AgreementVersion {
   if (!args.evaluated.approvable && !args.merchantOverride) {
     throw new AgreementError(`Structure ${args.evaluated.structure.id} is ${args.evaluated.verdict}; only feasible structures can become agreements`);
@@ -151,6 +161,7 @@ export function createAgreementVersion(args: {
     merchantApproval: null,
     buyerAcceptance: null,
     supersedes: args.supersedes ?? null,
+    economics: args.economics ? structuredClone(args.economics) : undefined,
   };
 }
 
