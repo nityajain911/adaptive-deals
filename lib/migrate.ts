@@ -1,7 +1,7 @@
 import { DEMO_ANCHOR } from "@/domain/clock";
 import { deliveryKey, type DeliveryRecord } from "./deal-records";
 import type { DemoState } from "./service";
-import { DECISION_BRANCH_SCHEMA, type DecisionBranch } from "./decision-branch";
+import { DECISION_BRANCH_SCHEMA_V1, DECISION_BRANCH_SCHEMA_V2, type DecisionBranch } from "./decision-branch";
 import { CASE_IDS, DEFAULT_CASE_ID } from "@/data/synthetic/cases";
 import { demoCase } from "@/data/synthetic/cases";
 import { captureBaseline } from "@/domain/deal-baseline";
@@ -128,15 +128,15 @@ function validDecisionBranch(value: unknown): value is DecisionBranch {
   const changed = branch.answersChanged !== false;
   const hasScope = branch.scope !== undefined && branch.scope !== null;
   return (
-    branch.schema === DECISION_BRANCH_SCHEMA &&
+    (branch.schema === DECISION_BRANCH_SCHEMA_V1 || branch.schema === DECISION_BRANCH_SCHEMA_V2) &&
     typeof branch.branchId === "string" &&
     branch.branchId.length > 0 &&
     typeof branch.parentRunId === "string" &&
     branch.parentRunId.length > 0 &&
     typeof branch.createdAt === "string" &&
-    (branch.reason === "changed_clarification_answers" || branch.reason === "merchant_scope_confirmation") &&
+    (branch.reason === "changed_clarification_answers" || branch.reason === "merchant_scope_confirmation" || branch.reason === "economics_changed") &&
     // A scope-only branch needs a confirmation; an answer branch needs changed answers.
-    (branch.reason === "merchant_scope_confirmation" ? !changed && hasScope : changed) &&
+    (branch.reason === "merchant_scope_confirmation" ? !changed && hasScope : branch.reason === "economics_changed" ? !changed : changed) &&
     (branch.answersChanged === undefined || typeof branch.answersChanged === "boolean") &&
     validScope(branch.scope) &&
     branch.explanationSource === "code_fallback" &&

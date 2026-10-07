@@ -385,13 +385,57 @@ export async function startCase(caseId: string): Promise<DemoState> {
 
 // ── Derived engine state (always recomputed from the run record, integrity-checked) ──
 
-export async function currentOutcome(s: DemoState): Promise<RunOutcome> {
-  const deal = dealForState(s);
-  if (s.decisionBranch) {
-    const initial = await initialOutcomeForBranch(s);
-    return withCounterOffers(s, deriveBranchOutcome({ initial, branch: s.decisionBranch, deal }));
+export async function currentOutcome(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>): Promise<RunOutcome> {
+  const fixtureDeal = dealForState(s);
+  if (!s.decisionBranch && economicsMatchRecording(s)) {
+    return withCounterOffers(s, await replayRun(s.run.record, fixtureDeal, new FixedClock()));
   }
-  return withCounterOffers(s, await replayRun(s.run.record, deal, new FixedClock()));
+  const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
+  const initial = await initialOutcomeForBranch(s);
+  const branch = s.decisionBranch ?? economicsBranch(s);
+  return withCounterOffers(s, deriveBranchOutcome({ initial, branch, deal }));
+}
+
+/** Exact engine-input identity of the immutable run recording for this case. */
+export function recordingInputHash(s: DemoState): string {
+  return effectiveHashOf(dealForState(s));
+}
+
+export function economicsMatchRecording(s: DemoState): boolean {
+  return s.economics.effectiveHash === recordingInputHash(s);
+}
+
+function economicsBranch(s: DemoState): DecisionBranch {
+  return {
+    schema: DECISION_BRANCH_SCHEMA,
+    branchId: "branch-economics-" + s.economics.effectiveHash.slice(0, 12),
+    parentRunId: sourceRecord(s).runId,
+    createdAt: clockOf(s).now(),
+    answers: structuredClone(sourceRecord(s).inputs.answers),
+    reason: "economics_changed",
+    answersChanged: false,
+    scope: null,
+    economics: { version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash },
+    explanationSource: "code_fallback",
+  };
+}
+
+/** Keep stored provenance aligned whenever a deal's effective economics changes. */
+export function syncEconomicsBranch(s: DemoState): void {
+  if (economicsMatchRecording(s)) {
+    if (s.decisionBranch?.reason === "economics_changed" && !s.decisionBranch.scope && s.decisionBranch.answersChanged === false) s.decisionBranch = null;
+    else if (s.decisionBranch) delete s.decisionBranch.economics;
+    return;
+  }
+  if (!s.decisionBranch) {
+    s.decisionBranch = economicsBranch(s);
+    return;
+  }
+  s.decisionBranch = {
+    ...s.decisionBranch,
+    schema: DECISION_BRANCH_SCHEMA,
+    economics: { version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash },
+  };
 }
 
 /**
@@ -421,10 +465,10 @@ function activeVersion(s: DemoState): AgreementVersion | null {
   return [...s.agreements].reverse().find((v) => v.status === "active") ?? null;
 }
 
-async function structureForVersion(s: DemoState, v: AgreementVersion): Promise<EvaluatedStructure> {
+async function structureForVersion(s: DemoState, v: AgreementVersion, deal?: ReturnType<typeof dealContextFor>): Promise<EvaluatedStructure> {
   const amendment = s.amendments.find((a) => a.toVersion === v.version && a.state !== "rejected");
   if (amendment) return amendment.revised;
-  const out = await currentOutcome(s);
+  const out = await currentOutcome(s, deal);
   const x = out.evaluation.result?.structures.find((e) => e.structure.id === v.structureId);
   if (!x) throw new ActionError("Agreement structure is no longer in the evaluation");
   return x;
@@ -519,6 +563,8 @@ export interface AnswerInput {
 }
 
 export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     if (s.status !== "clarifying") throw new ActionError(`Answers can only be recorded while clarifying (deal is ${s.status})`);
     const asked = new Set(s.run.record.displayed.questions.map((q) => q.id));
@@ -533,13 +579,13 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
     }));
     let out: RunOutcome;
     const source = sourceRecord(s);
-    if (s.run.record.kind === "live" && s.run.viewing === "fresh") {
+    if (s.run.record.kind === "live" && s.run.viewing === "fresh" && economicsMatchRecording(s)) {
       out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: dealForState(s), answers, previous: s.run.record });
       s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
       s.decisionBranch = null;
       // Keep the stored copy of a fresh live run complete, so it can later be replayed.
       await writeJsonAtomic(`runs/${out.record.runId}.json`, out.record);
-    } else if (answersMatchRecorded(source, answers) && !s.decisionBranch?.scope) {
+    } else if (answersMatchRecorded(source, answers) && !s.decisionBranch?.scope && economicsMatchRecording(s)) {
       out = await runConstruct({ provider: providerForContinuation(s), kind: s.run.record.kind, runId: s.run.record.runId, clock: new FixedClock(), deal: dealForState(s), answers, previous: s.run.record });
       s.run = { record: out.record, viewing: s.run.viewing, sourceRunId: s.run.sourceRunId };
       s.decisionBranch = null;
@@ -556,8 +602,9 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
         scope: s.decisionBranch?.scope ?? null,
         explanationSource: "code_fallback",
       };
+      if (!economicsMatchRecording(s)) branch.economics = { version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash };
       // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
-      out = deriveBranchOutcome({ initial, branch, deal: dealForState(s) });
+      out = deriveBranchOutcome({ initial, branch, deal });
       s.decisionBranch = branch;
     }
     for (const a of answers) event(s, "clarification_answered", `Answer recorded: ${a.answerText}`, "merchant", `Confirmed by buyer via ${a.confirmedByBuyerVia}`);
@@ -569,8 +616,8 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
 
 // Approval is split from delivery (spec §3.3): select → draft → approve → send.
 
-async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: EvaluatedStructure[] }> {
-  const out = await currentOutcome(s);
+async function eligibleOf(s: DemoState, deal?: ReturnType<typeof dealContextFor>): Promise<{ out: RunOutcome; eligible: EvaluatedStructure[] }> {
+  const out = await currentOutcome(s, deal);
   const r = out.evaluation.result;
   return { out, eligible: r ? eligibleStructures(s, r.structures) : [] };
 }
@@ -586,7 +633,7 @@ function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof d
 /** The fingerprint the selected option would have now, from the unchanged engine. */
 export async function currentFingerprint(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
   const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
-  const { eligible } = await eligibleOf(s);
+  const { eligible } = await eligibleOf(s, deal);
   const ids = eligible.map((x) => x.structure.id);
   const sel = eligible.find((x) => x.structure.id === s.selectedOption?.structureId);
   return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal).terms) : null };
@@ -634,7 +681,7 @@ function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">)
 async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }, deal: ReturnType<typeof dealContextFor>) {
   assertNoReview(s);
   if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
-  const { out, eligible } = await eligibleOf(s);
+  const { out, eligible } = await eligibleOf(s, deal);
   assertScopeConfirmed(s, out);
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
@@ -663,9 +710,9 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
     assertNoReview(s);
     assertNoNewDecisionEvidence(s);
     if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
-    assertScopeConfirmed(s, (await eligibleOf(s)).out);
+    assertScopeConfirmed(s, (await eligibleOf(s, deal)).out);
     if (!s.selectedOption || (await isDraftStale(s, deal))) {
-      const { out, eligible } = await eligibleOf(s);
+      const { out, eligible } = await eligibleOf(s, deal);
       const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
       const top = keep ?? out.explanation?.order[0] ?? eligible[0]?.structure.id;
       if (!top) throw new ActionError("No engine-eligible option to review");
@@ -677,7 +724,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
       draft = existing;
       return;
     }
-    const { eligible } = await eligibleOf(s);
+    const { eligible } = await eligibleOf(s, deal);
     const x = eligible.find((e) => e.structure.id === s.selectedOption!.structureId)!;
     s.agreements = s.agreements.filter((v) => v.status !== "draft");
     draft = draftFor(s, x, deal);
@@ -796,8 +843,8 @@ export async function sendQuestions(): Promise<DemoState> {
 
 /** Facts for `dealProgress`, read from stored state and the replayed engine result. */
 export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
-  const out = await currentOutcome(s);
   const deal = dealContextFor(s, await pinnedEconomicsOf(s));
+  const out = await currentOutcome(s, deal);
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
   const clar = s.run.record.displayed.questions.map((question) => latestClarificationForQuestion(s, question.id)).filter((item): item is ConversationItem => item !== null);
   const active = activeVersion(s);
@@ -814,7 +861,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const retry = s.attempts.find((a) => a.status === "scheduled" && a.origin === "internal_retry");
   let fullyPaid = false;
   if (active) {
-    const x = await structureForVersion(s, active);
+    const x = await structureForVersion(s, active, deal);
     fullyPaid = computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), deal.merchant.timeZone), timeZone: deal.merchant.timeZone }).fullyPaid;
   }
   const cr = active ? s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === active.version) : undefined;
@@ -861,7 +908,7 @@ export async function confirmRequiredServices(packageIds: string[]): Promise<Dem
     assertNoReview(s);
     if (s.deliveries.some((d) => d.deliveredAt)) throw new ActionError("The required services cannot be confirmed after the proposal was sent");
     if (s.decisionBranch?.scope) throw new ActionError("The required services are already confirmed for this deal");
-    const sources = unmappedScopeOf(s, await currentOutcome(s));
+    const sources = unmappedScopeOf(s, await currentOutcome(s, deal));
     if (!sources.length) throw new ActionError("There is nothing to confirm: every required service was mapped");
     if (s.status !== "options_ready") throw new ActionError(`Required services are confirmed once options are ready (deal is ${s.status})`);
     let confirmation;
@@ -885,7 +932,8 @@ export async function confirmRequiredServices(packageIds: string[]): Promise<Dem
           explanationSource: "code_fallback",
         };
     // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
-    const derived = deriveBranchOutcome({ initial: await initialOutcomeForBranch(s), branch, deal: dealForState(s) });
+    if (!economicsMatchRecording(s)) branch.economics = { version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash };
+    const derived = deriveBranchOutcome({ initial: await initialOutcomeForBranch(s), branch, deal });
     s.decisionBranch = branch;
     const names = confirmation.packageIds.map((id) => deal.packages.find((p) => p.id === id)?.name ?? id);
     event(s, "required_services_confirmed", "Merchant confirmed the required services", "merchant", `${names.join(", ")} · from “${confirmation.sources.map((x) => x.rawText).join("”, “")}”`);
@@ -1269,8 +1317,8 @@ async function buildCounter(s: DemoState, totalPaise: number, knownDeal?: Return
   if (!request) throw new ActionError("There is no open buyer request to answer");
   const topic = s.conversation.find((m) => m.id === request.sourceId)?.refs.topic;
   if (topic !== "price") throw new ActionError("This request is not about the price, so it cannot be answered with a different total. Record your decision on it instead");
-  const current = await structureForVersion(s, v);
-  const out = await currentOutcome(s);
+  const current = await structureForVersion(s, v, deal);
+  const out = await currentOutcome(s, deal);
   const constraints = interpretations(out.profile)[0].constraints;
   let evaluated: EvaluatedStructure;
   try {
@@ -1395,9 +1443,9 @@ export async function proposeAmendment(): Promise<DemoState> {
     const cr = s.changeRequests[ci];
     if (s.attempts.some((a) => a.status === "submitted")) throw new ActionError("Awaiting payment outcome; rescheduling is blocked until it is known");
 
-    const out = await currentOutcome(s);
+    const out = await currentOutcome(s, deal);
     const constraints = interpretations(out.profile)[0].constraints;
-    const current = await structureForVersion(s, v);
+    const current = await structureForVersion(s, v, deal);
     const amendment = proposeReschedule({
       id: `amd-${s.amendments.length + 1}`,
       from: v,

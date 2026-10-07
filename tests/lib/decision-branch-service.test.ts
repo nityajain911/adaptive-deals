@@ -55,7 +55,7 @@ describe("persisted decision branches", () => {
           expect(JSON.parse(JSON.stringify(reloaded.run.record))).toEqual(svc.bundledSyntheticRun());
         } else {
           expect(reloaded.decisionBranch).toMatchObject({
-            schema: "adaptive-deals.decision-branch.v1",
+            schema: "adaptive-deals.decision-branch.v2",
             parentRunId: svc.bundledSyntheticRun().runId,
             reason: "changed_clarification_answers",
             explanationSource: "code_fallback",
