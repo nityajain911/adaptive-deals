@@ -891,25 +891,7 @@ it("lists discounted offers lower discount first, and marks the view discount_on
 - [ ] **Step 4:** all pass. If a monotonicity seed fails, do not adjust the test: report the seed and the offer, because it means a guardrail interacts in a way the spec did not expect.
 - [ ] **Step 5: Commit** `feat: deterministic strategies, proactive ranking and fact ids`
 
-### Task 3.3: Strategy in the service
-
-**Files:**
-- Modify: `lib/service.ts`, `app/api/actions/route.ts`
-- Test: `tests/lib/strategy-service.test.ts`
-
-**Interfaces:**
-- `strategyViewOf(s: DemoState, out: RunOutcome): StrategyView` (feasible = `eligibleStructures` minus any counter-offer structure)
-- `setStrategy(strategy: StrategyId): Promise<DemoState>`; action `set_strategy { strategy }`
-- `reviewBuyerProposal` and the audit default to `strategyViewOf(...).leader`, not `explanation.order[0]`.
-- `SelectedOption.explicit: boolean` (migration: `true` when an `option_selected` outcome with an action source exists for it, else `false`).
-
-**Rules:** explicit selection survives a strategy change; an implicit selection and its unsent draft are cleared; `setStrategy` is refused once a proposal is live (same statuses as Task 2.7); the strategy is not part of `effectiveHash`.
-
-- [ ] **Step 1: Failing test.** On the sample reduced-scope case: default leader is the two-payment phase; `setStrategy("preserve_scope")` with no explicit selection clears the draft and the next `reviewBuyerProposal()` drafts the full annual offer with `buyer_attests_required_approval` in its conditions; after `selectOption(twoPayment)` a strategy change keeps `selectedOption.structureId` and its draft; `setStrategy` at `sent` is refused; a version sent under Preserve scope keeps `economics.strategy === "preserve_scope"` after the deal's strategy is later changed on a withdrawn deal.
-- [ ] **Step 2–4:** red, implement, green. `tests/lib/offer-stage.test.ts` and `tests/lib/counter-offer-service.test.ts` assertions that depended on `explanation.order[0]` are updated to the strategy leader; list each changed assertion in the commit body.
-- [ ] **Step 5: Commit** `feat: the merchant's strategy decides the recommended offer`
-
-**Phase 3 exit:** unit suite green. The browser suite will now differ in one place only: the recorded hero journey's first recommended offer. Do not patch it here; Phase 5 rewrites that journey. Run the browser suite, confirm that exactly the tests named in spec section 12 fail, and record the list in the phase report.
+**Phase 3 exit:** unit and browser suites fully green. This phase creates and verifies the pure strategy modules only. It does not switch the recommendation used by the live service; that integration lands atomically with the Offer interface and its browser expectations in Phase 5.
 
 ---
 
@@ -936,7 +918,7 @@ it("lists discounted offers lower discount first, and marks the view discount_on
 **Contract (test ids and copy are exact):**
 - `data-testid="economics-page"`, heading "Business economics", sub-line "Version {n} · activated {date}" (`economics-version`).
 - **Services** (`economics-services`): one row per service (`service-row-{id}`) with fields `price`, `cost`, `costTiming` (read-only "Start of each delivery month"), `removable`, `deferrable`, `independent`, `dependsOn`. The price field carries the label "Standard price · applies to new quotes" and the note under the table: "Existing deals keep the prices they were quoted at."
-- **Commercial guardrails** (`economics-guardrails`): `floor-percent`, `floor-amount`, `discount-limit`, `discount-ladder` (comma-separated percentages, shown as chips), `cash-exposure` with the helper "The most you would have paid out before being paid.", `min-payment` ("before GST"), `max-duration`, `payment-fee` ("Expected fee · pre-filled"). GST is shown read-only: "GST 18% · set by law".
+- **Commercial guardrails** (`economics-guardrails`): `floor-percent`, `floor-amount`, `discount-limit`, `discount-ladder` (comma-separated percentages, shown as chips), `cash-exposure` with the helper "The most you would have paid out before being paid.", `min-payment` ("before GST"), `max-duration`, `payment-fee` ("Expected processing fee · configured estimate"). GST is shown read-only: "GST 18% · from your tax configuration".
 - **Review and activate** (`economics-review`): appears after "Review changes" (`economics-review-button`). Shows issues (`economics-issue-{field}`), the per-service table (price, cost, contribution, margin), the demo-deal preview when one applies, and `economics-activate` ("Activate version {n+1}"), disabled while any error exists. A floor no offer can meet shows `economics-unreachable-floor`: "No offer can meet this floor, even at your standard prices."
 - `economics-restore` ("Restore demo defaults") with a confirm step.
 - Amount inputs take rupees and convert with the same `toPaise` rule as `components/track/counter-form.tsx`; move that function to `lib/money-input.ts` and import it in both.
@@ -980,11 +962,29 @@ test("economics · an invalid ladder cannot be activated, and the page fits a ph
 - [ ] **Step 2–4:** red, build the page and banner, green. Run the whole browser suite.
 - [ ] **Step 5: Commit** `feat: Business economics page with review, activation and re-evaluation`
 
-**Phase 4 exit:** all suites green except the journeys named for Phase 5. `PRODUCT_DECISIONS.md` gains "Business economics are the merchant's, versioned, and never change an existing deal's prices".
+**Phase 4 exit:** unit and browser suites fully green. `PRODUCT_DECISIONS.md` gains "Business economics are the merchant's, versioned, and never change an existing deal's prices".
 
 ---
 
 # Phase 5 — Strategy-led Offer screen (spec section 12 lands here)
+
+### Task 5.0: Strategy in the service
+
+**Files:**
+- Modify: `lib/service.ts`, `app/api/actions/route.ts`
+- Test: `tests/lib/strategy-service.test.ts`
+
+**Interfaces:**
+- `strategyViewOf(s: DemoState, out: RunOutcome): StrategyView` (feasible = `eligibleStructures` minus any counter-offer structure)
+- `setStrategy(strategy: StrategyId): Promise<DemoState>`; action `set_strategy { strategy }`
+- `reviewBuyerProposal` and the audit default to `strategyViewOf(...).leader`, not `explanation.order[0]`.
+- `SelectedOption.explicit: boolean` (migration: `true` when an `option_selected` outcome with an action source exists for it, else `false`).
+
+**Rules:** explicit selection survives a strategy change; an implicit selection and its unsent draft are cleared; `setStrategy` is refused once a proposal is live (same statuses as Task 2.7); the strategy is not part of `effectiveHash`.
+
+- [ ] **Step 1: Failing test.** On the sample reduced-scope case: default leader is the two-payment phase; `setStrategy("preserve_scope")` with no explicit selection clears the draft and the next `reviewBuyerProposal()` drafts the full annual offer with `buyer_attests_required_approval` in its conditions; after `selectOption(twoPayment)` a strategy change keeps `selectedOption.structureId` and its draft; `setStrategy` at `sent` is refused; a version sent under Preserve scope keeps `economics.strategy === "preserve_scope"` after the deal's strategy is later changed on a withdrawn deal.
+- [ ] **Step 2–4:** red, implement, green. Change the service, Offer integration, attribution, visible journey and affected expectations within Phase 5 so no phase boundary knowingly carries a failing browser test. `tests/lib/offer-stage.test.ts` and `tests/lib/counter-offer-service.test.ts` assertions that depended on `explanation.order[0]` are updated to the strategy leader; list each changed assertion in the commit body.
+- [ ] **Step 5: Commit** `feat: the merchant's strategy decides the recommended offer`
 
 ### Task 5.1: Attribution and audit wording
 
@@ -1074,12 +1074,12 @@ test("economics · an invalid ladder cannot be activated, and the page fits a ph
 **Files:** Create `domain/corridor.ts`. Test `tests/domain/corridor.test.ts`.
 
 **Interfaces:**
-- `interface CorridorResult { currentTotalPaise: number; currentPasses: boolean; lowestCompliantPaise: number | null; contiguous: true; evaluations: number }`
+- `interface CorridorResult { currentTotalPaise: number; currentPasses: boolean; lowestCompliantPaise: number | null; contiguous: true; evaluations: number; unavailableReason: "evaluation_limit" | null }`
 - `lowestCompliantTotal(args: { base: Structure; constraints: BuyerConstraints; engine: EngineInput }): CorridorResult`
 
-**Method:** `passes(total)` = `failingCounterChecks(evaluateStructure(counterStructure(base, total, gst), constraints, engine)).length === 0`. If the current offer does not pass every rule, return `lowestCompliantPaise: null`. Otherwise scan down from the current total in ₹100 steps while `passes`, stopping at the first failure or at ₹1; then scan up from the failing step in ₹1 steps to the first passing total. Cap at 6,000 evaluations and throw `CorridorError` beyond it. The result is the lowest total in the contiguous passing range that starts at the current offer.
+**Method:** `passes(total)` = `failingCounterChecks(evaluateStructure(counterStructure(base, total, gst), constraints, engine)).length === 0`. If the current offer does not pass every rule, return `lowestCompliantPaise: null`. Otherwise scan down from the current total in ₹100 steps while `passes`, stopping at the first failure or at ₹1; then scan up from the failing step in ₹1 steps to the first passing total. Cap at 6,000 evaluations. Reaching the cap returns `{ lowestCompliantPaise: null, unavailableReason: "evaluation_limit" }`; it never throws into the page and never authorises a counter. The result is otherwise the lowest total in the contiguous passing range that starts at the current offer.
 
-- [ ] **Step 1: Failing test.** With version 1 (no discount): `lowestCompliantPaise === currentTotalPaise`. With a 10% ceiling: the result is within ₹1 of `currentTotal × 0.9` rounded by the engine's own rule, `passes(result)` is true and `passes(result − 100)` is false (100 paise is one rupee, the search precision). With a contribution floor that binds before the ceiling: the result is the floor-bound total and the failing rule one rupee lower is `seller_contribution`. Property over `SEEDS`: whenever `lowestCompliantPaise` is non-null, it passes and one rupee lower fails.
+- [ ] **Step 1: Failing test.** With version 1 (no discount): `lowestCompliantPaise === currentTotalPaise`. With a 10% ceiling: the result is within ₹1 of `currentTotal × 0.9` rounded by the engine's own rule, `passes(result)` is true and `passes(result − 100)` is false (100 paise is one rupee, the search precision). With a contribution floor that binds before the ceiling: the result is the floor-bound total and the failing rule one rupee lower is `seller_contribution`. Property over `SEEDS`: whenever `lowestCompliantPaise` is non-null, it passes and one rupee lower fails. A deliberately wide corridor reaches the cap, returns `unavailableReason: "evaluation_limit"`, and does not throw.
 - [ ] **Step 2–5:** red, implement, green, commit `feat: lowest compliant total by bounded engine evaluation`.
 
 ### Task 7.2: Corridor data in the service
@@ -1102,6 +1102,7 @@ test("economics · an invalid ladder cannot be activated, and the page fits a ph
 **Contract (`negotiation-corridor`, shown only for a price request on a sent, unaccepted proposal):**
 - "The buyer asked for a lower price." then the amount input and a required GST-basis choice (`corridor-basis-including`, `corridor-basis-excluding`): "Does the buyer's amount include GST?"
 - After "Check this amount": `corridor-contribution` "You would keep about ₹…", `corridor-rules` (passed and failed, each named), `corridor-lowest` "Lowest total that meets every rule for this scope: ₹…" or "No lower total meets every rule." 
+- When `unavailableReason === "evaluation_limit"`, `corridor-lowest` reads "We couldn’t calculate a safe lower limit automatically. Review the amount manually." No automatic counter action is enabled from that result.
 - `corridor-ladder`: "Discounts your business economics permit" with one row per level and "Offer this" on passing rows. Under version 1 it reads "Your business economics permit no discount."
 - `corridor-alternatives`: "Other ways to lower the buyer's payment" listing scope and timing alternatives with "Offer this".
 - The existing override and "Prepare counter-offer" controls follow, unchanged in behaviour except Task 6.2.
@@ -1116,6 +1117,7 @@ test("economics · an invalid ladder cannot be activated, and the page fits a ph
 
 - A button `economics-illustrative-preset`: "Load illustrative example: 10% maximum discount with 0%, 5%, 10% approved". It fills the **draft** only. Activation still goes through "Review changes". The version is labelled "Illustrative" in `economics-version` and in the audit.
 - The demo uses it only if the review step shows at least one feasible offer on the open demo deal; if not, the script says to skip it.
+- The Buildathon walkthrough visibly guides this sequence: open Business economics; load the illustrative ladder; have the merchant review and activate it; start a fresh deal under that version; simulate a buyer price request; show the corridor and let the merchant choose the counter. The walkthrough may navigate and instruct, but it never activates economics or sends an offer for the merchant.
 
 - [ ] **Steps:** browser test (preset fills the draft, review shows it valid, activation labels it Illustrative, the Offer screen's recommendation does not change, the corridor shows the ladder), implement, commit `feat: illustrative economics preset for the negotiation demo`.
 
@@ -1133,7 +1135,7 @@ Stop here. Report:
 4. Screens looked at by eye, and screens only covered by tests.
 5. What the demo now shows for each of the three cases under each strategy.
 
-No AI task (`profile_extract.v1`, `strategy_narrative.v1`, `negotiation_message.v1`), no prompt and no model call begins until this review is approved and a pre-registered evaluation plan with a call budget is approved separately.
+This is a deterministic checkpoint, not the final AI scope. No AI task (`profile_extract.v1`, `strategy_narrative.v1`, `negotiation_message.v1`), no prompt and no model call begins until this review is approved and a pre-registered evaluation plan with a call budget is approved separately. After that approval, those three tasks are the next planned workstream.
 
 ---
 
