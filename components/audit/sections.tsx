@@ -8,6 +8,7 @@ import { SAMPLE_OUTPUT_LABEL, taskOrRunProvenance } from "@/lib/model-provenance
 import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
+import { isIllustrativeHash } from "@/lib/economics-illustrative";
 
 /**
  * The merchant's read-only audit (spec §8.3). Links only: no forms, buttons or actions. Technical
@@ -113,7 +114,7 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
 
       <section aria-labelledby="audit-rules">
         <H id="audit-rules">Applied merchant rules</H>
-        <p className="text-[12px] text-muted">From your business economics, version {s.economics.pinned.version}{s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""}. Synthetic demo data, read-only here.</p>
+        <p className="text-[12px] text-muted">From your business economics, version {s.economics.pinned.version}{isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}{s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""}. Synthetic demo data, read-only here.</p>
         <ul className="mt-1 space-y-2">
           {appliedRules(policy, deal.templates, deal.packages).map((r) => (
             <li key={r.id} data-rule={r.id} className="rounded-lg border border-line px-3 py-2">

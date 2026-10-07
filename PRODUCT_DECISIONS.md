@@ -391,3 +391,18 @@ The model's explanation has two parts that code validates separately: a full com
 **An answer the buyer gave still applies.** If an override makes a question the buyer already answered irrelevant to the decision, the recorded answer is still applied. The buyer said it; the merchant's change does not unsay it.
 
 **No model can make any of these changes.** The demo guide's actions are a short fixed list, and none of these is on it.
+
+
+## The negotiation corridor shows what the merchant's own rules allow
+
+**When a buyer asks for a lower price, the merchant sees the answer space before choosing.** The corridor shows the lowest total that meets every rule for the current scope (found by code, by search over the engine's own checks, never an estimate), the discounts the merchant approved with what they keep and whether the buyer needs MD approval, and non-price alternatives (a smaller scope, different timing). Everything is computed by code; no model is involved.
+
+**"Offer this" prepares a standard offer, not a counter-offer.** Choosing a listed offer records it as an answer with a different offer, not as the merchant's own amount, so no override is recorded because none is needed.
+
+**A typed amount must say whether it includes GST.** The merchant picks a basis explicitly; there is no default, because a wrong guess changes the figure by 18% and the engine cannot tell which was meant. The corridor shows the converted total it checked.
+
+**If the lowest limit cannot be found, the product says so.** A search that hits its evaluation limit shows "We couldn’t calculate a safe lower limit automatically. Review the amount manually." It never shows a guess.
+
+**The buyer sees none of it.** Limits, contribution and the corridor stay with the merchant; the buyer receives only the offer that was approved and sent.
+
+**The illustrative example is a demo preset, not a recommendation.** It fills the draft with a 10% maximum discount and 0%, 5%, 10% approved. The merchant still reviews and activates it; the version is labelled Illustrative in the economics page and in each deal's audit that was started under it. The walkthrough lists the negotiation as an optional step and never activates economics or sends an offer for the merchant.

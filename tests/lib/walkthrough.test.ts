@@ -87,10 +87,21 @@ describe("walkthrough state comes from the deal", () => {
     expect(view.currentAction?.actor).toBe(actionActor);
   });
 
+  it("offers the negotiation step only for a buyer's price request, and never as a core step", () => {
+    const state = started();
+    state.conversation.push({ id: "msg-price", kind: "change_request", from: "buyer", text: "Lower?", at: "2026-10-01T10:00:00+05:30", refs: { topic: "price" } } as unknown as DemoState["conversation"][number]);
+    const view = resolve(state, progress("track.buyer_request", "track", "merchant", "action_required"));
+    expect(view.currentObjectiveId).toBe("negotiate_price");
+    expect(view.stepLabel).toBe("Explore another product capability");
+    expect(JSON.stringify(view.objectives.find((x) => x.id === "negotiate_price"))).toMatch(/never activates economics or sends an offer/);
+    // A change request about anything else keeps its previous mapping.
+    expect(resolve(started(), progress("track.buyer_request", "track", "merchant", "action_required")).currentObjectiveId).not.toBe("negotiate_price");
+  });
+
   it("keeps preventive depth out of the core step count", () => {
     const view = resolve(started(), progress("track.next_payment", "track", null, "informational"));
     expect(view.currentObjectiveId).toBe("preventive_restructure");
-    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["setup_collection", "preventive_restructure"]);
+    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["setup_collection", "preventive_restructure", "negotiate_price"]); // negotiate_price was added with the corridor
     expect(view.stepLabel).toBe("Explore another product capability");
   });
 
@@ -121,9 +132,10 @@ describe("capability and outcome honesty", () => {
   });
 
   it("ships only capabilities that exist and omits their future steps from the count", async () => {
-    expect([...walkthroughCapabilities()]).toEqual(["case_picker", "current_offer", "preventive_depth"]);
+    // Negotiation now exists (the corridor), as an optional step; the other future capabilities do not.
+    expect([...walkthroughCapabilities()]).toEqual(["case_picker", "current_offer", "preventive_depth", "negotiation"]);
     const view = resolve(started(), await svc.progressOf(fresh));
-    expect(view.objectives.map((x) => x.capability)).not.toEqual(expect.arrayContaining(["live_customisation", "negotiation", "test_invoice"]));
+    expect(view.objectives.map((x) => x.capability)).not.toEqual(expect.arrayContaining(["live_customisation", "test_invoice"]));
     expect(view.stepLabel).toBe("Step 2 of 4");
   });
 

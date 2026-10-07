@@ -192,6 +192,9 @@ test("corridor · the ladder is shown, and the 5% row prepares an offer that pas
   const counter = state().counterOffers.at(-1)!;
   expect(counter.source).toBe("listed_offer");
   expect(counter.override).toBeNull();
+  // A deal started under the example is labelled as such in its audit.
+  await page.getByTestId("audit-details").click();
+  await expect(page.locator("body")).toContainText("business economics, version 2 (illustrative example)", { ignoreCase: true });
 });
 
 test("corridor · the buyer's page never shows the merchant's limits, and the corridor fits a phone", async ({ page }) => {
@@ -217,4 +220,23 @@ test("corridor · with no discount permitted the ladder says so", async ({ page 
   await api(page, { action: "request_change", version: sent.version, text: "Could you do a little better on price?", topic: "price" });
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("corridor-ladder")).toContainText("Your business economics permit no discount.");
+});
+
+test("preset · the illustrative example fills the draft, activates as an Illustrative version, and leaves the open deal's recommendation alone", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  const before = await page.getByTestId("offer-total").textContent();
+  await page.goto("/economics");
+  await expect(page.getByTestId("economics-version")).not.toContainText("Illustrative");
+  await page.getByTestId("economics-illustrative-preset").click();
+  // Loading only fills the draft: nothing is activated until the merchant reviews and activates.
+  await expect(page.getByTestId("economics-version")).toContainText("Version 1");
+  await page.getByTestId("economics-review-button").click();
+  await expect(page.getByTestId("economics-review")).toBeVisible();
+  await page.getByTestId("economics-activate").click();
+  await expect(page.getByTestId("economics-version")).toContainText("Version 2 · Illustrative");
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-total")).toHaveText(before ?? "");
+  // The open deal stays pinned to version 1, so its audit does not claim to use the example.
+  await page.getByTestId("audit-details").click();
+  await expect(page.locator("body")).not.toContainText("illustrative example");
 });

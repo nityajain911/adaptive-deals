@@ -65,7 +65,7 @@ export interface WalkthroughView {
   finish: WalkthroughFinish | null;
 }
 
-const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["case_picker", "current_offer", "preventive_depth"]);
+const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["case_picker", "current_offer", "preventive_depth", "negotiation"]);
 
 const REGISTRY: readonly WalkthroughObjective[] = [
   {
@@ -134,6 +134,17 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     optional: true,
     capability: "preventive_depth",
   },
+  {
+    id: "negotiate_price",
+    actor: "merchant",
+    title: "Answer a buyer's price request",
+    instruction: "Before a fresh deal, open Business economics, load the illustrative example, then review and activate it yourself. When the buyer asks for a lower price, choose how to answer in the corridor.",
+    notice: "The corridor is calculated by code from your own rules. The guide never activates economics or sends an offer for you.",
+    href: "/deals/:dealId/track",
+    anchorId: "negotiation-corridor",
+    optional: true,
+    capability: "negotiation",
+  },
 ];
 
 export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
@@ -201,7 +212,8 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
   return { title: terminal ? "Walkthrough ended" : "Walkthrough complete", lines };
 }
 
-function objectiveFor(progress: DealProgress): string {
+function objectiveFor(progress: DealProgress, state: DemoState): string {
+  if (progress.rule === "track.buyer_request" && state.conversation.some((m) => m.kind === "change_request" && m.refs?.topic === "price")) return "negotiate_price";
   if (progress.rule === "review.required") return progress.stage === "understand" ? "understand_buyer" : "review_decision";
   if (progress.rule.startsWith("understand.")) return "understand_buyer";
   if (progress.rule.startsWith("offer.")) return "review_decision";
@@ -266,13 +278,14 @@ function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProven
   if (objectiveId === "review_decision") return "deterministic_engine";
   if (objectiveId === "confirm_terms") return "merchant";
   if (objectiveId === "setup_collection" || objectiveId === "preventive_restructure") return "simulated_buyer";
+  if (objectiveId === "negotiate_price") return "merchant";
   return null;
 }
 
 export function walkthroughView({ state, progress, dealId, capabilities }: { state: DemoState; progress: DealProgress; dealId: string; capabilities: ReadonlySet<WalkthroughCapability> }): WalkthroughView {
   const objectives = REGISTRY.filter((item) => capabilities.has(item.capability)).map((item) => attributed({ ...item, href: item.href.replace(":dealId", dealId) }, state));
   const started = state.events.some((event) => event.kind === "case_started");
-  const currentObjectiveId = started ? objectiveFor(progress) : "choose_case";
+  const currentObjectiveId = started ? objectiveFor(progress, state) : "choose_case";
   const currentIndex = objectives.findIndex((item) => item.id === currentObjectiveId);
   const completedObjectiveIds = objectives.slice(0, Math.max(0, currentIndex)).map((item) => item.id);
   const core = objectives.filter((item) => !item.optional);

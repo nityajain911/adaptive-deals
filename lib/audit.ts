@@ -14,6 +14,7 @@ import { STRATEGY_LABEL } from "@/domain/strategy";
 import { explainCheck } from "@/domain/copy";
 import { failingCounterChecks } from "@/domain/counter";
 import { OVERRIDE_DIRECTION_TEXT, OVERRIDE_FIELD_LABEL, overrideValueText } from "./override-copy";
+import { isIllustrativeHash } from "./economics-illustrative";
 
 /**
  * Read-only audit derivations for the merchant audit drawer (spec §8.3). Every source is labelled
@@ -32,7 +33,7 @@ const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", c
 export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[]): AuditSource[] {
   const out: AuditSource[] = [
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
-    { item: "Merchant costs and rules", source: s.economics ? `Your business economics, version ${s.economics.pinned.version}${s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""} · synthetic demo data` : "Synthetic deal fixture" },
+    { item: "Merchant costs and rules", source: s.economics ? `Your business economics, version ${s.economics.pinned.version}${isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}${s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""} · synthetic demo data` : "Synthetic deal fixture" },
   ];
   for (const f of run.engine.profile) {
     if (f.evidence.length) out.push({ item: f.label, source: "Simulated WhatsApp conversation", detail: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" ") });

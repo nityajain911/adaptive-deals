@@ -924,6 +924,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Human decision:** The applicant's design required reasons, a separate record for each kind of exception, and a typed confirmation for a loss. I made the loss rule independent of failed rules, because an economics with no floor would otherwise let a loss through unchallenged.
 
+### 2026-10-08 · Negotiation corridor and illustrative economics preset [Claude Code]
+
+**What changed:** A buyer's price request on a sent proposal now opens a corridor on Track: the lowest compliant total (found by search over the engine's own checks), the approved discount ladder with what the merchant keeps and the buyer's approval status, scope and timing alternatives, and the amount check, which now requires choosing whether the buyer's amount includes GST and lists every rule, passed or failed. A demo preset loads a 10% maximum discount with 0%, 5%, 10% approved into the economics draft; the merchant still reviews and activates it. The walkthrough has a new optional step for the negotiation.
+
+**AI boundary:** No prompt, schema, recording, evaluation or engine file changed and no model call was made. The corridor, the search and the preset are deterministic code. The walkthrough's allowed actions are unchanged: it cannot activate economics, send an offer or choose a counter for the merchant.
+
+**Changed assertions:** The walkthrough test that listed shipped capabilities now includes negotiation, and the list of optional steps includes the new one, because the corridor now exists. Existing counter-offer browser tests choose a GST basis before checking, because the form requires it.
+
+**Human decision:** The applicant's design required the corridor to be computed by code, to show only what the merchant's own rules allow, and never to reach the buyer.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
