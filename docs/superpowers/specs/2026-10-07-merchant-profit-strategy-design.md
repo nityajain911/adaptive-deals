@@ -3,7 +3,7 @@
 - **Date:** 7 October 2026
 - **Branch:** `codex/merchant-profit-strategy`
 - **Fallback:** tag `submission-ready-pre-profit-strategy-2026-10-07` (commit `65e1de6`) is the last submission-ready state.
-- **Status:** design for review. No product code and no model call is covered by this document's approval; each phase has its own gate.
+- **Status:** design for review, revised after decisions D1 to D5 and the price-snapshot correction. Two decisions remain open (D6, D7; section 14). No product code and no model call is covered by this document's approval; each phase has its own gate.
 
 ## 1. Purpose
 
@@ -49,6 +49,13 @@ These were settled before this spec and are binding on it.
 | 17 | Property tests cover economics hashes, guardrail monotonicity, ranking permutations and stable pinning. |
 | 18 | A deterministic phase gate follows the negotiation panel. No AI task is implemented before that review. |
 | 19 | Every existing test, walkthrough step, audit label and demo-script line affected by replacing Groq ranking is listed (section 12). |
+| 20 | **(D1)** The strategy orderings stand. An offer that needs the buyer's approval may lead. The strategy leader and the best within-approval alternative are shown together. |
+| 21 | **(D2)** The "merchant overrides Groq" demo moment is replaced by a strategy demonstration: Protect contribution → Preserve scope → the annual offer with MD approval and the best within-approval alternative → back to Protect contribution for the main journey. |
+| 22 | **(D3)** Standard prices apply only to new quotes. No deal-creation flow is added. |
+| 23 | **(D4)** The demo activates an illustrative economics version 2 (10% ceiling; approved ladder 0%, 5%, 10%), only if the activation preview shows it is valid under the configured rules. |
+| 24 | **(D5)** The recorded Groq reason sits behind the information control, labelled as historical evidence that does not drive the current recommendation. |
+| 25 | The deal baseline stores a **per-service price snapshot** taken when the deal starts. An existing deal always uses those prices. Re-evaluation takes costs, cost timing, guardrails and the discount ladder from the new version, never its standard prices. The same snapshot is the basis for same-scope discount and for retained-scope value. |
+| 26 | A deal's effective hash is the hash of the **exact engine inputs** it is evaluated with. A change to account standard prices alone does not change an existing deal's effective hash. |
 
 ## 3. Facts from the current code that shape this design
 
@@ -108,7 +115,11 @@ The **Preserve scope** case has one feasible offer and the **No fit** case has n
 
 `StructuredRequest.task` is typed as `AiTask`, which is the key set of the frozen `TASK_SCHEMAS` (`extract`, `clarify`, `explain`). `RunRecord` and `PROMPTS` are also frozen. New tasks cannot be added to them.
 
-### 3.8 The word "profile" is already taken
+### 3.8 The three demo cases share one set of engine inputs
+
+All three cases use the same merchant, the same services and the same approved offer types (`data/synthetic/cases.ts`). They differ only in the buyer's conversation. One set of engine inputs therefore reproduces all three recordings.
+
+### 3.9 The word "profile" is already taken
 
 In the code, "profile" means the **buyer's** constraint profile (`ConstraintProfile`, `out.profile`, `engine.profile`). This work therefore never uses bare "profile". The merchant's settings are **business economics** on screen and `Economics…` in code (`EconomicsProfile` is avoided too: the type is `BusinessEconomics`).
 
@@ -124,7 +135,7 @@ interface BusinessEconomics {
   version: number;            // 1, 2, 3 … per activation
   activatedAt: string;
   activatedBy: string;
-  services: ServicePackage[]; // existing type: price, direct cost, cost timing, removable, deferrable, independent value, dependencies
+  services: ServicePackage[]; // existing type: standard price, direct cost, cost timing, removable, deferrable, independent value, dependencies
   guardrails: {
     contributionFloor: ContributionFloor; // existing type: percentage and/or amount
     discountLimitBps: number;             // maximum discount (ceiling)
@@ -140,7 +151,9 @@ interface BusinessEconomics {
 }
 ```
 
-- **Version 1 is the default demo economics** and is built from the existing hero fixtures without changing them. A test asserts that its engine inputs equal the fixtures and that all three case recordings replay under it. Its hash is the **recording economics hash**.
+- **Version 1 is the default demo economics** and is built from the existing hero fixtures without changing them. A test asserts that a deal started under it has engine inputs equal to the fixtures, and that all three case recordings replay under it.
+- **A standard price is the price used when a new quote is made.** It never reaches a deal that already exists (decisions 22 and 25). The screen labels it "applies to new quotes".
+- `hash` identifies the account version. It is **not** what a deal is checked against; that is the deal's effective hash (4.3).
 - A draft (unactivated) copy exists while the merchant edits. Only activation creates a version.
 - Stored in a new account store (`.data/economics.json`), separate from the deal store.
 
@@ -150,18 +163,22 @@ Captured when a deal starts and never edited:
 
 ```ts
 interface DealBaseline {
+  /** Price of every service as it stood when the deal started. The only prices this deal ever uses. */
+  servicePrices: { packageId: string; kind: "one_time" | "monthly"; listPricePaise: number }[];
   quotedScope: ScopeItem[];
-  quotedPrePaise: number;
+  quotedPrePaise: number;   // must equal the snapshot prices applied to quotedScope
   quotedGstPaise: number;
   quotedTotalPaise: number;
-  gstRateBps: number;
+  gstRateBps: number;       // the rate the quote was made at; this deal keeps it
   economicsVersionAtStart: number;
 }
 ```
 
-- For the three demo cases the baseline is the quote already stated in each case's own conversation (for example "₹1,20,000 plus GST"). It is not recomputed from the current standard prices.
+- **The snapshot is the single source of price for the deal.** Offer generation, the discount on any same-scope offer, the counter-offer's discount, and the retained-scope value used by Preserve scope all read `servicePrices`. Nothing reads a standard price for an existing deal.
+- **Capture invariant:** `quotedPrePaise` equals the snapshot prices applied to `quotedScope`. If they differ, the baseline is refused and the deal is marked for review; nothing is guessed.
+- For the three demo cases the snapshot is the fixture prices, which sum to the ₹1,20,000 quote stated in each case's own conversation.
 - `originalProposal()` becomes a read of this baseline.
-- **Discount is always measured against the baseline's quoted price for the same scope.**
+- `kind` is part of the price's meaning (a total, or a price per month), so it is snapshotted with it.
 
 ### 4.3 `DealEconomics` (per deal)
 
@@ -170,10 +187,14 @@ interface DealEconomics {
   pinned: { version: number; hash: string };   // the account economics this deal is evaluated under
   overrides: InputOverride[];                  // section 8.1
   strategy: StrategyId;                        // section 7
-  effectiveHash: string;                       // hash of pinned economics with overrides applied
+  effectiveHash: string;                       // hash of the exact engine inputs this deal is evaluated with (section 5)
 }
 ```
 
+- **`effectiveHash` is computed from the engine inputs themselves**: the canonical JSON of the policy, the services and the offer types that `engineInputFor` returns. It is not a hash of the account version. Two consequences:
+  - Activating a version that only changes standard prices leaves every existing deal's `effectiveHash` unchanged.
+  - Any change that would alter an engine result changes it, whatever its source (a new pinned version, an input override).
+- The **recording input hash** is the `effectiveHash` of a deal started under version 1 with no overrides. By 3.8 it is the same for all three recordings.
 - A new deal pins the active account version at start.
 - Activating a newer account version does **not** change `pinned`. Only explicit re-evaluation does (section 9).
 
@@ -186,19 +207,25 @@ interface DealEconomics {
 
 ## 5. Where engine inputs come from
 
-One function builds the engine's input for a deal, and nothing else reads fixtures:
+One function, `engineInputFor(deal)`, builds the engine's input for a deal. Nothing else reads fixtures or account economics directly, and its output is exactly what `effectiveHash` is computed from:
 
-```
-engineInputFor(deal) = { merchant.policy ← pinned guardrails + fixed + input overrides,
-                         packages        ← pinned services + cost overrides,
-                         templates       ← fixed offer types + discountsBps ← discountLadderBps }
-```
+| Engine input | Source for an existing deal |
+|---|---|
+| Service price and kind | `DealBaseline.servicePrices`, always |
+| Service direct cost, cost timing | Pinned version, then any cost override |
+| Service flags (removable, deferrable, independent value) and dependencies | Pinned version (see open decision D6) |
+| Contribution floor, cash-exposure limit, discount ceiling, minimum payment, maximum duration, expected fee | Pinned version, then any input override |
+| Approved discount ladder | Pinned version (`discountsBps`) |
+| Approved offer types | Pinned version's fixed offer types |
+| GST rate | `DealBaseline.gstRateBps` |
 
-The engine files are not modified. They already accept these inputs.
+- The engine files are not modified. They already accept these inputs.
+- Because discounted offers are generated from the snapshot price and a ladder level, an offer's discount is by construction a discount against the deal's own baseline.
+- A service that is in the deal's baseline but missing from a newer version blocks re-evaluation to that version (section 9). A service added in a newer version does not enter an existing deal.
 
 ## 6. Recorded runs and derived decisions
 
-- A recorded run is replayed only when the deal's `effectiveHash` equals the recording economics hash. This is today's behaviour and stays byte-identical.
+- A recorded run is replayed only when the deal's `effectiveHash` equals the recording input hash. This is today's behaviour and stays byte-identical.
 - When they differ, the decision is a **derived decision**, built on the existing `DecisionBranch` mechanism (already used for changed answers and merchant-confirmed services):
   - The recorded extraction stays as evidence. It does not depend on merchant economics.
   - The engine recalculates every offer from the effective economics.
@@ -217,7 +244,9 @@ A strategy is a deterministic total order over the offers the engine marked feas
 | **Minimise cash exposure** | Lower peak funding → higher net contribution → smaller largest payment → stable id |
 | **Lower buyer commitment** | Within buyer approval → smaller largest payment → lower total → earlier start → stable id |
 
-See open decision D1 (section 14): two of these can lead with an offer that needs the buyer's MD approval.
+Preserve scope and Minimise cash exposure do not put buyer approval first, so an offer that needs the buyer's approval may lead (decision 20). On the hero case both lead with offer A.
+
+- **Leader and within-approval alternative.** When the strategy's leader needs the buyer's approval, the recommendation states that on the offer itself ("Needs the buyer's MD approval") and shows, beside it, the **best within-approval alternative**: the first offer in the same strategy's order that is within the buyer's limit. When the leader is already within the limit, no alternative is shown. If no offer is within the limit, the card says so.
 
 Rules:
 
@@ -227,7 +256,7 @@ Rules:
 - **Implicit selection follows.** If the selection was only the recommendation, a strategy change clears it and its unsent draft.
 - **Locked when sent.** A sent version records its strategy and cannot be re-ranked.
 - **Exceptions are never ranked.** An offer that needed a failed-rule exception is shown as the merchant's own choice, outside the ranked list, and is never recommended.
-- **The recorded Groq order** is shown in the audit and behind the offer card's information button as "Recorded Groq order (not used for the recommendation)", only when the deal's economics match the recording.
+- **The recorded Groq order and reason** are shown in the audit and behind the offer card's information control, labelled "Historical evidence from the recorded Groq run. It does not drive the current recommendation." They appear only when the deal's `effectiveHash` equals the recording input hash, because they describe those inputs and no others.
 
 ## 8. Overrides and exceptions
 
@@ -239,7 +268,7 @@ Changes an assumption for one deal: a service's direct cost, the contribution fl
 - Stored with who, when, the account value, the deal value, and whether it **tightens** or **loosens** the account rule.
 - Never changes the account economics.
 - Changes `effectiveHash`, so it invalidates an unsent draft and reruns the engine.
-- The quoted price is not overridable (decision 4). A price change is a new offer or a counter-offer, where the discount is visible.
+- No price is overridable: neither the quoted price nor a service's snapshot price (decisions 4 and 25). A price change is a new offer or a counter-offer, where the discount is visible.
 
 ### 8.2 Failed-rule exception (after evaluation)
 
@@ -252,16 +281,20 @@ The engine reports a failed rule and the merchant chooses to continue. This is w
 
 ## 9. Re-evaluating an open deal
 
-When the active account version is newer than a deal's pinned version, the deal shows: "Your business economics have changed since this deal was evaluated."
+A deal is offered re-evaluation only when pinning the active version **would change its engine inputs**, that is, when the prospective `effectiveHash` differs from the current one. A version that only changed standard prices produces no prompt and no change; the audit records that a newer version exists and does not affect this deal.
+
+When it would change, the deal shows: "Your business economics have changed since this deal was evaluated."
 
 **Re-evaluate with version N** first shows, computed by code and without changing anything:
 
-- which inputs changed (costs, guardrails, ladder; never standard prices, per decision 5),
+- which inputs change: costs, cost timing, guardrails, discount ladder. Service prices are shown as "unchanged for this deal".
 - which offers become feasible or infeasible,
 - whether the recommendation changes,
 - which unsent draft becomes stale.
 
-On confirmation the deal pins version N. Sent and accepted versions are unaffected.
+On confirmation the deal pins version N and its inputs are rebuilt by the table in section 5, with prices still from the baseline. Sent and accepted versions are unaffected.
+
+Re-evaluation is refused, with the reason shown, if version N no longer contains a service that is in the deal's baseline.
 
 ## 10. Screens
 
@@ -274,12 +307,15 @@ Three parts: **Services**, **Commercial guardrails** (including the approved dis
 - Review shows calculated economics per service (contribution and margin at the standard price) and a before/after of the open demo deal.
 - GST is read-only. The payment fee is pre-filled and labelled as an expected fee.
 - "Cash exposure" is explained as the most the merchant would have paid out before being paid.
+- Standard prices carry the label "applies to new quotes" and a note that existing deals keep the prices they were quoted at.
 - **Restore demo defaults** re-activates version 1's values as a new version.
+- **Illustrative version 2 for the demo** (decision 23): a 10% discount ceiling with an approved ladder of 0%, 5% and 10%. It is activated only through the same review step as any other version, and only if that preview shows at least one feasible offer on the open demo deal under the configured rules. It is labelled "Illustrative" wherever it appears. If the preview does not hold, the demo does not use it.
 
 ### 10.2 Offer
 
 - A strategy control above the recommendation: **Best offer for: Protect contribution**.
 - The card states: why it fits the buyer, what the merchant keeps after configured costs and expected fees, cash exposure, which account rules or deal overrides applied.
+- When the leader needs the buyer's approval, the best within-approval alternative is shown beside it (section 7).
 - "What changes under another strategy": one row per strategy with its top offer, computed by code.
 - This replaces existing text on the card; it is not an additional panel.
 
@@ -356,7 +392,7 @@ Unchanged because they test the frozen model path itself: `tests/ai/clarify-expl
 
 **Journeys and documents**
 
-- `e2e/recorded.spec.ts` "the merchant overrides Groq's ranking…" asserts the recommended offer is the single upfront payment (B). Under Protect contribution it is the two-payment offer (C). See D2.
+- `e2e/recorded.spec.ts` "the merchant overrides Groq's ranking…" asserts the recommended offer is the single upfront payment (B). Under Protect contribution it is the two-payment offer (C). The journey is rewritten as the strategy demonstration (decision 21): Protect contribution recommends C; Preserve scope recommends A with "Needs the buyer's MD approval" and C as the best within-approval alternative; back to Protect contribution, then the existing preview, send, accept and reschedule path continues from C.
 - `DEMO_SCRIPT.md` lines for 25–45 s and the recording guidance ("Groq ranked one payment first…", "ranked the options").
 - `README.md` case table ("ranks the single upfront payment first").
 - `PRODUCT_DECISIONS.md` sections on AI ranking, the Offer card attribution, and "structures needing buyer approval always rank below".
@@ -370,21 +406,22 @@ Unchanged because they test the frozen model path itself: `tests/ai/clarify-expl
   - Every strategy returns a permutation of the same feasible set, and is deterministic.
   - Protect contribution equals `rankFeasible` for every input.
   - A deal's pinned reference and every agreement's reference are unchanged by a later activation.
-- **Integrity tests:** version 1 reproduces all three recordings; a derived decision never shows the parent explanation; the discount is measured against the baseline.
+  - Activating a version that differs only in standard prices leaves every existing deal's `effectiveHash`, offers and figures unchanged.
+  - After any re-evaluation, every service price the engine receives still equals the deal's baseline snapshot.
+- **Integrity tests:** version 1 reproduces all three recordings; a derived decision never shows the parent explanation; a ladder discount, a counter-offer's discount and the retained-scope value are all computed from the baseline snapshot; a baseline whose quoted price does not equal its snapshot is refused.
 - **Migration tests:** a store saved before this work gets version 1, a baseline and a pinned reference, labelled as the default demo economics.
 - Existing suites stay green at every phase: 762 unit tests and 54 browser tests at the tag, apart from the deliberate changes in section 12.
 
-## 14. Open decisions
+## 14. Decisions from the self-reviews
 
-These came out of the self-review (section 16) and need an answer before the affected phase.
+**Resolved.** D1 to D5 from the first self-review are adopted as decisions 20 to 24. The price-snapshot correction is decisions 25 and 26.
+
+**Open, from the second self-review.**
 
 | # | Decision | Recommendation |
 |---|---|---|
-| **D1** | Preserve scope and Minimise cash exposure, as specified, can recommend an offer that needs the buyer's MD approval (offer A on the hero case). That reverses the current rule that approval-needed offers always rank below. If approval-first is forced into all four, every strategy picks the same offer on every demo case. | Keep the orderings as approved. Show "Needs the buyer's MD approval" on the recommendation itself and name the best within-approval offer beside it. |
-| **D2** | The recorded hero demo loses its "merchant overrides Groq's ranking" moment, because code already recommends the offer the merchant used to pick. | Replace it with the merchant changing strategy, which is a stronger and honest merchant-control moment. Keep Groq's recorded order visible as evidence. |
-| **D3** | Editing a standard price has no visible effect on the three demo deals, because each is an existing deal with a fixed quoted baseline. | Label standard prices "applies to new quotes". Do not add a deal-creation flow in this work. |
-| **D4** | With the default economics (no discount allowed) the ladder and the negotiation corridor show nothing interesting: the lowest compliant total is the current offer. | Demonstrate by activating a second version in the demo (for example a ladder of 0%, 5%, 10% under a 10% ceiling). The decision then becomes a derived one, explained by code. |
-| **D5** | Whether the recorded per-offer Groq reason stays on the card when economics match the recording. | Keep it behind the information button as recorded evidence; the visible reason is the strategy explanation. |
+| **D6** | On re-evaluation, where do a service's **flags** (removable, deferrable, independent value) and **dependencies** come from? The instruction names costs, cost timing, guardrails and the ladder. Flags are not prices, but they decide which offers can exist. | Take them from the newly pinned version, like costs. They describe how the merchant delivers, not what the buyer was quoted. |
+| **D7** | Under the illustrative version 2, **Lower buyer commitment** leads with the most discounted offer, because a discount makes the largest payment smaller. That is what the strategy is defined to do, but it means one strategy recommends giving a discount by default. | Keep the definition. State on the card that the leader includes a discount and name the undiscounted alternative. Decide before phase 5. |
 
 ## 15. Phases
 
@@ -409,17 +446,38 @@ Each phase ends with all tests green and a review.
 
 ## 16. Self-review
 
-**Placeholders:** none. **Scope:** one plan per phase is practical; phases 8–12 need their own spec section expanded into contracts with exact schemas before implementation.
+Run twice: on the first draft, and again after decisions 20 to 26.
 
-**Contradictions found**
+**Placeholders:** none. **Scope:** one plan per phase is practical; phases 8 to 12 need their contracts expanded into exact schemas before implementation.
 
-1. **Approval-first invariant against the strategy table.** The approved orderings for Preserve scope and Minimise cash exposure omit the approval tier. On the hero case both then recommend an offer needing MD approval. With the tier forced in, all four strategies recommend the same offer on every demo case and the feature shows nothing. Raised as D1.
-2. **"Recorded Groq ordering stays visible" against the demo story.** Groq ranked B first and code ranks C first, so the default recommendation on the recorded hero case changes, and the test and script built on "the merchant overrides Groq" lose their premise. Raised as D2.
-3. **"AI explains the trade-off" against "code-computed facts".** The attribution line "trade-off explained by AI" is false whenever the code explanation is shown, which is the default. The spec makes attribution conditional on what is displayed.
-4. **"Frozen prompts and runs unchanged" against "three new tasks".** The frozen provider and record types are closed over the three existing tasks. The new tasks need their own module and Groq adapter (11.1), which duplicates a small amount of provider code by design.
-5. **"Deal override of service price" (earlier design) against "the quoted price is immutable".** Price is removed from input overrides. A further consequence: standard-price edits do nothing visible on the demo deals. Raised as D3.
-6. **"Reset must not erase the account economics" against the browser tests.** The tests rely on reset for a clean state. Reset keeps the account economics; a separate restore action is used by the test harness and by "Restore demo defaults".
-7. **"Failed-rule exceptions never appear in the ranked list" against the built counter-offer.** The live counter-offer is currently placed at the head of the offer list. It moves out of the list and is shown as the merchant's own choice.
-8. **Clarification questions depend on merchant economics.** The recorded questions may not be the right ones under changed economics. Handled in section 6; not previously covered by the design.
-9. **A policy edit is silently ignored by replay today.** Not a contradiction in the design, but it means that without the derived-decision rule an edited guardrail would appear to work while changing nothing. Section 6 closes it.
-10. **Naming.** "Profile" already means the buyer's constraints. Resolved in 3.8.
+### 16.1 Contradictions found in the first review, and their outcome
+
+1. **Approval-first invariant against the strategy table.** Resolved by decision 20: the orderings stand, and the leader is shown with the best within-approval alternative.
+2. **"Recorded Groq ordering stays visible" against the demo story.** Resolved by decision 21.
+3. **"AI explains the trade-off" against "code-computed facts".** Attribution is conditional on what is displayed.
+4. **"Frozen prompts and runs unchanged" against "three new tasks".** The new tasks get their own module and Groq adapter (11.1).
+5. **"Deal override of service price" against "the quoted price is immutable".** Price is removed from input overrides; decision 22 covers the consequence for the demo deals.
+6. **"Reset must not erase the account economics" against the browser tests.** Reset keeps the account economics; a separate restore action is used by the test harness.
+7. **"Failed-rule exceptions never appear in the ranked list" against the built counter-offer.** The counter-offer moves out of the list.
+8. **Clarification questions depend on merchant economics.** Handled in section 6.
+9. **A policy edit is silently ignored by replay today.** Closed by the derived-decision rule.
+10. **Naming.** Resolved in 3.9.
+
+### 16.2 Contradictions found in the second review
+
+11. **The first draft's baseline could not honour "never new standard prices".** It stored only the quoted totals, so the engine would have read service prices from whichever account version was pinned, and a re-evaluation would have pulled new prices into an existing deal. Fixed by the per-service snapshot (4.2) and the input table (section 5).
+12. **The first draft hashed the account version, not the engine inputs.** A standard-price-only activation would then have made every open deal look changed, and staled its draft, while changing nothing. Fixed by hashing the exact engine inputs (4.3).
+13. **"Economics have changed" prompt against a price-only change.** With decision 26 a newer version can exist that does not affect a deal. Section 9 now offers re-evaluation only when the engine inputs would actually change.
+14. **"Recording economics hash" was defined on the account version.** It is now the recording input hash, defined on a deal's engine inputs, which is the thing a replay actually depends on.
+15. **Service flags and dependencies on re-evaluation are unspecified.** The instruction lists what a re-evaluation adopts and what it must not; flags are in neither list. Raised as D6.
+16. **A removed or added service.** Not covered before. A baseline service missing from a newer version blocks re-evaluation; an added service does not enter an existing deal (sections 5 and 9).
+17. **GST rate.** The baseline stores the rate the quote was made at and the first draft also took a rate from the pinned version. An existing deal now takes it from the baseline only.
+18. **Lower buyer commitment under a discount ladder.** Not a contradiction in the text, but a consequence worth a decision: it recommends the most discounted offer. Raised as D7.
+19. **Decision 23's condition.** "Valid under the configured rules" is made checkable: the activation preview must show at least one feasible offer on the open demo deal, or the demo does not use version 2.
+
+### 16.3 Checked and consistent
+
+- A ladder discount is computed from the snapshot price, so "discount against the baseline" and "discount the engine checks" are the same number.
+- The counter-offer's discount is computed from the structure's list price, which comes from the snapshot.
+- Version 1 with no overrides yields the fixture inputs exactly, so the three recordings still replay and their attribution is unchanged until economics or strategy change what is shown.
+- In the strategy demonstration the selection is implicit, so it follows the strategy back to Protect contribution (section 7), and the main journey continues from offer C.
