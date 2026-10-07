@@ -6,13 +6,10 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ServicePackage } from "@/domain/types";
 import type { DealBaseline } from "@/domain/deal-baseline";
-import type { ExplanationResult } from "@/ai/explain";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, whyOffer } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
-import type { ModelProvenance } from "@/lib/model-provenance";
-import { explanationAttribution } from "@/lib/views";
-import type { DecisionBranch } from "@/lib/decision-branch";
 import type { CounterOffer } from "@/lib/deal-records";
+import type { ReactNode } from "react";
 import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
@@ -39,17 +36,33 @@ export function contextLine(baseline: DealBaseline, budgetPaise: number | null, 
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, exp, policy, baseline, packages, context, primary, presentation, provenance, decisionBranch = null, counter = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; baseline: DealBaseline; packages: ServicePackage[]; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; provenance: ModelProvenance; decisionBranch?: DecisionBranch | null; counter?: CounterOffer | null }) {
+export function Recommendation({ x, policy, baseline, packages, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null }: {
+  x: EvaluatedStructure;
+  policy: MerchantPolicy;
+  baseline: DealBaseline;
+  packages: ServicePackage[];
+  context: string;
+  primary: ReactNode;
+  presentation: "recommended" | "merchant_selected";
+  /** The reason shown for this offer, written by code. */
+  reason: string;
+  /** Who ranked and who explained, already worded. */
+  attribution: string;
+  /** The recorded model's order and reason, kept as history. */
+  evidence?: { heading: string; order: string | null; reason: string | null } | null;
+  /** Which version of the merchant's economics this deal is evaluated under, and how many deal overrides apply. */
+  economics: { version: number; overrides: number };
+  counter?: CounterOffer | null;
+  /** Shown under the header: for example, the best offer the buyer can approve without MD approval. */
+  leaderNote?: ReactNode;
+  /** Shown in place of a second explanatory panel: what each strategy would recommend. */
+  comparison?: ReactNode;
+}) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const summary = offerSummary(x, baseline, packages, policy.gstRateBps);
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
   const funding = [...x.sellerChecks].find((c) => c.id === "seller_cash_at_risk");
   const passesRules = contribution?.status === "pass" && funding?.status === "pass";
-  // A note is validated on its own, so it is shown even when the overall comparison failed.
-  // A changed-answer branch never shows its parent run's note.
-  const aiNote = decisionBranch ? null : (exp?.notes.find((n) => n.structureId === x.structure.id)?.text ?? null);
-  // Attribute the reason actually shown: without a stored note for this offer, it is code-written.
-  const shownSource = exp ? { ranking: exp.source.ranking, text: aiNote ? ("ai" as const) : ("code_fallback" as const) } : null;
   const e = x.economics;
   return (
     <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation" data-walkthrough="commercial-recommendation">
@@ -62,6 +75,7 @@ export function Recommendation({ x, exp, policy, baseline, packages, context, pr
           {context}
         </p>
       </div>
+      {leaderNote ? <div className="border-b border-line bg-amber-weak/50 px-5 py-3 text-[14px]" data-testid="leader-note">{leaderNote}</div> : null}
       <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
         <div className="space-y-3">
           <div>
@@ -72,7 +86,7 @@ export function Recommendation({ x, exp, policy, baseline, packages, context, pr
             <div className="text-[14px] text-ink-2" data-testid="offer-payments">
               {x.structure.payments.length === 1 ? "One payment" : `${x.structure.payments.length} payments`}: {x.structure.payments.map((p) => `${formatINR(p.totalPaise)} on ${formatDate(p.dueDate)}`).join(", ")}
             </div>
-            <div className="mt-1">
+            <div className="mt-1" data-testid="offer-approval">
               <ApprovalBadge approval={x.approval} />
             </div>
           </div>
@@ -93,8 +107,15 @@ export function Recommendation({ x, exp, policy, baseline, packages, context, pr
             <div className="tabular text-[22px] font-semibold text-ink" data-testid="offer-contribution">
               {approxINR(e.netContributionPaise)}
             </div>
-            <div className="text-[13px] text-muted">A forecast from configured costs and fees, not a result.</div>
+            <div className="text-[13px] text-muted" data-testid="offer-keeps">You keep this after configured costs and expected fees. A forecast, not a result.</div>
           </div>
+          <p className="flex items-center gap-1 text-[14px] text-ink-2" data-testid="offer-cash">
+            Cash exposure: {formatINR(e.peakFundingPaise)}
+            <InfoButton label="About cash exposure">The most you would have paid out before being paid, on the worst day of this offer.</InfoButton>
+          </p>
+          <p className="text-[13px] text-muted" data-testid="offer-rules">
+            Based on version {economics.version} of your business economics{economics.overrides ? ` · ${economics.overrides} deal override${economics.overrides === 1 ? "" : "s"} applied` : ""}.
+          </p>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
             {passesRules ? "Passes your configured contribution and funding rules." : "Review the applied rules before sending."}
           </p>
@@ -124,29 +145,40 @@ export function Recommendation({ x, exp, policy, baseline, packages, context, pr
           </details>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 border-t border-line px-5 py-4 md:grid-cols-2">
-        <div data-testid="offer-achieves">
-          <h3 className="text-[13px] font-semibold text-ink">What this offer achieves</h3>
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
-            {summary.achieves.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
+      {comparison ? <div className="border-t border-line px-5 py-4">{comparison}</div> : null}
+      <details className="border-t border-line px-5 py-3" data-testid="offer-details">
+        <summary className="cursor-pointer text-[13px] font-semibold text-blue">What this offer achieves and what changes from the original proposal</summary>
+        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div data-testid="offer-achieves">
+            <h3 className="text-[13px] font-semibold text-ink">What this offer achieves</h3>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
+              {summary.achieves.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+          </div>
+          <div data-testid="offer-changes">
+            <h3 className="text-[13px] font-semibold text-ink">What changes from the original proposal</h3>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
+              {summary.changes.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <div data-testid="offer-changes">
-          <h3 className="text-[13px] font-semibold text-ink">What changes from the original proposal</h3>
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
-            {summary.changes.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      </details>
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
         <span className="font-semibold text-ink">Why this offer: </span>
-        <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : (aiNote ?? whyOffer(x))}</span>
-        <div className="mt-1 text-[13px] text-muted" data-testid="attribution">
-          {counter ? counterAttribution(counter) : explanationAttribution(shownSource, provenance, decisionBranch, exp?.source.text, presentation === "merchant_selected")}
+        <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</span>
+        <div className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted">
+          <span data-testid="attribution">{counter ? counterAttribution(counter) : attribution}</span>
+          {!counter && evidence ? (
+            <InfoButton label="Recorded model order and reason" testId="recorded-evidence">
+              <span className="block font-semibold text-ink">{evidence.heading}</span>
+              {evidence.order ? <span className="mt-1 block">{evidence.order}</span> : null}
+              {evidence.reason ? <span className="mt-1 block">Its reason for this offer: {evidence.reason}</span> : null}
+            </InfoButton>
+          ) : null}
         </div>
         {counter?.override ? (
           <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
@@ -160,18 +192,18 @@ export function Recommendation({ x, exp, policy, baseline, packages, context, pr
 }
 
 /** Other eligible options, shown as compact rows so the merchant can see and choose them (not hidden). */
-export function Alternatives({ options, selectedId }: { options: EvaluatedStructure[]; selectedId: string }) {
+export function Alternatives({ options, selectedId, heading = "Other offers you could send", testId = "compare-alternatives" }: { options: EvaluatedStructure[]; selectedId: string; heading?: string; testId?: string }) {
   const others = options.filter((x) => x.structure.id !== selectedId);
   if (!others.length) return null;
   return (
-    <section className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="compare-alternatives" aria-labelledby="alternatives-heading">
-      <h2 id="alternatives-heading" className="px-5 py-3 text-[15px] font-semibold text-ink">
-        Other offers you could send ({others.length})
+    <section className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid={testId} aria-labelledby={`${testId}-heading`}>
+      <h2 id={`${testId}-heading`} className="px-5 py-3 text-[15px] font-semibold text-ink">
+        {heading} ({others.length})
       </h2>
       <ul className="divide-y divide-line border-t border-line">
         {others.map((x, i) => (
           <li key={x.structure.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-[14px]" data-testid={`alternative-${i + 1}`}>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 basis-full sm:flex-1 sm:basis-0">
               <div className="font-semibold text-ink">{headlineFor(x)}</div>
               <div className="text-ink-2">{x.structure.label}</div>
               <div className="mt-0.5">

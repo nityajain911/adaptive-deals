@@ -8,6 +8,8 @@ import { FixedClock } from "@/domain/clock";
 import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
 import { CASE_RECORDED_RUN_DIR, CASE_RUN_MAP_FILE, mappedCaseRun } from "@/lib/case-runs";
 import { modelProvenance } from "@/lib/model-provenance";
+import { strategyView } from "@/domain/strategy";
+import { heroBaseline } from "../helpers";
 
 /**
  * The three committed case recordings are real Groq runs of the frozen prompts. These tests read
@@ -63,6 +65,16 @@ describe("what each recording actually contains", () => {
     const first = out.evaluation.result!.structures.find((s) => s.structure.id === out.explanation!.order[0])!;
     expect(first.structure.label).toBe("Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start");
     expect(out.explanation!.source).toEqual({ ranking: "ai", text: "code_fallback" });
+  });
+
+  it("reduced scope: code's recommendation under the default strategy is the two-payment offer, not the order the model recorded", async () => {
+    const r = record("reduced-scope");
+    const out = await replayRun(r, demoCase("reduced-scope")!.deal, new FixedClock());
+    const view = strategyView(out.evaluation.result!.feasible, "protect_contribution", heroBaseline());
+    expect(view.leader!.structure.id).toBe("phased_scope:scope=web-search-report-3m,plan=two_monthly");
+    expect(view.leader!.structure.id).not.toBe(out.explanation!.order[0]);
+    // Same offers either way: the model's recorded order is a permutation of what code ranks.
+    expect([...out.explanation!.order].sort()).toEqual(view.ranked.map((x) => x.structure.id).sort());
   });
 
   it("preserve scope: schema-valid extraction with one rejected required-scope field, and an explanation that broke its schema", () => {

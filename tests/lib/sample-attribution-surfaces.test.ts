@@ -43,7 +43,11 @@ async function surfaces(s: DemoState): Promise<Record<string, string>> {
   const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const view = walkthroughView({ state: s, progress, dealId: "hero", capabilities: walkthroughCapabilities() });
   const noop = () => undefined;
-  const top = out.evaluation.result?.structures.find((x) => x.structure.id === out.explanation?.order[0]);
+  const strategy = svc.strategyViewOf(s, out);
+  const top = strategy.leader;
+  const eligible = svc.strategyFeasibleOf(s, out);
+  const { offerNarrative } = await import("@/lib/offer-narrative");
+  const narrative = top ? offerNarrative({ s, out, x: top, view: strategy, eligible }) : null;
   const rendered: Record<string, string> = {
     "question badges": s.run.record.displayed.questions.map((q) => questionWordingLabel(q.wording, provenance)).join(" | "),
     "understand thread": renderToStaticMarkup(ConversationThread({ s, scope: "understand", buyerName: "Buyer", opening: s.run.record.inputs.messages })),
@@ -57,8 +61,10 @@ async function surfaces(s: DemoState): Promise<Record<string, string>> {
     );
   }
   if (top) {
+    // The recorded evidence sits behind an information control, so it is checked as data as well as markup.
+    rendered["offer card evidence"] = JSON.stringify(narrative!.evidence);
     rendered["offer card"] = renderToStaticMarkup(
-      Recommendation({ x: top, exp: out.explanation, policy: deal.merchant.policy, baseline: s.baseline, packages: deal.packages, context: "Context", primary: null, presentation: "recommended", provenance: taskOrRunProvenance(s.run.record, "explain", s.run.viewing), decisionBranch: s.decisionBranch }),
+      Recommendation({ x: top, policy: deal.merchant.policy, baseline: s.baseline, packages: deal.packages, context: "Context", primary: null, presentation: "recommended", economics: { version: s.economics.pinned.version, overrides: s.economics.overrides.length }, reason: narrative!.reason, attribution: narrative!.attribution, evidence: narrative!.evidence }),
     );
   }
   return rendered;

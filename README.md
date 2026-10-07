@@ -49,7 +49,7 @@ The guide explains the current decision. On a merchant step it names the product
 
 Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
 
-Every attribution on screen is derived from the stored run, not from the feature: a recorded run reads **Recorded Groq output**, a hand-written sample reads **Sample output written by hand · no model ran**, and a card says **Groq ranked · code explained** or **Groq wrote this reason · you selected this option** only when that is what happened.
+Every attribution on screen is derived from the stored run, not from the feature: a recorded run reads **Recorded Groq output**, a hand-written sample reads **Sample output written by hand · no model ran**, and an offer card says **Default strategy · offers ranked by code · explained by code** (or **Strategy selected by you**, or **You selected this offer**), because code ranks the offers by the merchant's strategy and writes the explanation. The recorded model's own order and reason are kept behind an information control as **historical evidence that does not drive the current recommendation**.
 
 ## Recorded model runs
 
@@ -57,7 +57,7 @@ Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `c
 
 | Case | What the recording shows | What the merchant does |
 | --- | --- | --- |
-| **Repair bookings now, defer social** | Groq extracts the constraints, words both questions and ranks the single upfront payment first. Code rejects its comparison text (it contained figures), so the card reads *Groq ranked and wrote this reason · … Full comparison written by code.* | Compares the alternatives and **selects two payments**, labelled *Selected by you*. The preventive restructuring journey continues from that selected offer. |
+| **Repair bookings now, defer social** | Groq extracts the constraints and words both questions. Its recorded run also ranked the single upfront payment first, with per-offer reasons; that is kept as history only. | Code recommends the **two-payment** offer under *Protect contribution*. **Preserve scope** leads with the annual offer, says it needs the buyer's MD approval and names the best offer without it. Back on *Protect contribution*, the preventive restructuring journey continues. |
 | **Keep the annual scope, move the start** | Schema-valid extraction with one rejected required-scope field ("complete annual package" names no service) and one missed GST fact. The model's explanation broke its schema twice, so code writes the explanation. | **Confirms the required services** before any offer. The engine then recalculates, and the card reads *Recalculated by the engine after the merchant confirmed the services · explanation written by code.* |
 | **Decline an impossible start date** | A clean extraction. | Reads why the engine rejects every approved structure, and closes the deal. |
 

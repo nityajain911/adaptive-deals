@@ -202,7 +202,7 @@ Each item names where it is implemented. The Playwright journey (`e2e/journey.sp
 | Buyer text tries to instruct the AI | Messages are delimited as untrusted data, and delimiter-like text is neutralised. The system prompt never contains buyer text. Suspected instructions are recorded and displayed but have no effect. Policy comes only from merchant configuration (`tests/ai/injection.test.ts`). |
 | AI invents or paraphrases evidence | Every field needs a verbatim quote at verified character offsets in the cited message; otherwise the field is rejected and the rejection is shown. |
 | AI supplies numbers | The schemas have no numeric fields. Explanations may use placeholders only; any literal figure, date or percentage rejects the text. |
-| AI hides or forces options | Code enumerates every template before checks. The AI ranks aliases of engine-feasible structures only; unknown aliases are ignored, omitted options are appended, and the approval ordering is enforced. |
+| AI hides or forces options | Code enumerates every template before checks. The recommended order is code's, set by the merchant's strategy. A recorded model order (which only ever ranked aliases of engine-feasible structures) is kept as history and does not decide. |
 | Approval limit used as a loophole | A limit is an approval requirement, not a prohibition. A Phase 1 must have independent value, requires the buyer's authority confirmation at acceptance, and is never described as a way around approval; bypass wording is rejected. |
 | Unsafe deal disguised as an option | Anything failing a check is shown only in the Rejected or Needs information sections, is never approvable, and an agreement cannot be created from it. |
 | Terms change after approval | A canonical SHA-256 terms hash is used. Activation requires the merchant-approval hash and the buyer-acceptance hash to equal the recomputed hash, and any contractual change creates a new version. |
@@ -265,7 +265,7 @@ These are not built and do not appear as navigation:
 
 **A hand-written sample is never presented as AI output.** Attribution is derived from the stored run kind and the provider recorded on each step. Sample cases read **Sample output written by hand · no model ran** on the case card, question badges, conversation thread, Offer card, audit and walkthrough. A recorded run reads **Recorded Groq output**. A run with mixed sources is credited step by step.
 
-**The Offer card attributes the text it shows.** If a recorded model ranked the options but the visible reason is code-written, the card says **Groq ranked · code explained**.
+**The Offer card attributes the text it shows.** If a recorded model ranked the options but the visible reason is code-written, the card says **Groq ranked · code explained**. *(Superseded for the Offer card: see "Code ranks the offers by the merchant's strategy" below.)*
 
 **Case recordings are separate from historical runs.** They live in `data/case-recorded-runs/` and are mapped by `data/case-runs.json`. A recording is used only when it is a complete model run of exactly that case's conversation; otherwise the product falls back to the labelled sample. `data/live-runs/` holds the earlier historical runs and is never read for cases.
 
@@ -277,7 +277,7 @@ A buyer or the model may name several packages in one sentence. Every known pack
 
 ## Validated per-offer reasons are shown with field-level attribution
 
-The model's explanation has two parts that code validates separately: a full comparison and a short reason per offer. A reason that passes validation is shown on its offer card even when the full comparison fails. The card then reads **Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.** The product never says the model wrote a comparison that code wrote, and a changed-answer branch never shows its parent run's reason.
+The model's explanation has two parts that code validates separately: a full comparison and a short reason per offer. A reason that passes validation is shown on its offer card even when the full comparison fails. The card then reads **Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.** The product never says the model wrote a comparison that code wrote, and a changed-answer branch never shows its parent run's reason. *(Superseded for the Offer card: the recorded reason now sits behind an information control as history.)*
 
 ## The merchant confirms required services the extraction could not map
 
@@ -363,3 +363,17 @@ The model's explanation has two parts that code validates separately: a full com
 **An open deal is told, not changed.** When a newer version would change a deal's engine inputs, the deal shows a banner and keeps its pinned economics. The review names each changed input in the merchant's words ("Website fixes · direct delivery cost: ₹12,000 → ₹15,000"), says what happens to the available offers, the recommendation and any unsent draft, and states that service prices are unchanged for this deal. Only an explicit confirmation moves the deal to the new version. A version that changes standard prices alone raises no banner at all.
 
 **Only an input the product can name is described.** An engine input that has no plain-language label is shown as its raw field name rather than guessed at.
+
+## Code ranks the offers by the merchant's strategy
+
+**A strategy is a financial instruction, so code owns it.** The merchant chooses Protect contribution (the default), Preserve scope, Minimise cash exposure or Lower buyer commitment. Each is a fixed, tested ordering of the offers the engine already approved. A strategy never adds an offer and never relaxes a check.
+
+**The recorded Groq order is history, not a decision.** The recorded run's order and per-offer reason stay available behind an information control, labelled "Historical evidence from the recorded Groq run. It does not drive the current recommendation." They are shown only while the deal still has the economics the run was recorded under, because they describe those inputs and no others. A hand-written sample is labelled as a sample.
+
+**On the recorded hero case this changes the first recommendation.** Groq's recorded order put the single upfront payment first; code, under Protect contribution, puts the two-payment offer first. Both offers keep the same amount, so the merchant keeps the same contribution either way. The demo's old moment, "the merchant overrides Groq", is replaced by the merchant changing strategy.
+
+**An offer that needs the buyer's approval may lead.** Preserve scope and Minimise cash exposure can lead with the annual offer, which needs the buyer's MD approval. The card says so on the offer itself and shows beside it the best offer the buyer can approve without it. Protect contribution and Lower buyer commitment still put approval first.
+
+**The merchant's own choice survives a strategy change; a recommendation does not.** An offer the merchant selected, and its draft, stay selected when the strategy changes, and the screen says what the strategy would now recommend. An offer that only followed the recommendation, and its unsent draft, simply follow the new leader. A sent version keeps the strategy it was sent under.
+
+**Who did what is stated plainly.** "Default strategy · offers ranked by code · explained by code · figures calculated by the engine", "Strategy selected by you · …", or "You selected this offer · …". No model is named on the card, because none ranked or explained what it shows.

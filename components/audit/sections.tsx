@@ -5,7 +5,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { DealContext } from "@/ai/orchestrator";
 import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
 import { SAMPLE_OUTPUT_LABEL, taskOrRunProvenance } from "@/lib/model-provenance";
-import type { DemoState } from "@/lib/service";
+import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
 
@@ -33,7 +33,7 @@ function H({ id, children }: { id: string; children: React.ReactNode }) {
 function offerStructure(s: DemoState, out: RunOutcome): EvaluatedStructure | null {
   const v = activeVersionOf(s.agreements) ?? [...s.agreements].reverse().find((a) => a.status !== "draft") ?? null;
   if (v) return s.amendments.find((a) => a.toVersion === v.version)?.revised ?? out.evaluation.result?.structures.find((x) => x.structure.id === v.structureId) ?? null;
-  const id = s.selectedOption?.structureId ?? out.explanation?.order[0];
+  const id = s.selectedOption?.structureId ?? strategyViewOf(s, out).leader?.structure.id;
   return out.evaluation.result?.structures.find((x) => x.structure.id === id) ?? null;
 }
 

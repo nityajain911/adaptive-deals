@@ -797,9 +797,13 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
  * counter-offer is never part of it: it is the merchant's own choice, shown apart.
  */
 export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
+  return strategyView(strategyFeasibleOf(s, out), s.economics.strategy, s.baseline);
+}
+
+/** The feasible offers every strategy ranks: the engine's approvable offers, without any counter-offer. */
+export function strategyFeasibleOf(s: DemoState, out: RunOutcome): EvaluatedStructure[] {
   const all = out.evaluation.result ? eligibleStructures(s, out.evaluation.result.structures) : [];
-  const feasible = all.filter((x) => !s.counterOffers.some((c) => c.evaluated.structure.id === x.structure.id));
-  return strategyView(feasible, s.economics.strategy, s.baseline);
+  return all.filter((x) => !s.counterOffers.some((c) => c.evaluated.structure.id === x.structure.id));
 }
 
 /** Whether the merchant has ever chosen a strategy for this deal, rather than being given the default. */

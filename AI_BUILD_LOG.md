@@ -904,6 +904,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Price boundary:** A later standard-price edit applies to new quotes only. Re-evaluation of an existing deal continues to use its immutable quoted prices and can adopt only the newer costs, operational flags, guardrails and discount ladder that are compatible with the original deal.
 
+### 2026-10-08 · Strategy-led Offer screen: code ranks, the recorded order becomes history [Claude Code]
+
+**What changed:** The Offer screen now leads with the merchant's strategy. Code ranks the feasible offers, writes the reason, and shows what each strategy would recommend; the recorded Groq order and reason sit behind an information control as historical evidence. The audit and the guide describe the recorded order as "not used for the recommendation".
+
+**AI boundary:** No prompt, schema, recording, evaluation or engine file changed, and no model call was made. The frozen `explain.v3` outputs are read exactly as before; they are no longer used to decide the recommended offer. The card names no model, because none ranked or explained what it shows. A hand-written sample is never labelled as a recorded model.
+
+**Human decisions:** The applicant decided that deterministic ranking is authoritative, that an offer needing the buyer's approval may lead, and that Groq's recorded order stays visible only as history. I found that an earlier phase had left the service side of strategies unbuilt (setting a strategy, the explicit-selection flag and the action), and built it here.
+
+**Effect on the demo:** On the recorded hero case the first recommendation changes from the single upfront payment to the two-payment offer. The browser journey and the demo script were rewritten as a strategy demonstration. Assertions about the old ranking wording were changed deliberately; the rule that a sample never reads as AI output was not.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

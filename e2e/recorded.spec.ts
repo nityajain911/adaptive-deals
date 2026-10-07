@@ -126,7 +126,7 @@ test("recorded · preserve scope holds at Understand until the merchant confirms
   await expect(page.getByTestId("primary-action")).toBeDisabled();
   await confirmAllServices(page);
   await expect(page.getByTestId("status-headline")).toHaveText("Review this offer before sending it.");
-  await expect(page.getByTestId("attribution")).toHaveText("Recalculated by the engine after the merchant confirmed the services · explanation written by code.");
+  await expect(page.getByTestId("attribution")).toHaveText("Recalculated by the engine after the merchant confirmed the services · Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
 
   const branch = state().decisionBranch!;
   expect(branch).toMatchObject({ reason: "merchant_scope_confirmation", answersChanged: false, parentRunId: RUN["preserve-scope"] });
@@ -159,29 +159,47 @@ test("recorded · the scope confirmation card fits a phone", async ({ page }) =>
   await noHorizontalScroll(page);
 });
 
-test("recorded · the merchant overrides Groq's ranking, and the preventive restructuring continues from that choice", async ({ page }) => {
+test("recorded · the merchant's strategy decides the recommendation, Groq's recorded order stays as evidence, and the journey continues", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reducedOptions(page);
   await page.goto("/deals/hero/offer");
 
-  // Groq ranked the single upfront payment first and wrote its reason; code wrote the comparison.
+  // Code ranks by the default strategy, Protect contribution: the two-payment phase leads. Groq's recorded order differed.
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Protect contribution");
   await expect(page.getByTestId("recommendation")).toContainText("Recommended offer");
-  await expect(page.getByTestId("offer-headline")).toHaveText("Start with a standalone three-month package · paid upfront");
-  await expect(page.getByTestId("offer-payments")).toContainText("One payment");
-  await expect(page.getByTestId("attribution")).toHaveText("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Start with a standalone three-month package · two monthly payments");
+  await expect(page.getByTestId("offer-payments")).toContainText("2 payments");
+  await expect(page.getByTestId("attribution")).toHaveText("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
+  await expect(page.getByTestId("why-offer")).not.toContainText("Groq");
+
+  // The recorded model's order and reason are kept as history, behind the information control.
+  await page.getByTestId("recorded-evidence").click();
+  const evidence = page.getByTestId("recorded-evidence-note");
+  await expect(evidence).toContainText("Historical evidence from the recorded Groq run. It does not drive the current recommendation.");
+  await expect(evidence).toContainText("Recorded order: Start with a standalone three-month package · paid upfront");
+  await expect(evidence).toContainText("Its reason for this offer:");
+  await page.keyboard.press("Escape");
   await shot(page, "recorded-2-offer-reduced-scope");
 
-  // The merchant chooses the two-payment alternative.
-  await expect(page.getByTestId("compare-alternatives")).toBeVisible();
-  await page.locator('[data-testid^="alternative-"]', { hasText: "two monthly payments" }).getByRole("button", { name: "Select this offer" }).click();
-  await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
+  // Preserve scope recommends the annual offer, says it needs MD approval, and names the best offer without it.
+  await page.getByTestId("strategy-preserve_scope").check();
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Preserve scope");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Keep the annual scope and split the payments");
+  await expect(page.getByTestId("offer-approval")).toContainText("MD approval");
+  await expect(page.getByTestId("within-approval-alternative")).toContainText("two monthly payments");
+  await expect(page.getByTestId("attribution")).toHaveText("Strategy selected by you · offers ranked by code · explained by code · figures calculated by the engine.");
+  await expect(page.getByTestId("strategy-row-preserve_scope")).toHaveAttribute("data-current", "true");
+  await shot(page, "recorded-3-strategy-preserve-scope");
+
+  // Back to Protect contribution for the main journey. Nothing was drafted, so the recommendation simply follows.
+  await page.getByTestId("strategy-protect_contribution").check();
   await expect(page.getByTestId("offer-headline")).toHaveText("Start with a standalone three-month package · two monthly payments");
-  await expect(page.getByTestId("attribution")).toHaveText("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
-  await expect(page.getByTestId("attribution")).not.toContainText("ranked");
-  expect(state().outcomes.some((o) => o.type === "option_selected" && o.actor === "merchant")).toBe(true);
+  expect(state().economics.strategy).toBe("protect_contribution");
+  expect(state().selectedOption).toBeNull();
 
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
+  expect(state().selectedOption).toMatchObject({ explicit: false });
   await expect(page.locator("main")).toContainText("₹23,010");
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/track$/);
@@ -221,7 +239,7 @@ test("recorded · a rejected explanation and a rejected comparison fall back to 
   let drawer = await openAudit(page);
   await expect(drawer).toContainText("Wrote 3 per-offer reasons that passed validation (explain.v3)");
   await expect(drawer).toContainText("Wrote the full comparison, because the AI comparison did not pass validation");
-  await expect(drawer).toContainText("Suggested the order of eligible options (explain.v3)");
+  await expect(drawer).toContainText("Suggested an order of eligible options (explain.v3) · historical, not used for the recommendation");
   await page.keyboard.press("Escape");
 
   // Preserve scope: the model's explanation broke its schema twice, so code writes the explanation.

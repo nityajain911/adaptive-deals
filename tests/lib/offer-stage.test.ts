@@ -4,21 +4,23 @@ import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
 import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
-import { alternativeContributionLine, headlineFor } from "@/lib/offer-copy";
+import { alternativeContributionLine, headlineFor, whyOffer } from "@/lib/offer-copy";
 import type { ExplanationResult } from "@/ai/explain";
-import type { DecisionBranch } from "@/lib/decision-branch";
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { clarifiedHeroProfile, heroBaseline, heroInput } from "../helpers";
+import { recordedEvidence, strategyAttribution } from "@/lib/strategy-copy";
 
 const SAMPLE: ModelProvenance = { source: "hand_written", modelMade: false, providerName: null, label: "Sample output written by hand · no model ran" };
 const GROQ: ModelProvenance = { source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" };
+
+const CARD = { policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, reason: "Reason written by code.", attribution: strategyAttribution({ strategyChosen: false, selectedByMerchant: false }), economics: { version: 1, overrides: 0 }, primary: null };
 
 /** Spec §5.1: one primary action; rejection and funding detail collapsed in the initial view. */
 const top = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible.find((x) => x.structure.template === "phased_scope" && x.structure.payments.length === 2)!;
 
 describe("recommendation card", () => {
   const html = renderToStaticMarkup(
-    Recommendation({ x: top(), exp: null, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: contextLine(heroBaseline(), 5_000_000, 6_000_000, true), primary: null, presentation: "recommended", provenance: SAMPLE }),
+    Recommendation({ ...CARD, x: top(), reason: whyOffer(top()), context: contextLine(heroBaseline(), 5_000_000, 6_000_000, true), presentation: "recommended" }),
   );
   it("keeps the GST basis and per-contract scope in the context line", () => {
     expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true)).toBe("Original annual proposal: ₹1,41,600 including GST. The buyer has ₹50,000 including GST this quarter. Contracts above ₹60,000 including GST require MD approval.");
@@ -52,7 +54,7 @@ describe("recommendation card", () => {
   it("distinguishes an engine recommendation from an option selected by the merchant", () => {
     expect(html).toContain("Recommended offer");
     const annual = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible.find((x) => x.approval === "requires_approval")!;
-    const selected = renderToStaticMarkup(Recommendation({ x: annual, exp: null, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: SAMPLE }));
+    const selected = renderToStaticMarkup(Recommendation({ ...CARD, x: annual, reason: whyOffer(annual), context: "Confirmed context", presentation: "merchant_selected" }));
     expect(selected).toContain("Selected by you");
     expect(selected).not.toContain("Recommended offer");
     expect(selected).toContain("requires the buyer&#x27;s MD approval");
@@ -77,46 +79,50 @@ describe("rejection and needs-information reasons", () => {
 describe("recommendation attribution on the card", () => {
   const x = top();
   const NOTE = "Keeps the urgent work inside the confirmed limit.";
-  const exp = (notes: ExplanationResult["notes"], text: "ai" | "code_fallback" = "ai"): ExplanationResult => ({ order: [x.structure.id], options: [], comparisonTemplate: "", comparison: "", notes, source: { ranking: "ai", text }, issues: [] });
-  const noteFor = (structureId: string) => [{ structureId, text: NOTE }];
-  const card = (e: ExplanationResult, provenance: ModelProvenance, decisionBranch: DecisionBranch | null = null) =>
-    renderToStaticMarkup(Recommendation({ x, exp: e, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "recommended", provenance, decisionBranch }));
+  const recorded = (provenance: ModelProvenance, ranking: "ai" | "code" = "ai", notes = [{ structureId: x.structure.id, text: NOTE }]): ExplanationResult => ({
+    order: [x.structure.id], options: [], comparisonTemplate: "", comparison: "", notes, source: { ranking, text: notes.length ? "ai" : "code_fallback" }, issues: [],
+  });
+  const evidenceFor = (provenance: ModelProvenance, exp: ExplanationResult | null, matchesRecording = true) => recordedEvidence({ exp, provenance, matchesRecording, shownId: x.structure.id, headline: headlineFor2 });
+  const headlineFor2 = (id: string) => (id === x.structure.id ? headlineFor(x) : id);
+  const card = (over: Partial<Parameters<typeof Recommendation>[0]> = {}) => renderToStaticMarkup(Recommendation({ ...CARD, x, context: "Confirmed context", presentation: "recommended", ...over }));
   const attribution = (html: string) => /data-testid="attribution">([^<]*)</.exec(html)![1];
 
-  it("credits a hand-written sample to nobody's model, with or without a note for this offer", () => {
-    for (const html of [card(exp([]), SAMPLE), card(exp(noteFor(x.structure.id)), SAMPLE)]) {
-      expect(attribution(html)).toMatch(/^Sample order/);
-      expect(attribution(html)).toContain("no model ran");
-      expect(attribution(html)).not.toMatch(/\bAI\b|Groq/);
-    }
+  it("credits code, and no model, for the ranking and the reason shown", () => {
+    const html = card();
+    expect(attribution(html)).toBe("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
+    expect(html).toContain("Reason written by code.");
+    expect(attribution(html)).not.toMatch(/\bAI\b|Groq|model/);
   });
-  it("says code explained when the text shown is code's, even if the model wrote other text", () => {
-    expect(attribution(card(exp([]), GROQ))).toBe("Groq ranked · code explained · recorded Groq output · all figures calculated by the engine");
-    // A validated note for a different offer is not this card's reason.
-    expect(attribution(card(exp(noteFor("another-structure")), GROQ))).toMatch(/^Groq ranked · code explained/);
-  });
-  it("shows a validated note even when the overall comparison failed, and says who wrote what", () => {
-    const html = card(exp(noteFor(x.structure.id), "code_fallback"), GROQ);
-    expect(html).toContain(NOTE);
-    expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
-  });
-  it("omits the code-comparison clause when the model's comparison also passed", () => {
-    const html = card(exp(noteFor(x.structure.id), "ai"), GROQ);
-    expect(html).toContain(NOTE);
-    expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine.");
-  });
-  it("on the option the merchant selected, says the merchant chose it and the model only wrote the reason", () => {
-    const html = renderToStaticMarkup(Recommendation({ x, exp: exp(noteFor(x.structure.id), "code_fallback"), policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: GROQ }));
-    expect(html).toContain("Selected by you");
-    expect(html).toContain(NOTE);
-    expect(attribution(html)).toBe("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine. Full comparison written by code.");
-    expect(attribution(html)).not.toMatch(/ranked/);
-  });
-  it("never shows a parent run's note on a changed-answer branch", () => {
-    const branch: DecisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: "p", createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
-    const html = card(exp(noteFor(x.structure.id)), GROQ, branch);
+  it("keeps a recorded model's order and note out of the visible card, behind an information control, as history", () => {
+    const html = card({ evidence: evidenceFor(GROQ, recorded(GROQ)) });
+    expect(html).toContain('data-testid="recorded-evidence"');
+    // The popover's content is not rendered until it is opened, so none of it is on the card.
     expect(html).not.toContain(NOTE);
-    expect(attribution(html)).toMatch(/^Recalculated by the engine after the buyer.+answer · explanation written by code\.$/);
-    expect(attribution(html)).not.toMatch(/Groq/);
+    expect(html).not.toContain("Historical evidence");
+    expect(attribution(html)).not.toMatch(/Groq|ranked by Groq/);
+  });
+  it("shows no evidence control when the economics differ from the recording, or no model wrote anything", () => {
+    expect(card({ evidence: evidenceFor(GROQ, recorded(GROQ), false) })).not.toContain("recorded-evidence");
+    expect(card({ evidence: evidenceFor(GROQ, recorded(GROQ, "code", [])) })).not.toContain("recorded-evidence");
+    expect(card({ evidence: evidenceFor(SAMPLE, null) })).not.toContain("recorded-evidence");
+  });
+  it("on the option the merchant selected, says the merchant chose it and that code ranked the others", () => {
+    const html = card({ presentation: "merchant_selected", attribution: strategyAttribution({ strategyChosen: true, selectedByMerchant: true }) });
+    expect(html).toContain("Selected by you");
+    expect(attribution(html)).toBe("You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.");
+  });
+  it("says what caused a recalculation, and never shows a parent run's note", () => {
+    const html = card({ attribution: strategyAttribution({ strategyChosen: false, selectedByMerchant: false, branchCause: "the buyer's answer" }), evidence: null });
+    expect(attribution(html)).toMatch(/^Recalculated by the engine after the buyer&#x27;s answer · /);
+    expect(html).not.toContain(NOTE);
+  });
+  it("says which version of the merchant's economics it is based on, and any deal overrides", () => {
+    expect(card()).toContain("Based on version 1 of your business economics.");
+    expect(card({ economics: { version: 2, overrides: 2 } })).toContain("Based on version 2 of your business economics · 2 deal overrides applied.");
+  });
+  it("states the cash exposure and keeps the forecast wording", () => {
+    const html = card();
+    expect(html).toContain("Cash exposure: ");
+    expect(html).toContain("You keep this after configured costs and expected fees. A forecast, not a result.");
   });
 });

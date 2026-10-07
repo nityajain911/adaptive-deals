@@ -3,7 +3,7 @@ import { shortReason } from "@/domain/copy";
 import { failingChecks } from "@/domain/engine";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
-import { PrimaryActionButton } from "@/components/client";
+import { ActionButton, PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
 import { OpenAudit } from "@/components/audit/audit-drawer";
@@ -13,11 +13,15 @@ import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
 import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
+import { StrategyComparison } from "@/components/offer/strategy-comparison";
+import { StrategyControl } from "@/components/offer/strategy-control";
 import { Card, Notice } from "@/components/ui";
 import { MERCHANT_CLOSE_REASONS, type MerchantCloseReason } from "@/lib/deal-records";
 import { loadDeal, stageHref } from "@/lib/deal-page";
-import { taskOrRunProvenance } from "@/lib/model-provenance";
 import { headlineFor } from "@/lib/offer-copy";
+import { offerNarrative } from "@/lib/offer-narrative";
+import { strategyFeasibleOf } from "@/lib/service";
+import { STRATEGY_LABEL, strategyView } from "@/domain/strategy";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
@@ -135,17 +139,38 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
     );
   }
 
-  // Recommendation (current): review or review-updated.
+  // Recommendation (current): review or review-updated. Code ranks the feasible offers by the deal's strategy.
   const eligible = r ? eligibleStructures(s, r.structures) : [];
-  const ranked = (out.explanation?.order ?? []).map((id) => eligible.find((x) => x.structure.id === id)!).filter(Boolean);
-  // The merchant's live counter-offer comes first; earlier counters are history, not alternatives.
+  const feasible = strategyFeasibleOf(s, out);
+  const view = strategyView(feasible, s.economics.strategy, baseline);
+  // The merchant's live counter-offer is theirs, shown first and never part of the ranked list.
   const liveCounter = s.counterOffers.at(-1) ?? null;
   const activeCounter = liveCounter && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
-  const isCounter = (id: string) => s.counterOffers.some((c) => c.evaluated.structure.id === id);
-  const options = [...(activeCounter ? [activeCounter.evaluated] : []), ...(ranked.length ? ranked : eligible).filter((o) => !isCounter(o.structure.id))];
-  const selectedId = s.selectedOption && eligible.some((x) => x.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : options[0]?.structure.id;
-  const x = options.find((o) => o.structure.id === selectedId);
+  const selectedId = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : view.leader?.structure.id;
+  const x = eligible.find((e) => e.structure.id === selectedId);
+  const strategyLabel = STRATEGY_LABEL[s.economics.strategy];
+  const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} />;
+  if (!x && view.mode === "discount_only" && r) {
+    // Nothing fits at the quoted prices. A discount is permitted, never recommended, so none is called recommended.
+    return (
+      <StageShell dealId={dealId} viewing="offer">
+        <div className="space-y-4">
+          {control}
+          <Card className="space-y-2 p-5" data-testid="no-standard-offer">
+            <h2 className="text-[18px] font-semibold text-ink">No offer fits at the quoted prices.</h2>
+            <p className="text-[14px] text-ink-2">Your approved discounts would allow the offers below, lowest discount first. Choose one yourself if you want to offer a discount.</p>
+          </Card>
+          <Alternatives options={view.discounted} selectedId="" heading="Offers your approved discounts allow" testId="discount-only-offers" />
+          <DontProceed />
+        </div>
+      </StageShell>
+    );
+  }
   if (!x || !r) return <StageShell dealId={dealId} viewing="offer">{null}</StageShell>;
+  const narrative = offerNarrative({ s, out, x, view, eligible });
+  const { isLeader, selectedByMerchant, wholeRupees } = narrative;
+  const standard = view.mode === "standard";
+  const options = standard ? view.ranked : view.discounted;
   const p = out.profile;
   const context = contextLine(
     baseline,
@@ -156,7 +181,17 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   );
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
-  const explicitlySelected = s.outcomes.some((o) => o.type === "option_selected" && o.source?.kind === "action" && o.source.id === x.structure.id);
+  const alt = isLeader ? view.withinApprovalAlternative : null;
+  const leaderNote = isLeader && x.approval === "requires_approval" ? (
+    alt ? (
+      <div data-testid="within-approval-alternative" className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span><span className="font-semibold text-amber">Needs the buyer&apos;s MD approval.</span> The best offer the buyer can approve without it: <span className="font-semibold text-ink">{headlineFor(alt)}</span> · {formatINR(alt.structure.payments.reduce((n, p) => n + p.totalPaise, 0))} · you keep about {wholeRupees(alt.economics.netContributionPaise)}.</span>
+        <ActionButton body={{ action: "select_option", structureId: alt.structure.id }} variant="ghost" testId="select-within-approval">Select this offer</ActionButton>
+      </div>
+    ) : (
+      <span data-testid="no-within-approval"><span className="font-semibold text-amber">Needs the buyer&apos;s MD approval.</span> No offer fits within the buyer&apos;s approval limit.</span>
+    )
+  ) : null;
   return (
     <StageShell dealId={dealId} viewing="offer">
       <div className="space-y-4">
@@ -170,17 +205,28 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             </div>
           </figure>
         ) : null}
+        {control}
+        <h2 className="text-[16px] font-semibold text-ink" data-testid="strategy-heading">Best offer for: {strategyLabel}</h2>
+        {!isLeader && !activeCounter && view.leader ? (
+          <Notice tone="blue" title={`Under ${strategyLabel} the recommended offer is different.`}>
+            <span data-testid="strategy-differs">The recommended offer is {headlineFor(view.leader)}. You selected the offer below.</span>{" "}
+            <ActionButton body={{ action: "select_option", structureId: view.leader.structure.id }} variant="ghost" testId="use-recommended">Use the recommended offer</ActionButton>
+          </Notice>
+        ) : null}
         <Recommendation
           x={x}
-          exp={out.explanation}
           policy={policy}
           baseline={baseline}
           packages={deal.packages}
           context={context}
-          presentation={explicitlySelected ? "merchant_selected" : "recommended"}
-          provenance={taskOrRunProvenance(s.run.record, "explain", s.run.viewing)}
-          decisionBranch={s.decisionBranch}
+          presentation={selectedByMerchant ? "merchant_selected" : "recommended"}
+          reason={narrative.reason}
+          attribution={narrative.attribution}
+          evidence={narrative.evidence}
+          economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
           counter={activeCounter}
+          leaderNote={leaderNote}
+          comparison={standard ? <StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /> : null}
           primary={
             <>
               {primaryId === "review_new_evidence" ? null : (

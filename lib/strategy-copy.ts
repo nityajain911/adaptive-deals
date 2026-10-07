@@ -6,9 +6,12 @@ import type { ModelProvenance } from "./model-provenance";
  * is credited to a model. The merchant is credited for the strategy they chose and for an offer
  * they selected themselves.
  */
-export function strategyAttribution(args: { strategyChosen: boolean; selectedByMerchant: boolean }): string {
-  if (args.selectedByMerchant) return "You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.";
-  return `${args.strategyChosen ? "Strategy selected by you" : "Default strategy"} · offers ranked by code · explained by code · figures calculated by the engine.`;
+export function strategyAttribution(args: { strategyChosen: boolean; selectedByMerchant: boolean; branchCause?: string }): string {
+  const base = args.selectedByMerchant
+    ? "You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine."
+    : `${args.strategyChosen ? "Strategy selected by you" : "Default strategy"} · offers ranked by code · explained by code · figures calculated by the engine.`;
+  // A recalculation names its cause: the recorded run never processed it.
+  return args.branchCause ? `Recalculated by the engine after ${args.branchCause} · ${base}` : base;
 }
 
 /**

@@ -875,3 +875,65 @@ test("counter-offer · choosing 'A lower price' makes the counter available", as
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("counter-form")).toBeVisible();
 });
+
+test("step 5 · the Offer screen leads with the merchant's strategy, and each strategy's leader is computed by code", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Protect contribution");
+  await expect(page.getByTestId("offer-headline")).toContainText("two monthly payments");
+  await expect(page.getByTestId("attribution")).toHaveText("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
+  await expect(page.getByTestId("offer-rules")).toContainText("Based on version 1 of your business economics.");
+  await expect(page.getByTestId("offer-cash")).toContainText("Cash exposure: ₹0");
+
+  // What each strategy would recommend, one row each, from the same feasible offers.
+  const rows = page.getByTestId("strategy-comparison");
+  await expect(rows.getByTestId("strategy-row-protect_contribution")).toContainText("two monthly payments");
+  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Keep the annual scope and split the payments");
+  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Needs MD approval");
+  await expect(rows.getByTestId("strategy-row-minimise_cash_exposure")).toContainText("Needs MD approval");
+  await expect(rows.getByTestId("strategy-row-lower_buyer_commitment")).toContainText("two monthly payments");
+
+  // The recorded sample order is history, labelled as a sample, and never as a model.
+  await page.getByTestId("recorded-evidence").click();
+  await expect(page.getByTestId("recorded-evidence-note")).toContainText("Sample order and reason written by hand · no model ran. They do not drive the current recommendation.");
+  await expect(page.getByTestId("recorded-evidence-note")).not.toContainText(/Groq|recorded/i);
+});
+
+test("step 5 · a strategy that leads with an offer needing MD approval says so and offers the best one without it", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("strategy-minimise_cash_exposure").check();
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Minimise cash exposure");
+  await expect(page.getByTestId("offer-approval")).toContainText("MD approval");
+  await expect(page.getByTestId("within-approval-alternative")).toContainText("two monthly payments");
+  await page.getByTestId("select-within-approval").click();
+  // The merchant's own choice is credited to them, and the strategy now recommends something else.
+  await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
+  await expect(page.getByTestId("offer-headline")).toContainText("two monthly payments");
+  await expect(page.getByTestId("attribution")).toHaveText("You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.");
+  await expect(page.getByTestId("strategy-differs")).toContainText("The recommended offer is Keep the annual scope and split the payments");
+  await page.getByTestId("use-recommended").click();
+  await expect(page.getByTestId("offer-headline")).toHaveText("Keep the annual scope and split the payments");
+  expect(state().economics.strategy).toBe("minimise_cash_exposure");
+});
+
+test("step 5 · the strategy control works from the keyboard, and a sent version keeps its strategy", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await page.getByTestId("strategy-protect_contribution").focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByTestId("strategy-preserve_scope")).toBeChecked();
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Preserve scope");
+  await page.getByTestId("strategy-protect_contribution").check();
+  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Protect contribution");
+  await clickPrimary(page);
+  await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  expect(state().agreements.find((a) => a.status === "sent")!.economics?.strategy).toBe("protect_contribution");
+  const refused = await page.request.post("/api/actions", { data: { action: "set_strategy", strategy: "preserve_scope" } });
+  expect((await refused.json()).ok).toBe(false);
+});
