@@ -3,7 +3,7 @@
 - **Date:** 7 October 2026
 - **Branch:** `codex/merchant-profit-strategy`
 - **Fallback:** tag `submission-ready-pre-profit-strategy-2026-10-07` (commit `65e1de6`) is the last submission-ready state.
-- **Status:** design for review, revised after decisions D1 to D5 and the price-snapshot correction. Two decisions remain open (D6, D7; section 14). No product code and no model call is covered by this document's approval; each phase has its own gate.
+- **Status:** approved on 7 October 2026 with decisions 1 to 30. No decision is open. Implementation needs a plan per phase and passes a review gate after phase 7. No product code and no model call is covered by this document's approval; each phase has its own gate.
 
 ## 1. Purpose
 
@@ -56,6 +56,10 @@ These were settled before this spec and are binding on it.
 | 24 | **(D5)** The recorded Groq reason sits behind the information control, labelled as historical evidence that does not drive the current recommendation. |
 | 25 | The deal baseline stores a **per-service price snapshot** taken when the deal starts. An existing deal always uses those prices. Re-evaluation takes costs, cost timing, guardrails and the discount ladder from the new version, never its standard prices. The same snapshot is the basis for same-scope discount and for retained-scope value. |
 | 26 | A deal's effective hash is the hash of the **exact engine inputs** it is evaluated with. A change to account standard prices alone does not change an existing deal's effective hash. |
+| 27 | **(D6)** On explicit re-evaluation the deal adopts the newly pinned version's removable, deferrable and independent-value flags and its dependencies, **only for services already in the deal baseline**. The dependency graph must close over the baseline service set: if a dependency names a service that is not in the baseline, re-evaluation is blocked and the conflict is explained. A service added to the account never enters an existing deal. |
+| 28 | **(D7)** A discount is never recommended merely because the ladder permits it. The ladder is permission for negotiation, not a proactive recommendation. Discounted offers become prominent only after an explicit buyer price request, inside the negotiation corridor. Version 2's 0%, 5%, 10% ladder is demonstrated there. |
+| 29 | **Lower buyer commitment** orders by: within buyer approval → lower discount → smaller largest payment → lower total → earlier start → stable id. |
+| 30 | The economics store lives under the configured application data directory, so the normal, sample and recorded browser environments stay isolated. |
 
 ## 3. Facts from the current code that shape this design
 
@@ -155,7 +159,7 @@ interface BusinessEconomics {
 - **A standard price is the price used when a new quote is made.** It never reaches a deal that already exists (decisions 22 and 25). The screen labels it "applies to new quotes".
 - `hash` identifies the account version. It is **not** what a deal is checked against; that is the deal's effective hash (4.3).
 - A draft (unactivated) copy exists while the merchant edits. Only activation creates a version.
-- Stored in a new account store (`.data/economics.json`), separate from the deal store.
+- Stored in a new account store, separate from the deal store: a file named `economics.json` **inside the configured application data directory** (`ADAPTIVE_DEALS_DATA_DIR`, defaulting to `.data`). The normal server, the sample browser environment (`.data-e2e`) and the recorded browser environment (`.data-e2e-recorded`) each therefore have their own account economics and cannot affect one another.
 
 ### 4.2 `DealBaseline` (per deal, immutable)
 
@@ -213,7 +217,7 @@ One function, `engineInputFor(deal)`, builds the engine's input for a deal. Noth
 |---|---|
 | Service price and kind | `DealBaseline.servicePrices`, always |
 | Service direct cost, cost timing | Pinned version, then any cost override |
-| Service flags (removable, deferrable, independent value) and dependencies | Pinned version (see open decision D6) |
+| Service flags (removable, deferrable, independent value) and dependencies | Pinned version, restricted to the baseline's services (decision 27) |
 | Contribution floor, cash-exposure limit, discount ceiling, minimum payment, maximum duration, expected fee | Pinned version, then any input override |
 | Approved discount ladder | Pinned version (`discountsBps`) |
 | Approved offer types | Pinned version's fixed offer types |
@@ -221,7 +225,8 @@ One function, `engineInputFor(deal)`, builds the engine's input for a deal. Noth
 
 - The engine files are not modified. They already accept these inputs.
 - Because discounted offers are generated from the snapshot price and a ladder level, an offer's discount is by construction a discount against the deal's own baseline.
-- A service that is in the deal's baseline but missing from a newer version blocks re-evaluation to that version (section 9). A service added in a newer version does not enter an existing deal.
+- **The deal's service set is the baseline's service set, permanently.** A service added in a newer version does not enter an existing deal.
+- **Dependencies must close over that set.** When a version is pinned, each baseline service takes that version's flags and `dependsOnAny`. If any dependency names a service outside the baseline, or a baseline service is missing from the version, re-evaluation to that version is blocked (section 9).
 
 ## 6. Recorded runs and derived decisions
 
@@ -242,15 +247,22 @@ A strategy is a deterministic total order over the offers the engine marked feas
 | **Protect contribution** (default) | Within buyer approval → higher net contribution → lower peak funding → smaller largest payment → stable id. This is `rankFeasible`. |
 | **Preserve scope** | Higher retained pre-GST list value from the baseline → higher net contribution → lower peak funding → smaller largest payment → stable id |
 | **Minimise cash exposure** | Lower peak funding → higher net contribution → smaller largest payment → stable id |
-| **Lower buyer commitment** | Within buyer approval → smaller largest payment → lower total → earlier start → stable id |
+| **Lower buyer commitment** | Within buyer approval → lower discount → smaller largest payment → lower total → earlier start → stable id |
 
 Preserve scope and Minimise cash exposure do not put buyer approval first, so an offer that needs the buyer's approval may lead (decision 20). On the hero case both lead with offer A.
 
 - **Leader and within-approval alternative.** When the strategy's leader needs the buyer's approval, the recommendation states that on the offer itself ("Needs the buyer's MD approval") and shows, beside it, the **best within-approval alternative**: the first offer in the same strategy's order that is within the buyer's limit. When the leader is already within the limit, no alternative is shown. If no offer is within the limit, the card says so.
 
+**Discounts are never recommended proactively (decision 28).**
+
+- The proactive recommendation on the Offer screen is ranked over **undiscounted offers only** whenever at least one undiscounted offer is feasible. Offers generated from a ladder level above 0% are not in that ranked list, are not the strategy leader, and are not the within-approval alternative.
+- Discounted ladder offers are shown in the **negotiation corridor**, which opens only after an explicit buyer price request (section 10.3). There they are ordered by the deal's strategy.
+- If **no** undiscounted offer is feasible, the Offer screen does not silently promote a discount. It says that no offer fits at the quoted prices, and lists the feasible discounted offers ordered lower discount first, then by the strategy. The leading one is labelled with its discount and is not called "recommended"; the merchant may select it.
+- Under version 1 the ladder is 0% only, so this changes nothing there.
+
 Rules:
 
-- **Fact IDs.** For each offer, code computes a closed set of facts against the feasible set: `highest_contribution`, `lowest_cash_exposure`, `most_scope_retained`, `smallest_largest_payment`, `lowest_total`, `earliest_start`, `within_buyer_approval`, `needs_buyer_approval`, plus `tied_on:<key>`. These are the only comparative claims anything may make.
+- **Fact IDs.** For each offer, code computes a closed set of facts against the feasible set: `highest_contribution`, `lowest_cash_exposure`, `most_scope_retained`, `smallest_largest_payment`, `lowest_total`, `earliest_start`, `no_discount`, `lowest_discount`, `within_buyer_approval`, `needs_buyer_approval`, plus `tied_on:<key>`. These are the only comparative claims anything may make.
 - **Code explanation.** Code writes the reason for the top offer from its facts and the strategy's keys, and the figures. This is always available and is the default.
 - **Explicit selection survives.** If the merchant explicitly selected an offer, a strategy change leaves it selected and shows "Another offer is now recommended under this strategy" with a one-click apply.
 - **Implicit selection follows.** If the selection was only the recommendation, a strategy change clears it and its unsent draft.
@@ -294,7 +306,12 @@ When it would change, the deal shows: "Your business economics have changed sinc
 
 On confirmation the deal pins version N and its inputs are rebuilt by the table in section 5, with prices still from the baseline. Sent and accepted versions are unaffected.
 
-Re-evaluation is refused, with the reason shown, if version N no longer contains a service that is in the deal's baseline.
+Re-evaluation is refused, and nothing changes, when version N cannot be applied to this deal's baseline services. The preview names the conflict:
+
+- a baseline service is missing from version N, or
+- a baseline service's dependency in version N names a service that is not in this deal's baseline ("Search marketing now depends on Analytics setup, which was not part of this deal").
+
+The merchant then keeps the pinned version for this deal, or changes the account economics.
 
 ## 10. Screens
 
@@ -309,7 +326,7 @@ Three parts: **Services**, **Commercial guardrails** (including the approved dis
 - "Cash exposure" is explained as the most the merchant would have paid out before being paid.
 - Standard prices carry the label "applies to new quotes" and a note that existing deals keep the prices they were quoted at.
 - **Restore demo defaults** re-activates version 1's values as a new version.
-- **Illustrative version 2 for the demo** (decision 23): a 10% discount ceiling with an approved ladder of 0%, 5% and 10%. It is activated only through the same review step as any other version, and only if that preview shows at least one feasible offer on the open demo deal under the configured rules. It is labelled "Illustrative" wherever it appears. If the preview does not hold, the demo does not use it.
+- **Illustrative version 2 for the demo** (decision 23): a 10% discount ceiling with an approved ladder of 0%, 5% and 10%. It is activated only through the same review step as any other version, and only if that preview shows at least one feasible offer on the open demo deal under the configured rules. It is labelled "Illustrative" wherever it appears. If the preview does not hold, the demo does not use it. Activating it does not change the recommendation on the Offer screen, because discounted offers are not ranked proactively; its ladder is shown in the negotiation corridor.
 
 ### 10.2 Offer
 
@@ -324,6 +341,8 @@ Three parts: **Services**, **Commercial guardrails** (including the approved dis
 For a buyer request marked as about the price, the merchant sees: the requested total and its GST basis (the merchant states the basis; it is not parsed from the message), projected contribution, rules passed and failed, the **lowest compliant total for the same scope**, feasible reduced-scope alternatives and feasible payment-timing alternatives.
 
 - The lowest compliant total is found by evaluating candidate totals with the real engine (counter structure, per-line GST, every check), scanning down from the current total and refining to ₹1. If the passing range is not contiguous, the result is described as the lowest total in the contiguous range from the current offer.
+- **This is where the ladder appears.** The feasible offers at each approved ladder level for the same scope are listed with their discount, total and contribution, ordered by the deal's strategy. Under the illustrative version 2 that is the 0%, 5% and 10% levels.
+- The corridor opens only for a buyer request marked as about the price. It is not reachable from the Offer screen without one.
 - The buyer sees only the offer the merchant chooses. The floor, the corridor and the lowest compliant total are never sent.
 
 ## 11. AI tasks
@@ -404,10 +423,12 @@ Unchanged because they test the frozen model path itself: `tests/ai/clarify-expl
   - The economics hash is stable under key order and changes when any engine-relevant value changes.
   - Loosening a guardrail never removes a feasible offer; tightening never adds one.
   - Every strategy returns a permutation of the same feasible set, and is deterministic.
-  - Protect contribution equals `rankFeasible` for every input.
+  - Protect contribution equals `rankFeasible` applied to the same set, for every input.
   - A deal's pinned reference and every agreement's reference are unchanged by a later activation.
   - Activating a version that differs only in standard prices leaves every existing deal's `effectiveHash`, offers and figures unchanged.
   - After any re-evaluation, every service price the engine receives still equals the deal's baseline snapshot.
+  - The proactive ranked list contains no discounted offer whenever an undiscounted offer is feasible, under every strategy.
+  - The services the engine receives are exactly the baseline's services, under every version; a version whose dependencies leave that set is refused.
 - **Integrity tests:** version 1 reproduces all three recordings; a derived decision never shows the parent explanation; a ladder discount, a counter-offer's discount and the retained-scope value are all computed from the baseline snapshot; a baseline whose quoted price does not equal its snapshot is refused.
 - **Migration tests:** a store saved before this work gets version 1, a baseline and a pinned reference, labelled as the default demo economics.
 - Existing suites stay green at every phase: 762 unit tests and 54 browser tests at the tag, apart from the deliberate changes in section 12.
@@ -416,12 +437,7 @@ Unchanged because they test the frozen model path itself: `tests/ai/clarify-expl
 
 **Resolved.** D1 to D5 from the first self-review are adopted as decisions 20 to 24. The price-snapshot correction is decisions 25 and 26.
 
-**Open, from the second self-review.**
-
-| # | Decision | Recommendation |
-|---|---|---|
-| **D6** | On re-evaluation, where do a service's **flags** (removable, deferrable, independent value) and **dependencies** come from? The instruction names costs, cost timing, guardrails and the ladder. Flags are not prices, but they decide which offers can exist. | Take them from the newly pinned version, like costs. They describe how the merchant delivers, not what the buyer was quoted. |
-| **D7** | Under the illustrative version 2, **Lower buyer commitment** leads with the most discounted offer, because a discount makes the largest payment smaller. That is what the strategy is defined to do, but it means one strategy recommends giving a discount by default. | Keep the definition. State on the card that the leader includes a discount and name the undiscounted alternative. Decide before phase 5. |
+D6 and D7 from the second self-review are adopted as decisions 27 to 29. The store location is decision 30. **No decision is open.**
 
 ## 15. Phases
 
@@ -481,3 +497,25 @@ Run twice: on the first draft, and again after decisions 20 to 26.
 - The counter-offer's discount is computed from the structure's list price, which comes from the snapshot.
 - Version 1 with no overrides yields the fixture inputs exactly, so the three recordings still replay and their attribution is unchanged until economics or strategy change what is shown.
 - In the strategy demonstration the selection is implicit, so it follows the strategy back to Protect contribution (section 7), and the main journey continues from offer C.
+
+### 16.4 Final review, after decisions 27 to 30
+
+**Outcome of the two decisions that were open**
+
+15 (flags and dependencies) is resolved by decision 27. 18 (Lower buyer commitment under a ladder) is resolved by decisions 28 and 29.
+
+**Contradictions found in this review**
+
+20. **"Lower discount first" in one strategy against "never recommend a discount merely because the ladder permits it" in all of them.** Decision 29 puts discount second in Lower buyer commitment only. The other three strategies have no discount key, and Minimise cash exposure could have led with a discounted offer of one structure over an undiscounted offer of another. Even Lower buyer commitment, as ordered, would rank a within-approval discounted offer above an approval-needed undiscounted one. Resolved in section 7 by a rule above the strategies: the proactive ranking is over undiscounted offers only whenever one is feasible. Decision 29's key then orders the lists that do contain discounts (the corridor, and the fallback list).
+21. **"Discounted offers only inside the negotiation corridor" against a deal where nothing fits without a discount.** The corridor needs a buyer price request, so such a deal would have shown no offer at all while a permitted one existed. Resolved in section 7: the screen says nothing fits at the quoted prices and lists the permitted discounted offers, without calling any of them recommended.
+22. **Decision 23 (demonstrate version 2) against decision 28.** The first reading had version 2 visibly changing the Offer screen. It no longer does. Section 10.1 now says so, and the ladder is demonstrated in the corridor.
+23. **"Adopt the new version's dependencies" against "the deal's service set is fixed".** A dependency can name a service the deal never had. Resolved by decision 27's closure rule, with the block reason shown (section 9).
+24. **A literal store path against the three isolated environments.** Fixed by decision 30.
+
+**Checked and consistent**
+
+- With a 0%-only ladder (version 1) every rule about discounts is inert, so the recordings and today's behaviour are unaffected.
+- Protect contribution over the undiscounted set is `rankFeasible` over that set; a stable sort of a subset is the same order.
+- The counter-offer is not a ladder offer: it is the merchant's own total, checked against the ceiling, and stays outside the ranked list.
+- Fact IDs `no_discount` and `lowest_discount` are added so that an explanation can state the discount position without the model writing a figure.
+
