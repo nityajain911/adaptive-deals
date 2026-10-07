@@ -47,7 +47,7 @@ async function main() {
     }
     await svc.resetToSeed();
     await svc.startCase("reduced-scope");
-    let s = await svc.sendQuestions();
+    const s = await svc.sendQuestions();
     for (const q of s.conversation.filter((i) => i.kind === "clarification")) await svc.buyerReply({ inReplyTo: q.id, scriptId: q.refs.questionId === "clar-gst" ? "clar-gst-yes" : "clar-approval-contract" });
     await svc.adoptRepliesAsAnswers();
     for (const strategy of strategies) {

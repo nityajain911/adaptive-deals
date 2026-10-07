@@ -134,3 +134,9 @@ Submission is 13 Oct 2026; this plan is written 8 Oct. Recommended order, cheape
 **Hold-out written and hashed (no prompt exists, no call made):** `profile_extract` 12 + 8 adversarial; `strategy_narrative` 40 generated from seeds 2001 upward + 10 hand-built adversarial; `negotiation_message` 15 + 15 adversarial. The files are kept locally in the git-ignored `evaluation-assist/holdout-private/`. `evaluation-assist/holdout-manifest.json` lists the SHA-256 of every file and of the whole set; `npx tsx evaluation-assist/generators/hash-holdout.ts check` fails if any file changed. The coding agent wrote the hold-out and can read it, so the hashes show it was not changed after the prompts, not that it was independent of them.
 
 **Decision 4 (provider limits):** the agent cannot see the applicant's Groq account. Published free-tier sample limits for `openai/gpt-oss-120b` are 8,000 tokens per minute and 200,000 tokens per day. At about 1.1M planned tokens that is at least 6 days on the free tier, longer than the time left. The Developer plan lists the same model at $0.15 per million input and $0.60 per million output tokens, about $0.40 for the whole 1.4M-token cap. The applicant must confirm their plan in the Groq console before the first call.
+
+## Amendment 3 · 2026-10-08 · The third task is not dropped by the cut line
+
+**Decision (applicant):** `negotiation_message.v1` is not dropped for lack of time. The noon-on-11-Oct cut line in §8 no longer applies to it; the other two tasks keep it.
+
+**What does not change:** §7 still governs outcomes. If `negotiation_message.v1` fails a hard criterion on the hold-out, its model path does not ship and the failure is reported. Keeping the task means it is built and evaluated, not that it is certain to ship. The call budget is unchanged. If the schedule slips, the applicant, not the cut line, decides what moves.
