@@ -16,7 +16,7 @@ import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate
 import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
-import type { Message } from "@/domain/types";
+import type { Merchant, Message } from "@/domain/types";
 import { formatINR, sum } from "@/domain/money";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
@@ -26,7 +26,7 @@ import { ReplayProvider } from "@/ai/replay-provider";
 import type { RecordedAnswer, RunRecord } from "@/ai/run-record";
 import { SyntheticAuthoredProvider } from "@/ai/synthetic-provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
-import { heroClarificationAnswers, heroDemoEvents, heroMerchant, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
+import { heroClarificationAnswers, heroDemoEvents, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
 import { allDemoCases, DEFAULT_CASE_ID, demoCase, type CaseId, type DemoCase } from "@/data/synthetic/cases";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
@@ -60,6 +60,10 @@ import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type
 import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
 import { activeEconomics, getEconomicsStore } from "./economics-store";
 import { effectiveHashOf, engineInputFor, pinConflicts, type DealEconomics } from "./deal-economics";
+import { ActionError } from "./action-error";
+import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
+
+export { ActionError } from "./action-error";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -122,15 +126,6 @@ export interface DemoState {
   baseline: DealBaseline;
   /** Account economics pinned to this deal, plus any explicit deal overrides. */
   economics: DealEconomics;
-}
-
-export class ActionError extends Error {
-  constructor(
-    message: string,
-    readonly status = 409,
-  ) {
-    super(message);
-  }
 }
 
 // ── Bundled synthetic run ────────────────────────────────────────────────────
@@ -227,7 +222,7 @@ function advanceTo(s: DemoState, to: string, reason: string) {
   s.clockAdvances.push(adv);
   // The run record keeps every deliberate demo time advance alongside the run it belongs to.
   s.run.record.clockAdvances = [...s.run.record.clockAdvances, adv];
-  event(s, "clock_advanced", `Simulated date: ${localDateOf(to, heroMerchant.timeZone)}`, "simulated", reason);
+  event(s, "clock_advanced", `Simulated date: ${localDateOf(to, activeCase(s).deal.merchant.timeZone)}`, "simulated", reason);
 }
 
 const at10 = (date: string) => `${date}T10:00:00+05:30`;
@@ -580,26 +575,27 @@ async function eligibleOf(s: DemoState): Promise<{ out: RunOutcome; eligible: Ev
   return { out, eligible: r ? eligibleStructures(s, r.structures) : [] };
 }
 
-function draftFor(s: DemoState, x: EvaluatedStructure): AgreementVersion {
+function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof dealContextFor>): AgreementVersion {
   const item = activeCase(s);
   // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
   const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
   const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: item.buyer.id, policy: heroMerchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null });
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null });
 }
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
-export async function currentFingerprint(s: DemoState): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
+export async function currentFingerprint(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
+  const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
   const { eligible } = await eligibleOf(s);
   const ids = eligible.map((x) => x.structure.id);
   const sel = eligible.find((x) => x.structure.id === s.selectedOption?.structureId);
-  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel).terms) : null };
+  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal).terms) : null };
 }
 
 /** Stale: the decision changed since selection, or the selected option is no longer eligible. */
-export async function isDraftStale(s: DemoState): Promise<boolean> {
+export async function isDraftStale(s: DemoState, deal?: ReturnType<typeof dealContextFor>): Promise<boolean> {
   if (!s.selectedOption) return false;
-  const cur = await currentFingerprint(s);
+  const cur = await currentFingerprint(s, deal);
   const evidence = decisionEvidenceSnapshot(s);
   return cur.fingerprint === null || cur.fingerprint !== s.selectedOption.fingerprint || JSON.stringify(evidence) !== JSON.stringify(s.selectedOption.evidenceMessageIds);
 }
@@ -635,14 +631,14 @@ function outcome(s: DemoState, rec: Omit<OutcomeRecord, "id" | "at" | "dealId">)
   s.outcomes.push({ id: `out-${s.outcomes.length + 1}`, at: clockOf(s).now(), dealId: s.dealId, ...rec });
 }
 
-async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }) {
+async function applySelection(s: DemoState, structureId: string, opts: { explicit: boolean }, deal: ReturnType<typeof dealContextFor>) {
   assertNoReview(s);
   if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
   const { out, eligible } = await eligibleOf(s);
   assertScopeConfirmed(s, out);
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
-  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x).terms);
+  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal).terms);
   const evidenceMessageIds = decisionEvidenceSnapshot(s);
   if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) return; // same and still valid: no-op
   s.agreements = s.agreements.filter((v) => v.status !== "draft");
@@ -653,24 +649,28 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
 
 /** The merchant explicitly chose this option ("Select this offer"). */
 export async function selectOption(structureId: string): Promise<DemoState> {
-  return mutate((s) => applySelection(s, structureId, { explicit: true }));
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate((s) => applySelection(s, structureId, { explicit: true }, deal));
 }
 
 /** Prepare (or reuse) the unsent draft for the selected option; selects the recommendation if needed. */
 export async function reviewBuyerProposal(): Promise<AgreementVersion> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   let draft: AgreementVersion | null = null;
   await mutate(async (s) => {
     assertNoReview(s);
     assertNoNewDecisionEvidence(s);
     if (s.status !== "options_ready") throw new ActionError(`Options are not ready (deal is ${s.status})`);
     assertScopeConfirmed(s, (await eligibleOf(s)).out);
-    if (!s.selectedOption || (await isDraftStale(s))) {
+    if (!s.selectedOption || (await isDraftStale(s, deal))) {
       const { out, eligible } = await eligibleOf(s);
       const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
       const top = keep ?? out.explanation?.order[0] ?? eligible[0]?.structure.id;
       if (!top) throw new ActionError("No engine-eligible option to review");
       if (keep) s.selectedOption = null; // force a fresh fingerprint for the kept option
-      await applySelection(s, top, { explicit: false });
+      await applySelection(s, top, { explicit: false }, deal);
     }
     const existing = s.agreements.find((v) => v.status === "draft" && v.version === s.selectedOption!.draftVersion);
     if (existing) {
@@ -680,7 +680,7 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
     const { eligible } = await eligibleOf(s);
     const x = eligible.find((e) => e.structure.id === s.selectedOption!.structureId)!;
     s.agreements = s.agreements.filter((v) => v.status !== "draft");
-    draft = draftFor(s, x);
+    draft = draftFor(s, x, deal);
     s.agreements.push(draft);
     s.selectedOption = { ...s.selectedOption!, draftVersion: draft.version };
   });
@@ -689,12 +689,14 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
 
 /** Merchant approves the exact draft they previewed. Sends nothing. */
 export async function approveDraft(version: number, presentedHash: string): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     assertNoReview(s);
     assertNoNewDecisionEvidence(s);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "draft");
     if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected draft");
-    if (await isDraftStale(s)) throw new ActionError("The offer changed since this preview was opened (stale draft); review the updated proposal");
+    if (await isDraftStale(s, deal)) throw new ActionError("The offer changed since this preview was opened (stale draft); review the updated proposal");
     try {
       s.agreements[i] = merchantApprove(s.agreements[i], presentedHash, "Merchant (Pinecone Media Works)", clockOf(s));
     } catch (e) {
@@ -711,6 +713,8 @@ export async function approveDraft(version: number, presentedHash: string): Prom
  * Preconditions are checked on every send and retry. Buyer access opens only on success.
  */
 export async function sendProposal(version: number): Promise<{ state: DemoState; delivered: boolean; failureReason: string | null }> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   let delivered = false;
   let failureReason: string | null = null;
   const state = await mutate(async (s) => {
@@ -723,7 +727,7 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
     if (s.status !== "approved") throw new ActionError(`The deal is not open for sending (deal is ${s.status})`);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "merchant_approved");
     if (i < 0 || s.selectedOption?.draftVersion !== version) throw new ActionError("This version is not the selected, approved proposal");
-    if (await isDraftStale(s)) throw new ActionError("The offer changed since approval (stale draft); review the updated proposal");
+    if (await isDraftStale(s, deal)) throw new ActionError("The offer changed since approval (stale draft); review the updated proposal");
     const v = s.agreements[i];
     if (v.merchantApproval?.termsHash !== computeTermsHash(v.terms)) throw new ActionError("Merchant approval does not match the current terms");
     const key = deliveryKey(v.agreementId, version);
@@ -793,6 +797,7 @@ export async function sendQuestions(): Promise<DemoState> {
 /** Facts for `dealProgress`, read from stored state and the replayed engine result. */
 export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const out = await currentOutcome(s);
+  const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const replyTo = (id: string) => [...s.conversation].reverse().find((r) => r.inReplyTo === id);
   const clar = s.run.record.displayed.questions.map((question) => latestClarificationForQuestion(s, question.id)).filter((item): item is ConversationItem => item !== null);
   const active = activeVersion(s);
@@ -810,7 +815,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   let fullyPaid = false;
   if (active) {
     const x = await structureForVersion(s, active);
-    fullyPaid = computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), heroMerchant.timeZone), timeZone: heroMerchant.timeZone }).fullyPaid;
+    fullyPaid = computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), deal.merchant.timeZone), timeZone: deal.merchant.timeZone }).fullyPaid;
   }
   const cr = active ? s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === active.version) : undefined;
   const crAttempt = cr ? s.attempts.find((a) => a.id === cr.attemptId) : undefined;
@@ -818,7 +823,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const workItems = unresolvedWork(s);
   return {
     engineState: out.evaluation.state,
-    draftStale: s.status === "options_ready" ? await isDraftStale(s) : false,
+    draftStale: s.status === "options_ready" ? await isDraftStale(s, deal) : false,
     fullyPaid,
     questionCountUnsent: s.status === "clarifying" ? clar.filter((d) => !d.sentAt).length : 0,
     unansweredQuestions: s.status === "clarifying" ? clar.filter((d) => d.sentAt && !replyTo(d.id)).length : 0,
@@ -850,6 +855,8 @@ export async function progressOf(s: DemoState): Promise<DealProgress> {
  * state after the run, linked to the rejected phrase and its evidence, and the engine recalculates.
  */
 export async function confirmRequiredServices(packageIds: string[]): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     assertNoReview(s);
     if (s.deliveries.some((d) => d.deliveredAt)) throw new ActionError("The required services cannot be confirmed after the proposal was sent");
@@ -859,7 +866,7 @@ export async function confirmRequiredServices(packageIds: string[]): Promise<Dem
     if (s.status !== "options_ready") throw new ActionError(`Required services are confirmed once options are ready (deal is ${s.status})`);
     let confirmation;
     try {
-      confirmation = confirmScope({ sources, packageIds, packages: activeCase(s).deal.packages, confirmedAt: clockOf(s).now(), by: "Merchant (Pinecone Media Works)" });
+      confirmation = confirmScope({ sources, packageIds, packages: deal.packages, confirmedAt: clockOf(s).now(), by: "Merchant (Pinecone Media Works)" });
     } catch (e) {
       if (e instanceof ScopeError) throw new ActionError(e.message);
       throw e;
@@ -880,7 +887,7 @@ export async function confirmRequiredServices(packageIds: string[]): Promise<Dem
     // Finish derivation before mutating stored state. A failure therefore leaves the store intact.
     const derived = deriveBranchOutcome({ initial: await initialOutcomeForBranch(s), branch, deal: dealForState(s) });
     s.decisionBranch = branch;
-    const names = confirmation.packageIds.map((id) => activeCase(s).deal.packages.find((p) => p.id === id)?.name ?? id);
+    const names = confirmation.packageIds.map((id) => deal.packages.find((p) => p.id === id)?.name ?? id);
     event(s, "required_services_confirmed", "Merchant confirmed the required services", "merchant", `${names.join(", ")} · from “${confirmation.sources.map((x) => x.rawText).join("”, “")}”`);
     const next = statusForEvaluation(derived.evaluation);
     if (next !== s.status) setStatus(s, next, "Engine re-evaluated every template with the merchant-confirmed services");
@@ -1006,13 +1013,15 @@ function schedulePayments(s: DemoState, v: AgreementVersion) {
   }
 }
 
-function planNotices(s: DemoState) {
+function planNotices(s: DemoState, policy: Merchant["policy"]) {
   for (const a of s.attempts.filter((x) => x.status === "scheduled" && x.method === "recurring_debit")) {
-    if (!s.notices.some((n) => n.attemptId === a.id)) s.notices.push(planAdvanceNotice(a, heroMerchant.policy));
+    if (!s.notices.some((n) => n.attemptId === a.id)) s.notices.push(planAdvanceNotice(a, policy));
   }
 }
 
 export async function acceptAgreement(version: number, termsHash: string, authorityConfirmed: boolean): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     assertNoUnresolvedCommercialWork(s);
     const i = s.agreements.findIndex((v) => v.version === version && v.status === "sent");
@@ -1041,7 +1050,7 @@ export async function acceptAgreement(version: number, termsHash: string, author
       s.mandate = { ...createMandate({ id: reg.id, agreementId: v.agreementId, agreementVersion: v.version, terms: v.terms.mandate, mode: reg.mode }), note: reg.note };
       event(s, "mandate_requested", "Mandate registration requested", "simulated", reg.note);
     }
-    planNotices(s);
+    planNotices(s, deal.merchant.policy);
     setStatus(s, "active", "Matching merchant and buyer hashes; collection prepared");
   });
 }
@@ -1051,7 +1060,9 @@ export async function acceptAgreement(version: number, termsHash: string, author
 export type SimulatedEvent = "payment_link_paid" | "mandate_confirmed" | "advance_notice" | "debit_failed" | "debit_succeeded" | "buyer_reply";
 
 export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
-  return mutate((s) => {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate(async (s) => {
     const v = activeVersion(s);
     if (!v) throw new ActionError("No active agreement");
     const total = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
@@ -1078,7 +1089,7 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
       const n = s.notices.find((x) => !x.sentAt && s.attempts.find((a) => a.id === x.attemptId)?.status === "scheduled");
       if (!n) throw new ActionError("No advance notice is due");
       advanceTo(s, at10(n.sendOn), "Simulated: Adaptive Deals sends its advance notice");
-      const sent = sendAdvanceNotice(n, clockOf(s), heroMerchant.timeZone);
+      const sent = sendAdvanceNotice(n, clockOf(s), activeCase(s).deal.merchant.timeZone);
       s.notices = s.notices.map((x) => (x.id === n.id ? sent : x));
       event(s, "advance_notice_sent", `Advance notice sent for ${n.dueDate}`, "simulated", sent.text);
       sendCode(s, "notice", noticeMessageText(sent), { noticeId: sent.id, attemptId: sent.attemptId });
@@ -1097,7 +1108,7 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
       }
       s.attempts = s.attempts.map((x) => (x.id === a.id ? transitionAttempt(x, "failed", now(), "Simulated event: debit failed") : x));
       const failed = s.attempts.find((x) => x.id === a.id)!;
-      s.attempts = scheduleInternalRetry(s.attempts, failed, heroMerchant.policy.internalRetryAfterDays, total, now());
+      s.attempts = scheduleInternalRetry(s.attempts, failed, deal.merchant.policy.internalRetryAfterDays, total, now());
       event(s, "debit_failed", `Recurring debit of ${a.dueDate} failed`, "simulated", `Simulated event · Adaptive Deals internal retry scheduled for ${s.attempts.at(-1)!.dueDate}`);
       return;
     }
@@ -1121,7 +1132,7 @@ function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; 
   const at = Date.parse(args.at) < Date.parse(clockOf(s).now()) ? clockOf(s).now() : args.at;
   let reply: ConversationItem;
   try {
-    reply = receiveBuyerReply({ id: itemId(s, "conv"), dealId: s.dealId, text: args.text, at, inReplyTo: args.inReplyTo, conversation: s.conversation, timeZone: heroMerchant.timeZone, scripted: args.scripted, kind: args.kind, source: args.source });
+    reply = receiveBuyerReply({ id: itemId(s, "conv"), dealId: s.dealId, text: args.text, at, inReplyTo: args.inReplyTo, conversation: s.conversation, timeZone: activeCase(s).deal.merchant.timeZone, scripted: args.scripted, kind: args.kind, source: args.source });
   } catch (e) {
     if (e instanceof ConversationError) throw new ActionError(e.message);
     throw e;
@@ -1248,7 +1259,8 @@ export interface CounterCheck {
 }
 
 /** Everything a counter-offer needs, computed from stored state and the unchanged engine. */
-async function buildCounter(s: DemoState, totalPaise: number) {
+async function buildCounter(s: DemoState, totalPaise: number, knownDeal?: ReturnType<typeof dealContextFor>) {
+  const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
   assertNoReview(s);
   const v = [...s.agreements].reverse().find((x) => x.status === "sent");
   if (s.status !== "sent" || !v) throw new ActionError("A counter-offer can be made only on a proposal the buyer has not yet accepted");
@@ -1260,17 +1272,16 @@ async function buildCounter(s: DemoState, totalPaise: number) {
   const current = await structureForVersion(s, v);
   const out = await currentOutcome(s);
   const constraints = interpretations(out.profile)[0].constraints;
-  const item = activeCase(s);
   let evaluated: EvaluatedStructure;
   try {
-    const structure = counterStructure(current.structure, totalPaise, heroMerchant.policy.gstRateBps);
-    evaluated = evaluateStructure(structure, constraints, { merchant: heroMerchant, packages: item.deal.packages, templates: item.deal.templates });
+    const structure = counterStructure(current.structure, totalPaise, deal.merchant.policy.gstRateBps);
+    evaluated = evaluateStructure(structure, constraints, deal);
   } catch (e) {
     if (e instanceof CounterError) throw new ActionError(e.message);
     throw e;
   }
   const failing = failingCounterChecks(evaluated);
-  return { v, request, current, evaluated, failing };
+  return { v, request, current, evaluated, failing, deal };
 }
 
 const totalOf = (x: EvaluatedStructure) => sum(x.structure.payments.map((p) => p.totalPaise));
@@ -1295,8 +1306,10 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
  * counter becomes the selected option, to be previewed, approved and sent like any proposal.
  */
 export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean, acknowledgedChecks: string[]): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
-    const b = await buildCounter(s, totalPaise);
+    const b = await buildCounter(s, totalPaise, deal);
     if (b.failing.length && !overrideConfirmed) throw new ActionError("This amount does not meet your rules. Confirm the override to continue");
     // The merchant overrides exactly the rules they were shown, never ones that appeared since.
     const failingCodes = b.failing.map((c) => c.code).sort();
@@ -1318,7 +1331,7 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
     s.agreements = s.agreements.map((x) => (x.version === b.v.version ? { ...x, status: "superseded" as const } : x));
     setStatus(s, "options_ready", `Version ${b.v.version} withdrawn to answer the buyer's request`);
     s.selectedOption = null;
-    await applySelection(s, evaluated.structure.id, { explicit: true });
+    await applySelection(s, evaluated.structure.id, { explicit: true }, b.deal);
     event(s, "counter_offer_created", `Counter-offer at ${formatINR(totalOf(evaluated))} prepared`, "merchant", b.failing.length ? `Merchant override of: ${b.failing.map((c) => explainCheck(c)).join("; ")}` : "The engine rechecked it: every rule passes.");
   });
 }
@@ -1369,6 +1382,8 @@ export const unavailableUntilPhrase = (text: string) => UNAVAILABLE_UNTIL.exec(t
  * economics and mandate fit; a failed recheck records "not restructured" and changes nothing.
  */
 export async function proposeAmendment(): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     assertNoNewDecisionEvidence(s);
     assertNoUnresolvedCommercialWork(s);
@@ -1390,7 +1405,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       lineId: cr.scheduleLineId,
       newDueDate: cr.earliestDebit,
       constraints,
-      engine: { merchant: heroMerchant, packages: activeCase(s).deal.packages, templates: activeCase(s).deal.templates },
+      engine: deal,
       mandate: s.mandate!,
       trigger: cr.timing === "preventive" ? "buyer_message" : "failed_debit",
       triggerRefs: [cr.attemptId, cr.noticeId!, cr.replyId],
@@ -1404,7 +1419,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
       return;
     }
-    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: heroMerchant.id, buyerId: activeCase(s).buyer.id, policy: heroMerchant.policy, clock: clockOf(s), supersedes: v.version }));
+    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version }));
     s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
     event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
     setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");
@@ -1431,6 +1446,8 @@ export async function approveAmendment(termsHash: string): Promise<DemoState> {
 }
 
 export async function acceptAmendment(termsHash: string, authorityConfirmed: boolean): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     assertNoUnresolvedCommercialWork(s);
     let a = s.amendments.at(-1);
@@ -1456,7 +1473,7 @@ export async function acceptAmendment(termsHash: string, authorityConfirmed: boo
       s.mandate = { ...createMandate({ id: reg.id, agreementId: v2.agreementId, agreementVersion: v2.version, terms: v2.terms.mandate, mode: reg.mode }), note: reg.note };
       event(s, "mandate_requested", "Fresh mandate authorisation requested", "simulated", reg.note);
     }
-    planNotices(s);
+    planNotices(s, deal.merchant.policy);
     const ci = s.changeRequests.findIndex((c) => c.amendmentId === a!.id && c.state === "draft_amendment");
     if (ci >= 0) s.changeRequests[ci] = transitionChangeRequest(s.changeRequests[ci], "payment_rescheduled", clockOf(s).now(), "Collection updated after both approvals");
     const newAttempt = update.scheduled.find((x) => x.scheduleLineId === a!.change.lineId);
@@ -1504,7 +1521,7 @@ export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
       return;
     }
     if (Date.parse(clockOf(s).now()) < Date.parse(at10(n.sendOn))) throw new ActionError(`Advance the simulated date to ${n.sendOn} first`);
-    const sent = sendAdvanceNotice(n, clockOf(s), heroMerchant.timeZone);
+    const sent = sendAdvanceNotice(n, clockOf(s), activeCase(s).deal.merchant.timeZone);
     s.notices = s.notices.map((x) => (x.id === n.id ? sent : x));
     event(s, "advance_notice_sent", `Advance notice sent for ${n.dueDate}`, "simulated", sent.text);
     sendCode(s, "notice", noticeMessageText(sent), { noticeId: sent.id, attemptId: sent.attemptId });

@@ -1,7 +1,8 @@
 import type { EvaluatedStructure } from "@/domain/engine";
-import { formatINR, lineWithGst, sum } from "@/domain/money";
-import type { TemplateType } from "@/domain/types";
-import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
+import { formatINR, sum } from "@/domain/money";
+import type { ServicePackage, TemplateType } from "@/domain/types";
+import type { DealBaseline } from "@/domain/deal-baseline";
+import { originalProposalOf, packageName } from "./deal-context-shared";
 
 /**
  * Code-written offer copy (spec §5.1). Headlines come from the engine's template type; every
@@ -52,19 +53,13 @@ export function alternativeContributionLine(x: EvaluatedStructure): string {
  * The deal's original annual proposal: the fixture's full scope at list price, with GST by the same
  * per-line half-up rule the engine uses. Context only; not an engine alternative, never counted as value.
  */
-export function originalProposal(): { prePaise: number; gstPaise: number; totalPaise: number; gstRateBps: number } {
-  const gstRateBps = heroMerchant.policy.gstRateBps;
-  const prePaise = sum(heroTemplates.fullScope.map((i) => heroPackages.find((p) => p.id === i.packageId)!.listPricePaise * (heroPackages.find((p) => p.id === i.packageId)!.kind === "monthly" ? i.months : 1)));
-  const line = lineWithGst(prePaise, gstRateBps);
-  return { prePaise, gstPaise: line.gstPaise, totalPaise: line.totalPaise, gstRateBps };
-}
-
-const fullMonths = () => Math.max(...heroTemplates.fullScope.map((i) => i.months));
-const names = (ids: string[]) => ids.map((id) => heroPackages.find((p) => p.id === id)?.name ?? id);
+const fullMonths = (baseline: DealBaseline) => Math.max(...baseline.quotedScope.map((i) => i.months));
+const names = (packages: Pick<ServicePackage, "id" | "name">[], ids: string[]) => ids.map((id) => packageName(packages, id));
 const listJoin = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
 /** "What this offer achieves" and "What changes from the original proposal". */
-export function offerSummary(x: EvaluatedStructure, original: ReturnType<typeof originalProposal>, offerGstRateBps: number): { achieves: string[]; changes: string[] } {
+export function offerSummary(x: EvaluatedStructure, baseline: DealBaseline, packages: Pick<ServicePackage, "id" | "name">[], offerGstRateBps: number): { achieves: string[]; changes: string[] } {
+  const original = originalProposalOf(baseline);
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const phased = x.structure.template === "phased_scope";
   const months = phaseMonths(x);
@@ -72,8 +67,8 @@ export function offerSummary(x: EvaluatedStructure, original: ReturnType<typeof 
   if (phased && x.approval === "within_limit") achieves.push(`A standalone ${word(months)}-month package the buyer can approve within the confirmed limit.`);
 
   const changes: string[] = [];
-  const left: string[] = [...names(x.structure.excludedPackageIds)];
-  if (phased && months < fullMonths()) left.push(`months ${months + 1}–${fullMonths()}`);
+  const left: string[] = [...names(packages, x.structure.excludedPackageIds)];
+  if (phased && months < fullMonths(baseline)) left.push(`months ${months + 1}–${fullMonths(baseline)}`);
   if (left.length) changes.push(`${listJoin(left).replace(/^./, (c) => c.toUpperCase())} are not included.`);
   // Deterministic subtraction between two customer-facing totals, only on the same GST basis.
   if (offerGstRateBps === original.gstRateBps && total < original.totalPaise) changes.push(`The customer-facing proposal value is ${formatINR(original.totalPaise - total)} lower than the original annual proposal.`);

@@ -7,7 +7,6 @@ import { AcceptForm, DeclineButton, RequestChangeForm } from "@/components/clien
 import { ProposalContent } from "@/components/proposal-content";
 import { fmtTime } from "@/components/evidence";
 import { cx } from "@/components/ui";
-import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadPage } from "@/lib/page-data";
 import { activeCase, AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered, isResolvingDisposition } from "@/lib/deal-records";
@@ -24,14 +23,14 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const { agreementId, version: seg } = await props.params;
   const version = parseVersionSegment(seg);
   if (agreementId !== AGREEMENT_ID || version === null) notFound();
-  const { s } = await loadPage();
+  const { s, deal } = await loadPage();
   const buyer = activeCase(s).buyer;
   const v = s.agreements.find((x) => x.agreementId === agreementId && x.version === version);
   // A proposal link exists only once the merchant has approved and sent this exact version.
   // Buyer access opens only after a successful delivery of this exact version (spec §5.5).
   if (!v || !isDelivered(s.deliveries, v.version)) notFound();
 
-  const view = proposalView(v, heroPackages, heroMerchant.policy);
+  const view = proposalView(v, deal.packages, deal.merchant.policy);
   const amendment = s.amendments.find((a) => a.toVersion === v.version);
   const previous = v.supersedes ? s.agreements.find((x) => x.version === v.supersedes) : null;
   const changedLine = amendment ? v.terms.paymentSchedule.find((p) => p.id === amendment.change.lineId) : null;
@@ -80,7 +79,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             PM
           </span>
           <div className="min-w-0">
-            <div className="text-[14px] font-semibold text-ink">{heroMerchant.name}</div>
+            <div className="text-[14px] font-semibold text-ink">{deal.merchant.name}</div>
             <div className="text-[12px] text-muted">for {buyer.name}</div>
           </div>
         </div>
@@ -97,7 +96,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
 
       <div className="space-y-5 px-5 py-5">
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
+        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
         {link ? (
           <p className="-mt-3 text-[12px] text-muted" data-testid="buyer-payment-link">
             Payment link {link.id} · {formatINR(link.amountPaise)} · {link.status === "paid" ? "paid" : "awaiting payment"} ({link.mode === "simulated" ? "simulated" : "Razorpay test mode"})
@@ -118,7 +117,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
               <div key={r.id} className="rounded-xl border border-[#ddd5ff] bg-violet-weak px-4 py-3 text-[13px]">
                 <div className="font-semibold text-ink">Change requested · {fmtTime(r.createdAt)}</div>
                 <p className="mt-0.5 text-ink-2">“{r.text}”</p>
-                <p className="mt-1 text-[12px] text-muted">Sent to {heroMerchant.name} in your WhatsApp conversation (simulated), referring to version {v.version}. This proposal is unchanged until they send a new version.</p>
+                <p className="mt-1 text-[12px] text-muted">Sent to {deal.merchant.name} in your WhatsApp conversation (simulated), referring to version {v.version}. This proposal is unchanged until they send a new version.</p>
               </div>
             ))}
           </section>
@@ -147,7 +146,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             </div>
             {v.merchantApproval ? (
               <div>
-                <dt className="text-muted">Approved by {heroMerchant.name}</dt>
+                <dt className="text-muted">Approved by {deal.merchant.name}</dt>
                 <dd className="text-ink">{fmtTime(v.merchantApproval.at)} · same hash</dd>
               </div>
             ) : null}

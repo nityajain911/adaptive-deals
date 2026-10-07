@@ -2,7 +2,7 @@ import type { DealEvaluation } from "@/domain/engine";
 import type { ConstraintProfile } from "@/domain/types";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
-import type { originalProposal } from "./offer-copy";
+import type { originalProposalOf } from "./deal-context-shared";
 
 /**
  * "What's blocking this deal" (spec §4), written by code from the constraint profile. Keeps the
@@ -19,7 +19,7 @@ function gstWords(p: ConstraintProfile): string {
 const isCalendarQuarter = (start: string, end: string) =>
   start.endsWith("-01") && [1, 4, 7, 10].includes(Number(start.slice(5, 7))) && Number(end.slice(5, 7)) === Number(start.slice(5, 7)) + 2;
 
-export function blockingLines(p: ConstraintProfile, original: ReturnType<typeof originalProposal>): string[] {
+export function blockingLines(p: ConstraintProfile, original: ReturnType<typeof originalProposalOf>): string[] {
   const lines = [`Original annual proposal: ${formatINR(original.totalPaise)} including GST`];
   const gst = gstWords(p);
   const b = p.budgetNow.value;

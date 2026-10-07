@@ -6,7 +6,6 @@ import { PreviewActions } from "@/components/offer/preview-actions";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { ProposalContent } from "@/components/proposal-content";
 import { Notice } from "@/components/ui";
-import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { proposalView } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
@@ -17,12 +16,12 @@ import { proposalLinkOf } from "@/lib/track-links";
  */
 export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offer/preview">) {
   const { dealId } = await props.params;
-  const { s, progress, activeCase } = await loadDeal(dealId);
+  const { s, progress, activeCase, deal } = await loadDeal(dealId);
   const v = s.agreements.find((a) => a.version === s.selectedOption?.draftVersion && a.status === "draft");
   if (!v || progress.stage !== "offer") redirect(stageHref(dealId, progress.stage));
   const stale = progress.primaryAction?.id === "review_updated_proposal";
   const newEvidence = progress.primaryAction?.id === "review_new_evidence";
-  const view = proposalView(v, heroPackages, heroMerchant.policy);
+  const view = proposalView(v, deal.packages, deal.merchant.policy);
   const buyerMessage = proposalMessageText(v.terms, v.version, proposalLinkOf(v));
   return (
     <StageShell dealId={dealId} viewing="offer">
@@ -35,9 +34,9 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
         {newEvidence ? <EvidenceReview s={s} /> : null}
         <article className="rounded-2xl bg-surface p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08),0_0_0_1px_var(--border)]" aria-label="Buyer proposal preview">
           <div className="mb-4 text-[13px] text-muted">
-            {heroMerchant.name} · for {activeCase.buyer.name}
+            {deal.merchant.name} · for {activeCase.buyer.name}
           </div>
-          <ProposalContent view={view} nextHeading="After you accept" nextSteps={view.nextSteps} />
+          <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading="After you accept" nextSteps={view.nextSteps} />
         </article>
         <details className="rounded-xl border border-line bg-surface px-4 py-2" data-testid="buyer-message-preview">
           <summary className="cursor-pointer text-[13px] font-semibold text-ink">Message the buyer will receive</summary>

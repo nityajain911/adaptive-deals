@@ -9,7 +9,7 @@ import { StatusBanner } from "./status-banner";
 
 /** Rendered by every stage page with its own literal `viewing` stage (pages cannot pass state up to a layout). */
 export async function StageShell({ dealId, viewing, children }: { dealId: string; viewing: StageId; children: ReactNode }) {
-  const { s, out, progress, activeCase } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, deal } = await loadDeal(dealId);
   return (
     <div className="mx-auto w-full max-w-[1200px] px-3 py-4 sm:px-6 sm:py-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -29,7 +29,7 @@ export async function StageShell({ dealId, viewing, children }: { dealId: string
       <div className="mt-5">{children}</div>
       {progress.kind === "action_required" && progress.primaryAction && progress.stage === viewing ? <StickyNext label={progress.primaryAction.label} /> : null}
       <AuditDrawer>
-        <AuditSections s={s} out={out} />
+        <AuditSections s={s} out={out} deal={deal} />
       </AuditDrawer>
     </div>
   );

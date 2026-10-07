@@ -1,5 +1,6 @@
 import { applyClarificationAnswer, buildConstraintProfile, type RawExtraction } from "@/domain/constraints";
 import type { EngineInput } from "@/domain/engine";
+import { captureBaseline } from "@/domain/deal-baseline";
 import type { ConstraintProfile, Message } from "@/domain/types";
 import {
   heroClarificationAnswers,
@@ -12,6 +13,7 @@ import {
 } from "@/data/synthetic/hero";
 
 export const heroInput = (): EngineInput => structuredClone({ merchant: heroMerchant, packages: heroPackages, templates: heroTemplates });
+export const heroBaseline = () => captureBaseline({ services: heroPackages, quotedScope: heroTemplates.fullScope, quotedPrePaise: 12_000_000, gstRateBps: heroMerchant.policy.gstRateBps, economicsVersion: 1 });
 
 export function profileFrom(extraction: RawExtraction = heroSyntheticExtraction, messages: Message[] = heroMessages): ConstraintProfile {
   return buildConstraintProfile({ dealId: HERO_DEAL_ID, extraction, messages, packages: heroPackages, timeZone: heroMerchant.timeZone });

@@ -22,10 +22,10 @@ import { headlineFor } from "@/lib/offer-copy";
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
   const { dealId } = await props.params;
-  const { s, out, progress, activeCase } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, deal, baseline } = await loadDeal(dealId);
   const st = progress.stages.offer;
   const r = out.evaluation.result;
-  const policy = s.run.record.inputs.policy;
+  const policy = deal.merchant.policy;
   const preview = `/deals/${dealId}/offer/preview`;
 
   if (st === "upcoming") {
@@ -148,6 +148,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   if (!x || !r) return <StageShell dealId={dealId} viewing="offer">{null}</StageShell>;
   const p = out.profile;
   const context = contextLine(
+    baseline,
     p.budgetNow.value?.amountPaise ?? null,
     p.approvalLimit.value?.amountPaise ?? null,
     p.approvalScope.status === "stated" && p.approvalScope.value === "per_contract",
@@ -173,6 +174,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           x={x}
           exp={out.explanation}
           policy={policy}
+          baseline={baseline}
+          packages={deal.packages}
           context={context}
           presentation={explicitlySelected ? "merchant_selected" : "recommended"}
           provenance={taskOrRunProvenance(s.run.record, "explain", s.run.viewing)}

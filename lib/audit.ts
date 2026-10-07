@@ -7,7 +7,6 @@ import type { RunOutcome } from "@/ai/orchestrator";
 import { snapshotEvaluation, type RecordedAnswer } from "@/ai/run-record";
 import { canonicalJson } from "@/domain/agreement";
 import { createHash } from "node:crypto";
-import { heroPackages } from "@/data/synthetic/hero";
 import { branchChangedAnswers, branchNotProcessed, branchRecalculatedAfter, branchScope, type DecisionBranch } from "./decision-branch";
 import { SAMPLE_OUTPUT_LABEL, taskProvenance, type ModelProvenance } from "./model-provenance";
 import { unmappedRequiredServices } from "./scope-confirmation";
@@ -26,7 +25,7 @@ export interface AuditSource {
 
 const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Option ranking and explanation" };
 
-export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[] = heroPackages): AuditSource[] {
+export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | "fresh" = "replay", packages: Pick<ServicePackage, "id" | "name">[]): AuditSource[] {
   const out: AuditSource[] = [
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
     { item: "Merchant costs and rules", source: "Synthetic deal fixture" },

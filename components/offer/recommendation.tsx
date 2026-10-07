@@ -4,9 +4,11 @@ import { formatDate } from "@/domain/dates";
 import { failingChecks, featuredRejections, type EnumerationResult, type EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
+import type { ServicePackage } from "@/domain/types";
+import type { DealBaseline } from "@/domain/deal-baseline";
 import type { ExplanationResult } from "@/ai/explain";
-import { heroPackages } from "@/data/synthetic/hero";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, originalProposal, whyOffer } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, whyOffer } from "@/lib/offer-copy";
+import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { ModelProvenance } from "@/lib/model-provenance";
 import { explanationAttribution } from "@/lib/views";
 import type { DecisionBranch } from "@/lib/decision-branch";
@@ -17,7 +19,6 @@ import { InfoButton } from "../info-button";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
 
-const pkg = (id: string) => heroPackages.find((p) => p.id === id)?.name ?? id;
 const RULE_NAME: Partial<Record<string, string>> = {
   seller_contribution: "Contribution floor",
   seller_cash_at_risk: "Cash-at-risk limit",
@@ -28,8 +29,8 @@ const RULE_NAME: Partial<Record<string, string>> = {
 };
 
 /** Context line from the confirmed profile, with the GST basis and approval scope kept. */
-export function contextLine(budgetPaise: number | null, limitPaise: number | null, perContract: boolean, includesGst = true): string {
-  const o = originalProposal();
+export function contextLine(baseline: DealBaseline, budgetPaise: number | null, limitPaise: number | null, perContract: boolean, includesGst = true): string {
+  const o = originalProposalOf(baseline);
   const basis = includesGst ? "including GST" : "excluding GST";
   const parts = [`Original annual proposal: ${formatINR(o.totalPaise)} including GST.`];
   if (budgetPaise !== null) parts.push(`The buyer has ${formatINR(budgetPaise)} ${basis} this quarter.`);
@@ -38,9 +39,9 @@ export function contextLine(budgetPaise: number | null, limitPaise: number | nul
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, exp, policy, context, primary, presentation, provenance, decisionBranch = null, counter = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; provenance: ModelProvenance; decisionBranch?: DecisionBranch | null; counter?: CounterOffer | null }) {
+export function Recommendation({ x, exp, policy, baseline, packages, context, primary, presentation, provenance, decisionBranch = null, counter = null }: { x: EvaluatedStructure; exp: ExplanationResult | null; policy: MerchantPolicy; baseline: DealBaseline; packages: ServicePackage[]; context: string; primary: React.ReactNode; presentation: "recommended" | "merchant_selected"; provenance: ModelProvenance; decisionBranch?: DecisionBranch | null; counter?: CounterOffer | null }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
-  const summary = offerSummary(x, originalProposal(), policy.gstRateBps);
+  const summary = offerSummary(x, baseline, packages, policy.gstRateBps);
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
   const funding = [...x.sellerChecks].find((c) => c.id === "seller_cash_at_risk");
   const passesRules = contribution?.status === "pass" && funding?.status === "pass";
@@ -78,11 +79,11 @@ export function Recommendation({ x, exp, policy, context, primary, presentation,
           <dl className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-2">
             <div>
               <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Included</dt>
-              <dd className="text-ink">{x.structure.scope.map((i) => `${pkg(i.packageId)}${i.months > 1 ? ` (${i.months} months)` : ""}`).join(", ")}</dd>
+              <dd className="text-ink">{x.structure.scope.map((i) => `${packageName(packages, i.packageId)}${i.months > 1 ? ` (${i.months} months)` : ""}`).join(", ")}</dd>
             </div>
             <div>
               <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Not included</dt>
-              <dd className="text-ink">{x.structure.excludedPackageIds.length ? x.structure.excludedPackageIds.map(pkg).join(", ") : "Nothing"}</dd>
+              <dd className="text-ink">{x.structure.excludedPackageIds.length ? x.structure.excludedPackageIds.map((id) => packageName(packages, id)).join(", ") : "Nothing"}</dd>
             </div>
           </dl>
         </div>

@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
-import { heroMerchant } from "@/data/synthetic/hero";
+import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import { contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
 import { alternativeContributionLine, headlineFor } from "@/lib/offer-copy";
 import type { ExplanationResult } from "@/ai/explain";
 import type { DecisionBranch } from "@/lib/decision-branch";
 import type { ModelProvenance } from "@/lib/model-provenance";
-import { clarifiedHeroProfile, heroInput } from "../helpers";
+import { clarifiedHeroProfile, heroBaseline, heroInput } from "../helpers";
 
 const SAMPLE: ModelProvenance = { source: "hand_written", modelMade: false, providerName: null, label: "Sample output written by hand · no model ran" };
 const GROQ: ModelProvenance = { source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" };
@@ -18,10 +18,10 @@ const top = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0
 
 describe("recommendation card", () => {
   const html = renderToStaticMarkup(
-    Recommendation({ x: top(), exp: null, policy: heroMerchant.policy, context: contextLine(5_000_000, 6_000_000, true), primary: null, presentation: "recommended", provenance: SAMPLE }),
+    Recommendation({ x: top(), exp: null, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: contextLine(heroBaseline(), 5_000_000, 6_000_000, true), primary: null, presentation: "recommended", provenance: SAMPLE }),
   );
   it("keeps the GST basis and per-contract scope in the context line", () => {
-    expect(contextLine(5_000_000, 6_000_000, true)).toBe("Original annual proposal: ₹1,41,600 including GST. The buyer has ₹50,000 including GST this quarter. Contracts above ₹60,000 including GST require MD approval.");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true)).toBe("Original annual proposal: ₹1,41,600 including GST. The buyer has ₹50,000 including GST this quarter. Contracts above ₹60,000 including GST require MD approval.");
   });
   it("shows the funding requirement and cash-at-risk limit only inside the collapsed details", () => {
     const outside = html.replace(/<details[\s\S]*?<\/details>/g, "");
@@ -52,7 +52,7 @@ describe("recommendation card", () => {
   it("distinguishes an engine recommendation from an option selected by the merchant", () => {
     expect(html).toContain("Recommended offer");
     const annual = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible.find((x) => x.approval === "requires_approval")!;
-    const selected = renderToStaticMarkup(Recommendation({ x: annual, exp: null, policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: SAMPLE }));
+    const selected = renderToStaticMarkup(Recommendation({ x: annual, exp: null, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: SAMPLE }));
     expect(selected).toContain("Selected by you");
     expect(selected).not.toContain("Recommended offer");
     expect(selected).toContain("requires the buyer&#x27;s MD approval");
@@ -80,7 +80,7 @@ describe("recommendation attribution on the card", () => {
   const exp = (notes: ExplanationResult["notes"], text: "ai" | "code_fallback" = "ai"): ExplanationResult => ({ order: [x.structure.id], options: [], comparisonTemplate: "", comparison: "", notes, source: { ranking: "ai", text }, issues: [] });
   const noteFor = (structureId: string) => [{ structureId, text: NOTE }];
   const card = (e: ExplanationResult, provenance: ModelProvenance, decisionBranch: DecisionBranch | null = null) =>
-    renderToStaticMarkup(Recommendation({ x, exp: e, policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "recommended", provenance, decisionBranch }));
+    renderToStaticMarkup(Recommendation({ x, exp: e, policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "recommended", provenance, decisionBranch }));
   const attribution = (html: string) => /data-testid="attribution">([^<]*)</.exec(html)![1];
 
   it("credits a hand-written sample to nobody's model, with or without a note for this offer", () => {
@@ -106,7 +106,7 @@ describe("recommendation attribution on the card", () => {
     expect(attribution(html)).toBe("Groq ranked and wrote this reason · recorded Groq output · figures calculated by the engine.");
   });
   it("on the option the merchant selected, says the merchant chose it and the model only wrote the reason", () => {
-    const html = renderToStaticMarkup(Recommendation({ x, exp: exp(noteFor(x.structure.id), "code_fallback"), policy: heroMerchant.policy, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: GROQ }));
+    const html = renderToStaticMarkup(Recommendation({ x, exp: exp(noteFor(x.structure.id), "code_fallback"), policy: heroMerchant.policy, baseline: heroBaseline(), packages: heroPackages, context: "Confirmed context", primary: null, presentation: "merchant_selected", provenance: GROQ }));
     expect(html).toContain("Selected by you");
     expect(html).toContain(NOTE);
     expect(attribution(html)).toBe("Groq wrote this reason · you selected this option · recorded Groq output · figures calculated by the engine. Full comparison written by code.");

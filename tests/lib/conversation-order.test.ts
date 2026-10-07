@@ -4,6 +4,7 @@ import { ConversationThread } from "@/components/conversation-thread";
 import { bundledSyntheticRun, seedState } from "@/lib/service";
 import { heroMessages } from "@/data/synthetic/hero";
 import { contextLine } from "@/components/offer/recommendation";
+import { heroBaseline } from "../helpers";
 
 describe("Understand conversation order", () => {
   it("shows the merchant proposal before the later buyer constraint in the collapsed thread", async () => {
@@ -18,9 +19,9 @@ describe("Understand conversation order", () => {
   });
 
   it("describes the buyer amounts with the confirmed GST basis", () => {
-    expect(contextLine(5_000_000, 6_000_000, true, true)).toContain("including GST this quarter");
-    expect(contextLine(5_000_000, 6_000_000, true, false)).toContain("excluding GST this quarter");
-    expect(contextLine(5_000_000, 6_000_000, false, false)).toContain("Payments above ₹60,000 excluding GST");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true, true)).toContain("including GST this quarter");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true, false)).toContain("excluding GST this quarter");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, false, false)).toContain("Payments above ₹60,000 excluding GST");
   });
 });
 
@@ -42,4 +43,3 @@ describe("clarification draft attribution in the thread", () => {
     expect(html).not.toContain("Sample wording written by hand");
   });
 });
-

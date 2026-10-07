@@ -11,7 +11,6 @@ import { CounterForm } from "@/components/track/counter-form";
 import { CurrentAgreement } from "@/components/track/current-agreement";
 import { InfoButton } from "@/components/info-button";
 import { Card, Stat } from "@/components/ui";
-import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
 import type { Structure } from "@/domain/structures";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { isResolvingDisposition, BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
@@ -25,7 +24,7 @@ import { currentAgreementSummary } from "@/lib/current-agreement";
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
   const { dealId } = await props.params;
-  const { s, out, progress, activeCase, today, now } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, deal, today, now } = await loadDeal(dealId);
   if (progress.stages.track === "upcoming") {
     return (
       <StageShell dealId={dealId} viewing="track">
@@ -67,22 +66,22 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     const x = s.amendments.find((a) => a.toVersion === shown.version)?.revised ?? out.evaluation.result?.structures.find((e) => e.structure.id === shown.structureId);
     if (x) {
       shownStructure = x.structure;
-      ledger = computeLedger({ structure: x.structure, attempts: s.attempts, asOf: today, timeZone: heroMerchant.timeZone });
+      ledger = computeLedger({ structure: x.structure, attempts: s.attempts, asOf: today, timeZone: deal.merchant.timeZone });
     }
   }
 
   const summary = outcomeSummary({
     s,
     acceptedStructure: shown?.buyerAcceptance ? shownStructure : null,
-    policy: heroMerchant.policy,
+    policy: deal.merchant.policy,
     now,
-    timeZone: heroMerchant.timeZone,
+    timeZone: deal.merchant.timeZone,
   });
   const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
   const agreementSummary = shown && financial
     ? currentAgreementSummary({
         agreements: s.agreements,
-        packages: heroPackages,
+        packages: deal.packages,
         financial,
         progress,
         paymentSetup: {

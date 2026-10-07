@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { profileFrom, clarifiedHeroProfile } from "../helpers";
-import { originalProposal } from "@/lib/offer-copy";
+import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { readFileSync } from "node:fs";
 import { interpretExtraction } from "@/ai/extract";
 import { demoCase } from "@/data/synthetic/cases";
 import { evaluateDeal } from "@/domain/engine";
+import { heroBaseline } from "../helpers";
 
 /** Spec §4: "What's blocking this deal", with GST basis and precision preserved. */
 describe("blocking lines", () => {
   it("confirmed profile keeps the GST basis, quarter end, month precision and per-contract scope", () => {
-    expect(blockingLines(clarifiedHeroProfile(), originalProposal())).toEqual([
+    expect(blockingLines(clarifiedHeroProfile(), originalProposalOf(heroBaseline()))).toEqual([
       "Original annual proposal: ₹1,41,600 including GST",
       "Current-quarter budget: ₹50,000 including GST, until 31 Dec 2026",
       "Next budget: April 2027 · exact day not provided",
@@ -18,12 +19,13 @@ describe("blocking lines", () => {
     ]);
   });
   it("marks unconfirmed facts inline instead of guessing", () => {
-    const lines = blockingLines(profileFrom(), originalProposal());
+    const lines = blockingLines(profileFrom(), originalProposalOf(heroBaseline()));
     expect(lines[1]).toBe("Current-quarter budget: ₹50,000 (GST basis not confirmed), until 31 Dec 2026");
     expect(lines[3]).toBe("Above ₹60,000 (GST basis not confirmed) requires MD approval (per payment or per contract not confirmed)");
   });
   it("never implies a day for a month-precision budget or a live WhatsApp link", () => {
-    const all = [...blockingLines(clarifiedHeroProfile(), originalProposal()), ...blockingLines(profileFrom(), originalProposal())].join(" ");
+    const proposal = originalProposalOf(heroBaseline());
+    const all = [...blockingLines(clarifiedHeroProfile(), proposal), ...blockingLines(profileFrom(), proposal)].join(" ");
     expect(all).not.toMatch(/1 Apr|via WhatsApp/);
   });
 });
@@ -52,4 +54,3 @@ describe("facts not captured that change nothing", () => {
     expect(uncapturedLines(evaluateDeal(clarifiedHeroProfile(), { merchant: deal.merchant, packages: deal.packages, templates: deal.templates }))).toEqual([]);
   });
 });
-

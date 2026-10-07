@@ -1,6 +1,7 @@
 import { DEMO_ANCHOR, SimulatedClock } from "@/domain/clock";
 import { compareDates, formatDate, localDateOf } from "@/domain/dates";
-import { heroMerchant, heroScriptedReplies } from "@/data/synthetic/hero";
+import { heroScriptedReplies } from "@/data/synthetic/hero";
+import { demoCase } from "@/data/synthetic/cases";
 import { isDelivered } from "./deal-records";
 import type { DealProgress } from "./progress";
 import type { DemoState } from "./service";
@@ -69,7 +70,8 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       if (s.amendments.at(-1)?.state === "active") return null; // storyboard complete
       const n = pendingNotice(s);
       if (n) {
-        const today = localDateOf(new SimulatedClock(DEMO_ANCHOR, s.clockAdvances).now(), heroMerchant.timeZone);
+        const timeZone = demoCase(s.caseId)?.deal.merchant.timeZone ?? "Asia/Kolkata";
+        const today = localDateOf(new SimulatedClock(DEMO_ANCHOR, s.clockAdvances).now(), timeZone);
         return compareDates(today, n.sendOn) < 0 ? sys("advance_to_notice", `Advance simulated date to ${formatDate(n.sendOn)}`, at("track")) : sys("send_notice", "Send scheduled advance notice", at("track"));
       }
       if (replyContext(s)) return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the notice", at("track"), true);

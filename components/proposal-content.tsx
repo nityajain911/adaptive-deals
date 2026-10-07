@@ -3,7 +3,6 @@ import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import type { AmendmentDifference } from "@/lib/amendment-diff";
 import type { ProposalView } from "@/lib/views";
-import { heroMerchant } from "@/data/synthetic/hero";
 import { authorityStatement, proposalGlance, recurringStatement } from "@/lib/proposal-copy";
 import { cx } from "./ui";
 
@@ -39,7 +38,7 @@ export function AmendmentDifferences({ differences }: { differences: AmendmentDi
   );
 }
 
-export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [] }: { view: ProposalView; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[] }) {
+export function ProposalContent({ view, merchantName, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [] }: { view: ProposalView; merchantName: string; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[] }) {
   return (
     <div className="space-y-5" data-testid="proposal-content">
       <p className="rounded-xl bg-blue-weak px-4 py-3 text-[15px] font-semibold leading-6 text-ink" data-testid="proposal-glance">
@@ -120,7 +119,7 @@ export function ProposalContent({ view, nextHeading, nextSteps, changedLineId = 
               Recurring authorisation
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-ink-2" data-testid="recurring">
-              {recurringStatement(view.recurring, heroMerchant.name)} <span className="text-muted">(Simulated in this prototype.)</span>
+              {recurringStatement(view.recurring, merchantName)} <span className="text-muted">(Simulated in this prototype.)</span>
             </p>
           </div>
         </section>

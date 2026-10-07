@@ -31,6 +31,8 @@ const creditsModel = (text: string) => /\bAI\b|Groq|Anthropic|model run\b/.test(
 /** Every merchant-visible surface that carries model attribution, rendered from one state. */
 async function surfaces(s: DemoState): Promise<Record<string, string>> {
   const out = await svc.currentOutcome(s);
+  const { dealContextFor, pinnedEconomicsOf } = await import("@/lib/deal-context");
+  const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const progress = await svc.progressOf(s);
   const { ConversationThread } = await import("@/components/conversation-thread");
   const { AuditSections } = await import("@/components/audit/sections");
@@ -46,7 +48,7 @@ async function surfaces(s: DemoState): Promise<Record<string, string>> {
     "question badges": s.run.record.displayed.questions.map((q) => questionWordingLabel(q.wording, provenance)).join(" | "),
     "understand thread": renderToStaticMarkup(ConversationThread({ s, scope: "understand", buyerName: "Buyer", opening: s.run.record.inputs.messages })),
     "track thread": renderToStaticMarkup(ConversationThread({ s, scope: "track", buyerName: "Buyer" })),
-    "audit drawer": renderToStaticMarkup(AuditSections({ s, out })),
+    "audit drawer": renderToStaticMarkup(AuditSections({ s, out, deal })),
     "walkthrough data": JSON.stringify(view),
   };
   for (const objective of view.objectives) {
@@ -56,7 +58,7 @@ async function surfaces(s: DemoState): Promise<Record<string, string>> {
   }
   if (top) {
     rendered["offer card"] = renderToStaticMarkup(
-      Recommendation({ x: top, exp: out.explanation, policy: s.run.record.inputs.policy, context: "Context", primary: null, presentation: "recommended", provenance: taskOrRunProvenance(s.run.record, "explain", s.run.viewing), decisionBranch: s.decisionBranch }),
+      Recommendation({ x: top, exp: out.explanation, policy: deal.merchant.policy, baseline: s.baseline, packages: deal.packages, context: "Context", primary: null, presentation: "recommended", provenance: taskOrRunProvenance(s.run.record, "explain", s.run.viewing), decisionBranch: s.decisionBranch }),
     );
   }
   return rendered;
@@ -122,4 +124,3 @@ describe("wording that could imply AI on a sample", () => {
     }
   });
 });
-

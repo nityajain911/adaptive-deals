@@ -42,7 +42,7 @@ const branch: DecisionBranch = {
 const branchedState = { ...baseState, decisionBranch: branch } as never;
 
 describe("audit sources", () => {
-  const src = auditSources(state, run);
+  const src = auditSources(state, run, "replay", heroPackages);
   it("labels each source truthfully", () => {
     expect(src.find((x) => x.item === "Original annual proposal")!.source).toBe("Synthetic deal fixture");
     expect(src.find((x) => x.item === "Merchant costs and rules")!.source).toBe("Synthetic deal fixture");
@@ -54,12 +54,12 @@ describe("audit sources", () => {
     expect(src.find((x) => x.item === "Constraint extraction")!.source).toBe(`Recorded Groq output · run ${run.runId} · extract.v2`);
   });
   it("never labels a hand-written sample as an AI run", () => {
-    const sampleSources = auditSources(state, sampleRun);
+    const sampleSources = auditSources(state, sampleRun, "replay", heroPackages);
     for (const item of ["Constraint extraction", "Clarification wording", "Option ranking and explanation"]) {
       expect(sampleSources.find((x) => x.item === item)!.source).toBe(`Sample output written by hand · no model ran · run ${sampleRun.runId}`);
     }
     expect(sampleSources.map((x) => `${x.source} ${x.detail ?? ""}`).join(" ")).not.toMatch(/\bAI\b|Groq/);
-    const branched = auditSources(branchedState, sampleRun);
+    const branched = auditSources(branchedState, sampleRun, "replay", heroPackages);
     expect(branched.find((x) => x.item === "Parent option ranking and explanation")).toMatchObject({
       source: `Parent sample output ${sampleRun.runId} · context only`,
       detail: "The hand-written parent sample did not cover the changed answers and its recommendation output was not used for this branch.",
@@ -116,7 +116,7 @@ describe("who did what", () => {
     expect(w.ai).toEqual(["Extracted the opening constraints (extract.v2)", "Drafted the clarification questions (clarify.v1)"]);
     expect(w.aiLabel).toBe("Recorded Groq output");
     expect(w.sample).toEqual(["Order of eligible options", "Recommendation explanation"]);
-    const sources = auditSources(state, mixedRun);
+    const sources = auditSources(state, mixedRun, "replay", heroPackages);
     expect(sources.find((x) => x.item === "Constraint extraction")!.source).toBe(`Recorded Groq output · run ${run.runId} · extract.v2`);
     expect(sources.find((x) => x.item === "Option ranking and explanation")!.source).toBe(`Sample output written by hand · no model ran · run ${run.runId}`);
   });
@@ -166,7 +166,7 @@ describe("audit drawer content is read-only", () => {
     const s = await driveTo(svc, (x) => x.amendments.at(-1)?.state === "active");
     const out = await svc.currentOutcome(s);
     const { AuditSections } = await import("@/components/audit/sections");
-    const html = renderToStaticMarkup(AuditSections({ s, out }));
+    const html = renderToStaticMarkup(AuditSections({ s, out, deal: { dealId: s.dealId, messages: s.run.record.inputs.messages, merchant: heroMerchant, packages: heroPackages, templates: heroTemplates } }));
     expect(html).not.toMatch(/<form|<button|\/api\/actions|data-action=/);
     for (const h of ["Evidence", "Applied merchant rules", "Approval and acceptance history", "Calculation provenance", "Who did what", "Schedules"]) expect(html).toContain(h);
     expect(html).toContain("Simulated WhatsApp conversation");
@@ -193,17 +193,17 @@ describe("an unmapped required scope and the merchant's confirmation", () => {
   const confirmed = { ...baseState, decisionBranch: { schema: "adaptive-deals.decision-branch.v1", branchId: "b", parentRunId: recorded.runId, createdAt: "t", answers: [], reason: "merchant_scope_confirmation", answersChanged: false, scope, explanationSource: "code_fallback" } } as never;
 
   it("shows the unmapped phrase as the model's own output, with its evidence", () => {
-    const row = auditSources(state, recorded).find((x) => x.item === "Required services (unmapped phrase)")!;
+    const row = auditSources(state, recorded, "replay", heroPackages).find((x) => x.item === "Required services (unmapped phrase)")!;
     expect(row.source).toBe(`Recorded Groq output · run ${recorded.runId} · extract.v2`);
     expect(row.detail).toBe(`“${phrase}” matched no package in this deal · evidence “${quote}” (preserve-2)`);
   });
 
   it("shows nothing for a run whose required services all mapped", () => {
-    expect(auditSources(state, run).some((x) => x.item.startsWith("Required services"))).toBe(false);
+    expect(auditSources(state, run, "replay", heroPackages).some((x) => x.item.startsWith("Required services"))).toBe(false);
   });
 
   it("records the merchant's confirmation, who made it and which phrase it answers", () => {
-    const row = auditSources(confirmed, recorded).find((x) => x.item === "Required services (merchant confirmation)")!;
+    const row = auditSources(confirmed, recorded, "replay", heroPackages).find((x) => x.item === "Required services (merchant confirmation)")!;
     expect(row.source).toBe("Merchant confirmation of an unmapped extraction");
     expect(row.detail).toBe(`“${phrase}” → Website fixes, Search marketing, Social media, Monthly reporting · Merchant (Pinecone Media Works) · ${scope.confirmedAt}`);
   });

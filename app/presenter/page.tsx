@@ -11,6 +11,7 @@ import { OtherOutcomes } from "@/components/presenter/other-outcomes";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
+import { dealContextFor, pinnedEconomicsOf } from "@/lib/deal-context";
 
 export const metadata = { title: "Presenter · Adaptive Deals prototype" };
 
@@ -21,6 +22,7 @@ export const metadata = { title: "Presenter · Adaptive Deals prototype" };
 export default async function PresenterPage() {
   await connection();
   const s = await getState();
+  const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const flags = await readPresenterFlags();
   const live = liveAvailability();
   const committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
@@ -149,7 +151,7 @@ export default async function PresenterPage() {
       <Card>
         <CardHeader title="Merchant audit (read-only, as the merchant sees it)" />
         <div className="p-5">
-          {outcome ? <AuditSections s={s} out={outcome} /> : <p className="text-[13px] text-red">Unavailable: the stored run could not be replayed.</p>}
+          {outcome ? <AuditSections s={s} out={outcome} deal={deal} /> : <p className="text-[13px] text-red">Unavailable: the stored run could not be replayed.</p>}
         </div>
       </Card>
 

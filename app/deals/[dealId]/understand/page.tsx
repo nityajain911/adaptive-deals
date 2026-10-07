@@ -9,7 +9,7 @@ import { Badge, Card } from "@/components/ui";
 import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { questionWordingLabel, taskOrRunProvenance } from "@/lib/model-provenance";
-import { originalProposal } from "@/lib/offer-copy";
+import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
 import { branchChangedAnswers } from "@/lib/decision-branch";
@@ -28,11 +28,11 @@ const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
 /** Stage 1 · Understand the buyer (spec §4). */
 export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
   const { dealId } = await props.params;
-  const { s, out, progress, activeCase } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, baseline } = await loadDeal(dealId);
   const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const current = progress.stages.understand === "current";
   const r = s.run.record;
-  const lines = blockingLines(out.profile, originalProposal());
+  const lines = blockingLines(out.profile, originalProposalOf(baseline));
   const uncaptured = uncapturedLines(out.evaluation);
   const extraction = taskOrRunProvenance(r, "extract", s.run.viewing);
   const unmapped = unmappedScopeOf(s, out);

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate } from "@/domain/engine";
-import { heroMerchant } from "@/data/synthetic/hero";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary, originalProposal } from "@/lib/offer-copy";
-import { clarifiedHeroProfile, heroInput } from "../helpers";
+import { heroMerchant, heroPackages } from "@/data/synthetic/hero";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, offerSummary } from "@/lib/offer-copy";
+import { originalProposalOf } from "@/lib/deal-context";
+import { clarifiedHeroProfile, heroBaseline, heroInput } from "../helpers";
 
 /** Spec §5.1: code-written headlines and the original-proposal comparison. */
 const r = () => enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput());
@@ -34,10 +35,10 @@ describe("forecast figures are rounded for the decision", () => {
 
 describe("original proposal and offer summary", () => {
   it("₹1,20,000 pre-GST + 18% GST = ₹1,41,600", () => {
-    expect(originalProposal()).toEqual({ prePaise: 12_000_000, gstPaise: 2_160_000, totalPaise: 14_160_000, gstRateBps: 1800 });
+    expect(originalProposalOf(heroBaseline())).toEqual({ prePaise: 12_000_000, gstPaise: 2_160_000, totalPaise: 14_160_000, gstRateBps: 1800 });
   });
   it("hero offer: achieves and changes, with the ₹95,580 difference on a matching GST basis", () => {
-    const s = offerSummary(heroTop(), originalProposal(), GST);
+    const s = offerSummary(heroTop(), heroBaseline(), heroPackages, GST);
     expect(s.achieves).toEqual([
       "A proposed sale of ₹46,020 including GST.",
       "Projected contribution of about ₹19,330, based on configured costs and fees.",
@@ -51,7 +52,8 @@ describe("original proposal and offer summary", () => {
     expect([...s.achieves, ...s.changes].join(" ")).not.toMatch(/lost|recovered|realised|guaranteed/i);
   });
   it("omits the difference when the GST bases differ", () => {
-    const s = offerSummary(heroTop(), { ...originalProposal(), gstRateBps: 0 }, GST);
+    const baseline = heroBaseline();
+    const s = offerSummary(heroTop(), { ...baseline, gstRateBps: 0 }, heroPackages, GST);
     expect(s.changes.join(" ")).not.toMatch(/₹95,580|lower than/);
   });
 });

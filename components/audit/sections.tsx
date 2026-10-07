@@ -2,7 +2,7 @@ import type { RunOutcome } from "@/ai/orchestrator";
 import { formatDate } from "@/domain/dates";
 import type { EvaluatedStructure } from "@/domain/engine";
 import { formatINR, sum } from "@/domain/money";
-import { heroPackages, heroTemplates } from "@/data/synthetic/hero";
+import type { DealContext } from "@/ai/orchestrator";
 import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
 import { SAMPLE_OUTPUT_LABEL, taskOrRunProvenance } from "@/lib/model-provenance";
 import type { DemoState } from "@/lib/service";
@@ -37,10 +37,10 @@ function offerStructure(s: DemoState, out: RunOutcome): EvaluatedStructure | nul
   return out.evaluation.result?.structures.find((x) => x.structure.id === id) ?? null;
 }
 
-export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
+export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome; deal: DealContext }) {
   const run = s.run.record;
-  const policy = run.inputs.policy;
-  const sources = auditSources(s, run, s.run.viewing);
+  const policy = deal.merchant.policy;
+  const sources = auditSources(s, run, s.run.viewing, deal.packages);
   const who = whoDidWhat(run, out.explanation?.source ?? null, s, s.run.viewing, out.explanation?.notes.length ?? 0);
   const branch = branchAudit(s, out, taskOrRunProvenance(run, "explain", s.run.viewing));
   // Model outputs and hand-written samples keep separate headings; a case with no model output says so.
@@ -93,7 +93,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
             ))}
             {branch.scope ? (
               <li data-testid="branch-scope">
-                <span className="font-medium text-ink">Required services</span> · merchant confirmed {branch.scope.packageIds.map((id) => heroPackages.find((p) => p.id === id)?.name ?? id).join(", ")} from “{branch.scope.sources.map((x) => x.rawText).join("”, “")}”
+                <span className="font-medium text-ink">Required services</span> · merchant confirmed {branch.scope.packageIds.map((id) => deal.packages.find((p) => p.id === id)?.name ?? id).join(", ")} from “{branch.scope.sources.map((x) => x.rawText).join("”, “")}”
               </li>
             ) : null}
           </ul>
@@ -113,7 +113,7 @@ export function AuditSections({ s, out }: { s: DemoState; out: RunOutcome }) {
         <H id="audit-rules">Applied merchant rules</H>
         <p className="text-[12px] text-muted">From the merchant&apos;s configuration (synthetic fixture). Read-only in this prototype.</p>
         <ul className="mt-1 space-y-2">
-          {appliedRules(policy, heroTemplates, heroPackages).map((r) => (
+          {appliedRules(policy, deal.templates, deal.packages).map((r) => (
             <li key={r.id} data-rule={r.id} className="rounded-lg border border-line px-3 py-2">
               <div className="flex flex-wrap justify-between gap-2">
                 <span className="font-semibold text-ink">{r.name}</span>

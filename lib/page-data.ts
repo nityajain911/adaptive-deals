@@ -5,20 +5,23 @@ import { DEMO_ANCHOR, SimulatedClock } from "@/domain/clock";
 import { localDateOf } from "@/domain/dates";
 import { provenanceLabel } from "@/ai/run-record";
 import { liveAvailability } from "@/ai/config";
-import { heroMerchant } from "@/data/synthetic/hero";
 import { currentOutcome, getState } from "./service";
+import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
 
 /** Everything a view needs, read once per request from the store and re-derived by the engine. */
 export const loadPage = cache(async () => {
   await connection();
   const s = await getState();
+  const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const out = await currentOutcome(s);
   const clock = new SimulatedClock(DEMO_ANCHOR, s.clockAdvances);
   return {
     s,
     out,
     now: clock.now(),
-    today: localDateOf(clock.now(), heroMerchant.timeZone),
+    today: localDateOf(clock.now(), deal.merchant.timeZone),
+    deal,
+    baseline: s.baseline,
     simulatedDate: clock.isSimulated,
     provenance: provenanceLabel(s.run.record, s.run.viewing),
     live: liveAvailability(),
