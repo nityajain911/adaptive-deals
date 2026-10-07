@@ -80,6 +80,20 @@ describe("explicit re-evaluation", () => {
     expect(updated.economics.pinned.version).toBe(version.version);
   });
 
+  it("judges 'the recommendation changes' by the deal's own strategy, not by one fixed order", async () => {
+    await answerHeroQuestions();
+    // A 3-month maximum payment duration removes both full-scope offers and nothing else.
+    const version = await activateVersion((content) => { content.guardrails.maxTenureMonths = 3; });
+    const protect = await service.previewReevaluation(version.version);
+    expect(protect.becomesInfeasible.length).toBe(2);
+    expect(protect.recommendationChanges).toBe(false);
+
+    await service.setStrategy("preserve_scope");
+    const preserve = await service.previewReevaluation(version.version);
+    expect(preserve.becomesInfeasible).toEqual(protect.becomesInfeasible);
+    expect(preserve.recommendationChanges).toBe(true);
+  });
+
   it("blocks a version whose delivery dependencies are outside the original deal", async () => {
     const version = await activateVersion((content) => {
       content.services.push({ ...structuredClone(content.services[0]), id: "new-service", name: "New service", dependsOnAny: [] });

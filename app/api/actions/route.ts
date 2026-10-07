@@ -10,6 +10,7 @@ import { SYSTEM_STEPS, type SystemStepId } from "@/lib/demo-steps";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 import { CASE_IDS, type CaseId } from "@/data/synthetic/cases";
 import { EconomicsError, type EconomicsContent } from "@/domain/business-economics";
+import { STRATEGY_IDS } from "@/domain/strategy-id";
 import { activateEconomicsDraft, discardEconomicsDraft, resetEconomicsStore, restoreDefaultEconomics, saveEconomicsDraft } from "@/lib/economics-store";
 import { previewEconomicsActivation } from "@/lib/economics-activation";
 
@@ -90,6 +91,7 @@ const Action = z.discriminatedUnion("action", [
   // Split approval and delivery (spec §3.3).
   z.object({ action: z.literal("select_option"), structureId: z.string().max(200) }),
   z.object({ action: z.literal("review_buyer_proposal") }),
+  z.object({ action: z.literal("set_strategy"), strategy: z.enum(STRATEGY_IDS) }).strict(),
   z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
   z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20) }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
@@ -194,6 +196,9 @@ export async function POST(request: Request) {
         break;
       case "counter_offer":
         await svc.makeCounterOffer(a.totalPaise, a.overrideConfirmed, a.acknowledgedChecks);
+        break;
+      case "set_strategy":
+        await svc.setStrategy(a.strategy);
         break;
       case "review_buyer_proposal": {
         const v = await svc.reviewBuyerProposal();

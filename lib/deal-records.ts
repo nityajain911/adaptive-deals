@@ -15,6 +15,8 @@ export interface SelectedOption {
   draftVersion: number | null;
   /** Buyer-message evidence reviewed when this commercial option was selected. */
   evidenceMessageIds: string[];
+  /** True when the merchant chose this option themselves; false when it only followed the recommendation. */
+  explicit: boolean;
 }
 
 export interface DeliveryAttempt {

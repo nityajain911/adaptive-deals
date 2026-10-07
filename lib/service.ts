@@ -10,6 +10,7 @@ import { interpretations } from "@/domain/constraints";
 import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
+import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
 import { CounterError, counterStructure, failingCounterChecks } from "@/domain/counter";
 import { explainCheck } from "@/domain/copy";
 import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate";
@@ -476,6 +477,8 @@ async function reevaluationParts(s: DemoState, toVersion?: number, candidate?: B
     staleDraftVersion: prospectiveHash !== null && prospectiveHash !== s.economics.effectiveHash
       ? s.selectedOption?.draftVersion ?? null
       : null,
+    strategy: s.economics.strategy,
+    baseline: s.baseline,
   });
   return { target, afterDeal, afterEvaluation, prospectiveHash, preview };
 }
@@ -775,11 +778,50 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
   const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal).terms, s.economics.effectiveHash);
   const evidenceMessageIds = decisionEvidenceSnapshot(s);
-  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) return; // same and still valid: no-op
+  if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) {
+    // Same and still valid. Choosing the option that was only following the recommendation makes it the merchant's own choice.
+    if (opts.explicit && !s.selectedOption.explicit) {
+      s.selectedOption = { ...s.selectedOption, explicit: true };
+      outcome(s, { type: "option_selected", reasonCode: null, note: null, actor: "merchant", version: null, source: { kind: "action", id: structureId } });
+    }
+    return;
+  }
   s.agreements = s.agreements.filter((v) => v.status !== "draft");
-  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null, evidenceMessageIds };
+  s.selectedOption = { structureId, fingerprint, selectedAt: clockOf(s).now(), draftVersion: null, evidenceMessageIds, explicit: opts.explicit };
   // Opening the recommended option automatically is not attributed to the merchant.
   if (opts.explicit) outcome(s, { type: "option_selected", reasonCode: null, note: null, actor: "merchant", version: null, source: { kind: "action", id: structureId } });
+}
+
+/**
+ * The feasible offers ranked by the deal's strategy. Code owns this order, and a merchant's
+ * counter-offer is never part of it: it is the merchant's own choice, shown apart.
+ */
+export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
+  const all = out.evaluation.result ? eligibleStructures(s, out.evaluation.result.structures) : [];
+  const feasible = all.filter((x) => !s.counterOffers.some((c) => c.evaluated.structure.id === x.structure.id));
+  return strategyView(feasible, s.economics.strategy, s.baseline);
+}
+
+/**
+ * Choose how feasible offers are ranked. It never adds an offer or relaxes a check. An automatic
+ * selection follows the new leader; an explicit choice, and its draft, are kept.
+ */
+export async function setStrategy(strategy: StrategyId): Promise<DemoState> {
+  if (!(STRATEGY_IDS as readonly string[]).includes(strategy)) throw new ActionError("Unknown strategy");
+  return mutate((s) => {
+    assertNoReview(s);
+    if (!REEVALUATION_STATUSES.has(s.status)) throw new ActionError("A sent or accepted version keeps the strategy it was sent under");
+    if (s.economics.strategy === strategy) return;
+    s.economics = { ...s.economics, strategy };
+    if (s.selectedOption && !s.selectedOption.explicit) {
+      s.agreements = s.agreements.filter((v) => v.status !== "draft");
+      s.selectedOption = null;
+    } else {
+      // A draft that is kept will be sent under the strategy now in force.
+      s.agreements = s.agreements.map((v) => (v.status === "draft" && v.economics ? { ...v, economics: { ...v.economics, strategy } } : v));
+    }
+    event(s, "strategy_changed", `Strategy: ${STRATEGY_LABEL[strategy]}`, "merchant", null);
+  });
 }
 
 /** The merchant explicitly chose this option ("Select this offer"). */
@@ -802,10 +844,13 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
     if (!s.selectedOption || (await isDraftStale(s, deal))) {
       const { out, eligible } = await eligibleOf(s, deal);
       const keep = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : null;
-      const top = keep ?? out.explanation?.order[0] ?? eligible[0]?.structure.id;
-      if (!top) throw new ActionError("No engine-eligible option to review");
+      const strategy = strategyViewOf(s, out);
+      const top = keep ?? strategy.leader?.structure.id;
+      if (!top) throw new ActionError(strategy.mode === "discount_only" ? "No offer fits at the quoted prices. Select one of the permitted discounted offers first" : "No engine-eligible option to review");
+      const wasExplicit = !!(keep && s.selectedOption?.explicit);
       if (keep) s.selectedOption = null; // force a fresh fingerprint for the kept option
       await applySelection(s, top, { explicit: false }, deal);
+      if (wasExplicit) s.selectedOption = { ...s.selectedOption!, explicit: true };
     }
     const existing = s.agreements.find((v) => v.status === "draft" && v.version === s.selectedOption!.draftVersion);
     if (existing) {

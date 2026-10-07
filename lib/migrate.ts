@@ -36,7 +36,11 @@ export function migrateState(raw: unknown): DemoState {
     s.decisionBranch = null;
     s.reviewRequired = "The saved decision branch is incomplete or invalid. Inspect records before continuing.";
   }
-  if (s.selectedOption) s.selectedOption.evidenceMessageIds ??= [];
+  if (s.selectedOption) {
+    s.selectedOption.evidenceMessageIds ??= [];
+    const chosen = s.selectedOption.structureId;
+    s.selectedOption.explicit ??= !!s.outcomes?.some((o) => o.type === "option_selected" && o.source?.kind === "action" && o.source.id === chosen);
+  }
   if (s.baseline === undefined || s.economics === undefined) {
     const item = demoCase(s.caseId) ?? demoCase(DEFAULT_CASE_ID)!;
     const version = defaultEconomics();
@@ -98,7 +102,7 @@ export function migrateState(raw: unknown): DemoState {
     const v1 = s.agreements.filter((a) => a.version === 1);
     const ids = new Set(v1.map((a) => a.structureId));
     // "migrated" never equals a computed fingerprint, so a migrated draft must be reviewed again.
-    s.selectedOption = v1.length >= 1 && ids.size === 1 ? { structureId: v1[0].structureId, fingerprint: "migrated", selectedAt: v1[0].createdAt, draftVersion: v1[0].status === "draft" ? 1 : null, evidenceMessageIds: [] } : null;
+    s.selectedOption = v1.length >= 1 && ids.size === 1 ? { structureId: v1[0].structureId, fingerprint: "migrated", selectedAt: v1[0].createdAt, draftVersion: v1[0].status === "draft" ? 1 : null, evidenceMessageIds: [], explicit: false } : null;
   }
 
   s.schemaVersion = STORE_SCHEMA_VERSION;

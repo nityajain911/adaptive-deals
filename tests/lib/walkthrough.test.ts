@@ -206,7 +206,7 @@ describe("the real button the person must click", () => {
 
   it("points at approve-and-send, not the earlier review button, once the draft exists", async () => {
     const s = started();
-    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [] };
+    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [], explicit: false };
     s.agreements = [{ version: 1, status: "draft" }] as never;
     const view = resolve(s, { ...progress("offer.review", "offer", "merchant", "action_required"), primaryAction: { id: "review_buyer_proposal" as const, label: "Review buyer proposal" } });
     expect(view.currentAction).toMatchObject({ id: "approve_and_send_draft", productLabel: "Approve and send to buyer", href: "/deals/hero/offer/preview" });
@@ -223,7 +223,7 @@ describe("sub-steps inside one stage", () => {
   it("shows choose then preview for the offer, switching when a draft exists", () => {
     expect(items(resolve(started(), progress("offer.review", "offer", "merchant")))).toEqual(["current:Choose the offer", "todo:Preview and send"]);
     const s = started();
-    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [] };
+    s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [], explicit: false };
     s.agreements = [{ version: 1, status: "draft" }] as never;
     expect(items(resolve(s, progress("offer.review", "offer", "merchant")))).toEqual(["done:Choose the offer", "current:Preview and send"]);
   });

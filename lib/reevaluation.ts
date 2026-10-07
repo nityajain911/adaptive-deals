@@ -1,5 +1,7 @@
 import { canonicalJson } from "@/domain/agreement";
+import type { DealBaseline } from "@/domain/deal-baseline";
 import type { DealEvaluation, EngineInput } from "@/domain/engine";
+import { strategyView, type StrategyId } from "@/domain/strategy";
 
 export interface ReevaluationPreview {
   fromVersion: number;
@@ -61,12 +63,16 @@ export function buildReevaluationPreview(args: {
   beforeEvaluation: DealEvaluation;
   afterEvaluation: DealEvaluation | null;
   staleDraftVersion: number | null;
+  /** The deal's own strategy decides what 'the recommendation' is. */
+  strategy: StrategyId;
+  baseline: DealBaseline;
 }): ReevaluationPreview {
   const inputChanges = args.afterInput ? changedInputs(args.beforeInput, args.afterInput) : [];
   const before = feasibleIds(args.beforeEvaluation);
   const after = args.afterEvaluation ? feasibleIds(args.afterEvaluation) : null;
-  const beforeTop = args.beforeEvaluation.result?.feasible[0]?.structure.id ?? null;
-  const afterTop = args.afterEvaluation?.result?.feasible[0]?.structure.id ?? null;
+  const topOf = (evaluation: DealEvaluation | null) => (evaluation?.result ? strategyView(evaluation.result.feasible, args.strategy, args.baseline).leader?.structure.id ?? null : null);
+  const beforeTop = topOf(args.beforeEvaluation);
+  const afterTop = topOf(args.afterEvaluation);
   return {
     fromVersion: args.fromVersion,
     toVersion: args.toVersion,
