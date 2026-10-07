@@ -176,6 +176,8 @@ describe("the demo guide", () => {
       { action: "remove_input_override", id: "ovr-1" },
       { action: "set_strategy", strategy: "preserve_scope" },
       { action: "counter_offer", totalPaise: 4_000_000, overrideConfirmed: true, acknowledgedChecks: [] },
+      { action: "answer_with_offer", structureId: "phased_scope:scope=web-search-report-3m,plan=upfront" },
+      { action: "corridor_view", requestedPaise: 4_000_000, gstBasis: "including" },
     ]) expect(() => walkthroughCommand(action)).toThrow(/invalid walkthrough command/i);
   });
 });

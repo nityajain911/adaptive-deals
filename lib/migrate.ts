@@ -32,6 +32,7 @@ export function migrateState(raw: unknown): DemoState {
   }
   s.counterOffers ??= [];
   for (const c of s.counterOffers) {
+    c.source ??= "custom_total";
     if (c.override) {
       c.override.reason ??= "Recorded before a reason was required";
       c.override.negativeContribution ??= false;

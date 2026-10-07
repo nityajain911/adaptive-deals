@@ -5,6 +5,9 @@ import type { Structure } from "./structures";
 
 export class CounterError extends Error {}
 
+/** A total the merchant set themselves, as opposed to an offer the engine listed. */
+export const isCounterStructureId = (id: string): boolean => id.includes("#counter@");
+
 /** Split `total` across parts in proportion to `weights`; the rounding remainder goes to `remainderAt`. */
 function proportional(total: Paise, weights: Paise[], remainderAt: "first" | "last"): Paise[] {
   const weightSum = sum(weights);

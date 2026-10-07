@@ -147,7 +147,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const view = strategyView(feasible, s.economics.strategy, baseline);
   // The merchant's live counter-offer is theirs, shown first and never part of the ranked list.
   const liveCounter = s.counterOffers.at(-1) ?? null;
-  const activeCounter = liveCounter && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
+  // Only a total the merchant typed is "your counter-offer"; an offer the engine listed is shown as the merchant's selection.
+  const activeCounter = liveCounter && liveCounter.source !== "listed_offer" && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
   const selectedId = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : view.leader?.structure.id;
   const x = eligible.find((e) => e.structure.id === selectedId);
   const strategyLabel = STRATEGY_LABEL[s.economics.strategy];

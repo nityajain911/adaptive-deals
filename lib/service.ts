@@ -11,14 +11,17 @@ import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
-import { CounterError, counterStructure, failingCounterChecks } from "@/domain/counter";
+import { CounterError, counterStructure, failingCounterChecks, isCounterStructureId } from "@/domain/counter";
+import { lowestCompliantTotal } from "@/domain/corridor";
+import { listValueOf } from "@/domain/deal-baseline";
+import { canonicalJson } from "@/domain/agreement";
 import { explainCheck } from "@/domain/copy";
 import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate";
 import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
 import type { ContributionFloor, Merchant, Message } from "@/domain/types";
-import { formatINR, sum } from "@/domain/money";
+import { formatINR, lineWithGst, sum } from "@/domain/money";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
 import { replayRun, runConstruct, type RunOutcome } from "@/ai/orchestrator";
@@ -62,7 +65,7 @@ import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
 import { activeEconomics, economicsVersion, getEconomicsStore } from "./economics-store";
 import type { BusinessEconomics } from "@/domain/business-economics";
 import { overrideValueText } from "./override-copy";
-import { joinRules } from "./offer-copy";
+import { headlineFor, joinRules } from "./offer-copy";
 import { effectiveHashOf, engineInputFor, overrideDirection, pinConflicts, type DealEconomics, type InputOverride, type OverrideField } from "./deal-economics";
 import { ActionError } from "./action-error";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
@@ -807,7 +810,8 @@ export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
 /** The feasible offers every strategy ranks: the engine's approvable offers, without any counter-offer. */
 export function strategyFeasibleOf(s: DemoState, out: RunOutcome): EvaluatedStructure[] {
   const all = out.evaluation.result ? eligibleStructures(s, out.evaluation.result.structures) : [];
-  return all.filter((x) => !s.counterOffers.some((c) => c.evaluated.structure.id === x.structure.id));
+  // A merchant's own total is never ranked. An offer the engine listed itself stays in the ranking even when the merchant chose it.
+  return all.filter((x) => !isCounterStructureId(x.structure.id));
 }
 
 // ── Deal-specific input overrides ────────────────────────────────────────────
@@ -1060,7 +1064,7 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
     // The same goes for a different offer sent in its place: the request is then answered with that offer, on the record.
     const withdrawn = [...s.counterOffers].reverse().find((c) => c.fromVersion === v.supersedes);
     if (withdrawn) {
-      const isCounter = withdrawn.evaluated.structure.id === v.structureId;
+      const isCounter = withdrawn.source !== "listed_offer" && withdrawn.evaluated.structure.id === v.structureId;
       s.workDispositions.push({
         id: `work-${s.workDispositions.length + 1}`,
         sourceKind: "message",
@@ -1566,8 +1570,8 @@ export interface CounterCheck {
   discountBps: number;
 }
 
-/** Everything a counter-offer needs, computed from stored state and the unchanged engine. */
-async function buildCounter(s: DemoState, totalPaise: number, knownDeal?: ReturnType<typeof dealContextFor>) {
+/** What a response to a buyer's price request is built from: the sent offer, the open request, and the engine's inputs. */
+async function priceRequestContext(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>) {
   const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
   assertNoReview(s);
   const v = [...s.agreements].reverse().find((x) => x.status === "sent");
@@ -1580,16 +1584,21 @@ async function buildCounter(s: DemoState, totalPaise: number, knownDeal?: Return
   const current = await structureForVersion(s, v, deal);
   const out = await currentOutcome(s, deal);
   const constraints = interpretations(out.profile)[0].constraints;
+  return { v, request, current, out, constraints, deal };
+}
+
+/** Everything a counter-offer needs, computed from stored state and the unchanged engine. */
+async function buildCounter(s: DemoState, totalPaise: number, knownDeal?: ReturnType<typeof dealContextFor>) {
+  const ctx = await priceRequestContext(s, knownDeal);
   let evaluated: EvaluatedStructure;
   try {
-    const structure = counterStructure(current.structure, totalPaise, deal.merchant.policy.gstRateBps);
-    evaluated = evaluateStructure(structure, constraints, deal);
+    const structure = counterStructure(ctx.current.structure, totalPaise, ctx.deal.merchant.policy.gstRateBps);
+    evaluated = evaluateStructure(structure, ctx.constraints, ctx.deal);
   } catch (e) {
     if (e instanceof CounterError) throw new ActionError(e.message);
     throw e;
   }
-  const failing = failingCounterChecks(evaluated);
-  return { v, request, current, evaluated, failing, deal };
+  return { v: ctx.v, request: ctx.request, current: ctx.current, evaluated, failing: failingCounterChecks(evaluated), deal: ctx.deal };
 }
 
 const totalOf = (x: EvaluatedStructure) => sum(x.structure.payments.map((p) => p.totalPaise));
@@ -1614,6 +1623,108 @@ export async function checkCounterOffer(totalPaise: number): Promise<CounterChec
  * an explicit override, recorded as the merchant's decision. The sent version is withdrawn and the
  * counter becomes the selected option, to be previewed, approved and sent like any proposal.
  */
+export interface CorridorOffer {
+  structureId: string;
+  headline: string;
+  totalPaise: number;
+  contributionPaise: number;
+  approval: EvaluatedStructure["approval"];
+}
+
+export interface CorridorLadderRow extends CorridorOffer {
+  discountBps: number;
+  passes: boolean;
+  isCurrent: boolean;
+}
+
+export interface CorridorView {
+  currentTotalPaise: number;
+  /** The buyer's amount as checked, including GST. */
+  requestedTotalPaise: number | null;
+  gstBasis: "including" | "excluding" | null;
+  check: CounterCheck | null;
+  lowestCompliantPaise: number | null;
+  lowestUnavailable: "evaluation_limit" | null;
+  /** The approved discount levels for the same offer, lower discount first. */
+  ladder: CorridorLadderRow[];
+  scopeAlternatives: CorridorOffer[];
+  timingAlternatives: CorridorOffer[];
+}
+
+const withoutDiscount = (x: EvaluatedStructure) => canonicalJson({ template: x.structure.template, params: Object.fromEntries(Object.entries(x.structure.params).filter(([key]) => key !== "discount_bps" && key !== "counter_total_paise")) });
+const asCorridorOffer = (x: EvaluatedStructure): CorridorOffer => ({ structureId: x.structure.id, headline: headlineFor(x), totalPaise: sum(x.structure.payments.map((p) => p.totalPaise)), contributionPaise: x.economics.netContributionPaise, approval: x.approval });
+
+/**
+ * What a buyer's request for a lower price does to the merchant's economics, computed from the
+ * engine: the lowest total that meets every rule, the discounts their economics permit, and other ways to lower the buyer's payment.
+ * Read-only; nothing here reaches the buyer.
+ */
+export async function corridorFor(args: { requestedPaise?: number; gstBasis?: "including" | "excluding" }): Promise<CorridorView> {
+  const s = await getState();
+  const ctx = await priceRequestContext(s);
+  const gstRateBps = ctx.deal.merchant.policy.gstRateBps;
+  const currentTotalPaise = totalOf(ctx.current);
+
+  let check: CounterCheck | null = null;
+  let requestedTotalPaise: number | null = null;
+  if (args.requestedPaise !== undefined) {
+    if (args.gstBasis !== "including" && args.gstBasis !== "excluding") throw new ActionError("Say whether the buyer's amount includes GST");
+    requestedTotalPaise = args.gstBasis === "excluding" ? lineWithGst(args.requestedPaise, gstRateBps).totalPaise : args.requestedPaise;
+    check = await checkCounterOffer(requestedTotalPaise);
+  }
+
+  const lowest = lowestCompliantTotal({ base: ctx.current.structure, constraints: ctx.constraints, engine: ctx.deal });
+  const structures = ctx.out.evaluation.result?.structures ?? [];
+  const key = withoutDiscount(ctx.current);
+  const ladder: CorridorLadderRow[] = [...ctx.deal.templates.discountsBps]
+    .sort((a, b) => a - b)
+    .flatMap((discountBps) => {
+      const x = structures.find((candidate) => withoutDiscount(candidate) === key && candidate.structure.discountBps === discountBps);
+      return x ? [{ ...asCorridorOffer(x), discountBps, passes: x.approvable, isCurrent: x.structure.id === ctx.current.structure.id }] : [];
+    });
+
+  const currentScope = listValueOf(s.baseline.servicePrices, ctx.current.structure.scope);
+  const datesOf = (x: EvaluatedStructure) => x.structure.payments.map((p) => p.dueDate).join(",");
+  const others = strategyFeasibleOf(s, ctx.out).filter((x) => x.structure.discountBps === 0 && x.structure.id !== ctx.current.structure.id);
+  const scopeAlternatives = others.filter((x) => listValueOf(s.baseline.servicePrices, x.structure.scope) < currentScope).map(asCorridorOffer);
+  const timingAlternatives = others.filter((x) => listValueOf(s.baseline.servicePrices, x.structure.scope) === currentScope && datesOf(x) !== datesOf(ctx.current)).map(asCorridorOffer);
+
+  return { currentTotalPaise, requestedTotalPaise, gstBasis: args.requestedPaise !== undefined ? (args.gstBasis ?? null) : null, check, lowestCompliantPaise: lowest.lowestCompliantPaise, lowestUnavailable: lowest.unavailableReason, ladder, scopeAlternatives, timingAlternatives };
+}
+
+/**
+ * Answer the buyer's request with an offer the engine already listed and approved (a ladder level or another
+ * way to pay). The sent version is withdrawn and that offer is selected, to be previewed, approved and sent like any proposal.
+ */
+export async function answerWithOffer(structureId: string): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate(async (s) => {
+    const ctx = await priceRequestContext(s, deal);
+    if (structureId === ctx.v.structureId) throw new ActionError("That is the offer already sent");
+    const target = strategyFeasibleOf(s, ctx.out).find((x) => x.structure.id === structureId);
+    if (!target) throw new ActionError("That offer is not available to send");
+    const at = clockOf(s).now();
+    s.counterOffers.push({
+      id: `counter-${s.counterOffers.length + 1}`,
+      fromVersion: ctx.v.version,
+      baseStructureId: ctx.v.structureId,
+      targetTotalPaise: totalOf(target),
+      evaluated: target,
+      override: null,
+      source: "listed_offer",
+      requestMessageId: ctx.request.sourceId,
+      createdAt: at,
+      economics: economicsRef(s),
+    });
+    s.agreements = s.agreements.map((x) => (x.version === ctx.v.version ? { ...x, status: "superseded" as const } : x));
+    setStatus(s, "options_ready", `Version ${ctx.v.version} withdrawn to answer the buyer's request`);
+    s.selectedOption = null;
+    await applySelection(s, target.structure.id, { explicit: true }, ctx.deal);
+    event(s, "offer_prepared_for_request", `Offer prepared for the buyer's request: ${headlineFor(target)} · ${formatINR(totalOf(target))}`, "merchant", "An offer the engine had already approved, chosen by the merchant.");
+  });
+}
+
 /** What the merchant must type to send an amount that is below the direct cost of the work. */
 export const LOSS_CONFIRMATION = "SELL AT A LOSS";
 
@@ -1649,6 +1760,7 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
       targetTotalPaise: totalPaise,
       evaluated,
       override: needsException ? { by, at, checks: b.failing.map((c) => c.code), reason, negativeContribution: negative } : null,
+      source: "custom_total",
       requestMessageId: b.request.sourceId,
       createdAt: at,
       economics: economicsRef(s),
