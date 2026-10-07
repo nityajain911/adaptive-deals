@@ -12,6 +12,13 @@ const agreement = (version: number, status: string) => ({ agreementId: "agr-hero
 const proposalMsg = (version: number, kind = "proposal") => ({ id: `conv-${version}`, kind, direction: "outbound", author: "code", sentAt: "2026-10-01T09:23:00+05:30", refs: { agreementVersion: version } });
 
 describe("migrateState (spec §9)", () => {
+  it("gives a store saved before business economics a baseline and a pinned version 1", () => {
+    const state = migrateState(base({ schemaVersion: STORE_SCHEMA_VERSION - 1, caseId: DEFAULT_CASE_ID }));
+    expect(state.economics).toMatchObject({ pinned: { version: 1 }, overrides: [], strategy: "protect_contribution" });
+    expect(state.baseline.quotedTotalPaise).toBe(14_160_000);
+    expect(state.events.some((event) => event.kind === "economics_defaulted")).toBe(true);
+  });
+
   it("adds defaults and the schema version to a fresh pre-offer store", () => {
     const s = migrateState(base());
     expect(s.schemaVersion).toBe(STORE_SCHEMA_VERSION);
@@ -106,9 +113,10 @@ describe("migrateState (spec §9)", () => {
   });
   it("never rewrites history and runs once", () => {
     const raw = base({ status: "active", agreements: [agreement(1, "active")], conversation: [proposalMsg(1)] });
-    const events = JSON.stringify(raw.events);
+    const existingEvents = JSON.stringify(raw.events);
     const once = migrateState(raw);
-    expect(JSON.stringify(once.events)).toBe(events);
+    expect(JSON.stringify(once.events.slice(0, 1))).toBe(existingEvents);
+    expect(once.events.filter((event) => event.kind === "economics_defaulted")).toHaveLength(1);
     const snapshot = JSON.stringify(once);
     expect(JSON.stringify(migrateState(JSON.parse(snapshot)))).toBe(snapshot);
   });

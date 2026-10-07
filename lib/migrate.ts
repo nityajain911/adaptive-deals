@@ -3,13 +3,17 @@ import { deliveryKey, type DeliveryRecord } from "./deal-records";
 import type { DemoState } from "./service";
 import { DECISION_BRANCH_SCHEMA, type DecisionBranch } from "./decision-branch";
 import { CASE_IDS, DEFAULT_CASE_ID } from "@/data/synthetic/cases";
+import { demoCase } from "@/data/synthetic/cases";
+import { captureBaseline } from "@/domain/deal-baseline";
+import { defaultEconomics } from "./economics-default";
+import { effectiveHashOf, engineInputFor } from "./deal-economics";
 
 /**
  * Store schema migration (spec §9). Deterministic and idempotent: it adds compatible state and
  * infers new fields only where existing records prove them. It never rewrites history and never
  * invents a delivery, acceptance or option; ambiguity sets `reviewRequired` instead.
  */
-export const STORE_SCHEMA_VERSION = 5;
+export const STORE_SCHEMA_VERSION = 6;
 
 const SENT_OR_LATER = new Set(["sent", "accepted", "active", "superseded", "buyer_rejected"]);
 
@@ -33,6 +37,33 @@ export function migrateState(raw: unknown): DemoState {
     s.reviewRequired = "The saved decision branch is incomplete or invalid. Inspect records before continuing.";
   }
   if (s.selectedOption) s.selectedOption.evidenceMessageIds ??= [];
+  if (s.baseline === undefined || s.economics === undefined) {
+    const item = demoCase(s.caseId) ?? demoCase(DEFAULT_CASE_ID)!;
+    const version = defaultEconomics();
+    s.baseline = captureBaseline({
+      services: item.deal.packages,
+      quotedScope: item.deal.templates.fullScope,
+      quotedPrePaise: item.quote.prePaise,
+      gstRateBps: item.deal.merchant.policy.gstRateBps,
+      economicsVersion: version.version,
+    });
+    s.economics = {
+      pinned: { version: version.version, hash: version.hash },
+      overrides: [],
+      strategy: "protect_contribution",
+      effectiveHash: effectiveHashOf(engineInputFor({ merchant: item.deal.merchant, baseline: s.baseline, version, overrides: [] })),
+    };
+    if (!s.events.some((existing) => existing.kind === "economics_defaulted")) {
+      s.events.push({
+        id: `ev-${s.events.length + 1}`,
+        at: DEMO_ANCHOR,
+        kind: "economics_defaulted",
+        title: "Default demo economics applied to a deal saved before business economics existed",
+        detail: null,
+        provenance: "engine",
+      });
+    }
+  }
   if (s.schemaVersion === STORE_SCHEMA_VERSION) return s;
 
   s.eligibleAt ??= s.statusHistory?.[0]?.at ?? DEMO_ANCHOR;

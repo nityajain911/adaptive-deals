@@ -21,6 +21,7 @@ export interface DemoCase {
   provenance: "Synthetic scenario";
   bundledRunPath: string;
   deal: DealContext;
+  quote: { prePaise: number };
   expected: {
     extraction: ExtractionOutput;
     engineState: "options_ready" | "no_feasible_deal";
@@ -127,6 +128,7 @@ const catalog: Record<CaseId, DemoCase> = {
     proofPoint: "Shows the engine building a smaller standalone phase without discounting the work, with more than one way to pay for it. The merchant keeps the final choice.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/reduced-scope-synthetic-run.json",
+    quote: { prePaise: 12_000_000 },
     deal: sharedDeal("case-reduced-scope", [
       {
         id: "reduced-1",
@@ -156,6 +158,7 @@ const catalog: Record<CaseId, DemoCase> = {
     proofPoint: "Shows the engine preserving full scope by changing timing instead of cutting deliverables. When the extraction cannot map the buyer's required scope to specific services, the merchant confirms them before any offer.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/preserve-scope-synthetic-run.json",
+    quote: { prePaise: 12_000_000 },
     deal: sharedDeal("case-preserve-scope", [
       {
         id: "preserve-1",
@@ -185,6 +188,7 @@ const catalog: Record<CaseId, DemoCase> = {
     proofPoint: "Shows a clean extraction followed by justified abstention: every merchant-approved structure breaks a buyer constraint, so the engine rejects them all.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/no-fit-synthetic-run.json",
+    quote: { prePaise: 12_000_000 },
     deal: sharedDeal("case-no-fit", [
       {
         id: "no-fit-1",

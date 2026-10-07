@@ -57,6 +57,9 @@ import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision
 import { caseRecordedRunById, mappedCaseRun } from "./case-runs";
 import { confirmScope, ScopeError, unmappedRequiredServices, type ScopeSource } from "./scope-confirmation";
 import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
+import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
+import { activeEconomics, getEconomicsStore } from "./economics-store";
+import { effectiveHashOf, engineInputFor, pinConflicts, type DealEconomics } from "./deal-economics";
 
 export const STORE_FILE = "store.json";
 export const AGREEMENT_ID = "agr-hero";
@@ -115,6 +118,10 @@ export interface DemoState {
   decisionBranch: DecisionBranch | null;
   /** Set by migration when saved history cannot be inferred safely; blocks dependent actions. */
   reviewRequired: string | null;
+  /** Immutable quoted prices, scope and GST basis for this deal. */
+  baseline: DealBaseline;
+  /** Account economics pinned to this deal, plus any explicit deal overrides. */
+  economics: DealEconomics;
 }
 
 export class ActionError extends Error {
@@ -234,6 +241,35 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
   const item = demoCase(caseId);
   if (!item) throw new ActionError("Unknown case", 404);
   const selectedRecord = record ?? demoCaseRunRecord(caseId);
+  const active = await activeEconomics();
+  const accountStore = await getEconomicsStore();
+  const selectedEconomics = pinConflicts(captureBaseline({
+    services: item.deal.packages,
+    quotedScope: item.deal.templates.fullScope,
+    quotedPrePaise: item.quote.prePaise,
+    gstRateBps: item.deal.merchant.policy.gstRateBps,
+    economicsVersion: active.version,
+  }), active).length
+    ? [...accountStore.versions].sort((a, b) => b.version - a.version).find((version) => {
+        const candidate = captureBaseline({
+          services: item.deal.packages,
+          quotedScope: item.deal.templates.fullScope,
+          quotedPrePaise: item.quote.prePaise,
+          gstRateBps: item.deal.merchant.policy.gstRateBps,
+          economicsVersion: version.version,
+        });
+        return pinConflicts(candidate, version).length === 0;
+      })
+    : active;
+  if (!selectedEconomics) throw new ActionError("No compatible business economics version can evaluate this deal");
+  const baseline = captureBaseline({
+    services: item.deal.packages,
+    quotedScope: item.deal.templates.fullScope,
+    quotedPrePaise: item.quote.prePaise,
+    gstRateBps: item.deal.merchant.policy.gstRateBps,
+    economicsVersion: selectedEconomics.version,
+  });
+  const effectiveInput = engineInputFor({ merchant: item.deal.merchant, baseline, version: selectedEconomics, overrides: [] });
   const deal = selectedRecord.inputs.dealId === HERO_DEAL_ID ? heroDeal() : item.deal;
   if (selectedRecord.inputs.dealId !== deal.dealId) throw new ActionError("The selected run does not belong to this case");
   const provider = new ReplayProvider(selectedRecord.kind === "live" ? "recorded_replay" : "synthetic_replay", selectedRecord.model, selectedRecord.steps);
@@ -269,8 +305,18 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
     interpretations: [],
     decisionBranch: null,
     reviewRequired: null,
+    baseline,
+    economics: {
+      pinned: { version: selectedEconomics.version, hash: selectedEconomics.hash },
+      overrides: [],
+      strategy: "protect_contribution",
+      effectiveHash: effectiveHashOf(effectiveInput),
+    },
   };
   event(s, "run_loaded", selectedRecord.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", selectedRecord.kind === "live" ? "live_model" : "synthetic_replay", `Run ${selectedRecord.runId}`);
+  if (selectedEconomics.version !== active.version) {
+    event(s, "economics_compatible_version", `Business economics version ${selectedEconomics.version} applied`, "engine", `Version ${active.version} was incompatible with this deal's original services.`);
+  }
   setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
   draftMissingClarifications(s);
   return s;
@@ -298,18 +344,22 @@ function sendCode(s: DemoState, kind: Parameters<typeof codeMessage>[0]["kind"],
 export async function getState(): Promise<DemoState> {
   const s = await readJson<DemoState>(STORE_FILE);
   if (s) return migrateState(s);
+  // Seeding reads the separately versioned economics store. Do that before taking the shared
+  // write lock so the seed never tries to re-enter the same in-process queue.
+  const seeded = await seedState();
   return serialised(async () => {
     const again = await readJson<DemoState>(STORE_FILE);
     if (again) return migrateState(again);
-    const seeded = await seedState();
     await writeJsonAtomic(STORE_FILE, seeded);
     return seeded;
   });
 }
 
 async function mutate(fn: (s: DemoState) => Promise<void> | void): Promise<DemoState> {
+  const beforeLock = await readJson<DemoState>(STORE_FILE);
+  const seeded = beforeLock ? null : await seedState();
   return serialised(async () => {
-    const s = migrateState((await readJson<DemoState>(STORE_FILE)) ?? (await seedState()));
+    const s = migrateState((await readJson<DemoState>(STORE_FILE)) ?? seeded!);
     await fn(s);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
@@ -317,10 +367,10 @@ async function mutate(fn: (s: DemoState) => Promise<void> | void): Promise<DemoS
 }
 
 export async function resetToSeed(): Promise<DemoState> {
+  const current = await readJson<DemoState>(STORE_FILE);
+  const caseId = current ? migrateState(current).caseId : DEFAULT_CASE_ID;
+  const s = await seedState(undefined, "replay", caseId);
   return serialised(async () => {
-    const current = await readJson<DemoState>(STORE_FILE);
-    const caseId = current ? migrateState(current).caseId : DEFAULT_CASE_ID;
-    const s = await seedState(undefined, "replay", caseId);
     await writeJsonAtomic(STORE_FILE, s);
     return s;
   });
@@ -441,11 +491,11 @@ export async function startLiveRun(): Promise<DemoState> {
   const runId = `run-live-${randomUUID().slice(0, 8)}`;
   const out = await runConstruct({ provider, kind: "live", runId, clock: new FixedClock(), deal: item.deal, recordedAtWall: new Date().toISOString() });
   await writeJsonAtomic(`runs/${runId}.json`, out.record);
+  const replacement = await seedState(out.record, "fresh", item.id);
+  replacement.events = replacement.events.map((e) => (e.kind === "run_loaded" ? { ...e, title: "Live model run started" } : e));
   return serialised(async () => {
-    const s = await seedState(out.record, "fresh", item.id);
-    s.events = s.events.map((e) => (e.kind === "run_loaded" ? { ...e, title: "Live model run started" } : e));
-    await writeJsonAtomic(STORE_FILE, s);
-    return s;
+    await writeJsonAtomic(STORE_FILE, replacement);
+    return replacement;
   });
 }
 
@@ -456,10 +506,10 @@ export async function replayStoredRun(runId: string): Promise<DemoState> {
   if (!record || record.kind !== "live") throw new ActionError("Only stored live runs can be replayed as actual runs", 404);
   const item = allDemoCases().find((candidate) => candidate.deal.dealId === record.inputs.dealId);
   if (!item) throw new ActionError("Stored run does not belong to a demo case", 404);
+  const replacement = await seedState(record, "replay", item.id);
   return serialised(async () => {
-    const s = await seedState(record, "replay", item.id);
-    await writeJsonAtomic(STORE_FILE, s);
-    return s;
+    await writeJsonAtomic(STORE_FILE, replacement);
+    return replacement;
   });
 }
 
