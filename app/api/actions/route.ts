@@ -21,6 +21,8 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("demo_system_step"), stepId: z.enum(SYSTEM_STEPS as unknown as [SystemStepId, ...SystemStepId[]]) }),
   z.object({ action: z.literal("run_live") }),
   z.object({ action: z.literal("replay_run"), runId: z.string().max(40) }),
+  z.object({ action: z.literal("preview_reevaluation"), toVersion: z.number().int().positive().optional() }),
+  z.object({ action: z.literal("reevaluate_deal"), toVersion: z.number().int().positive() }),
   z.object({
     action: z.literal("record_answers"),
     answers: z
@@ -101,6 +103,12 @@ export async function POST(request: Request) {
         break;
       case "replay_run":
         await svc.replayStoredRun(a.runId);
+        break;
+      case "preview_reevaluation":
+        result = await svc.previewReevaluation(a.toVersion);
+        break;
+      case "reevaluate_deal":
+        await svc.reevaluateDeal(a.toVersion);
         break;
       case "record_answers":
         await svc.recordAnswers(a.answers);

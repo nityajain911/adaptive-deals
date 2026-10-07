@@ -8,7 +8,7 @@ import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/do
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
 import { compareDates, localDateOf } from "@/domain/dates";
-import { evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
+import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
 import { CounterError, counterStructure, failingCounterChecks } from "@/domain/counter";
 import { explainCheck } from "@/domain/copy";
@@ -58,10 +58,11 @@ import { caseRecordedRunById, mappedCaseRun } from "./case-runs";
 import { confirmScope, ScopeError, unmappedRequiredServices, type ScopeSource } from "./scope-confirmation";
 import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
 import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
-import { activeEconomics, getEconomicsStore } from "./economics-store";
+import { activeEconomics, economicsVersion, getEconomicsStore } from "./economics-store";
 import { effectiveHashOf, engineInputFor, pinConflicts, type DealEconomics } from "./deal-economics";
 import { ActionError } from "./action-error";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
+import { buildReevaluationPreview, type ReevaluationPreview } from "./reevaluation";
 
 export { ActionError } from "./action-error";
 
@@ -436,6 +437,82 @@ export function syncEconomicsBranch(s: DemoState): void {
     schema: DECISION_BRANCH_SCHEMA,
     economics: { version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash },
   };
+}
+
+const REEVALUATION_STATUSES = new Set<DealStatus>([
+  "stalled",
+  "clarifying",
+  "options_ready",
+  "needs_information",
+  "no_feasible_structure",
+  "outside_templates",
+]);
+const REEVALUATION_LOCKED = "This deal's sent or accepted version keeps the economics it was made with";
+
+function assertReevaluationOpen(s: DemoState): void {
+  if (!REEVALUATION_STATUSES.has(s.status)) throw new ActionError(REEVALUATION_LOCKED);
+}
+
+async function reevaluationParts(s: DemoState, toVersion?: number) {
+  assertReevaluationOpen(s);
+  const target = toVersion === undefined ? await activeEconomics() : await economicsVersion(toVersion);
+  if (!target) throw new ActionError(`Business economics version ${toVersion} is unavailable`, 404);
+  const currentVersion = await pinnedEconomicsOf(s);
+  const beforeDeal = dealContextFor(s, currentVersion);
+  const beforeOutcome = await currentOutcome(s, beforeDeal);
+  const blocked = pinConflicts(s.baseline, target);
+  const afterDeal = blocked.length ? null : dealContextFor(s, target);
+  const afterEvaluation = afterDeal ? evaluateDeal(beforeOutcome.profile, afterDeal) : null;
+  const prospectiveHash = afterDeal ? effectiveHashOf(afterDeal) : null;
+  const preview = buildReevaluationPreview({
+    fromVersion: currentVersion.version,
+    toVersion: target.version,
+    blocked,
+    beforeInput: beforeDeal,
+    afterInput: afterDeal,
+    beforeEvaluation: beforeOutcome.evaluation,
+    afterEvaluation,
+    staleDraftVersion: prospectiveHash !== null && prospectiveHash !== s.economics.effectiveHash
+      ? s.selectedOption?.draftVersion ?? null
+      : null,
+  });
+  return { target, afterDeal, afterEvaluation, prospectiveHash, preview };
+}
+
+/** A read-only account-to-deal comparison. Quoted prices always come from the deal baseline. */
+export async function previewReevaluation(toVersion?: number): Promise<ReevaluationPreview> {
+  return (await reevaluationParts(await getState(), toVersion)).preview;
+}
+
+export async function reevaluationAvailable(s: DemoState): Promise<boolean> {
+  if (!REEVALUATION_STATUSES.has(s.status)) return false;
+  const active = await activeEconomics();
+  if (active.version === s.economics.pinned.version || pinConflicts(s.baseline, active).length) return false;
+  return effectiveHashOf(dealContextFor(s, active)) !== s.economics.effectiveHash;
+}
+
+/** Adopt a newer account version only after its exact effect has been previewed. */
+export async function reevaluateDeal(toVersion: number): Promise<DemoState> {
+  const before = await getState();
+  const { target, afterDeal, afterEvaluation, prospectiveHash, preview } = await reevaluationParts(before, toVersion);
+  if (preview.blocked.length) throw new ActionError(preview.blocked.join(" "));
+  if (!preview.changesInputs || !afterDeal || !afterEvaluation || !prospectiveHash) {
+    throw new ActionError("This version does not change this deal's economics");
+  }
+  return mutate((s) => {
+    assertReevaluationOpen(s);
+    if (s.economics.pinned.version !== before.economics.pinned.version || s.economics.effectiveHash !== before.economics.effectiveHash) {
+      throw new ActionError("Business economics changed after this preview. Review it again.");
+    }
+    s.economics = {
+      ...s.economics,
+      pinned: { version: target.version, hash: target.hash },
+      effectiveHash: prospectiveHash,
+    };
+    syncEconomicsBranch(s);
+    setStatus(s, statusForEvaluation(afterEvaluation), `Business economics version ${target.version} applied after merchant review`);
+    event(s, "economics_reevaluated", `Business economics version ${target.version} applied`, "merchant", preview.pricesNote);
+  });
 }
 
 /**
