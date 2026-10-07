@@ -55,9 +55,9 @@ function textChunks(source: KnowledgeSource): KnowledgeChunk[] {
   if (!blocks.length) return [];
   let heading: string | null = null;
   const chunks: KnowledgeChunk[] = [];
-  for (const block of blocks) {
+  for (const [blockIndex, block] of blocks.entries()) {
     const text = block[0];
-    if (!heading && !text.includes("\n") && text.length <= 100) {
+    if (blockIndex === 0 && blocks.length > 1 && !text.includes("\n") && text.length <= 100) {
       heading = text.trim();
       continue;
     }

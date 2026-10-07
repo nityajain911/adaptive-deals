@@ -2,7 +2,7 @@ import { normaliseAmount } from "@/domain/amounts";
 
 const SERVICE_ALIASES = [
   ["website fixes", ["website fixes", "website maintenance"]],
-  ["search marketing", ["search marketing", "search ads", "paid search"]],
+  ["search marketing", ["search marketing", "search ads", "paid search", "seo"]],
   ["social media", ["social media", "social marketing"]],
   ["monthly reporting", ["monthly reporting", "reporting"]],
 ] as const;
