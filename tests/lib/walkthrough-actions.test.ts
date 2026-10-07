@@ -27,6 +27,12 @@ describe("walkthrough mutation authority", () => {
     "accept_amendment",
     "create_test_invoice",
     "confirm_required_services",
+    "save_economics_draft",
+    "discard_economics_draft",
+    "preview_economics_activation",
+    "activate_economics",
+    "restore_default_economics",
+    "reset_economics_for_tests",
   ])("rejects merchant-owned action %s", (action) => {
     expect(() => walkthroughCommand({ action })).toThrow(/walkthrough command/i);
   });

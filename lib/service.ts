@@ -59,6 +59,7 @@ import { confirmScope, ScopeError, unmappedRequiredServices, type ScopeSource } 
 import { answersMatchRecorded, DECISION_BRANCH_SCHEMA, deriveBranchOutcome, type DecisionBranch } from "./decision-branch";
 import { captureBaseline, type DealBaseline } from "@/domain/deal-baseline";
 import { activeEconomics, economicsVersion, getEconomicsStore } from "./economics-store";
+import type { BusinessEconomics } from "@/domain/business-economics";
 import { effectiveHashOf, engineInputFor, pinConflicts, type DealEconomics } from "./deal-economics";
 import { ActionError } from "./action-error";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
@@ -453,9 +454,9 @@ function assertReevaluationOpen(s: DemoState): void {
   if (!REEVALUATION_STATUSES.has(s.status)) throw new ActionError(REEVALUATION_LOCKED);
 }
 
-async function reevaluationParts(s: DemoState, toVersion?: number) {
+async function reevaluationParts(s: DemoState, toVersion?: number, candidate?: BusinessEconomics) {
   assertReevaluationOpen(s);
-  const target = toVersion === undefined ? await activeEconomics() : await economicsVersion(toVersion);
+  const target = candidate ?? (toVersion === undefined ? await activeEconomics() : await economicsVersion(toVersion));
   if (!target) throw new ActionError(`Business economics version ${toVersion} is unavailable`, 404);
   const currentVersion = await pinnedEconomicsOf(s);
   const beforeDeal = dealContextFor(s, currentVersion);
@@ -477,6 +478,14 @@ async function reevaluationParts(s: DemoState, toVersion?: number) {
       : null,
   });
   return { target, afterDeal, afterEvaluation, prospectiveHash, preview };
+}
+
+/** Preview an unactivated account draft against the current open deal without mutating either store. */
+export async function previewReevaluationCandidate(target: BusinessEconomics) {
+  const s = await getState();
+  if (!REEVALUATION_STATUSES.has(s.status)) return null;
+  const parts = await reevaluationParts(s, undefined, target);
+  return { preview: parts.preview, evaluation: parts.afterEvaluation };
 }
 
 /** A read-only account-to-deal comparison. Quoted prices always come from the deal baseline. */

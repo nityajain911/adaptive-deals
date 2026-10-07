@@ -9,12 +9,56 @@ import { setFailNextSend } from "@/lib/presenter-store";
 import { SYSTEM_STEPS, type SystemStepId } from "@/lib/demo-steps";
 import { BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
 import { CASE_IDS, type CaseId } from "@/data/synthetic/cases";
+import { EconomicsError, type EconomicsContent } from "@/domain/business-economics";
+import { activateEconomicsDraft, discardEconomicsDraft, resetEconomicsStore, restoreDefaultEconomics, saveEconomicsDraft } from "@/lib/economics-store";
+import { previewEconomicsActivation } from "@/lib/economics-activation";
 
 /**
  * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
  * through domain transitions. The AI layer never reaches payment actions from here.
  */
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
+const Paise = z.number().int();
+const ServicePackage = z.object({
+  id: z.string().min(1).max(80),
+  name: z.string().min(1).max(120),
+  kind: z.enum(["one_time", "monthly"]),
+  listPricePaise: Paise,
+  directCostPaise: Paise,
+  costTiming: z.literal("start_of_delivery_month"),
+  deferrable: z.boolean(),
+  removable: z.boolean(),
+  hasIndependentValue: z.boolean(),
+  dependsOnAny: z.array(z.string().min(1).max(80)).max(20).optional(),
+}).strict();
+const PaymentPlan = z.object({ id: z.string(), label: z.string(), offsetsMonths: z.array(z.number().int()), weightsBps: z.array(z.number().int()).optional() }).strict();
+const ScopeItem = z.object({ packageId: z.string(), months: z.number().int() }).strict();
+const EconomicsContentSchema: z.ZodType<EconomicsContent> = z.object({
+  services: z.array(ServicePackage).min(1).max(50),
+  guardrails: z.object({
+    contributionFloor: z.object({ minPercentBps: Paise.nullable(), minPaise: Paise.nullable(), combine: z.enum(["both", "either"]) }).strict(),
+    discountLimitBps: Paise,
+    cashAtRiskLimitPaise: Paise,
+    smallestInstalmentPaise: Paise,
+    maxTenureMonths: Paise,
+    paymentFeeBps: Paise,
+  }).strict(),
+  discountLadderBps: z.array(Paise).max(30),
+  fixed: z.object({
+    gstRateBps: Paise,
+    advanceNoticeDays: Paise,
+    internalRetryAfterDays: Paise,
+    mandateEndBufferMonths: Paise,
+    offerTypes: z.object({
+      fullScope: z.array(ScopeItem),
+      defaultStartDate: z.string(),
+      split_payment: z.object({ enabled: z.boolean(), plans: z.array(PaymentPlan) }).strict(),
+      phased_scope: z.object({ enabled: z.boolean(), phase1Scopes: z.array(z.object({ id: z.string(), label: z.string(), items: z.array(ScopeItem) }).strict()), plans: z.array(PaymentPlan) }).strict(),
+      deferred_start: z.object({ enabled: z.boolean(), startDates: z.array(z.string()), plans: z.array(PaymentPlan) }).strict(),
+      shorter_commitment: z.object({ enabled: z.boolean(), terms: z.array(z.object({ termMonths: Paise, plans: z.array(PaymentPlan) }).strict()) }).strict(),
+    }).strict(),
+  }).strict(),
+}).strict();
 const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reset") }),
   z.object({ action: z.literal("start_case"), caseId: z.enum(CASE_IDS as unknown as [CaseId, ...CaseId[]]) }),
@@ -23,6 +67,12 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("replay_run"), runId: z.string().max(40) }),
   z.object({ action: z.literal("preview_reevaluation"), toVersion: z.number().int().positive().optional() }),
   z.object({ action: z.literal("reevaluate_deal"), toVersion: z.number().int().positive() }),
+  z.object({ action: z.literal("save_economics_draft"), content: EconomicsContentSchema }).strict(),
+  z.object({ action: z.literal("discard_economics_draft") }).strict(),
+  z.object({ action: z.literal("preview_economics_activation") }).strict(),
+  z.object({ action: z.literal("activate_economics") }).strict(),
+  z.object({ action: z.literal("restore_default_economics") }).strict(),
+  z.object({ action: z.literal("reset_economics_for_tests") }).strict(),
   z.object({
     action: z.literal("record_answers"),
     answers: z
@@ -109,6 +159,29 @@ export async function POST(request: Request) {
         break;
       case "reevaluate_deal":
         await svc.reevaluateDeal(a.toVersion);
+        break;
+      case "save_economics_draft":
+        result = { issues: await saveEconomicsDraft(a.content) };
+        break;
+      case "discard_economics_draft":
+        await discardEconomicsDraft();
+        break;
+      case "preview_economics_activation":
+        result = await previewEconomicsActivation();
+        break;
+      case "activate_economics": {
+        const version = await activateEconomicsDraft("Merchant (Pinecone Media Works)", new Date().toISOString());
+        result = { version: version.version };
+        break;
+      }
+      case "restore_default_economics": {
+        const version = await restoreDefaultEconomics("Merchant (Pinecone Media Works)", new Date().toISOString());
+        result = { version: version.version };
+        break;
+      }
+      case "reset_economics_for_tests":
+        if (!process.env.ADAPTIVE_DEALS_DATA_DIR?.startsWith(".data-e2e")) throw new svc.ActionError("Economics reset requires a test data directory");
+        await resetEconomicsStore();
         break;
       case "record_answers":
         await svc.recordAnswers(a.answers);
@@ -201,7 +274,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ ok: true, result });
   } catch (e) {
-    const known = e instanceof svc.ActionError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError || e instanceof ConversationError;
+    const known = e instanceof svc.ActionError || e instanceof EconomicsError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError || e instanceof ConversationError;
     const status = e instanceof svc.ActionError ? e.status : known ? 409 : 500;
     return Response.json({ ok: false, error: known ? (e as Error).message : "Unexpected error" }, { status });
   }
