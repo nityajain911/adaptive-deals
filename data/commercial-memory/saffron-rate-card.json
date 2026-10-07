@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-saffron-rate-card",
+  "merchantId": "merchant-saffron",
+  "buyerId": null,
+  "title": "Saffron Studio rate card",
+  "kind": "rate_card",
+  "format": "csv",
+  "access": "commercial",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "service,standard_price,unit\nWebsite fixes,99000,one time\nSearch marketing,18000,per month",
+  "contentHash": "dce6b4488468fca757a9a8ed7284d1efd38e62762b91056f75e5929660f32729",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

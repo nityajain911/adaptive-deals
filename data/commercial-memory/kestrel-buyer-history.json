@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-kestrel-history",
+  "merchantId": "merchant-pinecone",
+  "buyerId": "buyer-kestrel",
+  "title": "Kestrel purchase history",
+  "kind": "buyer_history",
+  "format": "text",
+  "access": "buyer_specific",
+  "effectiveFrom": "2026-06-12",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "On 12 June 2026, Kestrel Lane Clinics purchased website maintenance as a separate service. Historical purchases are context only and are not a current commitment or proof of payment authority.",
+  "contentHash": "e682a3a60578ef227b521ab3d4c54efef20dd347bd9bb9646083ae9e9c12d51e",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

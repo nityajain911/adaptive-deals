@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-cost-sheet-2026",
+  "merchantId": "merchant-pinecone",
+  "buyerId": null,
+  "title": "Pinecone direct delivery costs",
+  "kind": "cost_sheet",
+  "format": "csv",
+  "access": "finance_restricted",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "service,direct_cost,cost_timing\nWebsite fixes,12000,start of delivery month\nSearch marketing,2000,start of delivery month\nSocial media,1500,start of delivery month\nMonthly reporting,250,start of delivery month",
+  "contentHash": "6693a4bee56654a3d73b7e5f0007cdc7f3385e985216388337e4a6e33eb8be6a",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

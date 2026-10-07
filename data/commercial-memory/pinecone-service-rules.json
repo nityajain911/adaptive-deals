@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-service-rules",
+  "merchantId": "merchant-pinecone",
+  "buyerId": null,
+  "title": "Service delivery rules",
+  "kind": "service_rules",
+  "format": "text",
+  "access": "commercial",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "Service delivery rules\n\nWebsite fixes, search marketing and social media can each be bought separately and may be deferred or removed from a proposal. Monthly reporting has no independent value and is supplied only with search marketing or social media. Direct delivery work starts only after the applicable first payment.",
+  "contentHash": "3b3937d0c32b37c7ea97ed1a12af71f14bdb97a8618e4d0e082a8c5a22e69d01",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

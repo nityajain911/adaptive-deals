@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-rate-card-2025",
+  "merchantId": "merchant-pinecone",
+  "buyerId": null,
+  "title": "Pinecone 2025 rate card",
+  "kind": "rate_card",
+  "format": "csv",
+  "access": "commercial",
+  "effectiveFrom": "2025-04-01",
+  "effectiveTo": "2026-03-31",
+  "supersedes": null,
+  "status": "superseded",
+  "content": "service,standard_price,unit\nWebsite fixes,21000,one time\nSearch marketing,3500,per month\nSocial media,2500,per month\nMonthly reporting,800,per month",
+  "contentHash": "dc985f9d32360c43adabd138c0bc3d63e9cc954f6f8cf8d6e02a4eb9592332f3",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

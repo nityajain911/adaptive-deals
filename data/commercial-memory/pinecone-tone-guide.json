@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-tone-guide",
+  "merchantId": "merchant-pinecone",
+  "buyerId": null,
+  "title": "Buyer communication guide",
+  "kind": "tone_guide",
+  "format": "text",
+  "access": "merchant_wide",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "Use direct, respectful language. Explain the scope, dates and payments plainly. Do not pressure a buyer, imply scarcity or describe Pinecone's internal costs and contribution rules.",
+  "contentHash": "300d569d8b1c3eeaa64b68dfe47436a178b10580f305f030569980edf6294ac2",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "adaptive-deals.knowledge-source.v1",
+  "id": "source-commercial-policy",
+  "merchantId": "merchant-pinecone",
+  "buyerId": null,
+  "title": "Commercial guardrails",
+  "kind": "policy",
+  "format": "text",
+  "access": "finance_restricted",
+  "effectiveFrom": "2026-04-01",
+  "effectiveTo": null,
+  "supersedes": null,
+  "status": "active",
+  "content": "Commercial guardrails\n\nKeep at least 35% contribution after direct delivery costs and expected payment fees. Do not put more than ₹10,000 of Pinecone cash at risk before collection. The smallest instalment is ₹10,000 before GST and payment plans may run for at most 12 months. Expected payment fees are 2%. No discount is approved in the default policy.",
+  "contentHash": "861032b03ec1b788b1e95988a24b86ca2840240fb8c5a330738bc9de6645a7d9",
+  "indexedAt": "2026-10-08T09:00:00+05:30"
+}
