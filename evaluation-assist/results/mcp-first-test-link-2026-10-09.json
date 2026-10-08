@@ -53,8 +53,21 @@
       "outcome": "failed",
       "razorpayError": "creating payment link failed: amount exceeds maximum amount allowed",
       "linkCreated": false
+    },
+    {
+      "what": "diagnostic create_payment_link at Rs 15,000, not an agreement payment, authorised by the applicant in chat",
+      "amountPaise": 1500000,
+      "reference": "adaptive_diag_15000_a",
+      "outcome": "succeeded",
+      "paymentLinkId": "plink_TlO8l22QKBUC5B",
+      "status": "created",
+      "notify": {
+        "sms": false,
+        "email": false,
+        "whatsapp": false
+      }
     }
   ],
-  "conclusion": "The MCP path works end to end in test mode. The account accepts Rs 100 and Rs 10,000 and rejects Rs 20,000, Rs 23,010 (the agreement payment) and Rs 24,000, so the per-link cap lies between Rs 10,000 and Rs 20,000. The exact cap is not documented by Razorpay in the sources found.",
+  "conclusion": "The MCP path works end to end in test mode. The account accepts Rs 100, Rs 10,000 and Rs 15,000 and rejects Rs 20,000, Rs 23,010 (the agreement payment) and Rs 24,000, so the per-link cap lies between Rs 15,000 and Rs 20,000. The exact cap is not documented by Razorpay in the sources found.",
   "note": "Agent and applicant authored. These are two real calls, not an evaluation."
 }
