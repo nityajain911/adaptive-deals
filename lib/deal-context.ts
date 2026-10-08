@@ -27,6 +27,6 @@ export function dealContextFor(s: DemoState, version: BusinessEconomics): DealCo
 
 export async function pinnedEconomicsOf(s: DemoState): Promise<BusinessEconomics> {
   const version = await economicsVersion(s.economics.pinned.version);
-  if (!version) throw new ActionError(`Business economics version ${s.economics.pinned.version} is unavailable`);
+  if (!version) throw new ActionError(`Prices & costs version ${s.economics.pinned.version} is unavailable`);
   return version;
 }

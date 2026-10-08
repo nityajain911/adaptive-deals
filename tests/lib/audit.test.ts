@@ -48,7 +48,7 @@ describe("audit sources", () => {
     expect(src.find((x) => x.item === "Merchant costs and rules")!.source).toBe("Synthetic deal fixture");
     // A deal that carries its own economics says which version, and any overrides, instead.
     const withEconomics = auditSources({ ...baseState, economics: { pinned: { version: 2, hash: "h" }, overrides: [{}, {}], strategy: "protect_contribution", effectiveHash: "e" } } as never, sampleRun, "replay", heroPackages);
-    expect(withEconomics.find((x) => x.item === "Merchant costs and rules")!.source).toBe("Your business economics, version 2, with 2 deal overrides · synthetic demo data");
+    expect(withEconomics.find((x) => x.item === "Merchant costs and rules")!.source).toBe("Your prices & costs, version 2, with 2 deal overrides · synthetic demo data");
     expect(src.find((x) => x.item === "Budget available now")!.source).toBe("Simulated WhatsApp conversation");
     expect(src.find((x) => x.item === "Amounts include GST (confirmation)")!.source).toBe("Clarification message");
     expect(src.find((x) => x.item === "Payment state")!.source).toBe("Simulated payment record");

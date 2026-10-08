@@ -22,7 +22,7 @@ export function ReevaluationBanner({ preview, serviceNames }: { preview: Reevalu
           <p className="mt-2">{preview.pricesNote}</p>
           {summary.effects.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5" data-testid="reevaluate-effects">{summary.effects.map((line) => <li key={line}>{line}</li>)}</ul> : null}
           {preview.blocked.length ? <ul className="mt-2 list-disc pl-5">{preview.blocked.map((item) => <li key={item}>{item}</li>)}</ul> : null}
-          <div className="mt-3"><Button variant="primary" data-testid="reevaluate-confirm" disabled={action.pending || preview.blocked.length > 0 || !preview.changesInputs} onClick={() => action.run({ action: "reevaluate_deal", toVersion: preview.toVersion })}>{action.pending ? "Re-evaluating…" : `Re-evaluate with version ${preview.toVersion}`}</Button></div>
+          <div className="mt-3"><Button variant="primary" data-testid="reevaluate-confirm" disabled={action.pending || preview.blocked.length > 0 || !preview.changesInputs} onClick={() => action.run({ action: "reevaluate_deal", toVersion: preview.toVersion })}>{action.pending ? "Re-evaluating…" : "Update this offer"}</Button></div>
           <ErrorText error={action.error} />
         </div>
       ) : null}

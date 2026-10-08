@@ -21,7 +21,7 @@ const input = "mt-1 w-full rounded-lg border border-line-strong bg-surface px-3 
 const percentToBps = (text: string) => (/^\d+(\.\d{1,2})?$/.test(text.trim()) ? Math.round(Number(text) * 100) : null);
 
 /**
- * Change one assumption for this deal only, with a reason. The account's business economics are
+ * Change one assumption for this deal only, with a reason. The account's prices & costs are
  * not changed, and a quoted price cannot be overridden.
  */
 export function DealOverrides({ account, overrides, locked = false }: { account: OverrideAccount; overrides: InputOverride[]; locked?: boolean }) {

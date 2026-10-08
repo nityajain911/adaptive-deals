@@ -40,7 +40,7 @@ export const branchScope = (branch: Pick<DecisionBranch, "scope">) => branch.sco
 export function branchCause(branch: Pick<DecisionBranch, "answersChanged" | "scope" | "economics">): string {
   const answers = branchChangedAnswers(branch);
   const scope = branchScope(branch) !== null;
-  if (!answers && !scope && branch.economics) return "the merchant changed the deal's business economics";
+  if (!answers && !scope && branch.economics) return "the merchant changed the deal's prices & costs";
   if (answers && scope) return "the buyer's answers and the merchant's confirmation of the services";
   return scope ? "the merchant confirmed the services" : "the buyer's answer";
 }
@@ -49,7 +49,7 @@ export function branchCause(branch: Pick<DecisionBranch, "answersChanged" | "sco
 export function branchNotProcessed(branch: Pick<DecisionBranch, "answersChanged" | "scope" | "economics">): string {
   const answers = branchChangedAnswers(branch);
   const scope = branchScope(branch) !== null;
-  if (!answers && !scope && branch.economics) return "the changed business economics";
+  if (!answers && !scope && branch.economics) return "the changed prices & costs";
   if (answers && scope) return "the changed answers and the merchant-confirmed services";
   return scope ? "the merchant-confirmed services" : "the changed answers";
 }
@@ -58,7 +58,7 @@ export function branchNotProcessed(branch: Pick<DecisionBranch, "answersChanged"
 export function branchRecalculatedAfter(branch: Pick<DecisionBranch, "answersChanged" | "scope" | "economics">): string {
   const answers = branchChangedAnswers(branch);
   const scope = branchScope(branch) !== null;
-  if (!answers && !scope && branch.economics) return "the merchant changed the business economics";
+  if (!answers && !scope && branch.economics) return "the merchant changed the prices & costs";
   if (answers && scope) return "the changed buyer answers and the merchant's confirmed services";
   return scope ? "the merchant confirmed the required services" : "the changed buyer answers";
 }

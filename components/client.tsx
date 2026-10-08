@@ -367,7 +367,7 @@ export function ConfirmServicesForm({ packages, preselected = [], onDone }: { pa
       }}
     >
       <fieldset className="grid gap-2 sm:grid-cols-2">
-        <legend className="sr-only">Services the buyer requires</legend>
+        <legend className="sr-only">Services they need</legend>
         {packages.map((p) => (
           <label key={p.id} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px]", chosen.includes(p.id) ? "border-blue bg-blue-weak" : "border-line bg-surface")}>
             <input type="checkbox" name="service" value={p.id} checked={chosen.includes(p.id)} onChange={() => toggle(p.id)} data-testid={`service-${p.id}`} />
@@ -376,7 +376,7 @@ export function ConfirmServicesForm({ packages, preselected = [], onDone }: { pa
         ))}
       </fieldset>
       <Button type="submit" variant="primary" className="min-h-10 px-4 text-[14px]" data-testid="primary-action" disabled={pending || chosen.length === 0}>
-        {pending ? "Confirming…" : "Confirm required services"}
+        {pending ? "Confirming…" : "Confirm these services"}
       </Button>
       <ErrorText error={error} />
     </form>

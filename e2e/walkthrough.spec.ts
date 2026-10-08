@@ -8,6 +8,13 @@ const MOBILE = { width: 390, height: 844 };
 
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as DemoState;
 
+/** Reviewer tools (guide, audit trail) live in the "For reviewers" menu; open it only if it is closed. */
+async function clickReviewer(page: Page, testId: "audit-details" | "walkthrough-launcher") {
+  const menu = page.getByTestId("reviewer-menu");
+  if ((await menu.getAttribute("open")) === null) await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId(testId).click();
+}
+
 async function api(page: Page, data: Record<string, unknown>) {
   const response = await page.request.post("/api/actions", { data });
   const json = (await response.json()) as { ok: boolean; error?: string };
@@ -20,7 +27,7 @@ const guide = (page: Page) => page.getByTestId("walkthrough");
 
 async function openGuide(page: Page) {
   if (await guide(page).count()) return;
-  await page.getByTestId("walkthrough-launcher").click();
+  await clickReviewer(page, "walkthrough-launcher");
   await expect(guide(page)).toBeVisible();
 }
 
@@ -56,7 +63,7 @@ test("first visit starts at case selection and deliberate selection advances to 
   // The guide opens on the merchant's own inputs: the business economics.
   await expect(page).toHaveURL(/\/economics$/);
   await expect(guide(page)).toContainText("STEP 1 OF 5");
-  await expect(guide(page)).toContainText("Set your business economics");
+  await expect(guide(page)).toContainText("Set your prices & costs");
   await guide(page).getByRole("button", { name: "Continue: choose a buyer situation" }).click();
   await expect(page).toHaveURL(/\/deals$/);
   await expect(guide(page)).toContainText("STEP 2 OF 5");
@@ -123,7 +130,7 @@ test("hide leaves the product usable and the header resumes the updated objectiv
   await guide(page).getByRole("button", { name: "Hide" }).click();
   await expect(guide(page)).toHaveCount(0);
   await productPrimary(page);
-  await page.getByTestId("walkthrough-launcher").click();
+  await clickReviewer(page, "walkthrough-launcher");
   await expect(guide(page)).toContainText("Buyer action");
 });
 
@@ -162,6 +169,8 @@ test("keyboard users can open the guide and move focus to the product target", a
   await reset(page);
   await startCase(page);
   await page.goto("/deals/hero/understand");
+  await page.getByTestId("reviewer-menu-toggle").focus();
+  await page.keyboard.press("Enter");
   await page.getByTestId("walkthrough-launcher").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#walkthrough-heading")).toBeFocused();
@@ -258,7 +267,7 @@ test("the walkthrough ends with a summary and a way to try another case", async 
   await openGuide(page);
   const finish = guide(page).getByTestId("walkthrough-finish");
   await expect(finish).toContainText("Walkthrough complete");
-  await expect(finish).toContainText("You walked through: Repair bookings now, defer social.");
+  await expect(finish).toContainText("You walked through: They only need the website and search for now.");
   await expect(finish).toContainText("Your decisions: approved version 1, approved version 2.");
   await expect(finish).toContainText("A payment was moved to a later date after both sides approved version 2.");
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toHaveCount(0);
@@ -272,22 +281,22 @@ test("the first screen opens with the problem, not the product", async ({ page }
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.getByTestId("walkthrough-welcome-title")).toHaveText("A client says your quote doesn't fit their budget. What now?");
-  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("keeps every decision with you");
-  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("buyer and system events are clearly simulated");
+  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("you decide every step");
+  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("The buyer and the payments are simulated");
 });
 
 
 
-test("business economics is the first tab, the guide's first step, and is tied to the recommendation", async ({ page }) => {
+test("prices & costs is the first tab, the guide's first step, and is tied to the recommendation", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await reset(page);
   await page.goto("/economics");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  const tabs = page.getByRole("navigation", { name: "Products" }).getByRole("link");
-  await expect(tabs.nth(0)).toContainText("Business economics");
+  const tabs = page.getByRole("navigation", { name: "Main" }).getByRole("link");
+  await expect(tabs.nth(0)).toContainText("Prices");
   await expect(tabs.nth(1)).toContainText("Deals");
-  await expect(tabs.nth(2)).toContainText("Adaptive Deals");
+  await expect(tabs).toHaveCount(2);
   // Before any case, the page says what the rules will do; after one is ready it shows the recommendation they produce.
   await expect(page.getByTestId("rules-in-action-empty")).toBeVisible();
   await expect(page.getByTestId("deals-economics-link")).toHaveCount(0);
@@ -297,9 +306,10 @@ test("business economics is the first tab, the guide's first step, and is tied t
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await api(page, { action: "adopt_replies" });
   await page.goto("/economics");
-  await expect(page.getByTestId("rules-in-action-leader")).toContainText("Protect contribution leads with");
+  await expect(page.getByTestId("rules-in-action-leader")).toContainText("the suggested offer is");
   await page.getByTestId("rules-in-action-link").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await page.getByTestId("see-economics").locator(":scope > summary").click();
   await page.getByTestId("offer-economics-link").click();
   await expect(page).toHaveURL(/\/economics$/);
   await page.goto("/deals");

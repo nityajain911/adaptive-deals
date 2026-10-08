@@ -68,7 +68,7 @@ describe("Understand and Offer rows", () => {
   });
   it("an unmapped required scope holds the deal at Understand until the merchant confirms it", () => {
     const p = dealProgress(mk(), facts({ unmappedRequiredServices: 1 }));
-    expect([p.stage, p.rule, p.kind, p.actor, p.primaryAction, p.headline]).toEqual(["understand", "understand.scope", "action_required", "merchant", { id: "confirm_required_services", label: "Confirm required services" }, "Confirm which services the buyer requires before we recommend an offer."]);
+    expect([p.stage, p.rule, p.kind, p.actor, p.primaryAction, p.headline]).toEqual(["understand", "understand.scope", "action_required", "merchant", { id: "confirm_required_services", label: "Confirm the services" }, "Tell us which services they need before we suggest an offer."]);
     expect(p.stages).toEqual({ understand: "current", offer: "upcoming", track: "upcoming" });
     // Only once options exist, and never after the deal has moved on.
     expect(dealProgress(mk({ status: "clarifying" }), facts({ engineState: "ambiguous", questionCountUnsent: 2, unmappedRequiredServices: 1 })).rule).toBe("understand.send");

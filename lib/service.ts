@@ -264,7 +264,7 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
         return pinConflicts(candidate, version).length === 0;
       })
     : active;
-  if (!selectedEconomics) throw new ActionError("No compatible business economics version can evaluate this deal");
+  if (!selectedEconomics) throw new ActionError("No compatible prices & costs version can evaluate this deal");
   const baseline = captureBaseline({
     services: item.deal.packages,
     quotedScope: item.deal.templates.fullScope,
@@ -318,7 +318,7 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
   };
   event(s, "run_loaded", selectedRecord.kind === "live" ? "Stored live run loaded" : "Synthetic replay loaded", selectedRecord.kind === "live" ? "live_model" : "synthetic_replay", `Run ${selectedRecord.runId}`);
   if (selectedEconomics.version !== active.version) {
-    event(s, "economics_compatible_version", `Business economics version ${selectedEconomics.version} applied`, "engine", `Version ${active.version} was incompatible with this deal's original services.`);
+    event(s, "economics_compatible_version", `Prices & costs version ${selectedEconomics.version} applied`, "engine", `Version ${active.version} was incompatible with this deal's original services.`);
   }
   setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
   draftMissingClarifications(s);
@@ -463,7 +463,7 @@ function assertReevaluationOpen(s: DemoState): void {
 async function reevaluationParts(s: DemoState, toVersion?: number, candidate?: BusinessEconomics) {
   assertReevaluationOpen(s);
   const target = candidate ?? (toVersion === undefined ? await activeEconomics() : await economicsVersion(toVersion));
-  if (!target) throw new ActionError(`Business economics version ${toVersion} is unavailable`, 404);
+  if (!target) throw new ActionError(`Prices & costs version ${toVersion} is unavailable`, 404);
   const currentVersion = await pinnedEconomicsOf(s);
   const beforeDeal = dealContextFor(s, currentVersion);
   const beforeOutcome = await currentOutcome(s, beforeDeal);
@@ -519,7 +519,7 @@ export async function reevaluateDeal(toVersion: number): Promise<DemoState> {
   return mutate((s) => {
     assertReevaluationOpen(s);
     if (s.economics.pinned.version !== before.economics.pinned.version || s.economics.effectiveHash !== before.economics.effectiveHash) {
-      throw new ActionError("Business economics changed after this preview. Review it again.");
+      throw new ActionError("Prices & costs changed after this preview. Review it again.");
     }
     s.economics = {
       ...s.economics,
@@ -527,8 +527,8 @@ export async function reevaluateDeal(toVersion: number): Promise<DemoState> {
       effectiveHash: prospectiveHash,
     };
     syncEconomicsBranch(s);
-    setStatus(s, statusForEvaluation(afterEvaluation), `Business economics version ${target.version} applied after merchant review`);
-    event(s, "economics_reevaluated", `Business economics version ${target.version} applied`, "merchant", preview.pricesNote);
+    setStatus(s, statusForEvaluation(afterEvaluation), `Prices & costs version ${target.version} applied after merchant review`);
+    event(s, "economics_reevaluated", `Prices & costs version ${target.version} applied`, "merchant", preview.pricesNote);
   });
 }
 

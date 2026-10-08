@@ -7,7 +7,6 @@ import { InfoButton } from "@/components/info-button";
 import { Badge, Card } from "@/components/ui";
 import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
-import { taskOrRunProvenance } from "@/lib/model-provenance";
 import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
@@ -35,11 +34,10 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposalOf(baseline));
   const uncaptured = uncapturedLines(out.evaluation);
-  const extraction = taskOrRunProvenance(r, "extract", s.run.viewing);
   const unmapped = unmappedScopeOf(s, out);
   const scope = s.decisionBranch?.scope ?? null;
   const packages = activeCase.deal.packages;
-  const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} extraction={extraction ?? { modelMade: false, providerName: null }} /> : null;
+  const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} /> : null;
   const evidence = r.engine.profile.filter((f) => f.evidence.length);
   const answers = decisionAnswers(s);
   const primary = current ? progress.primaryAction : null;
@@ -142,7 +140,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
           {unmapped.length ? (
             <ScopeConfirmationCard
               phrases={unmapped.map((u) => ({ rawText: u.rawText, evidenceQuote: u.evidenceQuote }))}
-              extraction={extraction ?? { modelMade: false, providerName: null }}
+             
               form={<ConfirmServicesForm packages={packages.map((p) => ({ id: p.id, name: p.name }))} onDone={stageHref(dealId, "offer")} />}
             />
           ) : null}

@@ -11,6 +11,19 @@ const PRESENTER = path.join(".data-e2e", "presenter.json");
 
 type StoredState = DemoState & Record<string, unknown>;
 
+/** Reviewer tools (guide, audit trail) live in the "For reviewers" menu; open it only if it is closed. */
+/** The alternatives and the strategy comparison live in one closed section; open it first. */
+async function openOtherOptions(page: Page) {
+  const section = page.getByTestId("other-options");
+  if ((await section.getAttribute("open")) === null) await section.locator(":scope > summary").click();
+}
+
+async function clickReviewer(page: Page, testId: "audit-details" | "walkthrough-launcher") {
+  const menu = page.getByTestId("reviewer-menu");
+  if ((await menu.getAttribute("open")) === null) await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId(testId).click();
+}
+
 async function api(page: Page, data: Record<string, unknown>, ok = true) {
   const response = await page.request.post("/api/actions", { data });
   const json = (await response.json()) as { ok: boolean; error?: string; result?: unknown };
@@ -49,7 +62,7 @@ async function prepareOptions(page: Page) {
 
 async function openWalkthrough(page: Page) {
   if (await page.getByTestId("walkthrough").count()) return;
-  await page.getByTestId("walkthrough-launcher").click();
+  await clickReviewer(page, "walkthrough-launcher");
   await expect(page.getByTestId("walkthrough")).toBeVisible();
 }
 
@@ -123,10 +136,10 @@ test.describe.configure({ mode: "serial" });
 
 test("P0 · every clarification combination produces its engine decision and truthful provenance after reload", async ({ page }) => {
   const cases = [
-    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", gstCopy: "including GST", approvalCopy: "Contracts above", recorded: true },
-    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", gstCopy: "excluding GST", approvalCopy: "Contracts above", recorded: false },
-    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "including GST", approvalCopy: "Payments above", recorded: false },
-    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "excluding GST", approvalCopy: "Payments above", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", gstCopy: "including GST", approvalCopy: "anything above", recorded: true },
+    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", gstCopy: "excluding GST", approvalCopy: "anything above", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "including GST", approvalCopy: "any single payment above", recorded: false },
+    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "excluding GST", approvalCopy: "any single payment above", recorded: false },
   ] as const;
 
   for (const c of cases) {
@@ -141,7 +154,7 @@ test("P0 · every clarification combination produces its engine decision and tru
     await page.goto("/deals/hero/offer");
     await page.reload();
     await expect(page.getByText("Application error", { exact: false })).toHaveCount(0);
-    await page.getByTestId("audit-details").click();
+    await clickReviewer(page, "audit-details");
     const drawer = page.getByTestId("audit-drawer");
     await expect(drawer).toBeVisible();
     if (c.recorded) {
@@ -153,7 +166,7 @@ test("P0 · every clarification combination produces its engine decision and tru
       await expect(drawer).toContainText("The hand-written parent sample did not cover the changed answers");
       await expect(drawer).not.toContainText("parent model run");
       await expect(drawer).toContainText("code_fallback");
-      await expect(page.getByTestId("attribution")).toContainText("Recalculated by the engine after the buyer's answer");
+      await expect(page.getByTestId("attribution")).toContainText("Worked out again after the buyer's answer");
       await expect(page.getByTestId("attribution")).not.toContainText(/AI ranked|AI explained/i);
     }
     await expect(drawer).toContainText("No model ran for this case.");
@@ -214,7 +227,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await clickPrimary(page);
 
   await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
-  await expect(page.getByTestId("recommendation")).toContainText("Recommended");
+  await expect(page.getByTestId("recommendation")).toContainText("Suggested offer");
   await shot(page, "desktop-2-offer");
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
@@ -239,7 +252,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("back-to-merchant").click();
 
   await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
-  await expect(page.getByTestId("payment-schedule")).toContainText("Amount still to collect before GST");
+  await expect(page.getByTestId("payment-schedule")).toContainText("Still to collect (before GST)");
   await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("authorises the mandate");
   await walkthroughPrimary(page).click();
@@ -252,7 +265,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expectStage(page, "track", /can't pay until after 20 Dec 2026/, "Draft revised terms");
   await clickPrimary(page);
   await expectStage(page, "track", "Review the revised terms", "Review revised terms");
-  await expect(page.getByTestId("amendment-card")).toContainText("Read by code, not AI");
+  await expect(page.getByTestId("amendment-card")).toContainText("They said “till the 20th”");
   await shot(page, "desktop-6-amendment");
   await page.getByTestId("primary-action").click();
   await expect(page.getByTestId("amendment-card")).toHaveAttribute("open", "");
@@ -393,7 +406,7 @@ test("v1 stores migrate only when delivery evidence supports the saved state", a
 test("merchant audit shows sources and attribution without presenter controls", async ({ page }) => {
   await reset(page);
   await page.goto("/deals/hero/understand");
-  await page.getByTestId("audit-details").click();
+  await clickReviewer(page, "audit-details");
   const drawer = page.getByTestId("audit-drawer");
   await expect(drawer).toBeVisible();
   await expect(drawer).toContainText(/Source|Evidence/);
@@ -405,12 +418,8 @@ test("merchant audit shows sources and attribution without presenter controls", 
 test("a hand-written sample case never presents its outputs as AI output", async ({ page }) => {
   await reset(page);
   await page.goto("/deals");
-  for (const id of ["reduced-scope", "preserve-scope", "no-fit"]) {
-    await expect(page.getByTestId(`case-model-output-${id}`)).toHaveText("Sample output written by hand · no model ran");
-  }
+  await expect(page.locator("main")).not.toContainText(/Suggested by AI|Groq|AI run/);
   await page.goto("/deals/hero/understand");
-  await expect(page.getByTestId("questions-card")).toContainText("Sample wording written by hand");
-  await expect(page.getByTestId("thread-understand")).toContainText("Sample wording written by hand");
   await expect(page.locator("main")).not.toContainText(/Suggested by AI|Groq|AI run/);
 });
 
@@ -429,7 +438,7 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await page.goto("/deals/hero/understand");
   await noHorizontalScroll(page);
   await shot(page, "mobile-1-understand");
-  await page.getByTestId("audit-details").click();
+  await clickReviewer(page, "audit-details");
   const drawerBox = await page.getByTestId("audit-drawer").boundingBox();
   expect(drawerBox?.width).toBe(390);
   await page.keyboard.press("Escape");
@@ -464,6 +473,7 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/offer$/);
 
+  await page.getByTestId("reviewer-menu-toggle").click();
   const opener = page.getByTestId("audit-details");
   await opener.focus();
   await page.keyboard.press("Enter");
@@ -492,8 +502,9 @@ test("initial Offer viewport keeps rejections and funding detail collapsed", asy
   await expect(page.getByText(/structures across .* templates evaluated/i)).toHaveCount(0);
   await expect(page.getByTestId("featured-buyer-rejection")).toBeHidden();
   await expect(page.getByTestId("featured-seller-rejection")).toBeHidden();
+  await openOtherOptions(page);
   await expect(page.getByTestId("compare-alternatives")).toBeVisible();
-  await expect(page.getByTestId("compare-alternatives")).toContainText("If the buyer secures MD approval: projected contribution");
+  await expect(page.getByTestId("compare-alternatives")).toContainText("If their MD approves, you'd keep");
   const fundingLabels = page.getByText("Peak funding requirement", { exact: false });
   let visibleFundingLabels = 0;
   for (let i = 0; i < (await fundingLabels.count()); i++) {
@@ -512,8 +523,8 @@ test("P0 · buyer change request transfers ownership until the merchant makes an
 
   const request = state().conversation.findLast((item) => item.kind === "change_request")!;
   await page.goto("/deals/hero/track");
-  await expectStage(page, "track", "The buyer requested a change", "Review buyer request");
-  await expect(page.getByTestId(`work-${request.id}`)).toContainText("current proposal remains unchanged");
+  await expectStage(page, "track", "The buyer asked for a change", "Review buyer request");
+  await expect(page.getByTestId(`work-${request.id}`)).toContainText("Your offer stays as it is until you decide");
   await page.getByTestId(`keep-current-${request.id}`).click();
   await expectStage(page, "track", "Waiting for the buyer to review offer version 1", undefined);
 
@@ -544,7 +555,7 @@ test("P0 · resolved notice corrections leave the attention queue and unsupporte
   await api(page, { action: "buyer_reply", inReplyTo: notice.id, text: "Please call me" });
   const unsupported = state().conversation.at(-1)!;
   await page.reload();
-  await expect(page.getByTestId(`attention-${unsupported.id}`)).toContainText("agree the next step");
+  await expect(page.getByTestId(`attention-${unsupported.id}`)).toContainText("agree what happens next");
   await expect(page.getByTestId(`attention-${unsupported.id}`)).not.toContainText("one exact date");
 });
 
@@ -573,15 +584,15 @@ test("P0 · a merchant-selected annual offer keeps its attribution and MD approv
   await prepareOptions(page);
   await api(page, { action: "select_option", structureId: "split_payment:plan=deposit_30" });
   await page.goto("/deals/hero/offer");
-  await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
-  await expect(page.getByTestId("recommendation")).toContainText(/MD approval|required internal approval/i);
+  await expect(page.getByTestId("recommendation")).toContainText("You chose this");
+  await expect(page.getByTestId("recommendation")).toContainText(/MD/);
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/offer\/preview$/);
   const draft = state().agreements.find((agreement) => agreement.status === "draft")!;
   await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
 
   await page.goto(`/proposal/${draft.agreementId}/v${draft.version}`);
-  await expect(page.getByTestId("authority-requirement")).toContainText("required internal approval");
+  await expect(page.getByTestId("authority-requirement")).toContainText("I confirm my company has approved");
   await expect(page.getByTestId("accept")).toBeDisabled();
   await page.getByTestId("authority").check();
   await expect(page.getByTestId("accept")).toBeEnabled();
@@ -620,7 +631,7 @@ test("P0 · current agreement summary keeps phase, annual, deferred and declined
   const current = page.getByTestId("current-agreement");
   await expect(current).toContainText("Standalone three-month package");
   await expect(current).toContainText("Nov 2026–Jan 2027");
-  await expect(current).toContainText("No later phase is agreed");
+  await expect(current).toContainText("Nothing beyond this is promised");
   await expect(current).toContainText("₹23,010");
 
   for (const [structureId, expectedTitle] of [
@@ -642,7 +653,7 @@ test("P0 · current agreement summary keeps phase, annual, deferred and declined
   await api(page, { action: "decline", version: declined.version, reason: "budget" });
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("current-agreement")).toContainText("Declined");
-  await expect(page.getByTestId("current-agreement")).toContainText("not shown as money owed");
+  await expect(page.getByTestId("current-agreement")).toContainText("Nothing was set up");
 });
 
 test("commercial case picker starts all three cases and isolates their buyer, run and outcomes", async ({ page }) => {
@@ -650,7 +661,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     {
       id: "reduced-scope",
       buyer: "Kestrel Lane Clinics",
-      message: "The broken booking page is costing us enquiries",
+      message: "The booking page being broken is costing us patients",
       status: "clarifying",
     },
     {
@@ -662,7 +673,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     {
       id: "no-fit",
       buyer: "Blue Harbor Foods",
-      message: "The retail launch cannot move",
+      message: "Our retail launch can't move",
       status: "no_feasible_structure",
     },
   ] as const;
@@ -671,7 +682,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     await page.goto("/deals");
     await expect(page.getByTestId("case-picker")).toBeVisible();
     await page.getByTestId(`select-case-${item.id}`).click();
-    await expect(page.getByTestId("case-switch-warning")).toHaveText("Starting another case resets unfinished demo progress.");
+    await expect(page.getByTestId("case-switch-warning")).toHaveText("Starting a new deal clears the current one.");
     await page.getByTestId("start-selected-case").click();
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(item.buyer);
@@ -686,7 +697,8 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
       await api(page, { action: "send_questions" });
       expect(state().conversation.length).toBeGreaterThan(0);
     } else {
-      await page.getByText("Details", { exact: true }).click();
+      const details = page.getByText("Details", { exact: true });
+      if (await details.count()) await details.click();
       await expect(page.getByTestId("thread-understand")).toContainText(item.message);
       expect(state().conversation).toHaveLength(0);
       expect(state().run.record.inputs.messages.some((message) => message.text.includes("Kestrel"))).toBe(false);
@@ -721,17 +733,18 @@ test("step 3 · Track leads with the next step, collapses the rest, and does not
   await page.goto("/deals/hero/track");
   const headline = (await page.getByTestId("status-headline").innerText()).trim();
   await expect(page.getByTestId("now-card")).not.toContainText(headline);
-  await expect(page.getByTestId("now-card")).toContainText("Your next step");
+  await expect(page.getByTestId("now-card")).toContainText("Next step");
   await expect(page.getByTestId("track-outcome-details")).not.toHaveAttribute("open", "");
   await expect(page.getByTestId("track-conversation-details")).not.toHaveAttribute("open", "");
   await page.getByTestId("delivery-status").getByRole("button").click();
-  await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("simulated channel");
+  await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("WhatsApp (simulated)");
 });
 
 test("step 3 · alternatives are visible rows, not hidden behind a disclosure", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
+  await openOtherOptions(page);
   await expect(page.getByTestId("alternative-1")).toBeVisible();
   await expect(page.getByTestId("compare-alternatives").locator("summary")).toHaveCount(0);
 });
@@ -741,8 +754,8 @@ test("step 4 · the buyer's page leads with a glance line, words the attestation
   const agreement = await prepareSent(page);
   await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
   await expect(page.getByTestId("proposal-glance")).toContainText("including GST · 2 payments ·");
-  await expect(page.getByTestId("recurring")).toContainText("You authorise Pinecone Media Works to collect the scheduled payments above");
-  await expect(page.getByTestId("recurring")).toContainText("only if you both accept a revised proposal");
+  await expect(page.getByTestId("recurring")).toContainText("You allow Pinecone Media Works to take the payments above automatically");
+  await expect(page.getByTestId("recurring")).toContainText("only if you both agree to a new version");
   await page.getByTestId("request-change").click();
   await expect(page.getByTestId("change-starter-date")).toBeVisible();
   await expect(page.getByTestId("change-starter-scope")).toBeVisible();
@@ -785,7 +798,8 @@ test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
-  await expect(page.getByTestId("compare-alternatives")).toContainText("Projected contribution about ₹19,330");
+  await openOtherOptions(page);
+  await expect(page.getByTestId("compare-alternatives")).toContainText("You'd keep about ₹19,330");
   await expect(page.locator("main")).not.toContainText(/permitted structures|merchant-approved template/i);
 });
 
@@ -797,13 +811,13 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   // A pending buyer request opens its card by itself.
   await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
   const form = page.getByTestId("counter-form");
-  await expect(page.getByTestId("negotiation-corridor")).toContainText("Current offer: ₹46,020 including GST");
+  await expect(page.getByTestId("negotiation-corridor")).toContainText("Your offer is ₹46,020 including GST");
 
   // The engine rechecks, names the failed rule, and the merchant cannot proceed without the override.
   await form.getByTestId("counter-total").fill("40000");
   await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
-  await expect(form.getByTestId("counter-fails")).toContainText("does not meet your rules");
+  await expect(form.getByTestId("counter-fails")).toContainText("This is outside your limits.");
   await expect(form.getByTestId("counter-make")).toBeDisabled();
   // An answer belongs to the amount it was checked for: editing the amount removes it.
   await form.getByTestId("counter-total").fill("6000");
@@ -822,7 +836,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   // Back at Offer with the counter selected, attributed to the merchant and flagged as overridden.
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
   await expect(page.getByTestId("recommendation")).toContainText("Your counter-offer");
-  await expect(page.getByTestId("attribution")).toContainText("you chose to override them");
+  await expect(page.getByTestId("attribution")).toContainText("you chose to go ahead anyway");
   await expect(page.getByTestId("counter-override-note")).toBeVisible();
   await expect(page.getByTestId("offer-total")).toContainText("₹40,0");
   await shot(page, "counter-2-offer");
@@ -884,24 +898,23 @@ test("step 5 · the Offer screen leads with the merchant's strategy, and each st
   await page.setViewportSize(DESKTOP);
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
-  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Protect contribution");
+  await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "protect_contribution");
   await expect(page.getByTestId("offer-headline")).toContainText("two monthly payments");
-  await expect(page.getByTestId("attribution")).toHaveText("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
-  await expect(page.getByTestId("offer-rules")).toContainText("Based on version 1 of your business economics.");
-  await expect(page.getByTestId("offer-cash")).toContainText("Cash exposure: ₹0");
+  await expect(page.getByTestId("attribution")).toHaveText("Suggested for the default priority: earning the most.");
+  await expect(page.getByTestId("offer-rules")).toContainText("your prices & costs");
+  await expect(page.getByTestId("offer-cash")).toContainText("₹0");
+  await openOtherOptions(page);
 
   // What each strategy would recommend, one row each, from the same feasible offers.
   const rows = page.getByTestId("strategy-comparison");
   await expect(rows.getByTestId("strategy-row-protect_contribution")).toContainText("two monthly payments");
-  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Keep the annual scope and split the payments");
-  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Needs MD approval");
-  await expect(rows.getByTestId("strategy-row-minimise_cash_exposure")).toContainText("Needs MD approval");
+  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Keep the full project and split the payments");
+  await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Needs their MD");
+  await expect(rows.getByTestId("strategy-row-minimise_cash_exposure")).toContainText("Needs their MD");
   await expect(rows.getByTestId("strategy-row-lower_buyer_commitment")).toContainText("two monthly payments");
 
-  // The recorded sample order is history, labelled as a sample, and never as a model.
-  await page.getByTestId("recorded-evidence").click();
-  await expect(page.getByTestId("recorded-evidence-note")).toContainText("Sample order and reason written by hand · no model ran. They do not drive the current recommendation.");
-  await expect(page.getByTestId("recorded-evidence-note")).not.toContainText(/Groq|recorded/i);
+  // The merchant's screen never mentions a model or a recording.
+  await expect(page.getByTestId("recommendation")).not.toContainText(/Groq|recorded|no model ran/i);
 });
 
 test("step 5 · a strategy that leads with an offer needing MD approval says so and offers the best one without it", async ({ page }) => {
@@ -909,17 +922,17 @@ test("step 5 · a strategy that leads with an offer needing MD approval says so 
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
   await page.getByTestId("strategy-minimise_cash_exposure").check();
-  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Minimise cash exposure");
-  await expect(page.getByTestId("offer-approval")).toContainText("MD approval");
+  await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "minimise_cash_exposure");
+  await expect(page.getByTestId("offer-approval")).toContainText("MD");
   await expect(page.getByTestId("within-approval-alternative")).toContainText("two monthly payments");
   await page.getByTestId("select-within-approval").click();
   // The merchant's own choice is credited to them, and the strategy now recommends something else.
-  await expect(page.getByTestId("recommendation")).toContainText("Selected by you");
+  await expect(page.getByTestId("recommendation")).toContainText("You chose this");
   await expect(page.getByTestId("offer-headline")).toContainText("two monthly payments");
-  await expect(page.getByTestId("attribution")).toHaveText("You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.");
-  await expect(page.getByTestId("strategy-differs")).toContainText("The recommended offer is Keep the annual scope and split the payments");
+  await expect(page.getByTestId("attribution")).toHaveText("You chose this offer.");
+  await expect(page.getByTestId("strategy-differs")).toContainText("We'd suggest: Keep the full project and split the payments");
   await page.getByTestId("use-recommended").click();
-  await expect(page.getByTestId("offer-headline")).toHaveText("Keep the annual scope and split the payments");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Keep the full project and split the payments");
   expect(state().economics.strategy).toBe("minimise_cash_exposure");
 });
 
@@ -930,9 +943,9 @@ test("step 5 · the strategy control works from the keyboard, and a sent version
   await page.getByTestId("strategy-protect_contribution").focus();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByTestId("strategy-preserve_scope")).toBeChecked();
-  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Preserve scope");
+  await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "preserve_scope");
   await page.getByTestId("strategy-protect_contribution").check();
-  await expect(page.getByTestId("strategy-heading")).toHaveText("Best offer for: Protect contribution");
+  await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "protect_contribution");
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
   await page.getByTestId("primary-action").click();
@@ -951,7 +964,7 @@ test("exceptions · an amount below direct costs also needs the exact typed phra
   await form.getByTestId("counter-total").fill("5000");
   await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
-  await expect(form.getByTestId("counter-loss")).toContainText("below your direct costs");
+  await expect(form.getByTestId("counter-loss")).toContainText("less than it costs you to deliver");
   await form.getByTestId("counter-override").check();
   await form.getByTestId("counter-reason").fill("Loss leader to win the annual contract");
   // Reason and acknowledgement are not enough: the exact phrase is required.
@@ -966,7 +979,7 @@ test("exceptions · an amount below direct costs also needs the exact typed phra
   expect(state().counterOffers.at(-1)!.override).toMatchObject({ negativeContribution: true, reason: "Loss leader to win the annual contract" });
   expect(state().counterOffers.at(-1)!.evaluated.approvable).toBe(false);
 
-  await page.getByTestId("audit-details").click();
+  await clickReviewer(page, "audit-details");
   const audit = page.getByTestId("audit-exceptions");
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("below direct costs (typed confirmation given)");
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("Reason: Loss leader to win the annual contract");
@@ -979,10 +992,10 @@ test("exceptions · the audit lists an input override separately from a failed-r
   await prepareOptions(page);
   await api(page, { action: "add_input_override", field: "cash_exposure", value: 2_000_000, reason: "Client pays a deposit first" });
   await page.goto("/deals/hero/offer");
-  await page.getByTestId("audit-details").click();
+  await clickReviewer(page, "audit-details");
   const audit = page.getByTestId("audit-exceptions");
-  await expect(audit.getByTestId("audit-input-overrides")).toContainText("Maximum cash exposure: ₹10,000 → ₹20,000");
+  await expect(audit.getByTestId("audit-input-overrides")).toContainText("Most I'll spend before I'm paid: ₹10,000 → ₹20,000");
   await expect(audit.getByTestId("audit-input-overrides")).toContainText("Loosens your account rule · reason: Client pays a deposit first");
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("None.");
-  await expect(page.getByTestId("audit-drawer")).toContainText("Your business economics, version 1, with 1 deal override");
+  await expect(page.getByTestId("audit-drawer")).toContainText("Your prices & costs, version 1, with 1 deal override");
 });

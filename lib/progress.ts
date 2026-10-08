@@ -155,7 +155,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
   if (s.status === "merchant_rejected") return info("offer", "offer.closed", "terminal", null, "Closed in Adaptive Deals.", latest);
   // A buyer's required services that no package matched must be confirmed by the merchant before any offer.
   if (f.engineState === "options_ready" && f.unmappedRequiredServices > 0) {
-    return act("understand", "understand.scope", "Confirm which services the buyer requires before we recommend an offer.", "confirm_required_services", "Confirm required services");
+    return act("understand", "understand.scope", "Tell us which services they need before we suggest an offer.", "confirm_required_services", "Confirm the services");
   }
   if (f.unreviewedDecisionEvidence > 0) return act("offer", "offer.new_evidence", "Review newer buyer evidence before sending this offer.", "review_new_evidence", "Review buyer evidence", latest);
   if (s.status === "approved") return act("offer", "offer.approved_unsent", "Approved · not yet sent to the buyer.", "retry_sending", "Retry sending", latest, f.lastFailure);

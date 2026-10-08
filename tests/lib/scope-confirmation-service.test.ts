@@ -35,9 +35,9 @@ describe("an unmapped required scope owns the next action", () => {
     expect(s.run.record.engine.rejectedFields).toEqual([{ key: "required_package", reason: "does not match a deal package", rawText: "complete annual package" }]);
     expect(s.status).toBe("options_ready");
     const p = await svc.progressOf(s);
-    expect(p).toMatchObject({ stage: "understand", rule: "understand.scope", kind: "action_required", actor: "merchant", primaryAction: { id: "confirm_required_services", label: "Confirm required services" } });
+    expect(p).toMatchObject({ stage: "understand", rule: "understand.scope", kind: "action_required", actor: "merchant", primaryAction: { id: "confirm_required_services", label: "Confirm the services" } });
     expect(p.stages).toEqual({ understand: "current", offer: "upcoming", track: "upcoming" });
-    expect(p.headline).toBe("Confirm which services the buyer requires before we recommend an offer.");
+    expect(p.headline).toBe("Tell us which services they need before we suggest an offer.");
   });
 
   it("refuses to prepare any offer until the services are confirmed, and changes nothing", async () => {

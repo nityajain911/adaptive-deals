@@ -124,7 +124,7 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
 
       <section aria-labelledby="audit-rules">
         <H id="audit-rules">Applied merchant rules</H>
-        <p className="text-[12px] text-muted">From your business economics, version {s.economics.pinned.version}{isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}{s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""}. Synthetic demo data, read-only here.</p>
+        <p className="text-[12px] text-muted">From your prices & costs, version {s.economics.pinned.version}{isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}{s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""}. Synthetic demo data, read-only here.</p>
         <ul className="mt-1 space-y-2">
           {appliedRules(policy, deal.templates, deal.packages).map((r) => (
             <li key={r.id} data-rule={r.id} className="rounded-lg border border-line px-3 py-2">
@@ -151,7 +151,7 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
                     <li key={o.what} className="rounded-lg border border-line px-3 py-2">
                       <div className="font-medium text-ink">{o.what}</div>
                       <div>{o.direction} · reason: {o.reason}</div>
-                      <div className="text-[12px] text-muted">{o.by} · {fmtTime(o.at)} · business economics version {o.economicsVersion}</div>
+                      <div className="text-[12px] text-muted">{o.by} · {fmtTime(o.at)} · prices & costs version {o.economicsVersion}</div>
                     </li>
                   ))}
                 </ul>
@@ -171,7 +171,7 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
                       <div className="font-medium text-ink">Counter-offer at {x.total}{x.negativeContribution ? " · below direct costs (typed confirmation given)" : ""}</div>
                       {x.rules.length ? <div>Rules overridden: {x.rules.join("; ")}</div> : null}
                       <div>Reason: {x.reason}</div>
-                      <div className="text-[12px] text-muted">{x.by} · {fmtTime(x.at)}{x.economicsVersion !== null ? ` · business economics version ${x.economicsVersion}` : ""}</div>
+                      <div className="text-[12px] text-muted">{x.by} · {fmtTime(x.at)}{x.economicsVersion !== null ? ` · prices & costs version ${x.economicsVersion}` : ""}</div>
                     </li>
                   ))}
                 </ul>
