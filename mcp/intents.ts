@@ -28,6 +28,7 @@ export type McpActionIntent = z.infer<typeof mcpIntentSchema>;
 export type McpActionReceipt = z.infer<typeof mcpReceiptSchema>;
 
 const sha = (value: unknown) => createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
+export const hashMcpArguments = (value: unknown): string => sha(value);
 
 export function createPaymentLinkIntent(input: {
   dealId: string; agreementId: string; agreementVersion: number; termsHash: string; merchantId: string; serverId: string; toolName: string; catalogHash: string; inputSchemaHash: string;
@@ -61,4 +62,3 @@ export function reducePaymentLinkReceipt(intent: McpActionIntent, raw: unknown, 
 export function failedMcpReceipt(intent: McpActionIntent, requestedAt: string, input: { outcome: "failed" | "unknown"; errorCode: string; safeError: string }): McpActionReceipt {
   return mcpReceiptSchema.parse({ intentId: intent.id, serverId: intent.serverId, toolName: intent.toolName, catalogHash: intent.catalogHash, argumentsHash: intent.argumentsHash, requestedAt, completedAt: input.outcome === "failed" ? requestedAt : null, outcome: input.outcome, externalId: null, shortUrl: null, externalStatus: null, responseHash: null, errorCode: input.errorCode, safeError: input.safeError });
 }
-

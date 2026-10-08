@@ -53,11 +53,14 @@ export function bindRazorpayCapabilities(input: unknown, discoveredAt = "2026-10
   const tools = parsedTools.flatMap((tool) => tool.success ? [tool.data] : []);
   const create = tools.find((tool) => tool.metadata.capability === "create_payment_link" && hasRequired(tool.inputSchema, ["amount", "currency", "description", "reference", "idempotency_key"]) && !!tool.outputSchema && hasRequired(tool.outputSchema, ["id", "short_url", "status"]));
   if (!create) return { status: "unsupported", catalogHash: hash, reason: "No compatible test Payment Link capability was advertised", bindings: {} };
+  const fetch = tools.find((tool) => tool.metadata.capability === "fetch_payment_link" && hasRequired(tool.inputSchema, ["reference"]) && !!tool.outputSchema && hasRequired(tool.outputSchema, ["id", "short_url", "status"]));
   return {
     status: "compatible",
     catalogHash: hash,
     reason: "Compatible Razorpay test Payment Link capability advertised",
-    bindings: { createTestPaymentLink: { serverId: parsedCatalog.data.serverId, serverVersion: parsedCatalog.data.serverVersion, catalogHash: hash, capability: "create_test_payment_link", toolName: create.name, inputSchemaHash: sha(create.inputSchema), discoveredAt } },
+    bindings: {
+      createTestPaymentLink: { serverId: parsedCatalog.data.serverId, serverVersion: parsedCatalog.data.serverVersion, catalogHash: hash, capability: "create_test_payment_link", toolName: create.name, inputSchemaHash: sha(create.inputSchema), discoveredAt },
+      ...(fetch ? { fetchPaymentLink: { serverId: parsedCatalog.data.serverId, serverVersion: parsedCatalog.data.serverVersion, catalogHash: hash, capability: "fetch_payment_link" as const, toolName: fetch.name, inputSchemaHash: sha(fetch.inputSchema), discoveredAt } } : {}),
+    },
   };
 }
-
