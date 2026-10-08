@@ -989,3 +989,9 @@ Seven requests in total: five returned model output and two were rejected by the
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.
+
+### 8 October 2026 — plain-language and realism pass
+
+Agent task: act as a merchant and as a buyer end to end, make every label understandable to a generic merchant, make the cases realistic, and hide what does not help the decision. Decisions made by the applicant: rename Business economics to Prices & costs; merge the Deals tabs; move audit, comparison, memory and MCP detail behind reviewer or "details" areas; rewrite buyer chats to sound real; keep screens simple.
+
+What the agent did: rewrote copy across the merchant, buyer and track screens, rebuilt the header with a reviewer menu, rewrote the three case conversations and regenerated their sample outputs, rebased about 100 unit assertions and the browser tests on the new wording, and recorded the decisions in PRODUCT_DECISIONS.md. What it deliberately did not touch: any text that feeds a model prompt (so recorded input hashes stay valid). Result: 1,183 unit tests and 82 browser tests pass on a production build; no model call was made.

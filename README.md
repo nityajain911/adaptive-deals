@@ -18,7 +18,7 @@ npm run dev
 
 Open [http://localhost:3000/deals](http://localhost:3000/deals) and choose a case. The deal home (`/deals/hero`) always redirects to the stage that currently needs attention.
 
-The prototype works without credentials. After a reset each case starts from its **recorded Groq run** (`data/case-recorded-runs/`, mapped by `data/case-runs.json`), replayed exactly from the stored outputs: no model call is made while you use it. If a case has no valid recording for its exact conversation, the product falls back to a hand-written sample, labelled **Sample output written by hand · no model ran**. Set `ADAPTIVE_DEALS_DEMO_RUN=synthetic` to force the sample. Messaging and payments are simulated.
+The prototype works without credentials. Each case starts from a **hand-written sample output** (`data/synthetic/`), labelled **Sample output written by hand · no AI ran** in the reviewer audit trail, and no model call is made while you use it. The three earlier real Groq runs are kept unchanged in `data/case-recorded-runs/` as historical evidence; the case conversations were later rewritten to read like real WhatsApp chats, so those recordings no longer belong to any case the merchant can start (see **Recorded model runs** below). Messaging and payments are simulated.
 
 ## Product journey
 
@@ -49,13 +49,13 @@ The guide explains the current decision. On a merchant step it names the product
 
 Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
 
-Every attribution on screen is derived from the stored run, not from the feature: a recorded run reads **Recorded Groq output**, a hand-written sample reads **Sample output written by hand · no model ran**, and an offer card says **Default strategy · offers ranked by code · explained by code** (or **Strategy selected by you**, or **You selected this offer**), because code ranks the offers by the merchant's strategy and writes the explanation. The recorded model's own order and reason are kept behind an information control as **historical evidence that does not drive the current recommendation**.
+Who or what produced an output is shown in the reviewer audit trail (**For reviewers → Audit trail for this deal**), derived from the stored run rather than from the feature. The merchant's own screens stay in plain words: an offer card says *Suggested for the default priority: earning the most*, *Suggested for what matters most to you*, or *You chose this offer*, because code ranks the offers by the merchant's priority and works out every figure.
 
 ### Commercial Memory (RAG)
 
 Commercial Memory retrieves only evidence the merchant is allowed to use: active rate cards, direct-cost records, policies, service rules and buyer-specific history. Eligibility is applied before ranking. Each result keeps the exact source substring and offsets; weak matches abstain, conflicting active values are blocked, and source text is treated as untrusted data.
 
-Business economics can be drafted from this evidence, but a merchant must select the values, review the ordinary version diff and activate it. Deal decisions then combine three distinct inputs: the buyer's confirmed words, the merchant's cited business records and deterministic engine checks. Private costs and policies never reach the buyer proposal.
+Prices & costs can be drafted from this evidence, but a merchant must select the values, review the ordinary version diff and activate it. Deal decisions then combine three distinct inputs: the buyer's confirmed words, the merchant's cited business records and deterministic engine checks. Private costs and policies never reach the buyer proposal.
 
 The presenter page includes an unseen-query proof. Lexical code retrieval always runs first. The optional, separately versioned Groq reranker can reorder only the closed list of eligible chunk IDs; an invalid response or unavailable provider keeps the code order and says so. The frozen, agent-authored retrieval set currently records 13 of 13 expected sources in the top three, 2 of 2 abstentions, and 32 of 32 valid citations. These are synthetic product checks, not independent validation.
 
@@ -63,9 +63,9 @@ Run the reproducible code-only report with `npm run eval:memory`. No Groq call i
 
 #### Bring your own rate card or cost sheet
 
-On Business economics, **Add your own rate card or cost sheet** accepts a CSV, pasted text, or a **text-based PDF** (up to 1.5 MB and 10 pages). The file stays on the local data directory and **no model reads it**: code finds each service by name and reads exactly one amount per line or row, and every proposed value quotes the exact line it came from. Lines it cannot use (an unknown service, a formula cell, two amounts, an instruction hidden in the text) are listed with the reason. A document with nothing usable is refused whole.
+On Prices & costs, **Add your own rate card or cost sheet** accepts a CSV, pasted text, or a **text-based PDF** (up to 1.5 MB and 10 pages). The file stays on the local data directory and **no model reads it**: code finds each service by name and reads exactly one amount per line or row, and every proposed value quotes the exact line it came from. Lines it cannot use (an unknown service, a formula cell, two amounts, an instruction hidden in the text) are listed with the reason. A document with nothing usable is refused whole.
 
-PDFs are read from their text layer only, using `unpdf` (pdf.js, no script or font execution). A scan, an encrypted file, a file that is not a PDF, or one over the limits is refused with its reason, and the product shows the text it read so the merchant can see what it saw. Excel files, images and scans are not supported. Fictional sample documents to try are in `public/sample-documents/`. An uploaded value that disagrees with a sample document is a conflict the merchant must resolve, by replacing the sample or withdrawing the upload. Nothing reaches Business economics until the merchant confirms each value and then reviews and activates the new version.
+PDFs are read from their text layer only, using `unpdf` (pdf.js, no script or font execution). A scan, an encrypted file, a file that is not a PDF, or one over the limits is refused with its reason, and the product shows the text it read so the merchant can see what it saw. Excel files, images and scans are not supported. Fictional sample documents to try are in `public/sample-documents/`. An uploaded value that disagrees with a sample document is a conflict the merchant must resolve, by replacing the sample or withdrawing the upload. Nothing reaches Prices & costs until the merchant confirms each value and then reviews and activates the new version.
 
 ### Approved Razorpay action layer (MCP)
 
@@ -91,9 +91,11 @@ Razorpay's server describes its tools differently from our approval contract, so
 
 Step 2 happens on Track after the buyer accepts: **Review Razorpay test Payment Link**, then **Approve and create test Payment Link**. If a request times out, the outcome is marked unknown and reconciled by `reference_id` before any retry. Everything above is tested against a fake Razorpay MCP server. On 9 Oct 2026 the read-only discovery was run against Razorpay's hosted server with a test key: it advertised 42 tools, the Payment Link capability bound as compatible, and no tool was called (`evaluation-assist/results/mcp-discovery-2026-10-09.json`). On 9 Oct 2026 the real create path was also exercised in test mode: the agreement payment of ₹23,010 was rejected by Razorpay ("amount exceeds maximum amount allowed"), while ₹100, ₹10,000 and ₹15,000 diagnostic links were created with SMS, email and reminders off (`evaluation-assist/results/mcp-first-test-link-2026-10-09.json`). The account has a per-link cap between ₹15,000 and ₹20,000; the exact cap is unknown.
 
-## Recorded model runs
+## Recorded model runs (historical)
 
-Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.
+> **Status, 8 October 2026.** These recordings were made on the first version of the three case conversations. The conversations have since been rewritten as realistic chats, so the recordings no longer match any case and the product does not load them. They are kept unchanged as evidence of what the frozen prompts did on real model output (`data/synthetic/recorded-conversations.ts` holds the exact messages they replay against, and `tests/data/case-recordings.test.ts` still verifies them). Re-recording on the rewritten conversations needs a provider key and is a separate, approved step.
+
+Each case had one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.
 
 | Case | What the recording shows | What the merchant does |
 | --- | --- | --- |
@@ -116,7 +118,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `RAZORPAY_MODE` | `test` creates the upfront link in Razorpay test mode; other values simulate it |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Test keys only; live keys are refused |
 | `ADAPTIVE_DEALS_DATA_DIR` | JSON store location; defaults to git-ignored `.data/` |
-| `ADAPTIVE_DEALS_DEMO_RUN` | `synthetic` forces the labelled hand-written sample instead of the recorded runs |
+| `ADAPTIVE_DEALS_DEMO_RUN` | `synthetic` forces the labelled hand-written sample (the default behaviour while no recording matches a case) |
 
 ## Commands
 
@@ -126,7 +128,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | Lint check |
 | `npm run build` | Production build |
-| `npm run test:e2e` | Desktop and mobile browser journeys against two production servers (the labelled sample on port 3200, the recorded runs on 3201); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1`; set `ADAPTIVE_E2E_SHOT_PREFIX` (for example `ux-2026-10-06-`) to write a new set without overwriting existing files |
+| `npm run test:e2e` | Desktop and mobile browser journeys against one production server on port 3200 (the labelled hand-written sample); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1`; set `ADAPTIVE_E2E_SHOT_PREFIX` (for example `ux-2026-10-06-`) to write a new set without overwriting existing files |
 | `npm run check:release -- --build` | Checks product claims and reports applicant-owned placeholders without failing on them |
 | `npm run check:release -- --submission` | Final gate; also fails while applicant-owned sections remain |
 | `npm run reset:seed` | Restores the clean default case |
@@ -147,7 +149,7 @@ domain/                 deterministic money, dates, templates, checks, economics
                         agreement hashes, collections, amendments and state machines
 ai/                     frozen schemas, versioned prompts, providers and run records
 data/synthetic/         fictional cases, hand-written sample outputs and failure scenarios
-data/case-recorded-runs/ the three recorded Groq runs and their recording report
+data/case-recorded-runs/ the three historical Groq runs and their recording report (not loaded by the product)
 integrations/razorpay/  test-key guard and simulated/test-mode payment links
 evaluation/             development data and frozen evaluation records
 lib/                    service, derived product views, JSON store and walkthrough orchestration

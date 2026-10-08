@@ -406,3 +406,19 @@ The model's explanation has two parts that code validates separately: a full com
 **The buyer sees none of it.** Limits, contribution and the corridor stay with the merchant; the buyer receives only the offer that was approved and sent.
 
 **The illustrative example is a demo preset, not a recommendation.** It fills the draft with a 10% maximum discount and 0%, 5%, 10% approved. The merchant still reviews and activates it; the version is labelled Illustrative in the economics page and in each deal's audit that was started under it. The walkthrough lists the negotiation as an optional step and never activates economics or sends an offer for the merchant.
+
+## Written for a merchant, not an auditor (8 October 2026)
+
+**The merchant's screens use the merchant's words.** The test was a generic small-business owner who has never seen the product: every label should be understood without explanation. "Business economics" became **Prices & costs**; "contribution floor" became *the lowest profit I'll accept*; "cash exposure" became *the most I'll spend before I'm paid*; "MD approval above a per-contract limit" became *their MD must approve anything above ₹60,000*. URLs and test IDs were left unchanged on purpose.
+
+**Two tabs, one decision per stage.** The separate Deals and Adaptive Deals tabs became one **Deals** tab. Each stage shows the decision and the one action; everything else (how a figure was worked out, other ways to do the deal, offers the engine ruled out, the strategy comparison) sits in closed sections.
+
+**Reviewer material lives in a menu, not in the merchant's way.** The walkthrough, **Audit trail for this deal**, the presenter page and the fictional-data note are under **For reviewers**. The Razorpay MCP card appears on Track only when a Razorpay test connection exists or has been used; with none, nothing happened with Razorpay, so nothing is shown (the audit trail still says so). Who produced an output (a hand-written sample or a model) is stated in the audit trail, not on the merchant's screens.
+
+**Demo controls are labelled as demo tools.** "Try an example that allows discounts" and "Put the demo prices back" sit under **Demo tools** on Prices & costs.
+
+**The three cases now read like real chats.** The buyers write in WhatsApp style, with the details a real buyer gives and the vagueness a real buyer leaves (for example, "the complete annual package" without naming services). The preserve-scope sample deliberately includes that unnamed package so the *Which services do they need?* step is exercised.
+
+**The earlier Groq recordings are kept as history, not shown.** Rewriting the conversations means the three recorded runs no longer match any case, and the product does not load a recording for a conversation it was not made on. They stay unchanged in `data/case-recorded-runs/`, their exact messages are in `data/synthetic/recorded-conversations.ts`, and `tests/data/case-recordings.test.ts` still verifies them. Every case now shows a hand-written sample until someone records new runs (a separate, approved step that needs a provider key). Claims in the pitch must say so.
+
+**Wording that feeds the model was not changed.** `explainAmbiguity`, `outcomeWord` and `READING_LABEL` keep their original text because they are part of the clarification prompt input; changing them would alter recorded input hashes and invalidate replays.
