@@ -401,6 +401,36 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await expect(page.getByTestId("memory-proposals")).toContainText("₹4,500");
   });
   
+  test("upload · the shipped sample rate card PDF (wrapped descriptions, rupee signs, terms) is read in full", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-file").setInputFiles("data/sample-documents/pinecone-rate-card-oct-2026.pdf");
+    await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
+    await page.getByTestId("memory-upload-replace").check();
+    await page.getByTestId("memory-upload-submit").click();
+    const result = page.getByTestId("memory-upload-result");
+    await expect(result).toContainText("Found 4 prices");
+    await expect(page.getByTestId("memory-upload-notes")).toHaveCount(0);
+    await page.getByText("What we read from the PDF").click();
+    await expect(page.getByTestId("memory-upload-read-text")).toContainText("₹26,000 One time");
+    await page.getByTestId("memory-draft").click();
+    const proposals = page.getByTestId("memory-proposals");
+    for (const price of ["₹26,000", "₹4,500", "₹3,200", "₹1,200"]) await expect(proposals).toContainText(price);
+    await proposals.locator("label", { hasText: "Website fixes · standard price" }).locator("..").getByTestId("memory-citation").click();
+    await expect(proposals).toContainText("Audit of up to 25 pages");
+  });
+
+  test("upload · the shipped sample cost sheet PDF is read as costs and replaces the sample cost sheet", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-kind").selectOption("cost_sheet");
+    await page.getByTestId("memory-upload-file").setInputFiles("data/sample-documents/pinecone-cost-sheet-oct-2026.pdf");
+    await page.getByTestId("memory-upload-title").fill("Pinecone delivery costs, October 2026");
+    await page.getByTestId("memory-upload-replace").check();
+    await page.getByTestId("memory-upload-submit").click();
+    await expect(page.getByTestId("memory-upload-result")).toContainText("Found 4 costs");
+    await page.getByTestId("memory-draft").click();
+    for (const cost of ["₹13,500", "₹2,300", "₹1,600", "₹550"]) await expect(page.getByTestId("memory-proposals")).toContainText(cost);
+  });
+
   test("upload · a scanned PDF, a non-PDF and a document with no usable line are refused with a reason", async ({ page }) => {
     await openUpload(page);
     await page.getByTestId("memory-upload-file").setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: makeTextPdf([[]]) });

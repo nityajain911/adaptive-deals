@@ -4,7 +4,7 @@ import { instructionSpans } from "@/assist/profile/verify";
 import type { EconomicsEvidenceProposal } from "../economics-draft";
 import type { KnowledgeSource } from "../types";
 import { mapColumns, parseCsv, type CsvRow } from "./csv";
-import { readLine, servicesIn, singleAmount, type ServiceRef } from "./lines";
+import { moneyMentions, namesSeveralServices, readLine, serviceAtStart, servicesIn, singleAmount, type ServiceRef } from "./lines";
 import type { UploadNote } from "./limits";
 
 const sha = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
@@ -78,37 +78,82 @@ function readCsv(active: BusinessEconomics, source: KnowledgeSource, services: S
   return { proposals, notes, considered: data.length };
 }
 
+/** The most lines a service's description may run before its price. A price the line reader cannot reach is reported, never guessed. */
+const MAX_BLOCK_LINES = 6;
+
+/**
+ * Plain text and PDF text. A line that starts with one of the merchant's services begins a block: the service's
+ * own line and any wrapped description lines, up to the first line that states money. That line's single amount
+ * is the price, and the quote runs from the service name to the end of that line. Services named only in a
+ * description are ignored; a line that joins two services is refused.
+ */
 function readText(active: BusinessEconomics, source: KnowledgeSource, services: ServiceRef[]): UploadReading {
   const spans = instructionSpans(source.content);
   const proposals: EconomicsEvidenceProposal[] = [];
   const notes: UploadNote[] = [];
-  let considered = 0;
+  const lines: { text: string; start: number; end: number }[] = [];
   let cursor = 0;
-  for (const line of source.content.split("\n")) {
-    const start = cursor;
-    cursor += line.length + 1;
-    if (!line.trim()) continue;
-    const reading = readLine(line, start, services);
-    // A line that names no service is a heading or prose: not a data line, and not worth a note.
-    if (!reading.service && reading.note?.reason.startsWith("No service")) continue;
+  for (const text of source.content.split("\n")) {
+    lines.push({ text, start: cursor, end: cursor + text.length });
+    cursor += text.length + 1;
+  }
+  let considered = 0;
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i]!;
+    if (!line.text.trim()) { i += 1; continue; }
+    const first = serviceAtStart(line.text, services);
+    if (!first) {
+      // Not the start of a service entry. A line that names exactly one service and one amount elsewhere ("Prices: Website fixes - Rs 26,000") is still read as one line.
+      const reading = readLine(line.text, line.start, services);
+      i += 1;
+      if (!reading.service && reading.note?.reason.startsWith("No service")) continue;
+      // Prose that merely mentions a service and states no money at all ("... except monthly reporting, which depends on ...") is not an entry.
+      if (reading.service && moneyMentions(line.text).length === 0) continue;
+      considered += 1;
+      if (overlaps(spans, line.start, line.end)) notes.push({ line: line.text, reason: "This line looks like an instruction, so it was ignored" });
+      else if (FORMULA.test(line.text.trim())) notes.push({ line: line.text, reason: "The line starts with =, +, - or @, so it was ignored" });
+      else if (reading.note) notes.push(reading.note);
+      else if (reading.service && reading.rupees !== null) {
+        const proposal = proposalFor(active, source, reading.service, reading.rupees, line.start, line.end);
+        if (proposal) proposals.push(proposal);
+      }
+      continue;
+    }
     considered += 1;
-    if (overlaps(spans, start, start + line.length)) {
-      notes.push({ line, reason: "This line looks like an instruction, so it was ignored" });
+    if (FORMULA.test(line.text.trim())) { notes.push({ line: line.text, reason: "The line starts with =, +, - or @, so it was ignored" }); i += 1; continue; }
+    if (namesSeveralServices(line.text, first, services)) { notes.push({ line: line.text, reason: "More than one service is named on this line" }); i += 1; continue; }
+    // Find the first line, from this one, that states money; stop at a blank line, the next service entry, or the limit.
+    let k = i;
+    let found = -1;
+    for (; k < Math.min(lines.length, i + MAX_BLOCK_LINES); k += 1) {
+      const candidate = lines[k]!;
+      if (k > i && (!candidate.text.trim() || serviceAtStart(candidate.text, services))) break;
+      const text = k === i ? candidate.text.replace(LEAD_NAME(first), " ") : candidate.text;
+      if (moneyMentions(text).length) { found = k; break; }
+    }
+    if (found < 0) {
+      notes.push({ line: line.text, reason: `No amount was found for ${first.name} on this line or the lines after it` });
+      i = Math.max(i + 1, k);
       continue;
     }
-    if (FORMULA.test(line.trim())) {
-      notes.push({ line, reason: "The line starts with =, +, - or @, so it was ignored" });
-      continue;
+    const end = lines[found]!.end;
+    const amountText = found === i ? line.text.replace(LEAD_NAME(first), " ") : lines[found]!.text;
+    const rupees = singleAmount(amountText);
+    const quoteText = source.content.slice(line.start, end);
+    if (overlaps(spans, line.start, end)) notes.push({ line: quoteText.split("\n")[0]!, reason: "This entry looks like an instruction, so it was ignored" });
+    else if (rupees === null) notes.push({ line: line.text, reason: `The line with ${first.name}'s amount must state exactly one amount` });
+    else {
+      const proposal = proposalFor(active, source, first, rupees, line.start, end);
+      if (proposal) proposals.push(proposal);
     }
-    if (reading.note || !reading.service || reading.rupees === null) {
-      if (reading.note) notes.push(reading.note);
-      continue;
-    }
-    const proposal = proposalFor(active, source, reading.service, reading.rupees, start, start + line.length);
-    if (proposal) proposals.push(proposal);
+    i = found + 1;
   }
   return { proposals, notes, considered };
 }
+
+/** A matcher for the service's own name, so digits inside it are never read as money. */
+const LEAD_NAME = (service: ServiceRef) => new RegExp(esc(service.name), "i");
+const esc = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Proposed prices or costs from an uploaded source, each quoting the exact line or row it came from. Never guesses. */
 export function readUploadedSource(active: BusinessEconomics, source: KnowledgeSource): UploadReading {

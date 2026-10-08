@@ -59,3 +59,26 @@ export function readLine(line: string, start: number, services: ServiceRef[]): L
   if (rupees === null) return { ...base, service: found[0]!, rupees: null, note: { line, reason: "This line must state exactly one amount" } };
   return { ...base, service: found[0]!, rupees, note: null };
 }
+
+const esc = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** Bullets, numbering and dashes that may precede a service name at the start of a line. */
+const LEAD = /^[\s•\-–—*·>\d.)]*/;
+const CONNECTOR = /^\s*(?:,|&|\+|\/|and|with|plus|or)\s*$/i;
+
+/** The service a line starts with (after any bullet or number), or null. The longest name wins. */
+export function serviceAtStart(line: string, services: ServiceRef[]): ServiceRef | null {
+  const body = line.replace(LEAD, "");
+  const hits = services.filter((service) => new RegExp(`^${esc(service.name)}(?![a-z])`, "i").test(body)).sort((a, b) => b.name.length - a.name.length);
+  return hits[0] ?? null;
+}
+
+/** True when the first line joins two services ("Search marketing and Social media"), so one amount cannot belong to just one. */
+export function namesSeveralServices(line: string, first: ServiceRef, services: ServiceRef[]): boolean {
+  const body = line.replace(LEAD, "");
+  const rest = body.slice(first.name.length);
+  return services.some((other) => {
+    if (other.id === first.id) return false;
+    const at = rest.toLowerCase().indexOf(other.name.toLowerCase());
+    return at >= 0 && CONNECTOR.test(rest.slice(0, at));
+  });
+}
