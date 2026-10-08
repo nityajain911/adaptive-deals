@@ -49,7 +49,15 @@ describe("business economics actions", () => {
     });
 
     const activated = await post({ action: "activate_economics" });
-    expect(activated.body).toMatchObject({ ok: true, result: { version: 2 } });
+    expect(activated.body).toMatchObject({
+      ok: true,
+      result: {
+        version: 2,
+        hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+        activatedAt: expect.any(String),
+        label: null,
+      },
+    });
 
     const another = structuredClone(content);
     another.services[1]!.directCostPaise += 10_000;

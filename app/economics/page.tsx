@@ -5,6 +5,7 @@ import { MerchantHeader } from "@/components/merchant-header";
 import { activeEconomics } from "@/lib/economics-store";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 import { loadBundledKnowledgeSources } from "@/commercial-memory/source-schema";
+import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-illustrative";
 
 export const metadata = { title: "Business economics · Adaptive Deals" };
 
@@ -17,7 +18,12 @@ export default async function EconomicsPage() {
       <WalkthroughServer dealId="hero" route="economics" />
       <MerchantHeader current="economics" />
       <main id="main" className="mx-auto w-full max-w-[1200px] flex-1 px-3 py-5 sm:px-6 sm:py-7" data-walkthrough="economics-page">
-        <EconomicsEditor active={active} memorySources={memorySources}>
+        <EconomicsEditor
+          active={active}
+          initialLabel={economicsLabel(active.hash, active.version)}
+          illustrativeContent={illustrativeEconomicsContent()}
+          memorySources={memorySources}
+        >
           <RulesInAction />
         </EconomicsEditor>
       </main>

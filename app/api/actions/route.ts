@@ -14,6 +14,7 @@ import { STRATEGY_IDS } from "@/domain/strategy-id";
 import { activateEconomicsDraft, discardEconomicsDraft, resetEconomicsStore, restoreDefaultEconomics, saveEconomicsDraft } from "@/lib/economics-store";
 import { previewEconomicsActivation } from "@/lib/economics-activation";
 import { approveMcpCollectionIntent, executeMcpCollectionIntent, McpActionError, prepareMcpCollectionIntent } from "@/lib/mcp-service";
+import { economicsLabel } from "@/lib/economics-illustrative";
 
 /**
  * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
@@ -189,7 +190,12 @@ export async function POST(request: Request) {
         break;
       case "activate_economics": {
         const version = await activateEconomicsDraft("Merchant (Pinecone Media Works)", new Date().toISOString());
-        result = { version: version.version };
+        result = {
+          version: version.version,
+          hash: version.hash,
+          activatedAt: version.activatedAt,
+          label: economicsLabel(version.hash, version.version),
+        };
         break;
       }
       case "restore_default_economics": {
