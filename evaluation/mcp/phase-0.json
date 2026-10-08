@@ -1,0 +1,8 @@
+{
+  "schema": "adaptive-deals.mcp-phase-0.v1",
+  "observedAt": "2026-10-08T12:00:00+05:30",
+  "environment": "Codex build session",
+  "razorpayMcpToolsExposed": [],
+  "status": "unavailable",
+  "decision": "Keep the product capability unavailable and offer a separately labelled simulation. Do not infer a tool name or claim that a Razorpay action occurred."
+}
