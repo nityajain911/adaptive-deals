@@ -127,6 +127,26 @@ test("commercial memory · the offer connects buyer words, merchant evidence and
   await expect(page.getByTestId("audit-commercial-memory")).toContainText("exact chunk");
 });
 
+test("commercial memory · presenter proves unseen retrieval and an unsupported-query abstention", async ({ page }) => {
+  await page.goto("/presenter");
+  const proof = page.getByTestId("commercial-memory-proof");
+  await proof.getByTestId("memory-proof-run").click();
+  await expect(proof.getByTestId("memory-proof-result")).toContainText("Service delivery rules");
+  await expect(proof.getByTestId("memory-proof-result")).toContainText("Code retrieval");
+  await proof.getByRole("button", { name: "Use unsupported query" }).click();
+  await proof.getByTestId("memory-proof-run").click();
+  await expect(proof.getByTestId("memory-proof-result")).toContainText("Insufficient evidence");
+  await expect(proof.getByTestId("memory-proof-result")).toContainText("did not guess");
+});
+
+test("commercial memory · presenter labels a simulated conflict and blocks either value", async ({ page }) => {
+  await page.goto("/presenter");
+  const proof = page.getByTestId("commercial-memory-proof");
+  await proof.getByTestId("memory-proof-conflict").click();
+  await expect(proof.getByTestId("memory-proof-conflict-result")).toContainText("Conflicting active values are blocked");
+  await expect(proof.getByTestId("memory-proof-conflict-result")).toContainText("does not draft either value");
+});
+
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");

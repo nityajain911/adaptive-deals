@@ -51,6 +51,16 @@ Code normalises amounts and dates, enumerates every merchant-approved template, 
 
 Every attribution on screen is derived from the stored run, not from the feature: a recorded run reads **Recorded Groq output**, a hand-written sample reads **Sample output written by hand · no model ran**, and an offer card says **Default strategy · offers ranked by code · explained by code** (or **Strategy selected by you**, or **You selected this offer**), because code ranks the offers by the merchant's strategy and writes the explanation. The recorded model's own order and reason are kept behind an information control as **historical evidence that does not drive the current recommendation**.
 
+### Commercial Memory (RAG)
+
+Commercial Memory retrieves only evidence the merchant is allowed to use: active rate cards, direct-cost records, policies, service rules and buyer-specific history. Eligibility is applied before ranking. Each result keeps the exact source substring and offsets; weak matches abstain, conflicting active values are blocked, and source text is treated as untrusted data.
+
+Business economics can be drafted from this evidence, but a merchant must select the values, review the ordinary version diff and activate it. Deal decisions then combine three distinct inputs: the buyer's confirmed words, the merchant's cited business records and deterministic engine checks. Private costs and policies never reach the buyer proposal.
+
+The presenter page includes an unseen-query proof. Lexical code retrieval always runs first. The optional, separately versioned Groq reranker can reorder only the closed list of eligible chunk IDs; an invalid response or unavailable provider keeps the code order and says so. The frozen, agent-authored retrieval set currently records 13 of 13 expected sources in the top three, 2 of 2 abstentions, and 32 of 32 valid citations. These are synthetic product checks, not independent validation.
+
+Run the reproducible code-only report with `npm run eval:memory`. No Groq call is required.
+
 ## Recorded model runs
 
 Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.

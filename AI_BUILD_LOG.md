@@ -944,6 +944,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Human decision:** The applicant approved the plan and the 581-call cap.
 
+### 2026-10-08 · Commercial Memory RAG and closed-list reranking [OpenAI Codex]
+
+**What changed:** Nine fictional merchant sources now form a permissioned Commercial Memory. Deterministic code filters by merchant, buyer, access, status and effective date before scoring chunks. Every candidate retains the exact source substring and offsets. The merchant can use supported values to prepare a Business economics draft, but the existing review and activation boundary remains mandatory. Understand, Offer and Audit distinguish buyer evidence, merchant records and engine checks; merchant-private evidence is not passed to the buyer proposal.
+
+**Reranking boundary:** `commercial_retrieval_rerank.v1` receives only the query and the closed list of eligible chunk IDs, titles, dates and excerpts. Its strict output can only order every supplied ID and label relevance. Unknown, missing, duplicate or extra IDs are rejected and lexical code order remains. A recorded rerank is replayed only on an exact input hash. The presenter makes the live, recorded and code paths explicit.
+
+**Evaluation:** The 15 cases were frozen before provider implementation and were authored by OpenAI Codex at Nitya Jain's direction; they are not independent validation. The code-only result is 13 of 13 expected sources in the top three, 13 of 13 in the top five, 2 of 2 abstentions and 32 of 32 valid citations, with zero cross-merchant or superseded chunks. No Groq call was made for this phase.
+
+**Presenter proof:** An unseen query shows exact retrieved excerpts and attribution. An unsupported query abstains. A clearly labelled simulated active-source conflict is blocked and never drafted. The conflict simulation does not alter the trusted corpus.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

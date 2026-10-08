@@ -8,6 +8,7 @@ import { ActionButton } from "@/components/client";
 import { fmtTime } from "@/components/evidence";
 import { AuditSections } from "@/components/audit/sections";
 import { OtherOutcomes } from "@/components/presenter/other-outcomes";
+import { CommercialMemoryProof } from "@/components/presenter/commercial-memory-proof";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
@@ -61,6 +62,11 @@ export default async function PresenterPage() {
             </ActionButton>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Commercial Memory proof" meta={<span>Test an unseen query, a truthful abstention and a blocked conflict. This evidence stays private to the merchant.</span>} />
+        <CommercialMemoryProof liveAvailable={live.available} />
       </Card>
 
       <Card>

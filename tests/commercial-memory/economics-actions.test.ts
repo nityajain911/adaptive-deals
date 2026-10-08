@@ -37,4 +37,30 @@ describe("Commercial Memory economics actions", () => {
     expect((await post({ action: "confirm_economics_from_memory", draftId: "stale", proposalIds: [] })).body.error).toMatch(/changed/i);
     expect((await post({ action: "other" })).response.status).toBe(400);
   });
+
+  it("tests an unseen query with exact evidence and an honest code fallback", async () => {
+    const tested = await post({ action: "test_memory_query", query: "Can monthly reporting be sold by itself?", liveAi: false });
+    expect(tested.response.status).toBe(200);
+    expect(tested.body.result).toMatchObject({
+      status: "found",
+      attribution: "code",
+      note: "Ranked by deterministic lexical retrieval",
+    });
+    expect((tested.body.result as { candidates: unknown[] }).candidates[0]).toMatchObject({ sourceId: "source-service-rules", quote: expect.stringContaining("Monthly reporting") });
+  });
+
+  it("abstains for an unsupported query and never fills the result with weak evidence", async () => {
+    const tested = await post({ action: "test_memory_query", query: "What is our office electricity bill?", liveAi: false });
+    expect(tested.body.result).toMatchObject({ status: "insufficient_evidence", attribution: "code", candidates: [] });
+  });
+
+  it("shows a labelled simulated conflict without changing the trusted corpus", async () => {
+    const tested = await post({ action: "demonstrate_memory_conflict" });
+    expect(tested.body.result).toMatchObject({
+      status: "conflicting_evidence",
+      simulated: true,
+      field: "services.website-fixes.listPricePaise",
+      values: expect.arrayContaining([expect.objectContaining({ value: "2100000" }), expect.objectContaining({ value: "2400000" })]),
+    });
+  });
 });
