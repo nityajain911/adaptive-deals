@@ -235,8 +235,8 @@ describe("an entry whose description wraps onto several lines before its price",
   });
 });
 
-describe("the sample documents shipped in data/sample-documents", () => {
-  const pdf = (name: string) => readFileSync(`data/sample-documents/${name}`).toString("base64");
+describe("the sample documents shipped in public/sample-documents", () => {
+  const pdf = (name: string) => readFileSync(`public/sample-documents/${name}`).toString("base64");
   it("the rate card PDF yields all four prices, and nothing else in it is mistaken for one", async () => {
     const r = await ingestUpload(upload({ format: "pdf", fileName: "pinecone-rate-card-oct-2026.pdf", pdfBase64: pdf("pinecone-rate-card-oct-2026.pdf") }), active, NOW);
     expect(readUploadedSource(active, r.source).proposals.map((p) => [p.serviceId, p.proposedValue])).toEqual([["website-fixes", 2600000], ["search-marketing", 450000], ["social-media", 320000], ["monthly-reporting", 120000]]);

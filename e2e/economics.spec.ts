@@ -403,7 +403,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
   
   test("upload · the shipped sample rate card PDF (wrapped descriptions, rupee signs, terms) is read in full", async ({ page }) => {
     await openUpload(page);
-    await page.getByTestId("memory-upload-file").setInputFiles("data/sample-documents/pinecone-rate-card-oct-2026.pdf");
+    await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-rate-card-oct-2026.pdf");
     await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();
@@ -422,7 +422,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
   test("upload · the shipped sample cost sheet PDF is read as costs and replaces the sample cost sheet", async ({ page }) => {
     await openUpload(page);
     await page.getByTestId("memory-upload-kind").selectOption("cost_sheet");
-    await page.getByTestId("memory-upload-file").setInputFiles("data/sample-documents/pinecone-cost-sheet-oct-2026.pdf");
+    await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-cost-sheet-oct-2026.pdf");
     await page.getByTestId("memory-upload-title").fill("Pinecone delivery costs, October 2026");
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();

@@ -93,6 +93,10 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
       <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="memory-upload-toggle">Add your own rate card or cost sheet</summary>
       <div className="mt-3 space-y-3 pb-2">
         <p className="text-[13px] text-ink-2">Upload a CSV or a text-based PDF, or paste text. Each line should name one of your services and give one amount. The file stays on this computer and no AI model reads it. Scanned PDFs, Excel files and images are not supported.</p>
+        <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Want to try it first? Download a fictional sample:{" "}
+          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>rate card (PDF)</a>,{" "}
+          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>cost sheet (PDF)</a> or{" "}
+          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.csv" download>rate card (CSV)</a>.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-[13px] font-medium text-ink">This document is a
             <select className={inputClass} value={kind} onChange={(e) => { setKind(e.target.value as typeof kind); setReplace(false); }} data-testid="memory-upload-kind">

@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const out = path.join(here, "..", "..", "data", "sample-documents");
+const out = path.join(here, "..", "..", "public", "sample-documents");
 const browser = await chromium.launch();
 for (const [html, pdf] of [["rate-card.html", "pinecone-rate-card-oct-2026.pdf"], ["cost-sheet.html", "pinecone-cost-sheet-oct-2026.pdf"]]) {
   const page = await browser.newPage();
