@@ -13,6 +13,7 @@ import { EconomicsError, type EconomicsContent } from "@/domain/business-economi
 import { STRATEGY_IDS } from "@/domain/strategy-id";
 import { activateEconomicsDraft, discardEconomicsDraft, resetEconomicsStore, restoreDefaultEconomics, saveEconomicsDraft } from "@/lib/economics-store";
 import { previewEconomicsActivation } from "@/lib/economics-activation";
+import { approveMcpCollectionIntent, executeMcpCollectionIntent, McpActionError, prepareMcpCollectionIntent } from "@/lib/mcp-service";
 
 /**
  * Single mutation endpoint for the merchant views and the buyer proposal. Every payload is validated; every action runs
@@ -112,6 +113,9 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept_agreement"), version: z.number().int().positive(), termsHash: Hash, authorityConfirmed: z.boolean() }),
   z.object({ action: z.literal("simulate"), event: z.enum(["payment_link_paid", "mandate_confirmed", "advance_notice", "debit_failed", "debit_succeeded", "buyer_reply"]) }),
   z.object({ action: z.literal("check_payment_link") }),
+  z.object({ action: z.literal("prepare_mcp_collection") }).strict(),
+  z.object({ action: z.literal("approve_mcp_collection"), intentId: z.string().max(80) }).strict(),
+  z.object({ action: z.literal("execute_mcp_collection"), intentId: z.string().max(80) }).strict(),
   z.object({ action: z.literal("propose_amendment") }),
   z.object({ action: z.literal("approve_amendment"), termsHash: Hash }),
   z.object({ action: z.literal("accept_amendment"), termsHash: Hash, authorityConfirmed: z.boolean() }),
@@ -252,6 +256,15 @@ export async function POST(request: Request) {
       case "check_payment_link":
         await svc.checkPaymentLinkStatus();
         break;
+      case "prepare_mcp_collection":
+        result = await prepareMcpCollectionIntent();
+        break;
+      case "approve_mcp_collection":
+        result = await approveMcpCollectionIntent(a.intentId);
+        break;
+      case "execute_mcp_collection":
+        result = await executeMcpCollectionIntent(a.intentId);
+        break;
       case "propose_amendment":
         await svc.proposeAmendment();
         break;
@@ -303,7 +316,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ ok: true, result });
   } catch (e) {
-    const known = e instanceof svc.ActionError || e instanceof EconomicsError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError || e instanceof ConversationError;
+    const known = e instanceof svc.ActionError || e instanceof McpActionError || e instanceof EconomicsError || e instanceof AgreementError || e instanceof CollectionError || e instanceof ClarificationError || e instanceof AnswerError || e instanceof ReplayIntegrityError || e instanceof ConversationError;
     const status = e instanceof svc.ActionError ? e.status : known ? 409 : 500;
     return Response.json({ ok: false, error: known ? (e as Error).message : "Unexpected error" }, { status });
   }
