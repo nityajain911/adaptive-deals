@@ -147,6 +147,20 @@ test("commercial memory · presenter labels a simulated conflict and blocks eith
   await expect(proof.getByTestId("memory-proof-conflict-result")).toContainText("does not draft either value");
 });
 
+test("mcp · Track and Audit state that no Razorpay action occurred when the capability is unavailable", async ({ page }) => {
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((agreement) => agreement.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+  await page.goto("/deals/hero/track");
+  const card = page.getByTestId("mcp-collection-card");
+  await expect(card).toContainText("Razorpay MCP is not connected");
+  await expect(card).toContainText("No Razorpay MCP action occurred");
+  await expect(card).toContainText("separately labelled simulated collection");
+  await page.getByTestId("audit-details").click();
+  await expect(page.getByTestId("audit-mcp")).toContainText("Capability unavailable");
+});
+
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");

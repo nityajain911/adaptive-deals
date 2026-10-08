@@ -21,6 +21,7 @@ import { proposalLinkOf } from "@/lib/track-links";
 import { scheduleRows } from "@/lib/track-copy";
 import { contractFinancialView } from "@/lib/financial-view";
 import { currentAgreementSummary } from "@/lib/current-agreement";
+import { McpCollectionActionCard } from "@/components/mcp/collection-action-card";
 
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
@@ -145,6 +146,8 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             <CurrentAgreement summary={agreementSummary} />
           </details>
         ) : null}
+
+        {shown?.buyerAcceptance ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} /> : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">

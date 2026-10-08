@@ -24,6 +24,7 @@ const NAV: [string, string][] = [
   ["audit-economics", "Calculation provenance"],
   ["audit-who", "Who did what"],
   ["audit-schedules", "Schedules"],
+  ["audit-mcp", "Razorpay MCP action"],
 ];
 
 function H({ id, children }: { id: string; children: React.ReactNode }) {
@@ -312,6 +313,12 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
             ))}
           </ul>
         </details>
+      </section>
+
+      <section aria-labelledby="audit-mcp" data-testid="audit-mcp">
+        <H id="audit-mcp">Razorpay MCP action</H>
+        <p className="mt-1">Capability unavailable in this environment · no Razorpay MCP tool was called.</p>
+        <p>The collection records above are separately labelled simulated events. A future test-mode action must bind the exact agreement, terms hash, arguments hash and advertised tool catalog before merchant approval.</p>
       </section>
     </div>
   );
