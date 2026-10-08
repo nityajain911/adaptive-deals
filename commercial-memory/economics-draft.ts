@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { economicsContentOf, type BusinessEconomics, type EconomicsContent } from "@/domain/business-economics";
 import { chunkSource } from "./chunker";
 import type { KnowledgeSource } from "./types";
+import { readUploadedSource } from "./upload/proposals";
+import type { UploadNote } from "./upload/limits";
 
 export interface EconomicsEvidenceProposal {
   id: string;
@@ -26,6 +28,8 @@ export interface EconomicsEvidenceDraft {
   sourceSetHash: string;
   status: "ready" | "conflicting_evidence" | "insufficient_evidence";
   proposals: EconomicsEvidenceProposal[];
+  /** Lines in uploaded documents that were not used, with the reason for each. */
+  notes?: (UploadNote & { sourceId: string; sourceTitle: string })[];
 }
 
 const sha = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
@@ -35,7 +39,15 @@ const currentSource = (source: KnowledgeSource, asOf: string) => source.merchant
 export function buildEconomicsEvidenceDraft(active: BusinessEconomics, sources: KnowledgeSource[], asOf: string): EconomicsEvidenceDraft {
   const proposals: EconomicsEvidenceProposal[] = [];
   const relevant = sources.filter((source) => currentSource(source, asOf) && (source.kind === "rate_card" || source.kind === "cost_sheet"));
+  const notes: NonNullable<EconomicsEvidenceDraft["notes"]> = [];
   for (const source of relevant) {
+    if (source.origin) {
+      // An uploaded document: read line by line, each value quoting its own line, with every skipped line explained.
+      const reading = readUploadedSource(active, source);
+      proposals.push(...reading.proposals);
+      notes.push(...reading.notes.map((note) => ({ ...note, sourceId: source.id, sourceTitle: source.title })));
+      continue;
+    }
     for (const chunk of chunkSource(source)) {
       if (chunk.instructionSpans.length) continue;
       const cells = chunk.text.split(",").map((cell) => cell.trim());
@@ -76,6 +88,7 @@ export function buildEconomicsEvidenceDraft(active: BusinessEconomics, sources: 
     sourceSetHash,
     status: proposals.some((proposal) => proposal.status === "conflicting") ? "conflicting_evidence" : proposals.length ? "ready" : "insufficient_evidence",
     proposals,
+    ...(notes.length ? { notes } : {}),
   };
 }
 

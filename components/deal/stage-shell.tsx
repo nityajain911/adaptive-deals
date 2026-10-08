@@ -9,12 +9,13 @@ import { StatusBanner } from "./status-banner";
 import { reevaluationAvailable, previewReevaluation } from "@/lib/service";
 import { ReevaluationBanner } from "./reevaluation-banner";
 import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
+import { loadKnowledgeSources } from "@/lib/knowledge";
 
 /** Rendered by every stage page with its own literal `viewing` stage (pages cannot pass state up to a layout). */
 export async function StageShell({ dealId, viewing, children }: { dealId: string; viewing: StageId; children: ReactNode }) {
   const { s, out, progress, activeCase, deal } = await loadDeal(dealId);
   const reevaluation = await reevaluationAvailable(s) ? await previewReevaluation() : null;
-  const memory = commercialMemoryForDeal({ merchantId: deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: deal.packages.map((item) => item.id) });
+  const memory = commercialMemoryForDeal({ merchantId: deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: deal.packages.map((item) => item.id) }, await loadKnowledgeSources());
   return (
     <div className="mx-auto w-full max-w-[1200px] px-3 py-4 sm:px-6 sm:py-6">
       <div className="flex flex-wrap items-start justify-between gap-3">

@@ -25,6 +25,7 @@ import { offerNarrative } from "@/lib/offer-narrative";
 import { strategyFeasibleOf } from "@/lib/service";
 import { STRATEGY_LABEL, strategyView } from "@/domain/strategy";
 import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
+import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 
 /** Stage 2 · Review the offer (spec §5). */
@@ -195,7 +196,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   );
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
-  const memory = commercialMemoryForDeal({ merchantId: deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: x.structure.scope.map((item) => item.packageId) });
+  const memory = commercialMemoryForDeal({ merchantId: deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: x.structure.scope.map((item) => item.packageId) }, await loadKnowledgeSources());
   const alt = isLeader ? view.withinApprovalAlternative : null;
   const leaderNote = isLeader && x.approval === "requires_approval" ? (
     alt ? (

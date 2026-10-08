@@ -2,6 +2,7 @@ import "server-only";
 import { chunkSource } from "@/commercial-memory/chunker";
 import { retrieveCommercialEvidence, validateCitation } from "@/commercial-memory/retrieval";
 import { loadBundledKnowledgeSources } from "@/commercial-memory/source-schema";
+import type { KnowledgeSource } from "@/commercial-memory/types";
 
 const SERVICE_NAMES: Record<string, string> = {
   "website-fixes": "Website fixes",
@@ -28,8 +29,7 @@ export interface CommercialMemoryDealView {
   attribution: "code";
 }
 
-export function commercialMemoryForDeal(args: { merchantId: string; buyerId: string; asOf: string; serviceIds: string[] }): CommercialMemoryDealView {
-  const sources = loadBundledKnowledgeSources();
+export function commercialMemoryForDeal(args: { merchantId: string; buyerId: string; asOf: string; serviceIds: string[] }, sources: KnowledgeSource[] = loadBundledKnowledgeSources()): CommercialMemoryDealView {
   const chunks = sources.flatMap(chunkSource);
   const byId = new Map(sources.map((source) => [source.id, source]));
   const historyResult = retrieveCommercialEvidence("separate website purchase history", {

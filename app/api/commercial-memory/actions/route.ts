@@ -3,7 +3,10 @@ import { z } from "zod";
 import { DEMO_ANCHOR } from "@/domain/clock";
 import { activeEconomics, saveEconomicsDraft } from "@/lib/economics-store";
 import { applyConfirmedEconomicsProposals, buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
-import { loadBundledKnowledgeSources } from "@/commercial-memory/source-schema";
+import { loadKnowledgeSources } from "@/lib/knowledge";
+import { ingestUpload, uploadRequestSchema } from "@/commercial-memory/upload/ingest";
+import { UploadError } from "@/commercial-memory/upload/limits";
+import { saveUploadedSource, withdrawUploadedSource } from "@/commercial-memory/upload/store";
 import { recordEvidenceConfirmation, recordRetrievalRun } from "@/commercial-memory/store";
 import { chunkSource } from "@/commercial-memory/chunker";
 import { retrieveCommercialEvidence } from "@/commercial-memory/retrieval";
@@ -23,19 +26,39 @@ const testQueryInput = z.object({
   liveAi: z.boolean().default(false),
 }).strict();
 const conflictInput = z.object({ action: z.literal("demonstrate_memory_conflict") }).strict();
-const inputSchema = z.discriminatedUnion("action", [draftInput, confirmInput, testQueryInput, conflictInput]);
+const uploadInput = z.object({ action: z.literal("upload_memory_source"), ...uploadRequestSchema.shape }).strict();
+const withdrawInput = z.object({ action: z.literal("withdraw_memory_source"), sourceId: z.string().regex(/^upload-[a-f0-9]{16}$/) }).strict();
+const inputSchema = z.discriminatedUnion("action", [draftInput, confirmInput, testQueryInput, conflictInput, uploadInput, withdrawInput]);
 
 const reply = (body: unknown, status = 200) => Response.json(body, { status });
 
 const currentDraft = async () => {
   const active = await activeEconomics();
-  const sources = loadBundledKnowledgeSources();
+  const sources = await loadKnowledgeSources();
   return { active, sources, draft: buildEconomicsEvidenceDraft(active, sources, "2026-10-08") };
 };
 
 export async function POST(request: Request) {
   try {
     const input = inputSchema.parse(await request.json());
+    if (input.action === "upload_memory_source") {
+      const { action: _action, ...request } = input;
+      void _action;
+      const active = await activeEconomics();
+      const existing = await loadKnowledgeSources();
+      if (request.supersedes) {
+        const target = existing.find((item) => item.id === request.supersedes);
+        if (!target || target.status !== "active" || target.kind !== request.kind) throw new UploadError("The document to replace must be an active source of the same type");
+      }
+      const result = await ingestUpload(request, active, new Date().toISOString());
+      const saved = await saveUploadedSource(result.source);
+      const { source } = saved;
+      return reply({ ok: true, result: { sourceId: source.id, title: source.title, kind: source.kind, alreadyStored: saved.alreadyStored, proposalCount: result.proposalCount, considered: result.considered, notes: result.notes, extractedText: result.extractedText } });
+    }
+    if (input.action === "withdraw_memory_source") {
+      const withdrawn = await withdrawUploadedSource(input.sourceId);
+      return reply({ ok: true, result: { sourceId: withdrawn.id, status: withdrawn.status } });
+    }
     const { active, sources, draft } = await currentDraft();
     if (input.action === "test_memory_query") {
       const lexical = retrieveCommercialEvidence(input.query, {
@@ -112,7 +135,8 @@ export async function POST(request: Request) {
     for (const proposalId of input.proposalIds) {
       const proposal = draft.proposals.find((item) => item.id === proposalId)!;
       await recordEvidenceConfirmation({
-        id: `confirmation-${proposal.id}`,
+        // One confirmation per claim per draft: the same claim confirmed again under a different set of sources is a new decision, not a conflict.
+        id: `confirmation-${createHash("sha256").update(`${draft.id}:${proposal.id}`, "utf8").digest("hex").slice(0, 20)}`,
         retrievalRunId: draft.id,
         field: proposal.field,
         claimId: proposal.id,
@@ -125,6 +149,6 @@ export async function POST(request: Request) {
     return reply({ ok: true, result: { savedDraft: true, confirmed: input.proposalIds.length, economicsVersion: active.version, sourceCount: sources.length, content } });
   } catch (error) {
     const message = error instanceof z.ZodError ? "Invalid Commercial Memory action" : error instanceof Error ? error.message : "Commercial Memory action failed";
-    return reply({ ok: false, error: message }, 400);
+    return reply({ ok: false, error: message, ...(error instanceof UploadError && error.notes.length ? { notes: error.notes } : {}) }, 400);
   }
 }

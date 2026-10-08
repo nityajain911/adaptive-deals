@@ -22,6 +22,14 @@ const sourceSchema = z.object({
   content: z.string().min(1),
   contentHash: z.string().regex(/^[a-f0-9]{64}$/),
   indexedAt: z.string().datetime({ offset: true }),
+  origin: z.object({
+    kind: z.enum(["upload_csv", "upload_text", "upload_pdf"]),
+    fileName: z.string().max(120).nullable(),
+    fileSha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+    pages: z.number().int().positive().nullable(),
+    extractor: z.string().max(60).nullable(),
+    uploadedAt: z.string().datetime({ offset: true }),
+  }).strict().optional(),
 }).strict().superRefine((source, context) => {
   if (source.access === "buyer_specific" && !source.buyerId) {
     context.addIssue({ code: "custom", path: ["buyerId"], message: "Buyer-specific sources require a buyer" });

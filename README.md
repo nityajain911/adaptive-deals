@@ -61,6 +61,12 @@ The presenter page includes an unseen-query proof. Lexical code retrieval always
 
 Run the reproducible code-only report with `npm run eval:memory`. No Groq call is required.
 
+#### Bring your own rate card or cost sheet
+
+On Business economics, **Add your own rate card or cost sheet** accepts a CSV, pasted text, or a **text-based PDF** (up to 1.5 MB and 10 pages). The file stays on the local data directory and **no model reads it**: code finds each service by name and reads exactly one amount per line or row, and every proposed value quotes the exact line it came from. Lines it cannot use (an unknown service, a formula cell, two amounts, an instruction hidden in the text) are listed with the reason. A document with nothing usable is refused whole.
+
+PDFs are read from their text layer only, using `unpdf` (pdf.js, no script or font execution). A scan, an encrypted file, a file that is not a PDF, or one over the limits is refused with its reason, and the product shows the text it read so the merchant can see what it saw. Excel files, images and scans are not supported. An uploaded value that disagrees with a sample document is a conflict the merchant must resolve, by replacing the sample or withdrawing the upload. Nothing reaches Business economics until the merchant confirms each value and then reviews and activates the new version.
+
 ### Approved Razorpay action layer (MCP)
 
 After buyer acceptance, Adaptive Deals can prepare one canonical test-mode Payment Link intent behind an injected MCP transport. Code discovers the tool catalog at runtime and binds only an advertised Razorpay test capability whose schema supports the exact amount, currency, description, reference and idempotency key. A model never chooses the tool or its arguments.

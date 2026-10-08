@@ -4,7 +4,7 @@ import { RulesInAction } from "@/components/economics/rules-in-action";
 import { MerchantHeader } from "@/components/merchant-header";
 import { activeEconomics } from "@/lib/economics-store";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
-import { loadBundledKnowledgeSources } from "@/commercial-memory/source-schema";
+import { loadKnowledgeSources } from "@/lib/knowledge";
 import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-illustrative";
 
 export const metadata = { title: "Business economics · Adaptive Deals" };
@@ -12,7 +12,7 @@ export const metadata = { title: "Business economics · Adaptive Deals" };
 export default async function EconomicsPage() {
   await connection();
   const active = await activeEconomics();
-  const memorySources = loadBundledKnowledgeSources().map(({ id, title, kind, status, effectiveFrom, access }) => ({ id, title, kind, status, effectiveFrom, access }));
+  const memorySources = (await loadKnowledgeSources()).map(({ id, title, kind, status, effectiveFrom, access, origin }) => ({ id, title, kind, status, effectiveFrom, access, uploaded: !!origin, fileName: origin?.fileName ?? null }));
   return (
     <>
       <WalkthroughServer dealId="hero" route="economics" />
