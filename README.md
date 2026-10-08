@@ -69,6 +69,22 @@ The merchant's approval binds the agreement version, terms hash, argument hash, 
 
 No Razorpay MCP server or tool was exposed in this build environment. Therefore Track and Audit show **Razorpay MCP is not connected** and **No Razorpay MCP action occurred**; the existing collection path remains separately labelled simulated. `evaluation/mcp/` records this gate and the injected-transport safety counts. A real test action requires a connected server that advertises a compatible test-mode tool and credentials configured outside the repository.
 
+#### Connecting to Razorpay's MCP server (test mode only)
+
+The product can now reach Razorpay's own MCP server, but only when you opt in from your own terminal. Create free test API keys (Razorpay dashboard in Test Mode: Account & Settings, API Keys, Generate Key). Then set, outside the repository (for example in `.env.local`, which is git-ignored):
+
+```bash
+RAZORPAY_MCP_MODE=remote        # or stdio (a local Docker or binary server)
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+```
+
+Step 1 is read-only: `npm run mcp:discover` connects, lists the tools the server advertises and reports whether the Payment Link capability can bind. It never calls a tool. Only `rzp_test_` keys are accepted, and the remote endpoint is fixed to `https://mcp.razorpay.com/mcp`, so a key cannot be sent anywhere else.
+
+Razorpay's server describes its tools differently from our approval contract, so `mcp/razorpay-adapter.ts` translates. It binds `create_payment_link` only if the server advertises the parameters we rely on, including the ones that switch SMS, email and reminders off, and it ties the approval to a hash of the server's own schema. It can call exactly two tools (`create_payment_link` and `fetch_all_payment_links`) and always sends notifications off. The test or live environment comes from your key, because the server itself has no such switch.
+
+Step 2 happens on Track after the buyer accepts: **Review Razorpay test Payment Link**, then **Approve and create test Payment Link**. If a request times out, the outcome is marked unknown and reconciled by `reference_id` before any retry. Everything above is tested against a fake Razorpay MCP server; **no real Razorpay MCP call has been made yet**.
+
 ## Recorded model runs
 
 Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.

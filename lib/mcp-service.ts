@@ -4,7 +4,8 @@ import { bindRazorpayCapabilities } from "@/mcp/capabilities";
 import { approveMcpIntent, createPaymentLinkIntent, type McpActionIntent, type McpActionReceipt } from "@/mcp/intents";
 import { executeMcpIntent } from "@/mcp/executor";
 import { getMcpIntent, recordMcpIntent, saveMcpIntent } from "@/mcp/store";
-import { UnavailableMcpTransport, type McpTransport } from "@/mcp/transport";
+import { mcpTransportFromEnv } from "@/mcp/config";
+import type { McpTransport } from "@/mcp/transport";
 import { activeVersionOf } from "@/lib/views";
 import { activeCase, getState } from "@/lib/service";
 
@@ -41,11 +42,11 @@ async function deriveIntent(transport: McpTransport): Promise<McpActionIntent> {
 
 const sameApprovedInputs = (a: McpActionIntent, b: McpActionIntent) => canonicalJson({ termsHash: a.termsHash, catalogHash: a.catalogHash, inputSchemaHash: a.inputSchemaHash, toolName: a.toolName, argumentsHash: a.argumentsHash }) === canonicalJson({ termsHash: b.termsHash, catalogHash: b.catalogHash, inputSchemaHash: b.inputSchemaHash, toolName: b.toolName, argumentsHash: b.argumentsHash });
 
-export async function prepareMcpCollectionIntent(transport: McpTransport = new UnavailableMcpTransport()): Promise<McpActionIntent> {
+export async function prepareMcpCollectionIntent(transport: McpTransport = mcpTransportFromEnv()): Promise<McpActionIntent> {
   return recordMcpIntent(await deriveIntent(transport));
 }
 
-export async function approveMcpCollectionIntent(intentId: string, transport: McpTransport = new UnavailableMcpTransport()): Promise<McpActionIntent> {
+export async function approveMcpCollectionIntent(intentId: string, transport: McpTransport = mcpTransportFromEnv()): Promise<McpActionIntent> {
   const stored = await getMcpIntent(intentId);
   if (!stored) throw new McpActionError("MCP intent not found");
   const current = await deriveIntent(transport);
@@ -53,7 +54,7 @@ export async function approveMcpCollectionIntent(intentId: string, transport: Mc
   return saveMcpIntent(approveMcpIntent(stored, "Merchant (Pinecone Media Works)", nowOf(await getState())));
 }
 
-export async function executeMcpCollectionIntent(intentId: string, transport: McpTransport = new UnavailableMcpTransport()): Promise<McpActionReceipt> {
+export async function executeMcpCollectionIntent(intentId: string, transport: McpTransport = mcpTransportFromEnv()): Promise<McpActionReceipt> {
   const stored = await getMcpIntent(intentId);
   if (!stored) throw new McpActionError("MCP intent not found");
   const current = await deriveIntent(transport);

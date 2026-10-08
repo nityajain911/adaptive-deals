@@ -17,7 +17,8 @@
     "eval:frozen": "tsx --env-file-if-exists=.env.local scripts/run-frozen-eval.ts",
     "eval:memory": "tsx --env-file-if-exists=.env.local scripts/run-commercial-memory-eval.ts",
     "hero:report": "tsx scripts/hero-report.ts",
-    "replay:build": "tsx scripts/build-synthetic-replay.ts"
+    "replay:build": "tsx scripts/build-synthetic-replay.ts",
+    "mcp:discover": "tsx --env-file-if-exists=.env.local --conditions=react-server scripts/mcp-discover.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

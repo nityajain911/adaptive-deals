@@ -964,6 +964,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **AI boundary:** No model selects a tool, supplies commercial arguments, approves an action or handles a provider response. The frozen AI assets and existing recorded runs are unchanged.
 
+### 2026-10-09 · Real Razorpay MCP transport, adapter and Track review flow [Claude Code]
+
+**What changed:** Added a dependency-free MCP client over streamable HTTP and over stdio, a translator between Razorpay's real tool definitions and our approval contract (`mcp/razorpay-adapter.ts`), an environment-driven transport that is the unavailable one unless a mode and a valid `rzp_test_` key pair are set, a read-only discovery script (`npm run mcp:discover`), and a Track card that reviews, approves and creates one test Payment Link.
+
+**What the adapter enforces:** it binds create only when the server advertises the notification and reference parameters; the environment label comes from the key, not the server; the server schema's hash is part of the approval; only `create_payment_link` and `fetch_all_payment_links` can be called; notifications and reminders are always off; customer contact details are never forwarded; the reference must survive Razorpay's 40-character limit unchanged because an unknown outcome is found again by it.
+
+**Evidence level:** the tool shapes come from the official `razorpay-mcp-server` source, not from a live listing. Thirty tests run the whole path against a fake server written to those shapes. **No real Razorpay MCP call has been made.** The first real step is the read-only discovery, which needs the applicant's test keys in their own environment.
+
+**AI boundary:** no model chooses a tool, arguments or approval; no model is involved.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

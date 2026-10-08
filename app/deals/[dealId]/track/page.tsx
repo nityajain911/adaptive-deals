@@ -22,6 +22,7 @@ import { scheduleRows } from "@/lib/track-copy";
 import { contractFinancialView } from "@/lib/financial-view";
 import { currentAgreementSummary } from "@/lib/current-agreement";
 import { McpCollectionActionCard } from "@/components/mcp/collection-action-card";
+import { mcpCollectionView } from "@/lib/mcp-view";
 
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
@@ -96,6 +97,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const priceRequest = s.status === "sent" ? workItems.find((item) => item.kind === "buyer_request" && item.sourceKind === "message" && !s.amendments.some((a) => a.toVersion === item.version) && s.conversation.find((m) => m.id === item.sourceId)?.refs.topic === "price") : undefined;
   const priceRequestId = priceRequest?.sourceId ?? null;
   const corridor = priceRequest ? await corridorFor({}).catch(() => null) : null;
+  const mcpView = await mcpCollectionView();
   const outcomeSignals: OutcomeSignal[] = s.outcomes.map((o) => {
     let label: string;
     if (o.type === "buyer_accepted") label = `Buyer accepted version ${o.version}`;
@@ -147,7 +149,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           </details>
         ) : null}
 
-        {shown?.buyerAcceptance ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} /> : null}
+        {shown?.buyerAcceptance ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">

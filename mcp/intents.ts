@@ -30,6 +30,10 @@ export type McpActionReceipt = z.infer<typeof mcpReceiptSchema>;
 const sha = (value: unknown) => createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
 export const hashMcpArguments = (value: unknown): string => sha(value);
 
+/** The one intent id for an agreement version, derivable without contacting any server. */
+export const mcpIntentIdFor = (input: { dealId: string; agreementId: string; agreementVersion: number }): string =>
+  `mcp-intent-${sha({ dealId: input.dealId, agreementId: input.agreementId, version: input.agreementVersion, capability: "create_test_payment_link" }).slice(0, 20)}`;
+
 export function createPaymentLinkIntent(input: {
   dealId: string; agreementId: string; agreementVersion: number; termsHash: string; merchantId: string; serverId: string; toolName: string; catalogHash: string; inputSchemaHash: string;
   amountPaise: number; currency: "INR"; description: string; reference: string; customer?: { name: string; email?: string; contact?: string };
@@ -38,7 +42,7 @@ export function createPaymentLinkIntent(input: {
   const canonicalArguments = argumentsSchema.parse({ amount: input.amountPaise, currency: input.currency, description: input.description, reference: input.reference, idempotency_key: idempotencyKey, ...(input.customer ? { customer: input.customer } : {}) });
   const argumentsHash = sha(canonicalArguments);
   return mcpIntentSchema.parse({
-    id: `mcp-intent-${sha({ dealId: input.dealId, agreementId: input.agreementId, version: input.agreementVersion, capability: "create_test_payment_link" }).slice(0, 20)}`,
+    id: mcpIntentIdFor(input),
     dealId: input.dealId, agreementId: input.agreementId, agreementVersion: input.agreementVersion, termsHash: input.termsHash,
     capability: "create_test_payment_link", serverId: input.serverId, toolName: input.toolName, catalogHash: input.catalogHash, inputSchemaHash: input.inputSchemaHash,
     canonicalArguments, argumentsHash, idempotencyKey, mode: "test", status: "draft", approvedBy: null, approvedAt: null,
