@@ -1,0 +1,156 @@
+{
+  "observedAt": "2026-10-08T10:28:31.100Z",
+  "via": "remote",
+  "server": {
+    "name": "razorpay-mcp-server",
+    "version": "1.0.0"
+  },
+  "keyMode": "test",
+  "toolsAdvertised": [
+    "capture_payment",
+    "create_order",
+    "create_payment_link",
+    "create_qr_code",
+    "create_registration_link",
+    "detect_stack",
+    "fetch_all_instant_settlements",
+    "fetch_all_orders",
+    "fetch_all_payment_links",
+    "fetch_all_payments",
+    "fetch_all_payouts",
+    "fetch_all_qr_codes",
+    "fetch_all_refunds",
+    "fetch_all_settlements",
+    "fetch_instant_settlement_with_id",
+    "fetch_multiple_refunds_for_payment",
+    "fetch_order",
+    "fetch_order_payments",
+    "fetch_payment",
+    "fetch_payment_card_details",
+    "fetch_payment_link",
+    "fetch_payments_for_qr_code",
+    "fetch_payout_with_id",
+    "fetch_qr_code",
+    "fetch_qr_codes_by_customer_id",
+    "fetch_qr_codes_by_payment_id",
+    "fetch_refund",
+    "fetch_settlement_recon_details",
+    "fetch_settlement_with_id",
+    "fetch_specific_refund_for_payment",
+    "fetch_tokens",
+    "initiate_payment",
+    "integrate_razorpay_checkout",
+    "payment_link_notify",
+    "payment_link_upi_create",
+    "resend_otp",
+    "revoke_token",
+    "submit_otp",
+    "update_order",
+    "update_payment",
+    "update_payment_link",
+    "update_refund"
+  ],
+  "paymentLinkTools": [
+    {
+      "name": "create_payment_link",
+      "parameters": [
+        "accept_partial",
+        "amount",
+        "callback_method",
+        "callback_url",
+        "currency",
+        "customer_contact",
+        "customer_email",
+        "customer_name",
+        "description",
+        "expire_by",
+        "first_min_partial_amount",
+        "notes",
+        "notify_email",
+        "notify_sms",
+        "reference_id",
+        "reminder_enable"
+      ],
+      "required": [
+        "amount",
+        "currency"
+      ]
+    },
+    {
+      "name": "fetch_all_payment_links",
+      "parameters": [
+        "payment_id",
+        "reference_id",
+        "upi_link"
+      ],
+      "required": []
+    },
+    {
+      "name": "fetch_payment_link",
+      "parameters": [
+        "payment_link_id"
+      ],
+      "required": [
+        "payment_link_id"
+      ]
+    },
+    {
+      "name": "payment_link_notify",
+      "parameters": [
+        "medium",
+        "payment_link_id"
+      ],
+      "required": [
+        "payment_link_id",
+        "medium"
+      ]
+    },
+    {
+      "name": "payment_link_upi_create",
+      "parameters": [
+        "accept_partial",
+        "amount",
+        "callback_method",
+        "callback_url",
+        "currency",
+        "customer_contact",
+        "customer_email",
+        "customer_name",
+        "description",
+        "expire_by",
+        "first_min_partial_amount",
+        "notes",
+        "notify_email",
+        "notify_sms",
+        "reference_id",
+        "reminder_enable"
+      ],
+      "required": [
+        "amount",
+        "currency"
+      ]
+    },
+    {
+      "name": "update_payment_link",
+      "parameters": [
+        "accept_partial",
+        "expire_by",
+        "notes",
+        "payment_link_id",
+        "reference_id",
+        "reminder_enable"
+      ],
+      "required": [
+        "payment_link_id"
+      ]
+    }
+  ],
+  "capability": {
+    "status": "compatible",
+    "reason": "Compatible Razorpay test Payment Link capability advertised",
+    "catalogHash": "7eff51a5e1cddef7dcfdc952dbc52afcc79f9927534a992598dafde9f01789a1",
+    "createBound": true,
+    "fetchBound": true
+  },
+  "toolCallsMade": 0
+}
