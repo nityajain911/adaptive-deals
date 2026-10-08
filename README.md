@@ -61,6 +61,14 @@ The presenter page includes an unseen-query proof. Lexical code retrieval always
 
 Run the reproducible code-only report with `npm run eval:memory`. No Groq call is required.
 
+### Approved Razorpay action layer (MCP)
+
+After buyer acceptance, Adaptive Deals can prepare one canonical test-mode Payment Link intent behind an injected MCP transport. Code discovers the tool catalog at runtime and binds only an advertised Razorpay test capability whose schema supports the exact amount, currency, description, reference and idempotency key. A model never chooses the tool or its arguments.
+
+The merchant's approval binds the agreement version, terms hash, argument hash, input-schema hash and catalog hash. A repeated execution returns the existing reduced receipt. A timeout becomes **unknown** and must use an advertised read capability before another write; malformed output fails closed. Raw provider output and credentials are never stored.
+
+No Razorpay MCP server or tool was exposed in this build environment. Therefore Track and Audit show **Razorpay MCP is not connected** and **No Razorpay MCP action occurred**; the existing collection path remains separately labelled simulated. `evaluation/mcp/` records this gate and the injected-transport safety counts. A real test action requires a connected server that advertises a compatible test-mode tool and credentials configured outside the repository.
+
 ## Recorded model runs
 
 Each case has one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.

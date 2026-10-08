@@ -954,6 +954,16 @@ Seven requests in total: five returned model output and two were rejected by the
 
 **Presenter proof:** An unseen query shows exact retrieved excerpts and attribution. An unsupported query abstains. A clearly labelled simulated active-source conflict is blocked and never drafted. The conflict simulation does not alter the trusted corpus.
 
+### 2026-10-08 · Approved Razorpay MCP action boundary [OpenAI Codex]
+
+**What changed:** An injected MCP transport now supports runtime catalog discovery, strict test-mode capability binding, canonical Payment Link intents, exact merchant approval, stable idempotency, execute-once receipts, timeout reconciliation and fail-closed response validation. Track and Audit have distinct successful, unknown, failed and unavailable labels. Simulation is never selected as a silent fallback.
+
+**Actual capability gate:** No Razorpay MCP tool was exposed to the Codex build session. No external tool call or Razorpay write was made. `evaluation/mcp/phase-0.json` records the unavailable result, so the shipped UI says **No Razorpay MCP action occurred** and identifies the existing collection as simulated.
+
+**Verification:** Twelve agent-authored deterministic cases use injected fake transports. The exact report records 1 of 1 approval gate, zero duplicate writes across one repeated execution, 3 of 3 unsafe or unsupported catalogs refused, 1 of 1 timeout reconciled through a read before another write, zero live-mode catalogs accepted, 1 of 1 valid reduced receipt, zero malformed responses creating product links and zero secrets in two stored receipt checks. These results validate code safety boundaries, not a connected Razorpay server.
+
+**AI boundary:** No model selects a tool, supplies commercial arguments, approves an action or handles a provider response. The frozen AI assets and existing recorded runs are unchanged.
+
 ### [APPLICANT] Decisions on AI suggestions
 
 > Add your own entries: which agent suggestions you accepted, rejected or changed, and why. The agent must not write this section.

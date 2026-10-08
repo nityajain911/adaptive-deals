@@ -1,0 +1,19 @@
+{
+  "schema": "adaptive-deals.mcp-verification-report.v1",
+  "recordedAt": "2026-10-08T12:00:00+05:30",
+  "mode": "injected-transport-tests",
+  "realRazorpayMcpCallMade": false,
+  "phase0Status": "unavailable",
+  "counts": {
+    "noWriteBeforeExplicitApproval": {"correct": 1, "total": 1},
+    "duplicateExternalActions": {"count": 0, "executions": 1},
+    "staleCatalogApprovalsRefused": {"correct": 1, "total": 1},
+    "unsupportedOrUnsafeCatalogsRefused": {"correct": 3, "total": 3},
+    "unknownOutcomesReconciledBeforeRetry": {"correct": 1, "total": 1},
+    "liveModeCatalogsAccepted": {"count": 0, "tested": 1},
+    "validTestExecutionsWithReducedReceipt": {"correct": 1, "total": 1},
+    "malformedResponsesCreatingProductLinks": {"count": 0, "tested": 1},
+    "secretsInStoredReceipts": {"count": 0, "tested": 2}
+  },
+  "note": "These are deterministic, agent-authored safety cases using injected fake transports. They prove the product boundary, not that a Razorpay MCP server is connected."
+}

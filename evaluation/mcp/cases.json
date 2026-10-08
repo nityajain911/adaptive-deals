@@ -1,0 +1,18 @@
+{
+  "schema": "adaptive-deals.mcp-verification.v1",
+  "authorship": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "cases": [
+    {"id":"compatible-test-catalog","expected":"bind_create_test_payment_link"},
+    {"id":"unsupported-capability","expected":"refuse"},
+    {"id":"malformed-schema","expected":"refuse"},
+    {"id":"live-mode-catalog","expected":"refuse"},
+    {"id":"unapproved-intent","expected":"no_write"},
+    {"id":"approved-exact-intent","expected":"one_success"},
+    {"id":"duplicate-execution","expected":"same_receipt_no_second_write"},
+    {"id":"changed-catalog","expected":"stale_approval"},
+    {"id":"timeout","expected":"unknown"},
+    {"id":"unknown-reconciliation","expected":"fetch_before_retry"},
+    {"id":"malformed-response","expected":"failed_no_payment_link"},
+    {"id":"provider-failure","expected":"safe_failure_no_secret"}
+  ]
+}
