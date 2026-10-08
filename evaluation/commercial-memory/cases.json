@@ -1,0 +1,21 @@
+{
+  "schema": "adaptive-deals.commercial-memory-eval.v1",
+  "authorship": "OpenAI Codex, directed by Nitya Jain (agent-authored; not independent)",
+  "cases": [
+    {"id":"rate-website","query":"standard price for website fixes","access":["commercial"],"buyerId":null,"expectedSourceId":"source-rate-card-2026","abstain":false},
+    {"id":"cost-website","query":"direct cost for website fixes","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-cost-sheet-2026","abstain":false},
+    {"id":"rate-search-alias","query":"SEO monthly price","access":["commercial"],"buyerId":null,"expectedSourceId":"source-rate-card-2026","abstain":false},
+    {"id":"cost-search","query":"search marketing delivery cost","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-cost-sheet-2026","abstain":false},
+    {"id":"rate-social","query":"social media price","access":["commercial"],"buyerId":null,"expectedSourceId":"source-rate-card-2026","abstain":false},
+    {"id":"cost-reporting","query":"monthly reporting direct cost","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-cost-sheet-2026","abstain":false},
+    {"id":"cash-rule","query":"maximum Pinecone cash at risk","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-commercial-policy","abstain":false},
+    {"id":"discount-rule","query":"approved discount policy","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-commercial-policy","abstain":false},
+    {"id":"contribution-rule","query":"minimum contribution after costs","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-commercial-policy","abstain":false},
+    {"id":"reporting-dependency","query":"what must monthly reporting be sold with","access":["commercial"],"buyerId":null,"expectedSourceId":"source-service-rules","abstain":false},
+    {"id":"tone-pressure","query":"may we pressure a buyer with scarcity","access":["merchant_wide"],"buyerId":null,"expectedSourceId":"source-tone-guide","abstain":false},
+    {"id":"kestrel-history","query":"did Kestrel buy website work separately","access":["buyer_specific"],"buyerId":"buyer-kestrel","expectedSourceId":"source-kestrel-history","abstain":false},
+    {"id":"kestrel-proposal","query":"Kestrel annual proposal scope","access":["buyer_specific"],"buyerId":"buyer-kestrel","expectedSourceId":"source-kestrel-proposal","abstain":false},
+    {"id":"wrong-buyer","query":"Kestrel separate website purchase","access":["buyer_specific"],"buyerId":"buyer-northstar","expectedSourceId":null,"abstain":true},
+    {"id":"unsupported-electricity","query":"office electricity bill","access":["merchant_wide","commercial","finance_restricted"],"buyerId":null,"expectedSourceId":null,"abstain":true}
+  ]
+}
