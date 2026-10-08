@@ -140,3 +140,13 @@ Submission is 13 Oct 2026; this plan is written 8 Oct. Recommended order, cheape
 **Decision (applicant):** `negotiation_message.v1` is not dropped for lack of time. The noon-on-11-Oct cut line in §8 no longer applies to it; the other two tasks keep it.
 
 **What does not change:** §7 still governs outcomes. If `negotiation_message.v1` fails a hard criterion on the hold-out, its model path does not ship and the failure is reported. Keeping the task means it is built and evaluated, not that it is certain to ship. The call budget is unchanged. If the schedule slips, the applicant, not the cut line, decides what moves.
+
+## Amendment 4 · 2026-10-09 · Commercial Memory and MCP landed; what changes for this plan
+
+**What landed (commits `b594ad2` to `65e0160`, authored by the applicant with OpenAI Codex):** Commercial Memory (deterministic retrieval, exact citations, conflict and abstention handling, economics drafts from evidence) and an injected-transport Razorpay MCP action layer. No model call and no Razorpay MCP call has been made.
+
+**Effects on this plan**
+1. **A fourth AI task exists:** `commercial_retrieval_rerank.v1`. It reuses `assist/groq.ts` and the `assist/` verifier helpers. Its 15 frozen cases and provider budget live in `evaluation/commercial-memory/`, not here, and its calls are **not counted in `evaluation-assist/results/ledger.json`**. The 581-call cap in section 5 therefore covers only the three assist tasks. The reranker needs its own approval of its call budget before any run, and the applicant should decide whether one combined cap is wanted.
+2. **Protected paths:** `git diff c907d1d` over the protected paths now lists 7 new files under `evaluation/commercial-memory/` and `evaluation/mcp/`. No existing frozen file was modified. The check should read "no modified or deleted frozen file", not "prints 0".
+3. **Authorship labels** apply to those sets too: agent-authored, same author as the code under test.
+4. **Provider choice** (Groq or Cerebras, Amendment pending) applies to the reranker as well, since it shares the adapter.
