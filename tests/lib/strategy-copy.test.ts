@@ -13,19 +13,19 @@ const headline = (id: string) => ({ a: "Annual split", b: "Paid upfront", c: "Tw
 
 describe("who ranked and who explained, on the offer card", () => {
   it("says the default strategy was not a choice, and that code ranked and explained", () => {
-    expect(strategyAttribution({ strategyChosen: false, selectedByMerchant: false })).toBe("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
+    expect(strategyAttribution({ strategyChosen: false, selectedByMerchant: false })).toBe("Suggested for the default priority: earning the most.");
   });
   it("says the merchant chose the strategy when they did", () => {
-    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: false })).toBe("Strategy selected by you · offers ranked by code · explained by code · figures calculated by the engine.");
+    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: false })).toBe("Suggested for what matters most to you.");
   });
   it("credits the merchant for an offer they selected themselves, and still says code ranked", () => {
-    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: true })).toBe("You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.");
+    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: true })).toBe("You chose this offer.");
   });
   it("keeps saying what caused a recalculation, because the parent run did not process it", () => {
     expect(strategyAttribution({ strategyChosen: false, selectedByMerchant: false, branchCause: "the merchant confirmed the services" })).toBe(
-      "Recalculated by the engine after the merchant confirmed the services · Default strategy · offers ranked by code · explained by code · figures calculated by the engine.",
+      "Worked out again after the merchant confirmed the services. Suggested for the default priority: earning the most.",
     );
-    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: true, branchCause: "the buyer's answer" })).toMatch(/^Recalculated by the engine after the buyer's answer · You selected this offer/);
+    expect(strategyAttribution({ strategyChosen: true, selectedByMerchant: true, branchCause: "the buyer's answer" })).toMatch(/^Worked out again after the buyer's answer\. You chose this offer/);
   });
   it("never names a model or an AI, because none ranked or explained anything shown", () => {
     for (const a of [false, true]) for (const b of [false, true]) expect(strategyAttribution({ strategyChosen: a, selectedByMerchant: b })).not.toMatch(/\bAI\b|Groq|model/i);

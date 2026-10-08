@@ -23,16 +23,17 @@ describe("recommendation card", () => {
     Recommendation({ ...CARD, x: top(), reason: whyOffer(top()), context: contextLine(heroBaseline(), 5_000_000, 6_000_000, true), presentation: "recommended" }),
   );
   it("keeps the GST basis and per-contract scope in the context line", () => {
-    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true)).toBe("Original annual proposal: ₹1,41,600 including GST. The buyer has ₹50,000 including GST this quarter. Contracts above ₹60,000 including GST require MD approval.");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true)).toBe("Your quote was ₹1,41,600 including GST. They have ₹50,000 including GST this quarter. Their MD must approve anything above ₹60,000.");
   });
-  it("shows the funding requirement and cash-at-risk limit only inside the collapsed details", () => {
+  it("shows the most the merchant would spend before being paid only inside the collapsed details", () => {
     const outside = html.replace(/<details[\s\S]*?<\/details>/g, "");
-    expect(outside).not.toMatch(/Peak funding requirement|Cash-at-risk limit/);
-    expect(html).toMatch(/Peak funding requirement/);
-    expect(outside).toContain("Passes your configured contribution and funding rules.");
+    expect(outside).not.toMatch(/Most you&#x27;d spend before being paid/);
+    expect(html).toMatch(/Most you&#x27;d spend before being paid/);
+    expect(outside).toContain("Within your limits");
   });
   it("uses forecast language only", () => {
-    expect(html).toContain("Projected contribution");
+    expect(html).toContain("You&#x27;d keep");
+    expect(html).toContain("An estimate, not a promise.");
     expect(html).not.toMatch(/recovered|guaranteed|Realised contribution/i);
   });
   it("distinguishes the two Phase 1 payment choices and explains the split", () => {
@@ -42,23 +43,23 @@ describe("recommendation card", () => {
     expect(headlineFor(split)).toContain("two monthly payments");
     expect(headlineFor(upfront)).toContain("paid upfront");
     expect(headlineFor(split)).not.toBe(headlineFor(upfront));
-    expect(html).toContain("lowering the largest payment");
+    expect(html).toContain("keeps each payment to ₹23,010");
   });
   it("makes approval-dependent contribution conditional in alternatives", () => {
     const options = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible;
     const phase = options.find((x) => x.structure.template === "phased_scope" && x.structure.payments.length === 2)!;
     const annual = options.find((x) => x.approval === "requires_approval")!;
-    expect(alternativeContributionLine(annual)).toMatch(/^If the buyer secures MD approval: projected contribution/);
-    expect(alternativeContributionLine(phase)).toMatch(/^Projected contribution/);
+    expect(alternativeContributionLine(annual)).toMatch(/^If their MD approves, you&#x27;d keep|^If their MD approves, you'd keep/);
+    expect(alternativeContributionLine(phase)).toMatch(/^You'd keep about/);
   });
   it("distinguishes an engine recommendation from an option selected by the merchant", () => {
-    expect(html).toContain("Recommended offer");
+    expect(html).toContain("Suggested offer");
     const annual = enumerateAndEvaluate(interpretations(clarifiedHeroProfile())[0].constraints, heroInput()).feasible.find((x) => x.approval === "requires_approval")!;
     const selected = renderToStaticMarkup(Recommendation({ ...CARD, x: annual, reason: whyOffer(annual), context: "Confirmed context", presentation: "merchant_selected" }));
-    expect(selected).toContain("Selected by you");
-    expect(selected).not.toContain("Recommended offer");
-    expect(selected).toContain("requires the buyer&#x27;s MD approval");
-    expect(selected).not.toContain("fits the buyer&#x27;s confirmed budget, timing and approval limit");
+    expect(selected).toContain("You chose this");
+    expect(selected).not.toContain("Suggested offer");
+    expect(selected).toContain("Needs their MD&#x27;s approval");
+    expect(selected).not.toContain("Within their approval limit");
   });
   it("success measure names the target metric", () => {
     expect(renderToStaticMarkup(SuccessMeasure())).toContain("Success measure: realised contribution from this deal within 90 days.");
@@ -71,7 +72,7 @@ describe("rejection and needs-information reasons", () => {
     expect(result.needsInformation).not.toHaveLength(0);
     const html = renderToStaticMarkup(Rejections({ r: result }));
 
-    expect(html).toContain("we need the day the new budget opens");
+    expect(html).toContain("we need to know the day their new budget opens");
     expect(html).not.toMatch(/<span class="text-red"> · <\/span>/);
   });
 });
@@ -89,7 +90,7 @@ describe("recommendation attribution on the card", () => {
 
   it("credits code, and no model, for the ranking and the reason shown", () => {
     const html = card();
-    expect(attribution(html)).toBe("Default strategy · offers ranked by code · explained by code · figures calculated by the engine.");
+    expect(attribution(html)).toBe("Suggested for the default priority: earning the most.");
     expect(html).toContain("Reason written by code.");
     expect(attribution(html)).not.toMatch(/\bAI\b|Groq|model/);
   });
@@ -108,24 +109,24 @@ describe("recommendation attribution on the card", () => {
   });
   it("on the option the merchant selected, says the merchant chose it and that code ranked the others", () => {
     const html = card({ presentation: "merchant_selected", attribution: strategyAttribution({ strategyChosen: true, selectedByMerchant: true }) });
-    expect(html).toContain("Selected by you");
-    expect(attribution(html)).toBe("You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine.");
+    expect(html).toContain("You chose this");
+    expect(attribution(html)).toBe("You chose this offer.");
   });
   it("says what caused a recalculation, and never shows a parent run's note", () => {
     const html = card({ attribution: strategyAttribution({ strategyChosen: false, selectedByMerchant: false, branchCause: "the buyer's answer" }), evidence: null });
-    expect(attribution(html)).toMatch(/^Recalculated by the engine after the buyer&#x27;s answer · /);
+    expect(attribution(html)).toMatch(/^Worked out again after the buyer&#x27;s answer/);
     expect(html).not.toContain(NOTE);
   });
-  it("says which version of the merchant's economics it is based on, and any deal overrides", () => {
-    // "business economics" is now a link to the page where the rules are set, so compare the visible text.
+  it("says it is based on the merchant's prices & costs, and any changes made for this deal", () => {
+    // "prices & costs" is a link to the page where they are set, so compare the visible text.
     const text = (html: string) => html.replace(/<[^>]+>/g, "");
-    expect(text(card())).toContain("Based on version 1 of your business economics.");
+    expect(text(card())).toContain("Based onyour prices &amp; costs");
     expect(card()).toContain('href="/economics"');
-    expect(text(card({ economics: { version: 2, overrides: 2 } }))).toContain("Based on version 2 of your business economics · 2 deal overrides applied.");
+    expect(text(card({ economics: { version: 2, overrides: 2 } }))).toContain("your prices &amp; costs and 2 changes you made for this deal");
   });
-  it("states the cash exposure and keeps the forecast wording", () => {
+  it("shows the most the merchant would spend before being paid, and keeps the forecast wording", () => {
     const html = card();
-    expect(html).toContain("Cash exposure: ");
-    expect(html).toContain("You keep this after configured costs and expected fees. A forecast, not a result.");
+    expect(html).toContain("Most you&#x27;d spend before being paid");
+    expect(html).toContain("An estimate, not a promise.");
   });
 });

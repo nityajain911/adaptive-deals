@@ -11,28 +11,18 @@ import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { OpenAudit } from "../audit/audit-drawer";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
 
-const RULE_NAME: Partial<Record<string, string>> = {
-  seller_contribution: "Contribution floor",
-  seller_cash_at_risk: "Cash-at-risk limit",
-  max_tenure: "Maximum tenure",
-  smallest_instalment: "Smallest instalment",
-  discount_limit: "Discount policy",
-  scope_rules: "Package rules",
-};
-
 /** Context line from the confirmed profile, with the GST basis and approval scope kept. */
 export function contextLine(baseline: DealBaseline, budgetPaise: number | null, limitPaise: number | null, perContract: boolean, includesGst = true): string {
   const o = originalProposalOf(baseline);
   const basis = includesGst ? "including GST" : "excluding GST";
-  const parts = [`Original annual proposal: ${formatINR(o.totalPaise)} including GST.`];
-  if (budgetPaise !== null) parts.push(`The buyer has ${formatINR(budgetPaise)} ${basis} this quarter.`);
-  if (limitPaise !== null) parts.push(`${perContract ? "Contracts" : "Payments"} above ${formatINR(limitPaise)} ${basis} require MD approval.`);
+  const parts = [`Your quote was ${formatINR(o.totalPaise)} including GST.`];
+  if (budgetPaise !== null) parts.push(`They have ${formatINR(budgetPaise)} ${basis} this quarter.`);
+  if (limitPaise !== null) parts.push(`Their MD must approve ${perContract ? "anything" : "any single payment"} above ${formatINR(limitPaise)}.`);
   return parts.join(" ");
 }
 
@@ -68,7 +58,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
   return (
     <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation" data-walkthrough="commercial-recommendation">
       <div className="border-b border-line px-5 py-4">
-        <Badge tone="blue">{counter ? "Your counter-offer" : presentation === "merchant_selected" ? "Selected by you" : "Recommended offer"}</Badge>
+        <Badge tone="blue">{counter ? "Your counter-offer" : presentation === "merchant_selected" ? "You chose this" : "Suggested offer"}</Badge>
         <h2 className="mt-2 text-[22px] font-bold tracking-tight text-ink" data-testid="offer-headline">
           {headlineFor(x)}
         </h2>
@@ -80,7 +70,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
       <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
         <div className="space-y-3">
           <div>
-            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Proposed customer total</div>
+            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">What the buyer pays</div>
             <div className="tabular text-[30px] font-bold tracking-tight text-ink" data-testid="offer-total">
               {formatINR(total)} <span className="text-[14px] font-medium text-muted">including GST</span>
             </div>
@@ -104,54 +94,47 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
         <div className="space-y-2">
           <div className="rounded-xl border border-line px-4 py-3">
-            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Projected contribution</div>
-            <div className="tabular text-[22px] font-semibold text-ink" data-testid="offer-contribution">
+            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">You&apos;d keep</div>
+            <div className="tabular text-[24px] font-semibold text-ink" data-testid="offer-contribution">
               {approxINR(e.netContributionPaise)}
             </div>
-            <div className="text-[13px] text-muted" data-testid="offer-keeps">You keep this after configured costs and expected fees. A forecast, not a result.</div>
+            <div className="text-[13px] text-muted" data-testid="offer-keeps">After your delivery costs and payment fees. An estimate, not a promise.</div>
           </div>
-          <p className="flex items-center gap-1 text-[14px] text-ink-2" data-testid="offer-cash">
-            Cash exposure: {formatINR(e.peakFundingPaise)}
-            <InfoButton label="About cash exposure">The most you would have paid out before being paid, on the worst day of this offer.</InfoButton>
-          </p>
-          <p className="text-[13px] text-muted" data-testid="offer-rules">
-            Based on version {economics.version} of your <Link href="/economics" className="font-medium text-blue hover:underline" data-testid="offer-economics-link">business economics</Link>{economics.overrides ? ` · ${economics.overrides} deal override${economics.overrides === 1 ? "" : "s"} applied` : ""}.
-          </p>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
-            {passesRules ? "Passes your configured contribution and funding rules." : "Review the applied rules before sending."}
+            {passesRules ? "✓ Within your limits" : "Check your limits before sending this."}
           </p>
           <details className="rounded-xl border border-line px-4 py-2" data-testid="see-economics">
-            <summary className="cursor-pointer text-[13px] font-semibold text-blue">See economics and applied rules</summary>
+            <summary className="cursor-pointer text-[13px] font-semibold text-blue">How we worked this out</summary>
             <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pb-2 text-[13px] text-ink-2">
-              <dt>Pre-GST value</dt>
+              <dt>Price before GST</dt>
               <dd className="tabular">{formatINR(x.structure.pricePaise)}</dd>
               <dt>GST</dt>
               <dd className="tabular">{formatINR(sum(x.structure.payments.map((p) => p.gstPaise)))}</dd>
-              <dt>Contribution</dt>
+              <dt>What you keep</dt>
               <dd className="tabular">
-                {formatINR(e.pricePaise)} − direct costs {formatINR(e.directCostPaise)} − expected payment fees {formatINR(e.expectedFeesPaise)} = {formatINR(e.netContributionPaise)} ({(e.netContributionBps / 100).toFixed(2)}% of price)
+                {formatINR(e.pricePaise)} − delivery costs {formatINR(e.directCostPaise)} − payment fees {formatINR(e.expectedFeesPaise)} = {formatINR(e.netContributionPaise)} ({Math.round(e.netContributionBps / 100)}% of the price)
               </dd>
-              <dt>Contribution floor</dt>
+              <dt>Your profit limit</dt>
               <dd>{contribution ? explainCheck(contribution) : "—"}</dd>
-              <dt>Peak funding requirement</dt>
-              <dd className="tabular">
+              <dt>Most you&apos;d spend before being paid</dt>
+              <dd className="tabular" data-testid="offer-cash">
                 {formatINR(e.peakFundingPaise)}
-                {e.peakFundingDate ? ` on ${formatDate(e.peakFundingDate)}` : ""}
+                {e.peakFundingDate ? ` on ${formatDate(e.peakFundingDate)}` : ""} · your limit is {formatINR(policy.cashAtRiskLimitPaise)}
               </dd>
-              <dt>Cash-at-risk limit</dt>
-              <dd className="tabular">{formatINR(policy.cashAtRiskLimitPaise)}</dd>
-              <dt>Assumptions</dt>
-              <dd>Costs are committed at the start of each delivery month; payments are collected on their due dates.</dd>
+              <dt>Based on</dt>
+              <dd data-testid="offer-rules">
+                <Link href="/economics" className="font-medium text-blue hover:underline" data-testid="offer-economics-link">your prices &amp; costs</Link>{economics.overrides ? ` and ${economics.overrides} change${economics.overrides === 1 ? "" : "s"} you made for this deal` : ""}
+              </dd>
             </dl>
           </details>
         </div>
       </div>
       {comparison ? <div className="border-t border-line px-5 py-4">{comparison}</div> : null}
       <details className="border-t border-line px-5 py-3" data-testid="offer-details">
-        <summary className="cursor-pointer text-[13px] font-semibold text-blue">What this offer achieves and what changes from the original proposal</summary>
+        <summary className="cursor-pointer text-[13px] font-semibold text-blue">What changes from your original quote</summary>
         <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div data-testid="offer-achieves">
-            <h3 className="text-[13px] font-semibold text-ink">What this offer achieves</h3>
+            <h3 className="text-[13px] font-semibold text-ink">What you get</h3>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
               {summary.achieves.map((l) => (
                 <li key={l}>{l}</li>
@@ -159,7 +142,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
             </ul>
           </div>
           <div data-testid="offer-changes">
-            <h3 className="text-[13px] font-semibold text-ink">What changes from the original proposal</h3>
+            <h3 className="text-[13px] font-semibold text-ink">What changes</h3>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
               {summary.changes.map((l) => (
                 <li key={l}>{l}</li>
@@ -169,7 +152,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
       </details>
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
-        <span className="font-semibold text-ink">Why this offer: </span>
+        <span className="font-semibold text-ink">Why this one: </span>
         <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</span>
         <div className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted">
           <span data-testid="attribution">{counter ? counterAttribution(counter) : attribution}</span>
@@ -183,12 +166,22 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
         {counter?.override ? (
           <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
-            <span className="font-semibold text-amber">Rules you chose to override:</span> {joinRules(failingCounterChecks(x).map((c) => explainCheck(c)))}
+            <span className="font-semibold text-amber">Limits you chose to go past:</span> {joinRules(failingCounterChecks(x).map((c) => explainCheck(c)))}
           </div>
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>
     </article>
+  );
+}
+
+/** Everything that is not the suggested offer, kept in one closed section so the screen stays about the one decision. */
+export function OtherOptions({ children }: { children: ReactNode }) {
+  return (
+    <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="other-options">
+      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">See other ways to do this deal</summary>
+      <div className="space-y-4 border-t border-line px-1 py-3 sm:px-3">{children}</div>
+    </details>
   );
 }
 
@@ -231,29 +224,23 @@ export function Rejections({ r }: { r: EnumerationResult }) {
   const pair = [featured.buyer, featured.seller].filter((x): x is EvaluatedStructure => !!x);
   return (
     <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="why-not-others">
-      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">Why other options didn&apos;t fit</summary>
+      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">Offers we ruled out</summary>
       <div className="space-y-3 border-t border-line px-5 py-4">
         {pair.map((x) => (
           <div key={x.structure.id} className="rounded-xl border border-[#f6cfc9] p-3" data-testid={x === featured.buyer ? "featured-buyer-rejection" : "featured-seller-rejection"}>
-            <Badge tone="red">{x === featured.buyer ? "The buyer can't carry it out" : "Fails your rules"}</Badge>
+            <Badge tone="red">{x === featured.buyer ? "Doesn't work for the buyer" : "Outside your limits"}</Badge>
             <div className="mt-1 text-[13px] font-semibold text-ink">{x.structure.label}</div>
             <ul className="mt-1 space-y-0.5 text-[13px] text-red">
               {failingChecks(x).map((c, i) => (
                 <li key={i}>
                   ✕ {explainCheck(c)}
-                  {c.side === "seller" && RULE_NAME[c.id] ? (
-                    <span className="text-ink-2">
-                      {" "}
-                      · <OpenAudit section="rules">Rule: {RULE_NAME[c.id]}</OpenAudit>
-                    </span>
-                  ) : null}
                 </li>
               ))}
             </ul>
           </div>
         ))}
         <details className="rounded-xl border border-line px-3 py-2">
-          <summary className="cursor-pointer text-[13px] font-semibold text-ink">All {r.rejected.length} rejected and {r.needsInformation.length} needs-information structures</summary>
+          <summary className="cursor-pointer text-[13px] font-semibold text-ink">All {r.rejected.length + r.needsInformation.length} offers we ruled out</summary>
           <ul className="mt-2 divide-y divide-line text-[13px]">
             {[...r.rejected, ...r.needsInformation].map((x) => (
               <li key={x.structure.id} className="py-1.5" data-testid="rejected-row">

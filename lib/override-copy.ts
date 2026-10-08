@@ -20,7 +20,7 @@ export const OVERRIDE_DIRECTION_TEXT: Record<InputOverride["direction"], string>
 };
 
 export const OVERRIDE_FIELD_LABEL: Record<Exclude<OverrideField, "direct_cost">, string> = {
-  contribution_floor: "Minimum contribution",
-  cash_exposure: "Maximum cash exposure",
-  discount_limit: "Maximum discount",
+  contribution_floor: "Lowest profit I'll accept",
+  cash_exposure: "Most I'll spend before I'm paid",
+  discount_limit: "Biggest discount I'll give",
 };

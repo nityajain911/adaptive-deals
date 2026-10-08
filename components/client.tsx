@@ -176,7 +176,7 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
         {pending ? "Accepting…" : action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal"}
       </Button>
       <p className="text-center text-[12px] text-muted">
-        You accept version {version} exactly as shown (terms hash {termsHash.slice(0, 12)}…).
+        You are accepting this proposal exactly as shown.
       </p>
       <ErrorText error={error} />
     </form>
@@ -435,18 +435,18 @@ export function ReviewWorkForm({ sourceKind, sourceId }: { sourceKind: "message"
   return (
     <div className="mt-3 space-y-2">
       <label className="block text-[12px] font-medium text-muted">
-        Decision note (optional)
+        Note (optional)
         <input className="mt-1 block w-full rounded-lg border border-line-strong px-3 py-1.5 text-[13px] text-ink" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
       </label>
       <div className="flex flex-wrap gap-2">
         <Button variant="primary" disabled={pending} onClick={() => send("keep_current_terms")} data-testid={`keep-current-${sourceId}`}>
-          Keep current terms
+          Keep my offer as it is
         </Button>
         <Button disabled={pending} onClick={() => send("handled_outside")} data-testid={`handled-outside-${sourceId}`}>
-          Handle outside Adaptive Deals
+          I&apos;ll handle this myself, outside the app
         </Button>
         <Button disabled={pending} onClick={() => send("follow_up_pending")} data-testid={`follow-up-${sourceId}`}>
-          Follow-up still pending
+          I&apos;ll follow up later
         </Button>
       </div>
       <ErrorText error={error} />

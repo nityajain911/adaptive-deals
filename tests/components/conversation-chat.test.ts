@@ -9,11 +9,10 @@ const render = async (scope: "understand" | "track" = "understand") => {
 };
 
 describe("the conversation reads as a chat", () => {
-  it("carries one persistent 'Simulated conversation' label and no per-message repeats", async () => {
+  it("carries one persistent 'WhatsApp (simulated)' label and no per-message repeats", async () => {
     const { html } = await render();
-    expect(html.match(/Simulated conversation/g)).toHaveLength(1);
+    expect(html.match(/WhatsApp \(simulated\)/g)).toHaveLength(1);
     expect(html).not.toMatch(/Simulated WhatsApp conversation|Simulated buyer reply|WhatsApp simulated/);
-    expect(html).not.toMatch(/WhatsApp/);
   });
 
   it("puts the buyer's bubbles on the left and the merchant's on the right", async () => {
@@ -25,7 +24,7 @@ describe("the conversation reads as a chat", () => {
   it("highlights the phrases the buyer constraints came from, inside the bubble", async () => {
     const { html } = await render();
     expect(html).toContain('data-testid="chat-highlight"');
-    expect(html.replace(/<[^>]+>/g, "")).toContain("We have ₹50,000 left this quarter and new budget opens in April.");
+    expect(html.replace(/<[^>]+>/g, "")).toContain("We only have ₹50,000 left this quarter");
   });
 
   it("shows an unsent draft in the composer area, not as a sent message", async () => {
@@ -34,7 +33,7 @@ describe("the conversation reads as a chat", () => {
     expect(draft).toBeTruthy();
     const composer = html.slice(html.indexOf('data-testid="chat-composer"'));
     expect(composer).toContain(`thread-${draft!.id}`);
-    expect(composer).toContain("Draft · not sent");
+    expect(composer).toContain("Not sent yet");
     expect(html.slice(0, html.indexOf('data-testid="chat-composer"'))).not.toContain(`thread-${draft!.id}`);
   });
 });

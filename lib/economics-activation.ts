@@ -34,7 +34,7 @@ function floorUnreachable(evaluation: DealEvaluation | null): boolean {
 export async function previewEconomicsActivation(): Promise<EconomicsActivationPreview> {
   const store = await getEconomicsStore();
   const content = store.draft;
-  if (!content) throw new Error("There is no business economics draft to review");
+  if (!content) throw new Error("There is no draft of your prices & costs to review");
   const issues = validateEconomics(content);
   const unchanged = economicsContentHash(content) === (await activeEconomics()).hash;
   const serviceEconomics = content.services.map((service) => {

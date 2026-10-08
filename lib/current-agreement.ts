@@ -69,16 +69,15 @@ function scopeLines(v: AgreementVersion, packages: ServicePackage[]): { included
 }
 
 function readinessFor(kind: CurrentAgreementSummary["kind"], setup: PaymentSetupSummary): string {
-  const boundary = "Delivery readiness is not tracked here.";
-  if (kind === "proposed") return `Awaiting buyer acceptance. No payment setup starts before acceptance. ${boundary}`;
-  if (kind === "declined") return `Buyer declined this version. No payment setup was created. ${boundary}`;
+  if (kind === "proposed") return "Waiting for the buyer to accept. Nothing is set up until they do.";
+  if (kind === "declined") return "The buyer declined. Nothing was set up.";
   const parts: string[] = [];
-  if (setup.upfront === "pending") parts.push("Upfront payment pending");
-  else if (setup.upfront === "paid") parts.push("Upfront payment paid");
-  if (setup.mandate === "pending") parts.push("mandate pending");
-  else if (setup.mandate === "confirmed") parts.push("mandate confirmed");
-  if (!parts.length) parts.push("Payment setup is not required");
-  return `${parts.join(" · ")}. ${boundary}`;
+  if (setup.upfront === "pending") parts.push("First payment not paid yet");
+  else if (setup.upfront === "paid") parts.push("First payment paid");
+  if (setup.mandate === "pending") parts.push("automatic payments not set up yet");
+  else if (setup.mandate === "confirmed") parts.push("automatic payments set up");
+  if (!parts.length) parts.push("No payment setup needed");
+  return `${parts.join(" · ")}.`;
 }
 
 /** A single, truthful summary of the latest non-superseded agreement version. */
@@ -103,7 +102,7 @@ export function currentAgreementSummary(args: {
     included: scope.included,
     excluded: scope.excluded,
     servicePeriod: servicePeriod(agreement),
-    laterWorkStatement: agreement.terms.structure.template === "phased_scope" ? "No later phase is agreed." : null,
+    laterWorkStatement: agreement.terms.structure.template === "phased_scope" ? "Nothing beyond this is promised." : null,
     financial: args.financial,
     readiness: readinessFor(kind, args.paymentSetup),
     nextAction: args.progress.headline,

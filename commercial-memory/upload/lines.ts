@@ -53,7 +53,7 @@ export function singleAmount(text: string, service: ServiceRef | null = null): n
 export function readLine(line: string, start: number, services: ServiceRef[]): LineReading {
   const found = servicesIn(line, services);
   const base = { line, start, end: start + line.length };
-  if (found.length === 0) return { ...base, service: null, rupees: null, note: { line, reason: "No service from your Business economics is named on this line" } };
+  if (found.length === 0) return { ...base, service: null, rupees: null, note: { line, reason: "No service from your Prices & costs is named on this line" } };
   if (found.length > 1) return { ...base, service: null, rupees: null, note: { line, reason: "More than one service is named on this line" } };
   const rupees = singleAmount(line, found[0]!);
   if (rupees === null) return { ...base, service: found[0]!, rupees: null, note: { line, reason: "This line must state exactly one amount" } };

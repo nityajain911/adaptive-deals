@@ -12,7 +12,7 @@ export function ReevaluationBanner({ preview, serviceNames }: { preview: Reevalu
   return (
     <section className="mt-4 rounded-xl border border-[#f7dfb4] bg-amber-weak p-4" data-testid="reevaluate-banner">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><div className="font-semibold text-amber">Your business economics have changed since this deal was evaluated.</div><p className="mt-1 text-[13px] text-ink-2">The prices quoted to this buyer stay unchanged. Review what the new costs and guardrails would change.</p></div>
+        <div><div className="font-semibold text-amber">Your prices & costs have changed since this offer was worked out.</div><p className="mt-1 text-[13px] text-ink-2">The prices quoted to this buyer stay unchanged. Review what the new costs and guardrails would change.</p></div>
         <Button data-testid="reevaluate-review" onClick={() => setOpen((value) => !value)}>{open ? "Hide review" : "Review the change"}</Button>
       </div>
       {open ? (

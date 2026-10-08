@@ -21,25 +21,26 @@ describe("Understand conversation order", () => {
   it("describes the buyer amounts with the confirmed GST basis", () => {
     expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true, true)).toContain("including GST this quarter");
     expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, true, false)).toContain("excluding GST this quarter");
-    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, false, false)).toContain("Payments above ₹60,000 excluding GST");
+    expect(contextLine(heroBaseline(), 5_000_000, 6_000_000, false, false)).toContain("any single payment above ₹60,000");
   });
 });
 
 describe("clarification draft attribution in the thread", () => {
-  it("labels hand-written sample drafts as samples, never as AI suggestions", async () => {
+  it("shows hand-written sample drafts only as drafts not sent yet, never as AI suggestions", async () => {
     const state = await seedState(bundledSyntheticRun(), "replay");
     expect(state.conversation.some((item) => item.state === "suggested_by_ai")).toBe(true);
     const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", buyerName: "Kestrel Lane Clinics", opening: state.run.record.inputs.messages }));
-    expect(html).toContain("Sample wording written by hand");
-    expect(html).not.toMatch(/Suggested by AI|Groq/);
+    expect(html).toContain("Not sent yet");
+    expect(html).not.toMatch(/Suggested by AI|Groq|Sample wording/);
   });
 
-  it("keeps the AI label for drafts a recorded model produced", async () => {
+  it("shows drafts a recorded model produced as plain drafts too", async () => {
     const { readFileSync } = await import("node:fs");
     const recorded = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8"));
     const state = await seedState(recorded, "replay");
     const html = renderToStaticMarkup(ConversationThread({ s: state, scope: "understand", buyerName: "Kestrel Lane Clinics", opening: state.run.record.inputs.messages }));
-    expect(html).toContain("Suggested by AI");
+    // The merchant sees a plain draft; who wrote it is shown only in the reviewer audit trail.
+    expect(html).toContain("Not sent yet");
     expect(html).not.toContain("Sample wording written by hand");
   });
 });

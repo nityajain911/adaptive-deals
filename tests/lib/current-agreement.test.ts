@@ -50,7 +50,7 @@ describe("current agreement summary", () => {
     const accepted = summarize([version(phase, "active")])!;
     expect(accepted.included).toEqual(["Website fixes · one-time in Nov 2026", "Search marketing · Nov 2026–Jan 2027", "Monthly reporting · Nov 2026–Jan 2027"]);
     expect(accepted.excluded).toContain("Social media");
-    expect(accepted.laterWorkStatement).toBe("No later phase is agreed.");
+    expect(accepted.laterWorkStatement).toBe("Nothing beyond this is promised.");
   });
 
   it("uses the active v2 payment facts while retaining the Nov–Jan service period", () => {
@@ -66,7 +66,7 @@ describe("current agreement summary", () => {
     const phasePaid = summarize([version(phase, "active")], "accepted", 0)!;
     const annualPaid = summarize([version(annual, "active")], "accepted", 0)!;
     for (const s of [phasePaid, annualPaid]) {
-      expect(s.readiness).toContain("Delivery readiness is not tracked here");
+      expect(s.readiness).toContain("First payment paid");
       expect(s.readiness).not.toMatch(/delivery complete/i);
     }
   });
@@ -79,11 +79,10 @@ describe("current agreement summary", () => {
   it("distinguishes decline and payment setup readiness", () => {
     const declined = summarize([version(phase, "buyer_rejected")], "declined", null)!;
     expect(declined.kind).toBe("declined");
-    expect(declined.readiness).toContain("No payment setup");
+    expect(declined.readiness).toContain("Nothing was set up");
     const pending = currentAgreementSummary({ agreements: [version(phase, "active")], packages: heroPackages, financial: financial("accepted", 4_602_000), progress: progress("Buyer accepted. Waiting for setup."), paymentSetup: { upfront: "pending", mandate: "pending" } })!;
-    expect(pending.readiness).toContain("Upfront payment pending");
-    expect(pending.readiness).toContain("mandate pending");
-    expect(pending.readiness).toContain("Delivery readiness is not tracked here");
+    expect(pending.readiness).toContain("First payment not paid yet");
+    expect(pending.readiness).toContain("automatic payments not set up yet");
   });
 
   it("never chooses a superseded version as the current agreement", () => {
@@ -104,24 +103,17 @@ describe("current agreement summary", () => {
     const declined = summarize([version(phase, "buyer_rejected")], "declined", null)!;
 
     const proposedHtml = renderToStaticMarkup(CurrentAgreement({ summary: proposed }));
-    expect(proposedHtml).toContain("Proposed offer · version 1");
-    expect(proposedHtml).toContain("Proposed scope");
-    expect(proposedHtml).not.toContain("Current agreement");
+    expect(proposedHtml).toContain("Your offer");
+    expect(proposedHtml).toContain("What&#x27;s included");
+    expect(proposedHtml).not.toContain("Agreed deal");
 
     const acceptedHtml = renderToStaticMarkup(CurrentAgreement({ summary: accepted }));
-    expect(acceptedHtml).toContain("Current agreement · version 1");
-    expect(acceptedHtml).toContain("Agreed scope");
+    expect(acceptedHtml).toContain("Agreed deal");
+    expect(acceptedHtml).toContain("What&#x27;s included");
 
     const declinedHtml = renderToStaticMarkup(CurrentAgreement({ summary: declined }));
-    expect(declinedHtml).toContain("Declined offer · version 1");
-    expect(declinedHtml).toContain("Offered scope");
-    expect(declinedHtml).not.toContain("Current agreement");
-  });
-
-  it("renders why operational collections can differ from the 90-day outcome window", () => {
-    const summary = summarize([version(annual, "active")], "accepted", 0)!;
-    summary.financial.windowExplanation = "Some verified payments were received after the 90-day cutoff and are excluded from the outcome window.";
-    const html = renderToStaticMarkup(CurrentAgreement({ summary }));
-    expect(html).toContain(summary.financial.windowExplanation);
+    expect(declinedHtml).toContain("Declined offer");
+    expect(declinedHtml).toContain("What was offered");
+    expect(declinedHtml).not.toContain("Agreed deal");
   });
 });

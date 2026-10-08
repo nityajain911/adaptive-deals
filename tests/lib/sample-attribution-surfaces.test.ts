@@ -25,7 +25,7 @@ beforeAll(async () => {
  * Phrases that mention AI without crediting it: the audit row stating that no model ran, and
  * the fixed statements that payment-date replies are read by code.
  */
-const NON_CREDITING = [/<dt[^>]*>AI<\/dt><dd>No model ran for this case\.<\/dd>/g, /Read by code \(reply-rules\.v1\), not AI/g, /Read by code, not AI/g];
+const NON_CREDITING = [/<dt[^>]*>AI<\/dt><dd>No model ran for this case\.<\/dd>/g, /Read by code \(reply-rules\.v1\), not AI/g, /Read by code, not AI/g, /\bno AI ran\b/g];
 const creditsModel = (text: string) => /\bAI\b|Groq|Anthropic|model run\b/.test(NON_CREDITING.reduce((rest, allowed) => rest.replace(allowed, ""), text));
 
 /** Every merchant-visible surface that carries model attribution, rendered from one state. */
@@ -84,7 +84,7 @@ describe("hand-written sample cases never appear as model output", () => {
         for (const [name, text] of Object.entries(rendered)) expect(creditsModel(text), `${caseId} · ${name}`).toBe(false);
         expect(rendered["audit drawer"]).toContain("Sample output written by hand · no model ran");
         expect(rendered["audit drawer"]).toContain("No model ran for this case.");
-        expect(rendered["walkthrough · understand_buyer"]).toContain("sample output written by hand; no model ran");
+        expect(rendered["walkthrough · understand_buyer"]).toContain("written by hand; no AI ran");
         expect(rendered["walkthrough · understand_buyer"]).toContain("Sample analysis · written by hand");
       }
     });
@@ -94,11 +94,10 @@ describe("hand-written sample cases never appear as model output", () => {
     const recorded = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
     const rendered = await surfaces(await svc.seedState(recorded, "replay"));
     expect(rendered["question badges"]).toContain("Suggested by AI");
-    expect(rendered["understand thread"]).toContain("Suggested by AI");
     expect(rendered["audit drawer"]).toContain("AI · Recorded Groq output");
     expect(rendered["audit drawer"]).toContain(`Recorded Groq output · run ${recorded.runId} · extract.v2`);
     expect(rendered["audit drawer"]).not.toContain("Sample output written by hand");
-    expect(rendered["walkthrough · understand_buyer"]).toContain("Groq structures the conversation");
+    expect(rendered["walkthrough · understand_buyer"]).toContain("Groq read the buyer&#x27;s messages");
     expect(rendered["walkthrough · understand_buyer"]).toContain("AI analysis");
   });
 });

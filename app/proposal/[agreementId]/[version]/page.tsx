@@ -56,9 +56,9 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const proposedNextSteps = amendment && changedLine && previousLine
       ? [
           amendment.mandateFit.fits
-            ? `The ${formatINR(changedLine.totalPaise)} payment is debited on ${formatDate(changedLine.dueDate.value)} under your existing authorisation, instead of ${formatDate(previousLine.dueDate.value)}.`
-            : `The ${formatINR(changedLine.totalPaise)} payment moves to ${formatDate(changedLine.dueDate.value)}; you will be asked for a fresh recurring authorisation.`,
-          "Until you accept, your current agreement and its schedule stay in place.",
+            ? `The ${formatINR(changedLine.totalPaise)} payment is taken on ${formatDate(changedLine.dueDate.value)} instead of ${formatDate(previousLine.dueDate.value)}, using your existing automatic payment setup.`
+            : `The ${formatINR(changedLine.totalPaise)} payment moves to ${formatDate(changedLine.dueDate.value)}; you will be asked to set up automatic payments again.`,
+          "Until you accept, nothing changes.",
         ]
       : view.nextSteps;
   const nextSteps = lifecycle.setupBasis === "proposed"
@@ -67,7 +67,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
       ? [replacement ? `Use version ${replacement.version} for the current terms and payment status.` : "This version is retained only as agreement history."]
       : lifecycle.state === "declined"
         ? ["No payment setup was created for this version."]
-        : [lifecycle.detail, `Service period: ${view.delivery.from} – ${view.delivery.to}. Payment completion does not confirm service delivery.`];
+        : [lifecycle.detail, `Work runs from ${view.delivery.from} to ${view.delivery.to}.`];
   const link = v.status === "active" || v.status === "accepted" || v.status === "superseded" ? s.paymentLinks.at(-1) ?? null : null;
 
   return (
@@ -88,7 +88,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         </h1>
         {amendment && changedLine && previousLine ? (
           <p className="mt-1 text-[14px] leading-6 text-ink-2" data-testid="revision-summary">
-            Review the payment, planned invoice date and unchanged terms below before accepting this revision.
+            Check what is changing below before you accept.
           </p>
         ) : null}
         <StatusBanner lifecycle={lifecycle} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} />
@@ -117,7 +117,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
               <div key={r.id} className="rounded-xl border border-[#ddd5ff] bg-violet-weak px-4 py-3 text-[13px]">
                 <div className="font-semibold text-ink">Change requested · {fmtTime(r.createdAt)}</div>
                 <p className="mt-0.5 text-ink-2">“{r.text}”</p>
-                <p className="mt-1 text-[12px] text-muted">Sent to {deal.merchant.name} in your WhatsApp conversation (simulated), referring to version {v.version}. This proposal is unchanged until they send a new version.</p>
+                <p className="mt-1 text-[12px] text-muted">We have sent this to {deal.merchant.name}. This proposal stays as it is until they send you a new version.</p>
               </div>
             ))}
           </section>

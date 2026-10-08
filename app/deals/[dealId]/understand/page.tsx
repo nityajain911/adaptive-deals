@@ -2,13 +2,12 @@ import Link from "next/link";
 import { ConversationThread } from "@/components/conversation-thread";
 import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/components/client";
 import { StageShell } from "@/components/deal/stage-shell";
-import { fmtTime } from "@/components/evidence";
 import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
 import { InfoButton } from "@/components/info-button";
 import { Badge, Card } from "@/components/ui";
 import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
-import { questionWordingLabel, taskOrRunProvenance } from "@/lib/model-provenance";
+import { taskOrRunProvenance } from "@/lib/model-provenance";
 import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
@@ -32,7 +31,6 @@ const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
 export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/understand">) {
   const { dealId } = await props.params;
   const { s, out, progress, activeCase, baseline } = await loadDeal(dealId);
-  const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const current = progress.stages.understand === "current";
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposalOf(baseline));
@@ -44,8 +42,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} extraction={extraction ?? { modelMade: false, providerName: null }} /> : null;
   const evidence = r.engine.profile.filter((f) => f.evidence.length);
   const answers = decisionAnswers(s);
-  const confirmedAt = answers.map((a) => a.answeredAt).sort().at(-1) ?? null;
-  const offerVersion = s.selectedOption?.draftVersion ?? s.agreements.at(-1)?.version ?? null;
   const primary = current ? progress.primaryAction : null;
   const memory = commercialMemoryForDeal({ merchantId: activeCase.deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: packages.map((item) => item.id) }, await loadKnowledgeSources());
 
@@ -58,7 +54,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
 
   const evidenceDetails = (
     <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence" data-walkthrough="constraint-evidence">
-      <summary className="cursor-pointer text-[13px] font-semibold text-ink">See evidence</summary>
+      <summary className="cursor-pointer text-[13px] font-semibold text-ink">Where this came from</summary>
       <ul className="mt-2 space-y-2 pb-2 text-[13px] text-ink-2">
         <li>
           <span className="font-semibold text-ink">Original annual proposal</span> · Source: synthetic deal fixture · ₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600
@@ -85,12 +81,11 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
       <StageShell dealId={dealId} viewing="understand">
         <Card className="p-5" data-testid="understand-settled">
           <div className="text-[15px] font-semibold text-ink">
-            Buyer constraints confirmed{offerVersion ? ` for offer version ${offerVersion}` : ""}
-            {confirmedAt ? ` · ${fmtTime(confirmedAt)}` : ""}
+            What the buyer needs is confirmed
           </div>
           <p className="mt-1 text-[14px] text-ink-2" data-testid="understand-summary">{understandSummary(out.profile, Object.fromEntries(packages.map((p) => [p.id, p.name])))}</p>
           <Link href={stageHref(dealId, progress.stage)} className="mt-2 inline-block text-[13px] font-semibold text-blue hover:underline">
-            Go to the current stage →
+            Continue →
           </Link>
           <details className="mt-3 rounded-xl border border-line px-4 py-2">
             <summary className="cursor-pointer text-[13px] font-semibold text-ink">Details</summary>
@@ -128,7 +123,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="space-y-5">
           <Card className="p-5" data-testid="blocking-card">
-            <h2 className="text-[16px] font-semibold text-ink">What&apos;s blocking this deal</h2>
+            <h2 className="text-[16px] font-semibold text-ink">What&apos;s in the way</h2>
             <ul className="mt-2 space-y-1.5 text-[14px] text-ink">
               {lines.map((l) => (
                 <li key={l}>{l}</li>
@@ -159,8 +154,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                 {questions.map(({ q, draft, reply }, qi) => (
                   <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
                     <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                      <Badge tone={q.wording === "ai" ? "blue" : "neutral"}>{questionWordingLabel(q.wording, provenance)}</Badge>
-                      {draft?.sentAt ? <Badge tone="green">Sent · {fmtTime(draft.sentAt)}</Badge> : <Badge tone="neutral">Not sent</Badge>}
+                      {draft?.sentAt ? <Badge tone="green">Sent</Badge> : <Badge tone="neutral">Not sent yet</Badge>}
                     </div>
                     <p className="mt-2 text-[15px] font-medium text-ink">
                       {q.question} <InfoButton label="Why this question matters" testId={`why-${q.id}`}>{q.whyItMatters}</InfoButton>
@@ -168,7 +162,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                     {reply ? (
                       <div className="mt-2 text-[13px] text-ink-2">
                         Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>
-                        {reply.refs.answerValue ? <span className="text-muted"> · ready to use</span> : null}
                         {!reply.refs.answerValue && primary?.id === "interpret_reply" ? <InterpretForm messageId={reply.id} buyerText={reply.text} options={INTERPRET_OPTIONS[q.id] ?? []} primary={qi === questions.findIndex((x) => x.reply && !x.reply.refs.answerValue)} /> : null}
                       </div>
                     ) : draft?.sentAt ? (

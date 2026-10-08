@@ -7,7 +7,7 @@ import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-illustrative";
 
-export const metadata = { title: "Business economics · Adaptive Deals" };
+export const metadata = { title: "Prices & costs · Adaptive Deals" };
 
 export default async function EconomicsPage() {
   await connection();

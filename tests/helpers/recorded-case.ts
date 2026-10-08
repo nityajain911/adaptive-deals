@@ -10,8 +10,8 @@ import { demoCase, type CaseId } from "@/data/synthetic/cases";
 import { CASE_RECORDED_RUN_DIR, CASE_RUN_MAP_FILE } from "@/lib/case-runs";
 
 /**
- * TEST-ONLY recorded run of the preserve-scope case. It replays the real Groq extraction recorded
- * for that case, whose `required_package` ("complete annual package") names no deal package, and
+ * TEST-ONLY recorded run of the preserve-scope case. It replays the case's extraction, which mimics the real Groq
+ * extraction recorded earlier (see data/synthetic/recorded-conversations.ts) and whose `required_package` ("complete annual package") names no deal package, and
  * the real explanation that failed its schema. It is built through the real orchestrator and
  * engine, labelled as a live Groq run, and written to a temporary directory, never to the repository.
  */
@@ -48,7 +48,7 @@ export function rootWith(records: { caseId: CaseId; record: RunRecord }[]): stri
 }
 
 export const PRESERVE_RUN_ID = "run-case-preserve-scope-0a1b2c3d";
-export const PRESERVE_OUTPUTS = { extract: fixture("preserve-scope-extract"), explain: fixture("preserve-scope-explain-schema-invalid") };
+export const PRESERVE_OUTPUTS = { extract: demoCase("preserve-scope")!.expected.extraction, explain: fixture("preserve-scope-explain-schema-invalid") };
 
 export const recordedPreserveScope = () => recordedRun({ caseId: "preserve-scope", runId: PRESERVE_RUN_ID, outputs: PRESERVE_OUTPUTS });
 

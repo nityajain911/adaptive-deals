@@ -71,9 +71,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
   {
     id: "business_economics",
     actor: "merchant",
-    title: "Set your business economics",
-    instruction: "Review the delivery costs and rules every recommended offer must respect. Change a cost, or load the illustrative example, then review and activate it yourself.",
-    notice: "Code checks every offer against these rules before you see it. The guide never activates anything for you.",
+    title: "Set your prices & costs",
+    instruction: "Look at the prices and costs your offers are worked out from. Change one, or try the example that allows discounts, then check and save it yourself.",
+    notice: "Every offer is checked against these before you see it. The guide never saves anything for you.",
     href: "/economics",
     anchorId: "economics-page",
     optional: false,
@@ -84,7 +84,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "merchant",
     title: "Choose a buyer situation",
     instruction: "Pick a buyer situation to start.",
-    notice: "Different buyer constraints lead to different commercial decisions.",
+    notice: "Different customers need different answers.",
     href: "/deals",
     anchorId: "case-picker",
     optional: false,
@@ -95,7 +95,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "sample",
     title: "Understand the buyer",
     instruction: "Check what was understood from the buyer's words.",
-    notice: "Code preserves uncertainty and evidence.",
+    notice: "The app keeps track of what the buyer said and what is still unclear.",
     href: "/deals/:dealId/understand",
     anchorId: "buyer-conversation",
     optional: false,
@@ -106,7 +106,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "engine",
     title: "Review the commercial decision",
     instruction: "Review the recommendation. You can choose a different offer.",
-    notice: "Deterministic code calculates feasibility and economics.",
+    notice: "The app, not AI, works out every figure and checks every limit.",
     href: "/deals/:dealId/offer",
     anchorId: "commercial-recommendation",
     optional: false,
@@ -117,7 +117,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "merchant",
     title: "Confirm the exact terms",
     instruction: "Both sides approve the same version of the terms.",
-    notice: "The merchant and buyer act on the same versioned terms.",
+    notice: "You and the buyer agree to exactly the same terms.",
     href: "/deals/:dealId/track",
     anchorId: "final-terms",
     optional: false,
@@ -139,7 +139,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "system",
     title: "Explore preventive restructuring",
     instruction: "See what happens when the buyer asks to move a payment.",
-    notice: "The product rechecks the revised schedule before either party approves it.",
+    notice: "The app checks the new schedule before either side agrees.",
     href: "/deals/:dealId/track",
     anchorId: "collection-setup",
     optional: true,
@@ -149,8 +149,8 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "negotiate_price",
     actor: "merchant",
     title: "Answer a buyer's price request",
-    instruction: "Before a fresh deal, open Business economics, load the illustrative example, then review and activate it yourself. When the buyer asks for a lower price, choose how to answer in the corridor.",
-    notice: "The corridor is calculated by code from your own rules. The guide never activates economics or sends an offer for you.",
+    instruction: "Before a fresh deal, open Prices & costs, try the example that allows discounts, then check and save it yourself. When the buyer asks for a lower price, choose how to answer.",
+    notice: "The lowest price and the discounts come from your own limits. The guide never saves your prices or sends an offer for you.",
     href: "/deals/:dealId/track",
     anchorId: "negotiation-corridor",
     optional: true,
@@ -270,15 +270,15 @@ function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughOb
   if (item.id === "understand_buyer") {
     const source = taskSource(state, "extract");
     return source.modelMade
-      ? { ...item, actor: "ai", notice: `${source.providerName} structures the conversation; code preserves uncertainty and evidence.` }
-      : { ...item, actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." };
+      ? { ...item, actor: "ai", notice: `${source.providerName} read the buyer's messages. The app keeps what is unclear and shows where each fact came from.` }
+      : { ...item, actor: "sample", notice: "The buyer's details in this case were written by hand; no AI ran. The app keeps what is unclear and shows where each fact came from." };
   }
   if (item.id === "review_decision") {
-    if (state.decisionBranch) return { ...item, notice: `The engine recalculated this decision after ${branchCause(state.decisionBranch)}; code set the order and wrote the explanation.` };
+    if (state.decisionBranch) return { ...item, notice: `The app worked this out again after ${branchCause(state.decisionBranch)}.` };
     const source = taskSource(state, "explain");
     return source.modelMade
-      ? { ...item, notice: "You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The recorded model order is kept as evidence only." }
-      : { ...item, notice: "You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only." };
+      ? { ...item, notice: "You choose what matters most; the app picks the offers and works out every figure. A saved AI ranking is kept only as history." }
+      : { ...item, notice: "You choose what matters most; the app picks the offers and works out every figure. This case's sample ranking was written by hand (no AI ran) and is kept only as history." };
   }
   return item;
 }
@@ -318,7 +318,7 @@ export function walkthroughView({ state, progress, dealId, capabilities, route }
     id: "business_economics",
     actor: "merchant",
     type: "merchant",
-    label: "Review your business economics",
+    label: "Review your prices & costs",
     href: "/economics",
     systemAction: null,
     usesReplyControl: false,

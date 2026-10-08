@@ -19,7 +19,7 @@
         "id": "no-fit-1",
         "dealId": "case-no-fit",
         "author": "merchant",
-        "text": "Our launch proposal is Website fixes, Search marketing, Social media and Monthly reporting for ₹1,20,000 plus GST, with delivery starting in November.",
+        "text": "Hi, our launch proposal is ₹1,20,000 plus GST for Website fixes, Search marketing, Social media and Monthly reporting, with delivery starting in November.",
         "timestamp": "2026-09-29T16:30:00+05:30",
         "source": "whatsapp"
       },
@@ -27,7 +27,7 @@
         "id": "no-fit-2",
         "dealId": "case-no-fit",
         "author": "buyer",
-        "text": "The retail launch cannot move: work must start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and need Website fixes, Search marketing, Social media and Monthly reporting. If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.",
+        "text": "Our retail launch can't move, so work has to start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and we need Website fixes, Search marketing, Social media and Monthly reporting. If you can't start by then, please tell us straight instead of changing the scope or timing.",
         "timestamp": "2026-10-01T08:55:00+05:30",
         "source": "whatsapp"
       }
@@ -61,8 +61,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "b7fa28985103172cff042a1b4107dbf5ddb68c677439ad42428dd5a915f41474",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"no-fit-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:30:00+05:30\">\nOur launch proposal is Website fixes, Search marketing, Social media and Monthly reporting for ₹1,20,000 plus GST, with delivery starting in November.\n</message>\n<message id=\"no-fit-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nThe retail launch cannot move: work must start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and need Website fixes, Search marketing, Social media and Monthly reporting. If no approved structure can meet that date, tell us plainly rather than changing the scope or timing.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "da406c1e18ebe08c0ea5f575971537af758fd12e49f7a5f751a68f430ae9d525",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"no-fit-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:30:00+05:30\">\nHi, our launch proposal is ₹1,20,000 plus GST for Website fixes, Search marketing, Social media and Monthly reporting, with delivery starting in November.\n</message>\n<message id=\"no-fit-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nOur retail launch can't move, so work has to start by the 15th this month. We have ₹2,00,000 available this quarter, including GST, and we need Website fixes, Search marketing, Social media and Monthly reporting. If you can't start by then, please tell us straight instead of changing the scope or timing.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -92,7 +92,7 @@
           {
             "key": "latest_start",
             "raw_text": "by the 15th",
-            "evidence_quote": "work must start by the 15th this month",
+            "evidence_quote": "work has to start by the 15th this month",
             "message_id": "no-fit-2",
             "confidence": "high"
           },
@@ -147,8 +147,8 @@
           {
             "quote": "₹2,00,000 available this quarter, including GST",
             "messageId": "no-fit-2",
-            "start": 79,
-            "end": 126
+            "start": 83,
+            "end": 130
           }
         ],
         "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
@@ -202,8 +202,8 @@
           {
             "quote": "₹2,00,000 available this quarter, including GST",
             "messageId": "no-fit-2",
-            "start": 79,
-            "end": 126
+            "start": 83,
+            "end": 130
           }
         ],
         "transformation": "GST keyword",
@@ -219,10 +219,10 @@
         "rawText": "by the 15th",
         "evidence": [
           {
-            "quote": "work must start by the 15th this month",
+            "quote": "work has to start by the 15th this month",
             "messageId": "no-fit-2",
-            "start": 31,
-            "end": 69
+            "start": 33,
+            "end": 73
           }
         ],
         "transformation": "next occurrence of day 15 on or after message date 2026-10-01",
@@ -240,26 +240,26 @@
           {
             "quote": "Website fixes, Search marketing, Social media and Monthly reporting",
             "messageId": "no-fit-2",
-            "start": 137,
-            "end": 204
+            "start": 144,
+            "end": 211
           },
           {
             "quote": "Website fixes, Search marketing, Social media and Monthly reporting",
             "messageId": "no-fit-2",
-            "start": 137,
-            "end": 204
+            "start": 144,
+            "end": 211
           },
           {
             "quote": "Website fixes, Search marketing, Social media and Monthly reporting",
             "messageId": "no-fit-2",
-            "start": 137,
-            "end": 204
+            "start": 144,
+            "end": 211
           },
           {
             "quote": "Website fixes, Search marketing, Social media and Monthly reporting",
             "messageId": "no-fit-2",
-            "start": 137,
-            "end": 204
+            "start": 144,
+            "end": 211
           }
         ],
         "transformation": "matched to deal packages",

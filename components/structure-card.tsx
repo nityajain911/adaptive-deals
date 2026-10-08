@@ -51,7 +51,7 @@ export function Checks({ title, checks }: { title: string; checks: CheckResult[]
 }
 
 export function ApprovalBadge({ approval }: { approval: EvaluatedStructure["approval"] }) {
-  return approval === "requires_approval" ? <Badge tone="amber">Needs buyer&apos;s MD approval</Badge> : approval === "within_limit" ? <Badge tone="green">Within buyer&apos;s approval limit</Badge> : null;
+  return approval === "requires_approval" ? <Badge tone="amber">Needs their MD&apos;s approval</Badge> : approval === "within_limit" ? <Badge tone="green">Within their approval limit</Badge> : null;
 }
 
 export function PaymentTable({ x }: { x: EvaluatedStructure }) {
@@ -62,7 +62,7 @@ export function PaymentTable({ x }: { x: EvaluatedStructure }) {
       hideOnMobile={[1]}
       head={["Due", "Method", "Excl. GST", "GST", "Total"]}
       rows={[
-        ...p.map((l) => [<span key="d" className="whitespace-nowrap">{formatDate(l.dueDate)}</span>, l.method === "payment_link" ? "Payment link" : "Recurring debit", formatINR(l.prePaise), formatINR(l.gstPaise), <strong key="t">{formatINR(l.totalPaise)}</strong>]),
+        ...p.map((l) => [<span key="d" className="whitespace-nowrap">{formatDate(l.dueDate)}</span>, l.method === "payment_link" ? "Pay online (link)" : "Automatic payment", formatINR(l.prePaise), formatINR(l.gstPaise), <strong key="t">{formatINR(l.totalPaise)}</strong>]),
         [<strong key="l">Total</strong>, "", formatINR(sum(p.map((l) => l.prePaise))), formatINR(sum(p.map((l) => l.gstPaise))), <strong key="t">{formatINR(sum(p.map((l) => l.totalPaise)))}</strong>],
       ]}
     />

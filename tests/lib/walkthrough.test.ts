@@ -105,7 +105,7 @@ describe("walkthrough state comes from the deal", () => {
     const view = resolve(state, progress("track.buyer_request", "track", "merchant", "action_required"));
     expect(view.currentObjectiveId).toBe("negotiate_price");
     expect(view.stepLabel).toBe("Explore another product capability");
-    expect(JSON.stringify(view.objectives.find((x) => x.id === "negotiate_price"))).toMatch(/never activates economics or sends an offer/);
+    expect(JSON.stringify(view.objectives.find((x) => x.id === "negotiate_price"))).toMatch(/never saves your prices or sends an offer/);
     // A change request about anything else keeps its previous mapping.
     expect(resolve(started(), progress("track.buyer_request", "track", "merchant", "action_required")).currentObjectiveId).not.toBe("negotiate_price");
   });
@@ -165,9 +165,9 @@ describe("run provenance", () => {
     const view = resolve(started(), p);
     expect(view.provenance).toBe("synthetic_replay");
     expect(view.provenanceLabel).toBe("Sample output written by hand · no model ran");
-    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "sample", notice: "The structured constraints in this case are sample output written by hand; no model ran. Code preserves uncertainty and evidence." });
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only.");
-    expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
+    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "sample", notice: "The buyer's details in this case were written by hand; no AI ran. The app keeps what is unclear and shows where each fact came from." });
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose what matters most; the app picks the offers and works out every figure. This case's sample ranking was written by hand (no AI ran) and is kept only as history.");
+    expect(JSON.stringify(view)).not.toMatch(/Groq|(?<!no )\bAI\b/);
   });
 
   it("names the provider for a recorded run and for a fresh live run", async () => {
@@ -176,8 +176,8 @@ describe("run provenance", () => {
     const replayed = resolve(live, p);
     expect(replayed.provenance).toBe("live_groq_replay");
     expect(replayed.provenanceLabel).toBe("Recorded Groq output");
-    expect(replayed.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
-    expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The recorded model order is kept as evidence only.");
+    expect(replayed.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq read the buyer's messages. The app keeps what is unclear and shows where each fact came from." });
+    expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose what matters most; the app picks the offers and works out every figure. A saved AI ranking is kept only as history.");
 
     live.run.viewing = "fresh";
     expect(resolve(live, p)).toMatchObject({ provenance: "live_groq", provenanceLabel: "Live Groq output" });
@@ -188,8 +188,8 @@ describe("run provenance", () => {
     // Test-only: add a hand-written explanation step to an otherwise recorded Groq run.
     live.run.record.steps = [...live.run.record.steps, { ...live.run.record.steps[0], task: "explain", provider: "synthetic_replay" }];
     const view = resolve(live, await svc.progressOf(await svc.seedState(recordedRun(), "replay")));
-    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq structures the conversation; code preserves uncertainty and evidence." });
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose the strategy; deterministic code ranks the feasible offers and calculates every figure. The sample order in this case was written by hand; no model ran, and it is kept as evidence only.");
+    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq read the buyer's messages. The app keeps what is unclear and shows where each fact came from." });
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose what matters most; the app picks the offers and works out every figure. This case's sample ranking was written by hand (no AI ran) and is kept only as history.");
   });
 
   it("does not credit a model when a record marked live carries hand-written steps", async () => {
@@ -197,21 +197,21 @@ describe("run provenance", () => {
     mislabelled.run.record.kind = "live";
     const view = resolve(mislabelled, await svc.progressOf(fresh));
     expect(view.provenance).toBe("synthetic_replay");
-    expect(JSON.stringify(view)).not.toMatch(/\bAI\b|Groq/);
+    expect(JSON.stringify(view)).not.toMatch(/Groq|(?<!no )\bAI\b/);
   });
 
   it("says a merchant confirmation recalculated the decision, and credits no model for the order", async () => {
     const branched = started();
     branched.decisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "branch-1", parentRunId: branched.run.record.runId, createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "merchant_scope_confirmation", answersChanged: false, scope: { kind: "required_services", packageIds: ["website-fixes"], confirmedAt: "2026-10-01T09:30:00+05:30", by: "Merchant", sources: [{ rawText: "x", evidenceQuote: "x", messageId: "m1", extractInputHash: "h" }] }, explanationSource: "code_fallback" };
     const view = resolve(branched, await svc.progressOf(fresh));
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The engine recalculated this decision after the merchant confirmed the services; code set the order and wrote the explanation.");
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The app worked this out again after the merchant confirmed the services.");
   });
 
   it("credits code, not the parent run, on a changed-answer branch", async () => {
     const branched = started();
     branched.decisionBranch = { schema: "adaptive-deals.decision-branch.v1", branchId: "branch-1", parentRunId: branched.run.record.runId, createdAt: "2026-10-01T09:30:00+05:30", answers: [], reason: "changed_clarification_answers", explanationSource: "code_fallback" };
     const view = resolve(branched, await svc.progressOf(fresh));
-    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The engine recalculated this decision after the buyer's answer; code set the order and wrote the explanation.");
+    expect(view.objectives.find((item) => item.id === "review_decision")!.notice).toBe("The app worked this out again after the buyer's answer.");
   });
 });
 

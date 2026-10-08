@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { MessageCircle } from "lucide-react";
 import type { ConversationItem } from "@/domain/conversation";
-import { clarificationDraftLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import type { Message } from "@/domain/types";
 import type { DemoState } from "@/lib/service";
 import { activeVersionOf, noticeReplyOutcome } from "@/lib/views";
@@ -10,7 +9,7 @@ import { chatHighlights } from "@/lib/chat-highlights";
 import { ChatScroll } from "./chat/chat-scroll";
 import { HighlightedText } from "./chat/highlighted-text";
 import { fmtTime } from "./evidence";
-import { Badge, cx, type Tone } from "./ui";
+import { Badge, cx } from "./ui";
 
 /**
  * The simulated conversation, scoped to a stage (spec §4, §6.1). It is an input surface only:
@@ -23,15 +22,8 @@ const KIND: Record<ConversationItem["kind"], string> = {
   payment: "Payment",
   amendment: "Revised proposal",
   buyer_reply: "Reply",
-  change_request: "Change request (proposal page)",
-  decline: "Declined (proposal page)",
-};
-const STATE_TONE: Record<ConversationItem["state"], Tone> = {
-  suggested_by_ai: "blue",
-  drafted_by_code: "neutral",
-  approved_and_sent_by_merchant: "green",
-  sent_by_adaptive_deals: "neutral",
-  received_from_buyer: "amber",
+  change_request: "Change request",
+  decline: "Declined",
 };
 
 function linkify(text: string): ReactNode[] {
@@ -47,8 +39,6 @@ function linkify(text: string): ReactNode[] {
 }
 
 export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2 }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number }) {
-  // Draft badges follow who actually produced this run's clarification wording.
-  const provenance = taskOrRunProvenance(s.run.record, "clarify", s.run.viewing);
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -83,8 +73,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
       <>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
           <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : buyerName}</span>
-          {outbound ? <Badge tone={STATE_TONE[i.state]}>{draft ? "Draft · not sent" : clarificationDraftLabel(i.state, provenance)}</Badge> : null}
-          {outbound && draft ? <Badge tone={STATE_TONE[i.state]}>{clarificationDraftLabel(i.state, provenance)}</Badge> : null}
+          {outbound && draft ? <Badge tone="neutral">Not sent yet</Badge> : null}
           {!outbound && i.source === "buyer_proposal_page" ? <span>From the buyer proposal page</span> : null}
         </div>
         <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
@@ -92,12 +81,12 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         {outcome ? (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
             <Badge tone={outcome.tone}>{outcome.label}</Badge>
-            <span className="text-muted">Read by code (reply-rules.v1), not AI · {outcome.detail}</span>
+            <span className="text-muted">{outcome.detail}</span>
           </div>
         ) : null}
         {disposition ? (
           <div className="mt-1 text-[13px] text-muted" data-testid={`disposition-${i.id}`}>
-            Merchant decision: {disposition.kind === "keep_current_terms" ? "Keep current terms" : disposition.kind === "handled_outside" ? "Handled outside Adaptive Deals" : disposition.kind === "countered" ? "Answered with a counter-offer" : disposition.kind === "answered_with_offer" ? "Answered with a different offer" : "Follow-up still pending"}
+            Merchant decision: {disposition.kind === "keep_current_terms" ? "Kept your offer as it is" : disposition.kind === "handled_outside" ? "Handled outside the app" : disposition.kind === "countered" ? "Answered with your own amount" : disposition.kind === "answered_with_offer" ? "Answered with a different offer" : "Will follow up later"}
             {disposition.note ? ` · ${disposition.note}` : ""}
           </div>
         ) : null}
@@ -125,7 +114,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         <h2 id={`thread-${scope}`} className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           <MessageCircle aria-hidden className="h-4 w-4 text-green" /> {buyerName}
         </h2>
-        <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[13px] text-ink-2">Simulated conversation</span>
+        <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[13px] text-ink-2">WhatsApp (simulated)</span>
       </div>
       <ChatScroll label="Messages">
         {openingChronological.map(openingBubble)}

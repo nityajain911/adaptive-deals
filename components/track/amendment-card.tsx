@@ -33,28 +33,28 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
   }
   return (
     <details id="amendment-card" open={open} className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="amendment-card">
-      <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">Buyer asked to move a payment</summary>
+      <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">The buyer asked to move a payment</summary>
       <div className="space-y-4 border-t border-line px-5 py-4">
         <div className="text-[13px]">
           <div className="text-ink">
             Buyer: <span className="font-medium">“{reply?.text}”</span>
           </div>
           <div className="mt-1 text-muted" data-testid="code-reading">
-            Read by code, not AI: “{cr.phrase}” → unavailable through {formatDate(cr.unavailableUntil)} → earliest debit {formatDate(cr.earliestDebit)}
+            They said “{cr.phrase}”, so the earliest they can pay is {formatDate(cr.earliestDebit)}.
           </div>
         </div>
         {a && line ? (
           <>
             {fromV && toV ? <AmendmentDifferences differences={amendmentDiff(fromV.terms, toV.terms)} /> : null}
-            <p className="text-[13px] font-medium text-green">Rechecked: {a.revised.verdict === "feasible" ? "passes the buyer's limits and your rules." : "does not pass every check."}</p>
+            <p className="text-[13px] font-medium text-green">Checked: {a.revised.verdict === "feasible" ? "this works for them and stays within your limits." : "this does not pass every check."}</p>
             <details className="rounded-xl border border-line px-4 py-2">
-              <summary className="cursor-pointer text-[13px] font-semibold text-blue">See rechecks</summary>
+              <summary className="cursor-pointer text-[13px] font-semibold text-blue">Details</summary>
               <div className="grid grid-cols-1 gap-4 py-2 md:grid-cols-2">
-                <Checks title="Buyer checks" checks={a.revised.buyerChecks} />
-                <Checks title="Seller checks" checks={a.revised.sellerChecks} />
+                <Checks title="What they need" checks={a.revised.buyerChecks} />
+                <Checks title="Your limits" checks={a.revised.sellerChecks} />
               </div>
               <p className="pb-2 text-[13px] text-muted">
-                Projected contribution {formatINR(a.revised.economics.netContributionPaise)} · peak funding requirement {formatINR(a.revised.economics.peakFundingPaise)} · amendment summary written by code from verified state.
+                You&apos;d still keep about {formatINR(a.revised.economics.netContributionPaise)}.
               </p>
             </details>
             <ul className="space-y-0.5 rounded-xl bg-surface-muted px-4 py-3 text-[13px] text-ink-2" data-testid="collection-truth">
@@ -64,7 +64,7 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
             </ul>
             {a.state === "proposed" && toV ? (
               <ActionButton body={{ action: "approve_amendment", termsHash: toV.termsHash }} variant="primary" testId="approve-revised-terms">
-                Approve revised terms
+                Approve the new terms
               </ActionButton>
             ) : null}
             {a.state === "merchant_approved" && toV ? (
@@ -77,7 +77,7 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
             ) : null}
           </>
         ) : (
-          <p className="text-[13px] text-ink-2">No revised payment date becomes active until both you and the buyer approve.</p>
+          <p className="text-[13px] text-ink-2">Nothing changes until you and the buyer both agree.</p>
         )}
       </div>
     </details>

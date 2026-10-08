@@ -87,7 +87,7 @@ export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
       sourceId: message.id,
       version: currentVersion,
       text: message.text,
-      detail: "The buyer requested a change. The current proposal remains unchanged until the merchant decides what to do.",
+      detail: "They asked for a change. Your offer stays as it is until you decide.",
       occurredAt: message.createdAt,
       note: null,
       dateAmbiguity: false,
@@ -325,21 +325,21 @@ export function buyerProposalLifecycle(args: {
     return { ...base, state: "waiting_on_merchant", headline: "Waiting for Pinecone Media Works", detail: "Your change request was sent. This version stays unchanged while the merchant reviews it.", nextHeading: "While you wait", setupBasis: "proposed", showResponseActions: false };
   }
   if (agreement.status === "sent") {
-    return { ...base, state: "awaiting_response", headline: "Review and respond", detail: "Payment setup shown below is proposed and starts only after you accept.", nextHeading: "After you accept", setupBasis: "proposed", showResponseActions: true };
+    return { ...base, state: "awaiting_response", headline: "Review and respond", detail: "The payment steps below start only after you accept.", nextHeading: "After you accept", setupBasis: "proposed", showResponseActions: true };
   }
 
-  const link = args.paymentLinkStatus === "paid" ? "payment link paid" : args.paymentLinkStatus === "partially_paid" ? "payment link partially paid" : args.paymentLinkStatus ? "payment link awaiting payment" : "no payment link required";
-  const mandate = args.mandateStatus === "confirmed" ? "mandate confirmed" : args.mandateStatus === "pending" ? "mandate pending" : args.mandateStatus ? `mandate ${args.mandateStatus}` : "no mandate required";
+  const link = args.paymentLinkStatus === "paid" ? "payment link paid" : args.paymentLinkStatus === "partially_paid" ? "payment link partly paid" : args.paymentLinkStatus ? "payment link waiting to be paid" : "no payment link needed";
+  const mandate = args.mandateStatus === "confirmed" ? "automatic payments set up" : args.mandateStatus === "pending" ? "automatic payments waiting to be set up" : args.mandateStatus ? `automatic payments ${args.mandateStatus}` : "no automatic payments needed";
   if (args.fullyPaid) {
-    return { ...base, state: "paid", headline: "Payments complete", detail: `${link} · ${mandate}. Payment completion does not confirm service delivery.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+    return { ...base, state: "paid", headline: "Payments complete", detail: `${link} · ${mandate}. `, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
   }
   const retry = args.attempts.filter((a) => a.status === "scheduled" && a.origin === "internal_retry").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
   if (retry) {
-    return { ...base, state: "retry_scheduled", headline: `Retry scheduled for ${formatDate(retry.dueDate)}`, detail: `${link} · ${mandate}. The failed attempt remains in the payment history.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+    return { ...base, state: "retry_scheduled", headline: `Retry scheduled for ${formatDate(retry.dueDate)}`, detail: `${link} · ${mandate}. The failed attempt stays in the history.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
   }
   const submitted = args.attempts.find((a) => a.status === "submitted");
   if (submitted) {
-    return { ...base, state: "payment_pending", headline: "Payment outcome pending", detail: `${link} · ${mandate}. The submitted debit has not been recorded as paid.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
+    return { ...base, state: "payment_pending", headline: "Waiting for the payment result", detail: `${link} · ${mandate}. The payment has been sent and is not confirmed yet.`, nextHeading: "Current status", setupBasis: "actual", showResponseActions: false };
   }
   const scheduled = args.attempts.filter((a) => a.status === "scheduled").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
   if (scheduled) {
@@ -358,7 +358,7 @@ export function proposalView(v: Pick<AgreementVersion, "version" | "terms">, pac
     id: p.id,
     dueDate: p.dueDate.value,
     date: formatDate(p.dueDate.value),
-    method: p.method === "payment_link" ? "Payment link" : "Recurring debit (e-mandate)",
+    method: p.method === "payment_link" ? "Pay online (link)" : "Automatic payment",
     prePaise: p.prePaise,
     gstPaise: p.gstPaise,
     totalPaise: p.totalPaise,
@@ -366,12 +366,12 @@ export function proposalView(v: Pick<AgreementVersion, "version" | "terms">, pac
   const recurringLines = t.paymentSchedule.filter((p) => p.method === "recurring_debit");
   const link = t.paymentSchedule.find((p) => p.method === "payment_link");
   const nextSteps = [
-    link ? `You receive a payment link for ${formatINR(link.totalPaise)}, due ${formatDate(link.dueDate.value)}.` : null,
+    link ? `You get a payment link for ${formatINR(link.totalPaise)}, due ${formatDate(link.dueDate.value)}.` : null,
     t.mandate && recurringLines.length
-      ? `You set up a recurring authorisation of up to ${formatINR(t.mandate.perDebitLimitPaise)} per debit, ending ${formatDate(t.mandate.endDate.value)}. ${recurringLines.length === 1 ? "The later payment is" : "Later payments are"} debited on the dates above, with a reminder ${policy.advanceNoticeDays} days before each one.`
+      ? `You set up automatic payments of up to ${formatINR(t.mandate.perDebitLimitPaise)} each, until ${formatDate(t.mandate.endDate.value)}. ${recurringLines.length === 1 ? "The later payment is" : "Later payments are"} taken on the dates above, and we remind you ${policy.advanceNoticeDays} days before.`
       : null,
     `Work starts ${formatDate(`${t.deliverySchedule[0].month.value}-01`)}.`,
-    "If a date stops working for you, reply to the reminder. Nothing changes until you accept a revised version.",
+    "If a date does not work for you, tell us when you get the reminder. Nothing changes until you accept a new version.",
   ].filter((x): x is string => !!x);
   return {
     version: v.version,

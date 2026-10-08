@@ -63,7 +63,7 @@ function readCsv(active: BusinessEconomics, source: KnowledgeSource, services: S
       if (overlaps(spans, row.start, row.end)) return { service: null, rupees: null, note: { line: row.text, reason: "This line looks like an instruction, so it was ignored" } };
       if (row.cells.some((cell) => FORMULA.test(cell.text))) return { service: null, rupees: null, note: { line: row.text, reason: "A cell starts with =, +, - or @ (a formula or negative value), so the row was ignored" } };
       const named = servicesIn(row.cells[serviceColumn]?.text ?? "", services);
-      if (named.length !== 1) return { service: null, rupees: null, note: { line: row.text, reason: named.length ? "More than one service is named in this row" : "The service is not one of your services in Business economics" } };
+      if (named.length !== 1) return { service: null, rupees: null, note: { line: row.text, reason: named.length ? "More than one service is named in this row" : "The service is not one of your services in Prices & costs" } };
       const rupees = singleAmount(row.cells[amountColumn!]?.text ?? "", named[0]!);
       return rupees === null ? { service: named[0]!, rupees: null, note: { line: row.text, reason: "The amount column must hold exactly one amount" } } : { service: named[0]!, rupees, note: null };
     };

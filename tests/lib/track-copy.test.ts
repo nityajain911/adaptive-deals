@@ -34,24 +34,24 @@ describe("collection truth for an amendment", () => {
   it("original debit still scheduled (preventive)", () => {
     const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "scheduled")], agreements: [v1] } as never;
     expect(collectionTruth(s, amendment)).toEqual([
-      "No revised payment date becomes active until both you and the buyer approve.",
-      "Original 1 Dec 2026 debit: still scheduled.",
-      "Revised date 21 Dec 2026: pending approval.",
+      "Nothing changes until you and the buyer both agree.",
+      "The 1 Dec 2026 payment: still planned.",
+      "New date 21 Dec 2026: waiting for agreement.",
     ]);
   });
   it("original debit failed with an internal retry scheduled", () => {
     const s = { attempts: [att("a2", "pay-2", "2026-12-01", "failed"), att("r1", "pay-2", "2026-12-04", "scheduled", { origin: "internal_retry" })], agreements: [v1] } as never;
     const lines = collectionTruth(s, amendment);
-    expect(lines).toContain("Original 1 Dec 2026 debit: failed.");
-    expect(lines).toContain("Internal retry scheduled for 4 Dec 2026.");
-    expect(lines.join(" ")).not.toMatch(/still scheduled|retry removed/);
+    expect(lines).toContain("The 1 Dec 2026 payment: failed.");
+    expect(lines).toContain("We will try again on 4 Dec 2026.");
+    expect(lines.join(" ")).not.toMatch(/still planned|retry was cancelled/);
   });
   it("retry removed only when the domain removed it", () => {
     const s = { attempts: [att("a2", "pay-2", "2026-12-01", "failed"), att("r1", "pay-2", "2026-12-04", "removed", { origin: "internal_retry" }), att("n1", "pay-2", "2026-12-21", "scheduled", { origin: "amendment", agreementVersion: 2 })], agreements: [{ ...v1, status: "superseded" }, v2] } as never;
     const lines = collectionTruth(s, { ...(amendment as object), state: "active" } as never);
-    expect(lines).toContain("Internal retry removed.");
-    expect(lines).toContain("Revised date 21 Dec 2026: scheduled.");
-    expect(lines.join(" ")).not.toMatch(/until both you and the buyer approve/);
+    expect(lines).toContain("The retry was cancelled.");
+    expect(lines).toContain("New date 21 Dec 2026: planned.");
+    expect(lines.join(" ")).not.toMatch(/both agree/);
   });
 });
 
@@ -60,7 +60,7 @@ describe("payment schedule rows", () => {
     const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "failed"), att("r1", "pay-2", "2026-12-04", "scheduled", { origin: "internal_retry" })], agreements: [v1] } as never;
     expect(scheduleRows(s, 1).map((r) => [r.lineId, r.status])).toEqual([
       ["pay-1", "Paid"],
-      ["pay-2", "Retry scheduled for 4 Dec 2026"],
+      ["pay-2", "Trying again on 4 Dec 2026"],
     ]);
   });
   it("a rescheduled line shows its new date and the date it replaced", () => {

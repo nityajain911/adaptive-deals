@@ -128,10 +128,10 @@ describe("the audit of the merchant's exceptions and overrides", () => {
     const { merchantExceptions } = await import("@/lib/audit");
     const audit = merchantExceptions(s);
     expect(audit.inputOverrides).toEqual([
-      expect.objectContaining({ what: "Maximum cash exposure: ₹10,000 → ₹20,000", direction: "Loosens your account rule", reason: "Client pays a deposit first", by: "Merchant (Pinecone Media Works)", economicsVersion: 1 }),
+      expect.objectContaining({ what: "Most I'll spend before I'm paid: ₹10,000 → ₹20,000", direction: "Loosens your account rule", reason: "Client pays a deposit first", by: "Merchant (Pinecone Media Works)", economicsVersion: 1 }),
     ]);
     expect(audit.failedRuleExceptions).toEqual([
-      expect.objectContaining({ total: expect.stringMatching(/^₹40,0/), rules: [expect.stringMatching(/Discount .* above the 0% limit/)], reason: REASON, by: "Merchant (Pinecone Media Works)", negativeContribution: false, economicsVersion: 1 }),
+      expect.objectContaining({ total: expect.stringMatching(/^₹40,0/), rules: [expect.stringMatching(/Discount .* above your 0% limit/)], reason: REASON, by: "Merchant (Pinecone Media Works)", negativeContribution: false, economicsVersion: 1 }),
     ]);
     expect(audit.inputOverrides.concat(audit.failedRuleExceptions as never).every((e) => /^\d{4}-\d{2}-\d{2}T/.test(e.at))).toBe(true);
   });

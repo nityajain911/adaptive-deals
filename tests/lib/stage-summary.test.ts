@@ -1,12 +1,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { interpretExtraction } from "@/ai/extract";
 import { readFileSync } from "node:fs";
-import { demoCase } from "@/data/synthetic/cases";
+import { recordedDeal } from "@/data/synthetic/recorded-conversations";
 import type { ConstraintProfile } from "@/domain/types";
 import { understandSummary } from "@/lib/stage-summary";
 import { applyScopeConfirmation, confirmScope, unmappedRequiredServices } from "@/lib/scope-confirmation";
 
-const deal = demoCase("preserve-scope")!.deal;
+// The real Groq extraction was made on the original conversation, so it is read against those messages.
+const deal = recordedDeal("preserve-scope");
 const rawOutput = (JSON.parse(readFileSync("tests/fixtures/preserve-scope-extract.json", "utf8")) as { rawOutput: unknown }).rawOutput;
 const names = Object.fromEntries(deal.packages.map((p) => [p.id, p.name]));
 let profile: ConstraintProfile;

@@ -16,7 +16,7 @@ describe("commercial case picker copy", () => {
       expect(card.barrier).toBeTruthy();
       expect(card.proofPoint).toBeTruthy();
       expect(card.provenance).toBe("Synthetic scenario");
-      expect(card.actionLabel).toBe("Start this case");
+      expect(card.actionLabel).toBe("Start this deal");
     }
   });
 
@@ -26,7 +26,7 @@ describe("commercial case picker copy", () => {
   });
 
   it("warns that selecting another case replaces unfinished demo progress", () => {
-    expect(CASE_SWITCH_WARNING).toBe("Starting another case resets unfinished demo progress.");
+    expect(CASE_SWITCH_WARNING).toBe("Starting a new deal clears the current one.");
   });
 
   it("does not claim outcomes or model certainty that the prototype cannot prove", () => {

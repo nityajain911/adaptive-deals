@@ -121,7 +121,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);
     const buyerRequest = f.workItems.find((w) => w.kind === "buyer_request");
-    if (buyerRequest) return act("track", "track.buyer_request", "The buyer requested a change. Review it before the deal continues.", "review_buyer_request", "Review buyer request", buyerRequest.version);
+    if (buyerRequest) return act("track", "track.buyer_request", "The buyer asked for a change. Answer them before the deal can move on.", "review_buyer_request", "Review buyer request", buyerRequest.version);
     if (a?.state === "proposed") return act("track", "track.amendment_merchant", "The buyer asked to move a payment. Review the revised terms.", "review_revised_terms", "Review revised terms", a.toVersion);
     if (a?.state === "merchant_approved") return info("track", "track.amendment_buyer", "waiting_on_buyer", "buyer", "Waiting for the buyer to accept the revised terms.", a.toVersion);
     const conflict = f.workItems.find((w) => w.kind === "conflicting_evidence");

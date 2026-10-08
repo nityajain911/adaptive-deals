@@ -40,7 +40,7 @@ describe("hero fixture through the real engine", () => {
     for (const d of fails[0].facts.dueDates as string[]) {
       expect(d >= "2027-01-01" && d < "2027-04-01").toBe(true);
     }
-    expect(explainCheck(fails[0])).toMatch(/before the buyer's next budget \(Apr 2027\)/);
+    expect(explainCheck(fails[0])).toMatch(/fall before their next budget \(Apr 2027\)/);
   });
 
   it("rejects at least one option on seller economics even though the buyer could carry it out", () => {

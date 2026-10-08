@@ -79,7 +79,7 @@ describe("confirming the required services", () => {
     expect(branch.scope!.sources).toEqual([
       {
         rawText: "complete annual package",
-        evidenceQuote: "We need the complete annual package—Website fixes, Search marketing, Social media and Monthly reporting—for the admissions launch",
+        evidenceQuote: "We need the complete annual package for the admissions launch",
         messageId: "preserve-2",
         extractInputHash: before.run.record.steps.find((x) => x.task === "extract")!.inputHash,
       },
@@ -149,7 +149,7 @@ describe("the confirmation together with clarification answers", () => {
     const item = demoCase("reduced-scope")!;
     const base = item.expected.extraction;
     const required = base.fields.find((f) => f.key === "required_package")!;
-    const extract: ExtractionOutput = { ...base, fields: [...base.fields.filter((f) => f.key !== "required_package"), { ...required, raw_text: "the pieces we need now" }] };
+    const extract: ExtractionOutput = { ...base, fields: [...base.fields.filter((f) => f.key !== "required_package"), { ...required, raw_text: "what we need right now" }] };
     const outputs = { extract, clarify: caseAuthoredOutputs["reduced-scope"].clarify, explain: caseAuthoredOutputs["reduced-scope"].explain };
     const record = await recordedRun({ caseId: "reduced-scope", runId: "run-case-reduced-scope-0a1b2c3d", outputs, answers: item.expected.recordedAnswers });
     process.env.ADAPTIVE_DEALS_CASE_RUN_ROOT = rootWith([{ caseId: "reduced-scope", record }]);
@@ -200,12 +200,14 @@ describe("the confirmation together with clarification answers", () => {
 });
 
 describe("a recorded run is separate from the sample", () => {
-  it("never gates a hand-written sample", async () => {
+  it("gates the hand-written preserve-scope sample too, because its buyer names the package without naming the services", async () => {
     process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
     try {
       const s = await svc.startCase("preserve-scope");
       expect(s.run.record.kind).toBe("synthetic_replay");
-      expect((await svc.progressOf(s)).rule).toBe("offer.review");
+      expect((await svc.progressOf(s)).rule).toBe("understand.scope");
+      const clear = await svc.startCase("no-fit");
+      expect((await svc.progressOf(clear)).rule).not.toBe("understand.scope");
     } finally {
       delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
     }

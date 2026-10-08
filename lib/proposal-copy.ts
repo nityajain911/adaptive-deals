@@ -11,14 +11,14 @@ export function proposalGlance(v: Pick<ProposalView, "included" | "totalPaise" |
 
 /** The attestation the buyer makes, worded from the terms they accept. The disclosure stays a separate note. */
 export function authorityStatement(reason: ProposalView["authorityReason"], totalPaise: number): { label: string | null; note: string | null } {
-  if (reason === "required_approval") return { label: `I confirm the required internal approval for this ${formatINR(totalPaise)} agreement has been obtained.`, note: "Adaptive Deals does not verify who approved it." };
-  if (reason === "phase_scope") return { label: `I confirm I am authorised to buy this standalone ${formatINR(totalPaise)} package.`, note: null };
+  if (reason === "required_approval") return { label: `I confirm my company has approved this ${formatINR(totalPaise)} deal.`, note: "We can't check who approved it." };
+  if (reason === "phase_scope") return { label: `I confirm I am allowed to buy this ${formatINR(totalPaise)} package.`, note: null };
   return { label: null, note: null };
 }
 
 /** Collection happens on the scheduled dates; moving one needs a revised proposal that both sides accept. */
 export function recurringStatement(r: NonNullable<ProposalView["recurring"]>, merchantName: string): string {
-  return `You authorise ${merchantName} to collect the scheduled payments above, each up to ${formatINR(r.perDebitLimitPaise)}, until ${r.endDate}. You get a reminder ${r.noticeDays} days before each one. A payment date changes only if you both accept a revised proposal.`;
+  return `You allow ${merchantName} to take the payments above automatically, up to ${formatINR(r.perDebitLimitPaise)} each, until ${r.endDate}. We remind you ${r.noticeDays} days before each one. A payment date changes only if you both agree to a new version.`;
 }
 
 /**
@@ -27,7 +27,7 @@ export function recurringStatement(r: NonNullable<ProposalView["recurring"]>, me
  */
 export const CHANGE_STARTERS = [
   { id: "date", label: "A different payment date", text: "I'd like a different payment date: " },
-  { id: "scope", label: "A different scope", text: "I'd like to change what's included: " },
+  { id: "scope", label: "Change what's included", text: "I'd like to change what's included: " },
   { id: "price", label: "A lower price", text: "Could you do a lower total? " },
   { id: "other", label: "Something else", text: "" },
 ] as const;

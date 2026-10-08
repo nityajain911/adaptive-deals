@@ -89,7 +89,7 @@ describe("with a merchant who permits no discount", () => {
     const failed = check!.rules.filter((r) => !r.passed);
     const passed = check!.rules.filter((r) => r.passed);
     expect(failed.map((r) => r.id)).toEqual(["discount_limit"]);
-    expect(failed[0].text).toMatch(/Discount .* above the 0% limit/);
+    expect(failed[0].text).toMatch(/Discount .* above your 0% limit/);
     expect(passed.length).toBeGreaterThan(3);
     expect(passed.every((r) => r.text.length > 0)).toBe(true);
     // The failing list the exception controls use is exactly the failed rules.

@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { interpretExtraction } from "@/ai/extract";
 import type { RunStep } from "@/ai/run-record";
 import { demoCase } from "@/data/synthetic/cases";
@@ -7,9 +6,9 @@ import { evaluateDeal } from "@/domain/engine";
 import type { ConstraintProfile } from "@/domain/types";
 import { applyScopeConfirmation, confirmScope, ScopeError, unmappedRequiredServices } from "@/lib/scope-confirmation";
 
-/** The real Groq extraction for the preserve-scope case: its required scope is "complete annual package". */
+/** The preserve-scope extraction, written to mimic the real Groq one: its required scope is "complete annual package". */
 const deal = demoCase("preserve-scope")!.deal;
-const rawOutput = (JSON.parse(readFileSync("tests/fixtures/preserve-scope-extract.json", "utf8")) as { rawOutput: unknown }).rawOutput;
+const rawOutput: unknown = demoCase("preserve-scope")!.expected.extraction;
 const step = { rawOutput, inputHash: "abc123" } as Pick<RunStep, "rawOutput" | "inputHash">;
 const ALL = deal.packages.map((p) => p.id);
 const when = "2026-10-06T10:00:00+05:30";
@@ -30,7 +29,7 @@ describe("an unmapped required-services phrase", () => {
     expect(sources).toEqual([
       {
         rawText: "complete annual package",
-        evidenceQuote: "We need the complete annual package—Website fixes, Search marketing, Social media and Monthly reporting—for the admissions launch",
+        evidenceQuote: "We need the complete annual package for the admissions launch",
         messageId: "preserve-2",
         extractInputHash: "abc123",
       },

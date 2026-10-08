@@ -33,7 +33,7 @@ export function DealOverrides({ account, overrides, locked = false }: { account:
   const field: OverrideField = choice.startsWith("direct_cost:") ? "direct_cost" : (choice as Exclude<OverrideField, "direct_cost">);
   const packageId = choice.startsWith("direct_cost:") ? choice.slice("direct_cost:".length) : undefined;
   const nameOf = (id?: string) => account.services.find((s) => s.id === id)?.name ?? id ?? "";
-  const labelOf = (o: Pick<InputOverride, "field" | "packageId">) => (o.field === "direct_cost" ? `${nameOf(o.packageId)} · direct delivery cost` : OVERRIDE_FIELD_LABEL[o.field]);
+  const labelOf = (o: Pick<InputOverride, "field" | "packageId">) => (o.field === "direct_cost" ? `${nameOf(o.packageId)} · delivery cost` : OVERRIDE_FIELD_LABEL[o.field]);
 
   const accountText = field === "direct_cost" ? overrideValueText(field, account.services.find((s) => s.id === packageId)?.costPaise ?? 0)
     : field === "cash_exposure" ? overrideValueText(field, account.cashPaise)
@@ -54,7 +54,7 @@ export function DealOverrides({ account, overrides, locked = false }: { account:
   return (
     <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="deal-overrides" open={overrides.length > 0 || undefined}>
       <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">
-        Adjust for this deal {overrides.length ? <Badge tone="amber">{overrides.length} applied</Badge> : null}
+        Change a number for this deal {overrides.length ? <Badge tone="amber">{overrides.length} applied</Badge> : null}
       </summary>
       <div className="space-y-4 border-t border-line px-5 py-4">
         {overrides.length ? (
@@ -82,12 +82,12 @@ export function DealOverrides({ account, overrides, locked = false }: { account:
           >
             <label className="text-[13px] font-semibold text-muted sm:col-span-2">What to adjust
               <select className={input} value={choice} onChange={(e) => { setChoice(e.target.value as Choice); setValue(""); setAmount(""); }} data-testid="override-field">
-                {account.services.map((s) => <option key={s.id} value={`direct_cost:${s.id}`}>{s.name} · direct delivery cost</option>)}
+                {account.services.map((s) => <option key={s.id} value={`direct_cost:${s.id}`}>{s.name} · delivery cost</option>)}
                 <option value="contribution_floor">{OVERRIDE_FIELD_LABEL.contribution_floor}</option>
                 <option value="cash_exposure">{OVERRIDE_FIELD_LABEL.cash_exposure}</option>
                 <option value="discount_limit">{OVERRIDE_FIELD_LABEL.discount_limit}</option>
               </select>
-              <span className="mt-1 block text-[13px] font-normal text-muted" data-testid="override-account">Your business economics say: {accountText}</span>
+              <span className="mt-1 block text-[13px] font-normal text-muted" data-testid="override-account">Your prices & costs say: {accountText}</span>
             </label>
             <label className="text-[13px] font-semibold text-muted">{field === "discount_limit" || field === "contribution_floor" ? "Percentage (%)" : "Amount (₹)"}
               <input className={input} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} placeholder={field === "direct_cost" ? rupeesInput(account.services.find((s) => s.id === packageId)?.costPaise ?? null) : undefined} data-testid="override-value" />
@@ -106,7 +106,7 @@ export function DealOverrides({ account, overrides, locked = false }: { account:
           </form>
         ) : null}
         <ErrorText error={error} />
-        <p className="text-[13px] text-muted">This changes this deal only. Your business economics are not changed, and the prices quoted to the buyer cannot be overridden.</p>
+        <p className="text-[13px] text-muted">This changes this deal only. Your prices & costs are not changed, and the prices quoted to the buyer cannot be overridden.</p>
       </div>
     </details>
   );

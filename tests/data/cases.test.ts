@@ -51,6 +51,8 @@ describe("commercial demo case catalog", () => {
       const names = item.deal.packages.map((pkg) => pkg.name.toLowerCase());
       const packageFields = item.expected.extraction.fields.filter((field) => field.key === "required_package" || field.key === "optional_package");
       for (const field of packageFields) {
+        // A buyer who says "the complete annual package" names no service: the engine rejects it and the merchant confirms the services.
+        if (field.raw_text === "complete annual package") continue;
         expect(names.some((name) => field.raw_text.toLowerCase().includes(name) || name.includes(field.raw_text.toLowerCase()))).toBe(true);
       }
     }

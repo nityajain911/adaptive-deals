@@ -13,43 +13,43 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 function gstWords(p: ConstraintProfile): string {
   const v = p.amountsIncludeGst.status === "stated" ? p.amountsIncludeGst.value : null;
-  return v === "yes" ? "including GST" : v === "no" ? "excluding GST" : "(GST basis not confirmed)";
+  return v === "yes" ? "including GST" : v === "no" ? "excluding GST" : "(not clear if this includes GST)";
 }
 
 const isCalendarQuarter = (start: string, end: string) =>
   start.endsWith("-01") && [1, 4, 7, 10].includes(Number(start.slice(5, 7))) && Number(end.slice(5, 7)) === Number(start.slice(5, 7)) + 2;
 
 export function blockingLines(p: ConstraintProfile, original: ReturnType<typeof originalProposalOf>): string[] {
-  const lines = [`Original annual proposal: ${formatINR(original.totalPaise)} including GST`];
+  const lines = [`Your quote: ${formatINR(original.totalPaise)} including GST`];
   const gst = gstWords(p);
   const b = p.budgetNow.value;
   if (b) {
-    const label = isCalendarQuarter(b.period.start, b.period.end) ? "Current-quarter budget" : "Budget available now";
+    const label = isCalendarQuarter(b.period.start, b.period.end) ? "Their budget this quarter" : "Their budget now";
     lines.push(`${label}: ${formatINR(b.amountPaise)} ${gst}, until ${formatDate(b.period.end)}`);
-  } else lines.push("Current budget: not stated");
+  } else lines.push("Their budget: not mentioned");
   const nb = p.nextBudget.value;
   if (nb) {
-    const when = nb.available.precision === "month" ? `${MONTHS[Number(nb.available.value.slice(5, 7)) - 1]} ${nb.available.value.slice(0, 4)} · exact day not provided` : formatDate(nb.available.value);
-    lines.push(`Next budget: ${when}${nb.amountPaise !== null ? ` · ${formatINR(nb.amountPaise)}` : ""}`);
+    const when = nb.available.precision === "month" ? `${MONTHS[Number(nb.available.value.slice(5, 7)) - 1]} ${nb.available.value.slice(0, 4)}` : formatDate(nb.available.value);
+    lines.push(`More budget from: ${when}${nb.amountPaise !== null ? ` · ${formatINR(nb.amountPaise)}` : ""}`);
   }
   const lim = p.approvalLimit.value;
   if (lim) {
     const scope = p.approvalScope.status === "stated" ? p.approvalScope.value : null;
     lines.push(
       scope === "per_contract"
-        ? `Contracts above ${formatINR(lim.amountPaise)} ${gst} require MD approval (per contract)`
+        ? `Their MD must approve anything above ${formatINR(lim.amountPaise)} ${gst}, counted for the whole deal`
         : scope === "per_payment"
-          ? `Payments above ${formatINR(lim.amountPaise)} ${gst} require MD approval (per payment)`
-          : `Above ${formatINR(lim.amountPaise)} ${gst} requires MD approval (per payment or per contract not confirmed)`,
+          ? `Their MD must approve any single payment above ${formatINR(lim.amountPaise)} ${gst}`
+          : `Their MD must approve anything above ${formatINR(lim.amountPaise)} ${gst}; not clear if that is per payment or for the whole deal`,
     );
   }
   return lines;
 }
 
 const UNCAPTURED_LABEL: Record<string, string> = {
-  amountsIncludeGst: "The GST basis",
-  approvalScope: "Whether the approval limit is per payment or per contract",
-  nextBudget: "The exact next-budget date",
+  amountsIncludeGst: "Whether GST is included",
+  approvalScope: "Whether the approval limit is per payment or for the whole deal",
+  nextBudget: "The exact day their next budget opens",
 };
 
 /**
@@ -61,5 +61,5 @@ export function uncapturedLines(evaluation: Pick<DealEvaluation, "state" | "ambi
   if (evaluation.state !== "options_ready") return [];
   return evaluation.ambiguities
     .filter((a) => !a.decisionRelevant)
-    .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not captured from the conversation. Every offer has the same outcome under either reading, so no question is needed.`);
+    .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not mentioned. Every offer works either way, so we did not need to ask.`);
 }

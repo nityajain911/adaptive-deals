@@ -4,9 +4,9 @@ export function RelevantHistory({ memory }: { memory: CommercialMemoryDealView }
   if (!memory.history) return null;
   return (
     <details className="rounded-xl border border-line bg-surface px-4 py-3" data-testid="relevant-history">
-      <summary className="cursor-pointer text-[14px] font-semibold text-ink">Relevant history</summary>
-      <p className="mt-2 text-[13px] leading-5 text-ink-2">In the record dated {memory.history.effectiveFrom}, “{memory.history.quote}”</p>
-      <p className="mt-1 text-[12px] text-muted">Historical context from {memory.history.sourceTitle}. This is not a current buyer commitment.</p>
+      <summary className="cursor-pointer text-[14px] font-semibold text-ink">Past dealings with this buyer</summary>
+      <p className="mt-2 text-[13px] leading-5 text-ink-2">From {memory.history.effectiveFrom}: “{memory.history.quote}”</p>
+      <p className="mt-1 text-[12px] text-muted">From {memory.history.sourceTitle}. This is history, not something they have agreed to now.</p>
     </details>
   );
 }

@@ -6,10 +6,10 @@ import type { StrategyId } from "./strategy-id";
 export { STRATEGY_IDS, type StrategyId } from "./strategy-id";
 
 export const STRATEGY_LABEL: Record<StrategyId, string> = {
-  protect_contribution: "Protect contribution",
-  preserve_scope: "Preserve scope",
-  minimise_cash_exposure: "Minimise cash exposure",
-  lower_buyer_commitment: "Lower buyer commitment",
+  protect_contribution: "Earn the most",
+  preserve_scope: "Keep the full project",
+  minimise_cash_exposure: "Spend the least up front",
+  lower_buyer_commitment: "Smaller payments for them",
 };
 
 export type FactId =
@@ -138,27 +138,27 @@ export function strategyView(feasible: EvaluatedStructure[], strategy: StrategyI
 
 export function explainLeader(view: StrategyView, format: { inr(paise: number): string }): string {
   if (!view.leader) return view.mode === "discount_only"
-    ? `No undiscounted offer fits under ${STRATEGY_LABEL[view.strategy]}. Review the permitted discounts separately.`
-    : "No feasible offer is available.";
+    ? "No offer fits without a discount. Look at the discounts you allow, below."
+    : "No offer fits.";
   const offer = view.leader;
   const facts = new Set(view.facts[offer.structure.id] ?? []);
   const approvalText = facts.has("within_buyer_approval")
-    ? "It is within the buyer's approval limit"
-    : "It needs the buyer's approval";
+    ? "The buyer can approve this on their own"
+    : "Their MD has to approve this";
   let tradeoff: string;
   switch (view.strategy) {
     case "protect_contribution":
-      tradeoff = `keeps about ${format.inr(offer.economics.netContributionPaise)} after configured costs and expected fees${facts.has("highest_contribution") ? ", the highest of these offers" : ""}`;
+      tradeoff = `keeps about ${format.inr(offer.economics.netContributionPaise)} for you after your costs and fees${facts.has("highest_contribution") ? ", the most of these options" : ""}`;
       break;
     case "preserve_scope":
-      tradeoff = `${facts.has("most_scope_retained") ? "retains the most quoted scope" : "retains quoted scope"} and keeps about ${format.inr(offer.economics.netContributionPaise)}`;
+      tradeoff = `${facts.has("most_scope_retained") ? "keeps the most of what you quoted" : "keeps what you quoted"}, and you keep about ${format.inr(offer.economics.netContributionPaise)}`;
       break;
     case "minimise_cash_exposure":
-      tradeoff = `needs about ${format.inr(offer.economics.peakFundingPaise)} of peak cash exposure${facts.has("lowest_cash_exposure") ? ", the lowest of these offers" : ""}`;
+      tradeoff = `needs you to spend about ${format.inr(offer.economics.peakFundingPaise)} before you are paid${facts.has("lowest_cash_exposure") ? ", the least of these options" : ""}`;
       break;
     case "lower_buyer_commitment":
-      tradeoff = `has a largest payment of ${format.inr(largest(offer))}${facts.has("smallest_largest_payment") ? ", the smallest of these offers" : ""}`;
+      tradeoff = `has a biggest payment of ${format.inr(largest(offer))}${facts.has("smallest_largest_payment") ? ", the smallest of these options" : ""}`;
       break;
   }
-  return `Best for ${STRATEGY_LABEL[view.strategy]}: ${approvalText} and ${tradeoff}.`;
+  return `${approvalText}, and it ${tradeoff}.`;
 }

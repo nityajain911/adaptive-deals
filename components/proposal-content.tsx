@@ -20,19 +20,19 @@ export function AmendmentDifferences({ differences }: { differences: AmendmentDi
   const mandate = differences.find((d) => d.category === "mandate");
   return (
     <section aria-label="Changes in this revision" className="rounded-xl border border-[#d6defe] bg-blue-weak px-4 py-3 text-[13px]" data-testid="amendment-differences">
-      <h2 className="font-semibold text-ink">What this revision changes</h2>
+      <h2 className="font-semibold text-ink">What is changing</h2>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-2">
         {paymentDates.map((d) => (
-          <li key={`payment-${d.lineId}`}>Payment date revised: {formatDate(d.before!)} → {formatDate(d.after!)}.</li>
+          <li key={`payment-${d.lineId}`}>Payment date moves from {formatDate(d.before!)} to {formatDate(d.after!)}.</li>
         ))}
         {invoiceDates.map((d) => (
-          <li key={`invoice-${d.lineId}`}>Planned invoice date revised (not an issued invoice): {formatDate(d.before!)} → {formatDate(d.after!)}.</li>
+          <li key={`invoice-${d.lineId}`}>Invoice date moves from {formatDate(d.before!)} to {formatDate(d.after!)}.</li>
         ))}
-        {amount ? <li>{amount.changed ? "The agreed amount changes; review the full terms below." : "Agreed amount unchanged."}</li> : null}
-        {scope && service && !scope.changed && !service.changed ? <li>Agreed scope and service months unchanged.</li> : null}
-        {scope?.changed ? <li>Agreed scope changes; review the full terms below.</li> : null}
-        {service?.changed ? <li>Service months change; review the full terms below.</li> : null}
-        {mandate ? <li>{mandate.qualifier === "still_fits" && !mandate.changed ? "Existing mandate still fits." : "Recurring authorisation changes; review the full terms below."}</li> : null}
+        {amount ? <li>{amount.changed ? "The price changes; check the terms below." : "The price is unchanged."}</li> : null}
+        {scope && service && !scope.changed && !service.changed ? <li>Same work, same months.</li> : null}
+        {scope?.changed ? <li>The work included changes; check the terms below.</li> : null}
+        {service?.changed ? <li>The months of work change; check the terms below.</li> : null}
+        {mandate ? <li>{mandate.qualifier === "still_fits" && !mandate.changed ? "Your automatic payment setup still works." : "Your automatic payments change; check the terms below."}</li> : null}
       </ul>
     </section>
   );
@@ -72,7 +72,7 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
           <p className="mt-1 text-[14px] text-ink" data-testid="excluded">
             {view.excluded.map((e) => e.name).join(", ")}
           </p>
-          <p className="mt-1 text-[12px] text-muted">This is a separate purchase with its own value. Anything later follows your normal approval process.</p>
+          <p className="mt-1 text-[12px] text-muted">You can buy this separately later.</p>
         </section>
       ) : null}
 
@@ -85,9 +85,6 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
         </div>
         <div className="tabular text-[12px] text-muted">
           {formatINR(view.prePaise)} + GST {view.gstRatePercent} {formatINR(view.gstPaise)}
-        </div>
-        <div className="mt-1 text-[12px] font-semibold text-green" data-testid="no-financing">
-          No additional financing charge added by the seller.
         </div>
       </section>
 
@@ -116,10 +113,10 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
           <Repeat aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
           <div>
             <h2 id="recurring" className="text-[14px] font-semibold text-ink">
-              Recurring authorisation
+              Automatic payments
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-ink-2" data-testid="recurring">
-              {recurringStatement(view.recurring, merchantName)} <span className="text-muted">(Simulated in this prototype.)</span>
+              {recurringStatement(view.recurring, merchantName)}
             </p>
           </div>
         </section>

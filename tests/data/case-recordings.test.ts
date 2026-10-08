@@ -5,14 +5,15 @@ import { replayRun } from "@/ai/orchestrator";
 import { promptHash, promptFor } from "@/ai/prompts";
 import type { RunRecord } from "@/ai/run-record";
 import { FixedClock } from "@/domain/clock";
-import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
+import { CASE_IDS, type CaseId } from "@/data/synthetic/cases";
+import { RECORDED_CASE_MESSAGES, recordedDeal } from "@/data/synthetic/recorded-conversations";
 import { CASE_RECORDED_RUN_DIR, CASE_RUN_MAP_FILE, mappedCaseRun } from "@/lib/case-runs";
 import { modelProvenance } from "@/lib/model-provenance";
 import { strategyView } from "@/domain/strategy";
 import { heroBaseline } from "../helpers";
 
 /**
- * The three committed case recordings are real Groq runs of the frozen prompts. These tests read
+ * The three committed case recordings are real Groq runs (kept as historical evidence; see recorded-conversations.ts) of the frozen prompts. These tests read
  * the files in the repository, with no temporary root, exactly as the product loads them.
  */
 const dir = path.join(process.cwd(), CASE_RECORDED_RUN_DIR);
@@ -27,17 +28,18 @@ describe("the committed case recordings", () => {
     expect(readdirSync(dir).sort()).toEqual(["README.md", ...Object.values(mapping).map((id) => `${id}.json`), "recording-report.json"].sort());
   });
 
-  it.each(CASE_IDS)("%s: the product loads the recording, as a complete Groq run of exactly that conversation", (id) => {
-    const loaded = mappedCaseRun(id);
-    expect(loaded?.runId).toBe(mapping[id]);
+  it.each(CASE_IDS)("%s: is a complete Groq run of the conversation it was recorded on, which is no longer a case the merchant can start", (id) => {
+    const loaded = record(id);
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "groq", model: "openai/gpt-oss-120b" });
-    expect(loaded!.inputs.messages).toEqual(demoCase(id)!.deal.messages);
-    expect(modelProvenance(loaded!).label).toBe("Recorded Groq output");
-    expect(loaded!.steps.every((step) => step.provider === "groq" && step.failure === null)).toBe(true);
+    expect(loaded.inputs.messages).toEqual(RECORDED_CASE_MESSAGES[id]);
+    expect(modelProvenance(loaded).label).toBe("Recorded Groq output");
+    expect(loaded.steps.every((step) => step.provider === "groq" && step.failure === null)).toBe(true);
+    // The cases were rewritten as real-sounding chats, so the product must not present these as the case's own output.
+    expect(mappedCaseRun(id)).toBeNull();
   });
 
   it.each(CASE_IDS)("%s: replays exactly, so the stored evidence still reproduces the engine's result", async (id) => {
-    await expect(replayRun(record(id), demoCase(id)!.deal, new FixedClock())).resolves.toBeTruthy();
+    await expect(replayRun(record(id), recordedDeal(id), new FixedClock())).resolves.toBeTruthy();
   });
 
   it.each(CASE_IDS)("%s: was run with the frozen prompts, by their recorded hashes", (id) => {
@@ -61,7 +63,7 @@ describe("what each recording actually contains", () => {
     expect(r.steps.map((s) => [s.task, s.outcome])).toEqual([["extract", "accepted"], ["clarify", "accepted"], ["explain", "accepted_with_corrections"]]);
     expect(r.inputs.answers.map((a) => a.value)).toEqual(["yes", "per_contract"]);
     expect(r.steps.find((s) => s.task === "explain")!.issues).toEqual(["comparison rejected: contains a literal figure, date or percentage", "note for C rejected: contains a literal figure, date or percentage"]);
-    const out = await replayRun(r, demoCase("reduced-scope")!.deal, new FixedClock());
+    const out = await replayRun(r, recordedDeal("reduced-scope"), new FixedClock());
     const first = out.evaluation.result!.structures.find((s) => s.structure.id === out.explanation!.order[0])!;
     expect(first.structure.label).toBe("Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start");
     expect(out.explanation!.source).toEqual({ ranking: "ai", text: "code_fallback" });
@@ -69,7 +71,7 @@ describe("what each recording actually contains", () => {
 
   it("reduced scope: code's recommendation under the default strategy is the two-payment offer, not the order the model recorded", async () => {
     const r = record("reduced-scope");
-    const out = await replayRun(r, demoCase("reduced-scope")!.deal, new FixedClock());
+    const out = await replayRun(r, recordedDeal("reduced-scope"), new FixedClock());
     const view = strategyView(out.evaluation.result!.feasible, "protect_contribution", heroBaseline());
     expect(view.leader!.structure.id).toBe("phased_scope:scope=web-search-report-3m,plan=two_monthly");
     expect(view.leader!.structure.id).not.toBe(out.explanation!.order[0]);

@@ -12,7 +12,7 @@ import { DontProceed } from "@/components/offer/dont-proceed";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
-import { Alternatives, contextLine, Recommendation, Rejections, SuccessMeasure } from "@/components/offer/recommendation";
+import { Alternatives, contextLine, OtherOptions, Recommendation, Rejections } from "@/components/offer/recommendation";
 import { DealOverrides, type OverrideAccount } from "@/components/offer/deal-overrides";
 import { StrategyComparison } from "@/components/offer/strategy-comparison";
 import { StrategyControl } from "@/components/offer/strategy-control";
@@ -23,7 +23,7 @@ import { pinnedEconomicsOf } from "@/lib/deal-context";
 import { headlineFor } from "@/lib/offer-copy";
 import { offerNarrative } from "@/lib/offer-narrative";
 import { strategyFeasibleOf } from "@/lib/service";
-import { STRATEGY_LABEL, strategyView } from "@/domain/strategy";
+import { strategyView } from "@/domain/strategy";
 import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
@@ -154,7 +154,6 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const activeCounter = liveCounter && liveCounter.source !== "listed_offer" && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
   const selectedId = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : view.leader?.structure.id;
   const x = eligible.find((e) => e.structure.id === selectedId);
-  const strategyLabel = STRATEGY_LABEL[s.economics.strategy];
   const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} />;
   const pinned = await pinnedEconomicsOf(s);
   const account: OverrideAccount = {
@@ -171,10 +170,10 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         <div className="space-y-4">
           {control}
           <Card className="space-y-2 p-5" data-testid="no-standard-offer">
-            <h2 className="text-[18px] font-semibold text-ink">No offer fits at the quoted prices.</h2>
-            <p className="text-[14px] text-ink-2">Your approved discounts would allow the offers below, lowest discount first. Choose one yourself if you want to offer a discount.</p>
+            <h2 className="text-[18px] font-semibold text-ink">No offer fits at your normal prices.</h2>
+            <p className="text-[14px] text-ink-2">You allow discounts, so these offers would work, smallest discount first. Pick one yourself if you want to give a discount.</p>
           </Card>
-          <Alternatives options={view.discounted} selectedId="" heading="Offers your approved discounts allow" testId="discount-only-offers" />
+          <Alternatives options={view.discounted} selectedId="" heading="Offers with a discount" testId="discount-only-offers" />
           {overridesPanel}
           <DontProceed />
         </div>
@@ -222,11 +221,10 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           </figure>
         ) : null}
         {control}
-        <h2 className="text-[16px] font-semibold text-ink" data-testid="strategy-heading">Best offer for: {strategyLabel}</h2>
         {!isLeader && !activeCounter && view.leader ? (
-          <Notice tone="blue" title={`Under ${strategyLabel} the recommended offer is different.`}>
-            <span data-testid="strategy-differs">The recommended offer is {headlineFor(view.leader)}. You selected the offer below.</span>{" "}
-            <ActionButton body={{ action: "select_option", structureId: view.leader.structure.id }} variant="ghost" testId="use-recommended">Use the recommended offer</ActionButton>
+          <Notice tone="blue" title="You chose a different offer from the one we suggest.">
+            <span data-testid="strategy-differs">We&apos;d suggest: {headlineFor(view.leader)}.</span>{" "}
+            <ActionButton body={{ action: "select_option", structureId: view.leader.structure.id }} variant="ghost" testId="use-recommended">Use the suggested offer</ActionButton>
           </Notice>
         ) : null}
         <Recommendation
@@ -242,7 +240,6 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
           counter={activeCounter}
           leaderNote={leaderNote}
-          comparison={standard ? <StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /> : null}
           primary={
             <>
               {primaryId === "review_new_evidence" ? null : (
@@ -263,11 +260,12 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             x.approval === "within_limit" ? "Within the buyer's stated approval limit" : "Buyer approval is still required",
           ]}
         />
-        <SuccessMeasure />
-        <Alternatives options={options} selectedId={x.structure.id} />
+                <OtherOptions>
+          {standard ? <StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /> : null}
+          <Alternatives options={options} selectedId={x.structure.id} />
+        </OtherOptions>
         {overridesPanel}
         <Rejections r={r} />
-        <p className="text-[13px] text-muted">Every approved offer type was checked. Open the rejected options or Audit details for the full evaluation.</p>
       </div>
     </StageShell>
   );

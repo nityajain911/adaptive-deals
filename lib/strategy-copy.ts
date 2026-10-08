@@ -8,10 +8,12 @@ import type { ModelProvenance } from "./model-provenance";
  */
 export function strategyAttribution(args: { strategyChosen: boolean; selectedByMerchant: boolean; branchCause?: string }): string {
   const base = args.selectedByMerchant
-    ? "You selected this offer · other offers ranked by code under your strategy · explained by code · figures calculated by the engine."
-    : `${args.strategyChosen ? "Strategy selected by you" : "Default strategy"} · offers ranked by code · explained by code · figures calculated by the engine.`;
-  // A recalculation names its cause: the recorded run never processed it.
-  return args.branchCause ? `Recalculated by the engine after ${args.branchCause} · ${base}` : base;
+    ? "You chose this offer."
+    : args.strategyChosen
+      ? "Suggested for what matters most to you."
+      : "Suggested for the default priority: earning the most.";
+  // A recalculation names its cause.
+  return args.branchCause ? `Worked out again after ${args.branchCause}. ${base}` : base;
 }
 
 /**

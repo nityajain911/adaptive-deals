@@ -124,7 +124,7 @@ describe("buyer proposal lifecycle", () => {
   });
 
   it("reports actual accepted setup and collection states", () => {
-    expect(lifecycle("active", { paymentLinkStatus: "created", mandateStatus: "pending" }).detail).toMatch(/payment link.*awaiting payment.*mandate.*pending/i);
+    expect(lifecycle("active", { paymentLinkStatus: "created", mandateStatus: "pending" }).detail).toMatch(/payment link.*waiting to be paid.*automatic payments.*waiting to be set up/i);
     expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "scheduled", dueDate: "2026-12-21" }] }).state).toBe("payment_scheduled");
     expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "failed", dueDate: "2026-12-01" }, { status: "scheduled", dueDate: "2026-12-04", origin: "internal_retry" }] }).state).toBe("retry_scheduled");
     expect(lifecycle("active", { paymentLinkStatus: "paid", mandateStatus: "confirmed", attempts: [{ status: "succeeded", dueDate: "2026-12-21" }], fullyPaid: true }).state).toBe("paid");
@@ -243,10 +243,10 @@ describe("shared proposal content (spec §5.6)", () => {
     to.paymentSchedule[1].dueDate.value = "2026-12-21";
     to.invoiceSchedule[1].invoiceDate.value = "2026-12-21";
     const html = renderToStaticMarkup(AmendmentDifferences({ differences: amendmentDiff(from, to) }));
-    expect(html).toContain("Payment date revised");
-    expect(html).toContain("Planned invoice date revised (not an issued invoice)");
-    expect(html).toContain("Agreed scope and service months unchanged");
-    expect(html).toContain("Existing mandate still fits");
+    expect(html).toContain("Payment date moves from");
+    expect(html).toContain("Invoice date moves from");
+    expect(html).toContain("Same work, same months.");
+    expect(html).toContain("Your automatic payment setup still works.");
     expect(html).not.toContain("everything else stays unchanged");
   });
 });

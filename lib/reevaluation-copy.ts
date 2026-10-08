@@ -9,16 +9,16 @@ const yesNo = (v: string) => (v === "true" ? "yes" : v === "false" ? "no" : v);
 const months = (n: string) => (/^\d+$/.test(n) ? `${n} month${n === "1" ? "" : "s"}` : n);
 
 const POLICY: Record<string, [string, (v: string) => string]> = {
-  "policy.cashAtRiskLimitPaise": ["Maximum cash exposure", rupees],
-  "policy.discountLimitBps": ["Maximum discount", pct],
-  "policy.contributionFloor.minPercentBps": ["Minimum contribution", pct],
-  "policy.contributionFloor.minPaise": ["Minimum contribution amount", rupees],
+  "policy.cashAtRiskLimitPaise": ["Most I'll spend before I'm paid", rupees],
+  "policy.discountLimitBps": ["Biggest discount I'll give", pct],
+  "policy.contributionFloor.minPercentBps": ["Lowest profit I'll accept", pct],
+  "policy.contributionFloor.minPaise": ["Lowest profit amount", rupees],
   "policy.smallestInstalmentPaise": ["Minimum payment", rupees],
   "policy.maxTenureMonths": ["Maximum payment duration", months],
   "policy.paymentFeeBps": ["Expected payment fee", pct],
 };
 const PACKAGE: Record<string, [string, (v: string) => string]> = {
-  directCostPaise: ["direct delivery cost", rupees],
+  directCostPaise: ["delivery cost", rupees],
   removable: ["can be removed", yesNo],
   deferrable: ["can start later", yesNo],
   hasIndependentValue: ["valuable on its own", yesNo],

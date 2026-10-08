@@ -43,8 +43,8 @@ export function CounterForm({ onDone }: { onDone: string }) {
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-[#d6defe] bg-blue-weak/40 p-3" data-testid="counter-form">
       <div>
-        <h3 className="text-[14px] font-semibold text-ink">Check the buyer&apos;s amount</h3>
-        <p className="text-[13px] text-ink-2">The same scope and dates are kept; the engine rechecks the new amount against every rule.</p>
+        <h3 className="text-[14px] font-semibold text-ink">Check an amount they suggest</h3>
+        <p className="text-[13px] text-ink-2">Enter their number and we&apos;ll check it against your limits. The work and dates stay the same.</p>
       </div>
       <form
         className="space-y-2"
@@ -58,7 +58,7 @@ export function CounterForm({ onDone }: { onDone: string }) {
       >
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-[13px] font-medium text-ink">
-            The buyer&apos;s amount (₹)
+            Their amount (₹)
             <input
               className="mt-1 block w-44 rounded-lg border border-line-strong bg-surface px-3 py-2 text-[15px] text-ink"
               inputMode="decimal"
@@ -75,7 +75,7 @@ export function CounterForm({ onDone }: { onDone: string }) {
           </Button>
         </div>
         <fieldset className="text-[13px] text-ink" data-testid="corridor-basis">
-          <legend className="font-medium">Does the buyer&apos;s amount include GST?</legend>
+          <legend className="font-medium">Does their amount include GST?</legend>
           <div className="mt-1 flex flex-wrap gap-4">
             <label className="flex items-center gap-1.5">
               <input type="radio" name="gst-basis" checked={basis === "including"} onChange={() => { setBasis("including"); reset(); }} data-testid="corridor-basis-including" /> Including GST
@@ -96,7 +96,7 @@ export function CounterForm({ onDone }: { onDone: string }) {
           <p className="text-ink" data-testid="corridor-contribution">
             {result.contributionPaise < 0 ? `You would lose about ${approxINR(-result.contributionPaise).replace(/^about /, "")}.` : `You would keep about ${approxINR(result.contributionPaise).replace(/^about /, "")}.`}
           </p>
-          {result.passes ? <p className="font-medium text-green" data-testid="counter-passes">The engine rechecked it: every rule passes.</p> : null}
+          {result.passes ? <p className="font-medium text-green" data-testid="counter-passes">This is within all your limits.</p> : null}
           <div data-testid="corridor-rules">
             {failedRules.length ? (
               <ul className="space-y-0.5 text-red" data-testid="corridor-rules-failed">
@@ -107,7 +107,7 @@ export function CounterForm({ onDone }: { onDone: string }) {
             ) : null}
             {passedRules.length ? (
               <details className="mt-1 text-[13px] text-ink-2" data-testid="corridor-rules-passed">
-                <summary className="cursor-pointer font-medium text-ink">{passedRules.length} rule{passedRules.length === 1 ? "" : "s"} passed</summary>
+                <summary className="cursor-pointer font-medium text-ink">{passedRules.length} check{passedRules.length === 1 ? "" : "s"} passed</summary>
                 <ul className="mt-1 space-y-0.5">
                   {passedRules.map((r) => (
                     <li key={r.id}>✓ {r.text}</li>
@@ -118,13 +118,13 @@ export function CounterForm({ onDone }: { onDone: string }) {
           </div>
           {needsException ? (
             <div className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2" data-testid={result.passes ? "counter-loss-only" : "counter-fails"}>
-              {!result.passes ? <p className="font-semibold text-amber">This amount does not meet your rules.</p> : null}
+              {!result.passes ? <p className="font-semibold text-amber">This is outside your limits.</p> : null}
               {result.negativeContribution ? (
-                <p className="mt-1 font-semibold text-red" data-testid="counter-loss">This amount is below your direct costs: you would lose {approxINR(-result.contributionPaise)}.</p>
+                <p className="mt-1 font-semibold text-red" data-testid="counter-loss">This is less than it costs you to deliver: you would lose {approxINR(-result.contributionPaise)}.</p>
               ) : null}
               <label className="mt-2 flex items-start gap-2 text-[13px] text-ink">
                 <input type="checkbox" className="mt-0.5" checked={override} onChange={(e) => setOverride(e.target.checked)} data-testid="counter-override" />
-                <span>{result.passes ? "I understand this amount is below my costs and I want to send it anyway." : "I understand these rules are not met and I want to send this amount anyway."} This is recorded as my decision, not the engine&apos;s.</span>
+                <span>{result.passes ? "I know this is below what it costs me, and I want to send it anyway." : "I know this is outside my limits, and I want to send it anyway."} This is recorded as my decision.</span>
               </label>
               <label className="mt-2 block text-[13px] font-medium text-ink">
                 Reason for sending this amount

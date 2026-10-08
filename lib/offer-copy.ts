@@ -20,9 +20,9 @@ const paymentChoice = (x: EvaluatedStructure) => {
 };
 
 const HEADLINES: Record<TemplateType, (x: EvaluatedStructure) => string> = {
-  phased_scope: (x) => `Start with a standalone ${word(phaseMonths(x))}-month package · ${paymentChoice(x)}`,
-  split_payment: () => "Keep the annual scope and split the payments",
-  deferred_start: () => "Start when the buyer's next budget opens",
+  phased_scope: (x) => `Start with a ${word(phaseMonths(x))}-month package · ${paymentChoice(x)}`,
+  split_payment: () => "Keep the full project and split the payments",
+  deferred_start: () => "Start when their next budget opens",
   shorter_commitment: () => "Offer a shorter commitment",
 };
 
@@ -33,9 +33,9 @@ export function whyOffer(x: EvaluatedStructure): string {
   const payments = x.structure.payments.length === 1 ? "one payment" : `${x.structure.payments.length} payments`;
   const largestPayment = Math.max(...x.structure.payments.map((payment) => payment.totalPaise));
   if (x.structure.template === "phased_scope" && x.structure.payments.length > 1)
-    return `It keeps the standalone Phase 1 scope within the buyer's confirmed limit while lowering the largest payment to ${formatINR(largestPayment)}, and it passes your rules.`;
-  if (x.approval === "requires_approval") return `It fits the buyer's confirmed budget and timing through ${payments}, requires the buyer's MD approval, and passes your rules.`;
-  return `It fits the buyer's confirmed budget, timing and approval limit through ${payments}, and passes your rules.`;
+    return `It covers what they need most, fits their budget, and keeps each payment to ${formatINR(largestPayment)}.`;
+  if (x.approval === "requires_approval") return `It covers everything they need in ${payments}, but their MD has to approve it.`;
+  return `It fits their budget and approval limit, in ${payments}.`;
 }
 
 /** A forecast rounded to the nearest rupee for the decision; exact figures stay in the economics detail. */
@@ -45,8 +45,8 @@ export function approxINR(paise: number): string {
 }
 
 export function alternativeContributionLine(x: EvaluatedStructure): string {
-  const contribution = `projected contribution ${approxINR(x.economics.netContributionPaise)}`;
-  return x.approval === "requires_approval" ? `If the buyer secures MD approval: ${contribution}` : contribution.replace(/^p/, "P");
+  const keep = `you'd keep ${approxINR(x.economics.netContributionPaise)}`;
+  return x.approval === "requires_approval" ? `If their MD approves, ${keep}` : keep.replace(/^y/, "Y");
 }
 
 /**
@@ -63,24 +63,24 @@ export function offerSummary(x: EvaluatedStructure, baseline: DealBaseline, pack
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   const phased = x.structure.template === "phased_scope";
   const months = phaseMonths(x);
-  const achieves = [`A proposed sale of ${formatINR(total)} including GST.`, `Projected contribution of ${approxINR(x.economics.netContributionPaise)}, based on configured costs and fees.`];
-  if (phased && x.approval === "within_limit") achieves.push(`A standalone ${word(months)}-month package the buyer can approve within the confirmed limit.`);
+  const achieves = [`A sale of ${formatINR(total)} including GST.`, `You'd keep ${approxINR(x.economics.netContributionPaise)} after your costs and fees.`];
+  if (phased && x.approval === "within_limit") achieves.push(`A ${word(months)}-month package the buyer can approve on their own.`);
 
   const changes: string[] = [];
   const left: string[] = [...names(packages, x.structure.excludedPackageIds)];
   if (phased && months < fullMonths(baseline)) left.push(`months ${months + 1}–${fullMonths(baseline)}`);
-  if (left.length) changes.push(`${listJoin(left).replace(/^./, (c) => c.toUpperCase())} are not included.`);
+  if (left.length) changes.push(`${listJoin(left).replace(/^./, (c) => c.toUpperCase())} ${left.length === 1 ? "is" : "are"} left out.`);
   // Deterministic subtraction between two customer-facing totals, only on the same GST basis.
-  if (offerGstRateBps === original.gstRateBps && total < original.totalPaise) changes.push(`The customer-facing proposal value is ${formatINR(original.totalPaise - total)} lower than the original annual proposal.`);
-  if (phased) changes.push(`No work outside the ${word(months)}-month package is committed.`);
-  if (!changes.length) changes.push("The scope and total are unchanged from the original annual proposal.");
+  if (offerGstRateBps === original.gstRateBps && total < original.totalPaise) changes.push(`${formatINR(original.totalPaise - total)} less than your original quote.`);
+  if (phased) changes.push(`Nothing beyond the ${word(months)} months is promised.`);
+  if (!changes.length) changes.push("Same work and same price as your original quote.");
   return { achieves, changes };
 }
 
 /** Why a merchant's counter-offer is on the table, without claiming it passes rules it does not. */
 export function counterReason(failingTexts: string[]): string {
-  if (!failingTexts.length) return "You set this total in answer to the buyer's request, and the engine found that every rule passes.";
-  return `You set this total in answer to the buyer's request. It does not meet: ${joinRules(failingTexts)} You chose to override that.`;
+  if (!failingTexts.length) return "You set this total in answer to the buyer. It is within all your limits.";
+  return `You set this total in answer to the buyer. It is outside your limits: ${joinRules(failingTexts)} You chose to go ahead anyway.`;
 }
 
 /** Several rule explanations as one sentence: each already ends in a full stop, so those are dropped before joining. */

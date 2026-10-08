@@ -65,9 +65,9 @@ describe("deterministic recommendation strategies", () => {
   it("writes every ordinal claim from the leader's closed fact set", () => {
     const view = strategyView(feasible(), "protect_contribution", heroBaseline());
     const text = explainLeader(view, { inr: (paise) => `₹${Math.round(paise / 100).toLocaleString("en-IN")}` });
-    expect(text).toContain("Best for Protect contribution");
+    expect(text).toContain("keeps about ₹19,330 for you after your costs and fees");
     expect(text).toContain("₹19,330");
-    expect(text).toContain("within the buyer's approval limit");
+    expect(text).toContain("The buyer can approve this on their own");
     expect(text.includes("highest")).toBe(view.facts[view.leader!.structure.id].includes("highest_contribution"));
 
     const withoutHighest = {

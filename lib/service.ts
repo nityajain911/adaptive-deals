@@ -889,7 +889,7 @@ async function applyOverrides(s: DemoState, version: BusinessEconomics, override
 }
 
 const overrideLabel = (o: Pick<InputOverride, "field" | "packageId">, version: BusinessEconomics) =>
-  o.field === "direct_cost" ? `${version.services.find((x) => x.id === o.packageId)?.name ?? o.packageId} · direct delivery cost` : { contribution_floor: "Minimum contribution", cash_exposure: "Maximum cash exposure", discount_limit: "Maximum discount" }[o.field];
+  o.field === "direct_cost" ? `${version.services.find((x) => x.id === o.packageId)?.name ?? o.packageId} · delivery cost` : { contribution_floor: "Lowest profit I'll accept", cash_exposure: "Most I'll spend before I'm paid", discount_limit: "Biggest discount I'll give" }[o.field];
 
 /**
  * Change one assumption for this deal only, before the engine runs, with a reason. It never changes

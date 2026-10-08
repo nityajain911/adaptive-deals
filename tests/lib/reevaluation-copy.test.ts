@@ -10,11 +10,11 @@ const preview = (over: Partial<ReevaluationPreview> = {}): ReevaluationPreview =
 
 describe("what a changed input means to the merchant", () => {
   it.each([
-    [{ field: "packages[0].directCostPaise", from: "1200000", to: "1500000" }, "Website fixes · direct delivery cost: ₹12,000 → ₹15,000"],
+    [{ field: "packages[0].directCostPaise", from: "1200000", to: "1500000" }, "Website fixes · delivery cost: ₹12,000 → ₹15,000"],
     [{ field: "packages[2].deferrable", from: "true", to: "false" }, "Social media · can start later: yes → no"],
-    [{ field: "policy.cashAtRiskLimitPaise", from: "1000000", to: "500000" }, "Maximum cash exposure: ₹10,000 → ₹5,000"],
-    [{ field: "policy.discountLimitBps", from: "0", to: "1000" }, "Maximum discount: 0% → 10%"],
-    [{ field: "policy.contributionFloor.minPercentBps", from: "3500", to: "4000" }, "Minimum contribution: 35% → 40%"],
+    [{ field: "policy.cashAtRiskLimitPaise", from: "1000000", to: "500000" }, "Most I'll spend before I'm paid: ₹10,000 → ₹5,000"],
+    [{ field: "policy.discountLimitBps", from: "0", to: "1000" }, "Biggest discount I'll give: 0% → 10%"],
+    [{ field: "policy.contributionFloor.minPercentBps", from: "3500", to: "4000" }, "Lowest profit I'll accept: 35% → 40%"],
     [{ field: "policy.smallestInstalmentPaise", from: "1000000", to: "500000" }, "Minimum payment: ₹10,000 → ₹5,000"],
     [{ field: "policy.maxTenureMonths", from: "12", to: "9" }, "Maximum payment duration: 12 months → 9 months"],
     [{ field: "policy.paymentFeeBps", from: "200", to: "250" }, "Expected payment fee: 2% → 2.5%"],

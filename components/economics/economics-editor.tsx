@@ -58,28 +58,30 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
 
   return (
     <div className="space-y-4" data-testid="economics-page">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Adaptive Deals</div>
-          <h1 className="mt-1 text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Business economics</h1>
-          <p className="mt-1 text-[14px] leading-6 text-ink-2">Set the delivery costs and rules every recommended offer must respect.</p>
-          <p className="mt-1 text-[13px] font-medium text-muted" data-testid="economics-version">Version {version}{label ? ` · ${label}` : ""} · activated {dateLabel(activatedAt)}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-        <Button data-testid="economics-illustrative-preset" disabled={pending} onClick={() => { const example = structuredClone(illustrativeContent); setContent(example); setLadderText(example.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }}>Load illustrative example: 10% maximum discount with 0%, 5%, 10% approved</Button>
-        <Button data-testid="economics-restore" disabled={pending} onClick={() => { if (!window.confirm("Restore the demo business economics as a new version?")) return; void run(async () => { const result = await action({ action: "restore_default_economics" }) as { version: number }; setVersion(result.version); setPreview(null); router.refresh(); window.location.reload(); }); }}>Restore demo defaults</Button>
-        </div>
+      <div>
+        <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Prices &amp; costs</h1>
+        <p className="mt-1 max-w-2xl text-[14px] leading-6 text-ink-2">What you charge, what it costs you to deliver, and the lowest deal you&apos;ll accept.</p>
       </div>
       {children}
       <CommercialMemoryPanel sources={memorySources} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
       <ServicesTable services={content.services} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
       <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Reviewing…" : "Review changes"}</Button>
-        <span className="text-[13px] text-muted">Nothing changes until you review and activate a new version.</span>
+        <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Checking…" : "Check my changes"}</Button>
+        <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Nothing changes until you check and save.</span>
       </div>
+      <details className="rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="demo-tools">
+        <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="demo-tools-toggle">Demo tools</summary>
+        <div className="mt-2 space-y-2 pb-1">
+          <p className="text-[13px] text-muted" data-testid="economics-version">Version {version}{label ? ` · ${label}` : ""} · saved {dateLabel(activatedAt)}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button data-testid="economics-illustrative-preset" disabled={pending} onClick={() => { const example = structuredClone(illustrativeContent); setContent(example); setLadderText(example.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }}>Try an example that allows discounts (up to 10%)</Button>
+            <Button data-testid="economics-restore" disabled={pending} onClick={() => { if (!window.confirm("Put the demo prices and costs back? This is saved as a new version.")) return; void run(async () => { const result = await action({ action: "restore_default_economics" }) as { version: number }; setVersion(result.version); setPreview(null); router.refresh(); window.location.reload(); }); }}>Put the demo prices back</Button>
+          </div>
+        </div>
+      </details>
       {error && !preview ? <p role="alert" className="text-[13px] text-red">{error}</p> : null}
-      {preview ? <ReviewPanel preview={preview} nextVersion={version + 1} pending={pending} error={error} onActivate={() => void run(async () => { const result = await action({ action: "activate_economics" }) as { version: number; activatedAt: string; label: string | null }; setVersion(result.version); setActivatedAt(result.activatedAt); setLabel(result.label); setContent(contentForReview()); setPreview(null); router.refresh(); })} /> : null}
+      {preview ? <ReviewPanel preview={preview} pending={pending} error={error} onActivate={() => void run(async () => { const result = await action({ action: "activate_economics" }) as { version: number; activatedAt: string; label: string | null }; setVersion(result.version); setActivatedAt(result.activatedAt); setLabel(result.label); setContent(contentForReview()); setPreview(null); router.refresh(); })} /> : null}
     </div>
   );
 }
