@@ -1,6 +1,8 @@
 import "server-only";
 import { mcpIntentSchema, mcpReceiptSchema, type McpActionIntent, type McpActionReceipt } from "./intents";
-import { readJson, serialised, writeJsonAtomic } from "@/lib/store";
+import { rm } from "node:fs/promises";
+import path from "node:path";
+import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "@/lib/store";
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const intentFile = (id: string) => `mcp/intents/${id}.json`;
@@ -52,3 +54,18 @@ export const saveMcpReceipt = (input: McpActionReceipt): Promise<McpActionReceip
   return receipt;
 });
 
+
+/**
+ * A failed attempt (the tool returned an error, so no link exists) may be reviewed again. Its receipt is kept
+ * under a dated name, then cleared, and the intent returns to draft so the merchant approves it afresh.
+ */
+export const archiveFailedAttempt = (intentId: string, fresh: McpActionIntent): Promise<void> => serialised(async () => {
+  const receipt = await readJson<unknown>(receiptFile(intentId));
+  if (receipt !== null) {
+    const parsed = mcpReceiptSchema.parse(receipt);
+    if (parsed.outcome !== "failed") throw new Error("Only a failed attempt can be reviewed again");
+    await writeJsonAtomic(`mcp/receipts/${intentId}.failed-${parsed.requestedAt.replace(/[^0-9A-Za-z]/g, "")}.json`, parsed);
+    await rm(path.join(DATA_DIR, receiptFile(intentId)), { force: true });
+  }
+  await writeJsonAtomic(intentFile(intentId), mcpIntentSchema.parse(fresh));
+});

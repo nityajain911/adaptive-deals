@@ -8,6 +8,13 @@ const responseBody = (result: { structuredContent?: unknown; content?: unknown; 
   return result.structuredContent ?? result.content;
 };
 
+/** The tool's own error text, with anything key-shaped or long and opaque removed, kept short enough to show. */
+export function safeToolError(content: unknown): string {
+  const text = Array.isArray(content) ? content.map((part) => (part && typeof part === "object" && typeof (part as { text?: unknown }).text === "string" ? (part as { text: string }).text : "")).join(" ") : "";
+  const cleaned = text.replace(/rzp_(test|live)_[A-Za-z0-9]+/g, "[key]").replace(/[A-Za-z0-9+/=_-]{28,}/g, "[redacted]").replace(/\s+/g, " ").trim().slice(0, 200);
+  return cleaned || "no detail was given";
+}
+
 export async function executeMcpIntent(intentId: string, transport: McpTransport, now: string): Promise<McpActionReceipt> {
   const intent = await getMcpIntent(intentId);
   if (!intent) throw new Error("MCP intent not found");
@@ -51,13 +58,19 @@ export async function executeMcpIntent(intentId: string, transport: McpTransport
   try {
     const result = await transport.callTool({ name: create.toolName, arguments: intent.canonicalArguments });
     let receipt: McpActionReceipt;
-    try {
-      receipt = reducePaymentLinkReceipt(intent, responseBody(result), now);
-    } catch {
-      receipt = failedMcpReceipt(intent, now, { outcome: "failed", errorCode: "malformed_response", safeError: "Razorpay MCP returned an invalid test response" });
+    if (result.isError) {
+      // The tool refused or failed: Razorpay reports that no link was made, so this can be reviewed again.
+      receipt = failedMcpReceipt(intent, now, { outcome: "failed", errorCode: "tool_error", safeError: `Razorpay returned an error: ${safeToolError(result.content)}` });
+    } else {
+      try {
+        receipt = reducePaymentLinkReceipt(intent, responseBody(result), now);
+      } catch {
+        // A reply we cannot read may belong to a link that was created. Never call this a clean failure: find it by reference first.
+        receipt = failedMcpReceipt(intent, now, { outcome: "unknown", errorCode: "malformed_response", safeError: "Razorpay MCP returned a response that could not be read; reconcile before retry" });
+      }
     }
     await saveMcpReceipt(receipt);
-    await saveMcpIntent({ ...intent, status: receipt.outcome === "succeeded" ? "succeeded" : "failed" });
+    await saveMcpIntent({ ...intent, status: receipt.outcome === "succeeded" ? "succeeded" : receipt.outcome });
     return receipt;
   } catch (error) {
     const timeout = error instanceof Error && error.name === "TimeoutError";

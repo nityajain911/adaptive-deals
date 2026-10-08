@@ -150,6 +150,25 @@ describe("an approved action through the real adapter and a fake Razorpay server
     expect(reconciled).toMatchObject({ outcome: "succeeded", externalId: "plink_77" });
     expect(state.calls.filter((c) => c.name === "create_payment_link")).toHaveLength(1);
   });
+  it("shows the tool's own error as a clean failure, scrubs key-shaped text, and lets the attempt be reviewed again", async () => {
+    const intent = await intentFor();
+    state.createError = true;
+    const receipt = await executeMcpIntent(intent.id, transport(), "2026-10-08T12:00:01+05:30");
+    expect(receipt).toMatchObject({ outcome: "failed", errorCode: "tool_error" });
+    expect(receipt.safeError).toContain("creating payment link failed: duplicate reference");
+    expect(state.links).toHaveLength(0);
+    const { archiveFailedAttempt } = await import("@/mcp/store");
+    await archiveFailedAttempt(intent.id, { ...intent, status: "draft", approvedBy: null, approvedAt: null });
+    expect(await store.getMcpReceipt(intent.id)).toBeNull();
+    expect((await store.getMcpIntent(intent.id))!.status).toBe("draft");
+  });
+  it("refuses to archive an attempt whose outcome is unknown", async () => {
+    const intent = await intentFor();
+    state.hang = true;
+    expect((await executeMcpIntent(intent.id, transport(), "2026-10-08T12:00:01+05:30")).outcome).toBe("unknown");
+    const { archiveFailedAttempt } = await import("@/mcp/store");
+    await expect(archiveFailedAttempt(intent.id, { ...intent, status: "draft", approvedBy: null, approvedAt: null })).rejects.toThrow(/failed attempt/);
+  });
   it("refuses to execute when the server's own schema changed after approval", async () => {
     const intent = await intentFor();
     const tool = state.tools[0] as { inputSchema: { properties: Record<string, unknown> } };

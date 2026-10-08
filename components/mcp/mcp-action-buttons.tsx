@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "@/components/client";
 
 /** Review: derive the exact action from the accepted agreement. Nothing is sent to Razorpay yet except a read-only tool listing. */
-export function PrepareMcpButton() {
+export function PrepareMcpButton({ label = "Review Razorpay test Payment Link" }: { label?: string }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   return (
     <div>
       <Button variant="primary" disabled={pending} data-testid="mcp-prepare" onClick={() => run({ action: "prepare_mcp_collection" }, () => router.refresh())}>
-        {pending ? "Checking Razorpay…" : "Review Razorpay test Payment Link"}
+        {pending ? "Checking Razorpay…" : label}
       </Button>
       <ErrorText error={error} />
     </div>

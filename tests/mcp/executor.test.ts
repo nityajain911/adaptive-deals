@@ -55,10 +55,16 @@ describe("idempotent MCP execution", () => {
     expect(calls).toEqual(["create_link", "fetch_link"]);
   });
 
-  it("fails closed on malformed output and records a safe transient failure", async () => {
+  it("labels a tool error as a clean failure and scrubs key-shaped text from what it shows", async () => {
+    const { safeToolError } = await import("@/mcp/executor");
+    expect(safeToolError([{ type: "text", text: "creating payment link failed: key rzp_test_AbCdEf123456 is not allowed   " + "x".repeat(40) }])).toBe("creating payment link failed: key [key] is not allowed [redacted]");
+    expect(safeToolError(undefined)).toBe("no detail was given");
+  });
+
+  it("treats an unreadable reply as unknown, not failed, and a thrown error as a safe failure", async () => {
     const malformed = approved(); await store.recordMcpIntent(malformed);
     const badTransport = { listTools: async () => catalog, callTool: async () => ({ structuredContent: { url: "wrong" } }) };
-    expect(await executeMcpIntent(malformed.id, badTransport, "2026-10-08T12:00:01+05:30")).toMatchObject({ outcome: "failed", errorCode: "malformed_response" });
+    expect(await executeMcpIntent(malformed.id, badTransport, "2026-10-08T12:00:01+05:30")).toMatchObject({ outcome: "unknown", errorCode: "malformed_response" }); // changed: a reply we cannot read may belong to a link that exists, so it must be reconciled by reference first
     rmSync(path.join(dataDir, "mcp"), { recursive: true, force: true });
     const failed = approved(); await store.recordMcpIntent(failed);
     const failedTransport = { listTools: async () => catalog, callTool: async () => { throw new Error("provider unavailable with secret-value"); } };

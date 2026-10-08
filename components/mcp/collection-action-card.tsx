@@ -20,7 +20,7 @@ export function McpCollectionActionCard({ receipt = null, simulatedCollection, c
     {receipt.shortUrl ? <a href={receipt.shortUrl} className="text-[13px] font-semibold text-blue hover:underline">Open test Payment Link →</a> : null}
   </Card>;
   if (receipt?.outcome === "unknown") return <Card className="space-y-2 border-[#f7dfb4] p-5" data-testid="mcp-collection-card"><h2 className="text-[17px] font-semibold text-ink">Razorpay MCP outcome unknown</h2><p className="text-[13px] text-ink-2">Adaptive Deals will reconcile the reference before allowing another write. No retry has run.</p></Card>;
-  if (receipt?.outcome === "failed") return <Card className="space-y-2 border-[#f3c8c3] p-5" data-testid="mcp-collection-card"><h2 className="text-[17px] font-semibold text-ink">Razorpay MCP test action failed</h2><p className="text-[13px] text-ink-2">{receipt.safeError}. It was not replaced by a simulation.</p></Card>;
+  if (receipt?.outcome === "failed") return <Card className="space-y-2 border-[#f3c8c3] p-5" data-testid="mcp-collection-card"><h2 className="text-[17px] font-semibold text-ink">Razorpay MCP test action failed</h2><p className="text-[13px] text-ink-2">{receipt.safeError}. It was not replaced by a simulation.</p>{connection.connected ? <PrepareMcpButton label="Review again" /> : null}</Card>;
   if (connection.connected && intent && (intent.status === "draft" || intent.status === "approved")) {
     const args = intent.canonicalArguments;
     return <Card className="space-y-3 border-[#cfd9ff] p-5" data-testid="mcp-collection-card" data-state="review">

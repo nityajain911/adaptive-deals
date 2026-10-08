@@ -109,14 +109,14 @@ export class RazorpayMcpTransport implements McpTransport {
     await this.ready();
     if (input.name === CREATE) {
       const result = await this.client.callRawTool(CREATE, toRealCreateArgs(input.arguments));
-      if (result.isError) return { isError: true };
+      if (result.isError) return { isError: true, content: result.content };
       return { structuredContent: parsedBody(result) };
     }
     if (input.name === FETCH_BY_REFERENCE) {
       const reference = input.arguments.reference;
       if (typeof reference !== "string" || !reference) throw new McpProtocolError("A reference is required");
       const result = await this.client.callRawTool(FETCH_BY_REFERENCE, { reference_id: reference });
-      if (result.isError) return { isError: true };
+      if (result.isError) return { isError: true, content: result.content };
       const body = parsedBody(result) as { payment_links?: unknown[]; items?: unknown[] } | unknown[];
       const links = (Array.isArray(body) ? body : (body.payment_links ?? body.items ?? [])) as { reference_id?: string }[];
       const match = links.find((link) => link.reference_id === reference);

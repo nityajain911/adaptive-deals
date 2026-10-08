@@ -3,7 +3,7 @@ import { DEMO_ANCHOR } from "@/domain/clock";
 import { bindRazorpayCapabilities } from "@/mcp/capabilities";
 import { approveMcpIntent, createPaymentLinkIntent, type McpActionIntent, type McpActionReceipt } from "@/mcp/intents";
 import { executeMcpIntent } from "@/mcp/executor";
-import { getMcpIntent, recordMcpIntent, saveMcpIntent } from "@/mcp/store";
+import { archiveFailedAttempt, getMcpIntent, recordMcpIntent, saveMcpIntent } from "@/mcp/store";
 import { mcpTransportFromEnv } from "@/mcp/config";
 import type { McpTransport } from "@/mcp/transport";
 import { activeVersionOf } from "@/lib/views";
@@ -43,7 +43,14 @@ async function deriveIntent(transport: McpTransport): Promise<McpActionIntent> {
 const sameApprovedInputs = (a: McpActionIntent, b: McpActionIntent) => canonicalJson({ termsHash: a.termsHash, catalogHash: a.catalogHash, inputSchemaHash: a.inputSchemaHash, toolName: a.toolName, argumentsHash: a.argumentsHash }) === canonicalJson({ termsHash: b.termsHash, catalogHash: b.catalogHash, inputSchemaHash: b.inputSchemaHash, toolName: b.toolName, argumentsHash: b.argumentsHash });
 
 export async function prepareMcpCollectionIntent(transport: McpTransport = mcpTransportFromEnv()): Promise<McpActionIntent> {
-  return recordMcpIntent(await deriveIntent(transport));
+  const fresh = await deriveIntent(transport);
+  const stored = await getMcpIntent(fresh.id);
+  // An attempt the tool reported as failed may be reviewed again; its receipt is archived, never deleted.
+  if (stored?.status === "failed") {
+    await archiveFailedAttempt(fresh.id, fresh);
+    return fresh;
+  }
+  return recordMcpIntent(fresh);
 }
 
 export async function approveMcpCollectionIntent(intentId: string, transport: McpTransport = mcpTransportFromEnv()): Promise<McpActionIntent> {
