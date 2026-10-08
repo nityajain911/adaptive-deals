@@ -103,7 +103,9 @@ test("economics · reviewing with nothing changed says so and offers no activati
 test("commercial memory · the merchant reviews exact evidence before it enters the economics draft", async ({ page }) => {
   await page.goto("/economics");
   const memory = page.getByTestId("commercial-memory");
-  await expect(memory).toContainText("9 connected sources");
+  // Changed from 9: the ninth source belongs to a second fictional merchant (the isolation test corpus) and must never be listed to this one.
+  await expect(memory).toContainText("8 connected sources");
+  await expect(memory).not.toContainText("Saffron");
   await expect(memory).toContainText("Pinecone 2026 rate card");
   await memory.getByTestId("memory-draft").click();
   await expect(memory.getByTestId("memory-proposals")).toContainText("Website fixes");

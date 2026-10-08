@@ -12,7 +12,7 @@ export const metadata = { title: "Business economics · Adaptive Deals" };
 export default async function EconomicsPage() {
   await connection();
   const active = await activeEconomics();
-  const memorySources = (await loadKnowledgeSources()).map(({ id, title, kind, status, effectiveFrom, access, origin }) => ({ id, title, kind, status, effectiveFrom, access, uploaded: !!origin, fileName: origin?.fileName ?? null }));
+  const memorySources = (await loadKnowledgeSources()).filter((source) => source.merchantId === "merchant-pinecone").map(({ id, title, kind, status, effectiveFrom, access, origin, merchantId }) => ({ id, title, kind, status, effectiveFrom, access, merchantId, uploaded: !!origin, fileName: origin?.fileName ?? null }));
   return (
     <>
       <WalkthroughServer dealId="hero" route="economics" />

@@ -16,6 +16,7 @@ export interface MemorySourceSummary {
   access: string;
   uploaded?: boolean;
   fileName?: string | null;
+  merchantId?: string;
 }
 
 const call = async (body: Record<string, unknown>) => {
@@ -59,7 +60,8 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
   const [error, setError] = useState<{ message: string; notes: { line: string; reason: string }[] } | null>(null);
   const [result, setResult] = useState<UploadSummary | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const sample = sources.find((source) => !source.uploaded && source.kind === kind && source.status === "active") ?? null;
+  // Only this merchant's own active sample can be replaced; another merchant's sources are never offered.
+  const sample = sources.find((source) => !source.uploaded && source.merchantId === "merchant-pinecone" && source.kind === kind && source.status === "active") ?? null;
 
   const submit = async () => {
     setPending(true); setError(null); setResult(null);
@@ -76,6 +78,7 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
       if (!json.ok) { setError({ message: json.error ?? "The upload failed", notes: json.notes ?? [] }); return; }
       setResult(json.result!);
       setPasted("");
+      setReplace(false);
       if (fileRef.current) fileRef.current.value = "";
       onUploaded();
     } catch {
