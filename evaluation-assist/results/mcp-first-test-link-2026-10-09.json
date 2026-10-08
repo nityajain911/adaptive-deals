@@ -18,10 +18,27 @@
       "outcome": "succeeded",
       "paymentLinkId": "plink_TlNy9IkINXBQtW",
       "status": "created",
-      "notify": { "sms": false, "email": false, "whatsapp": false },
+      "notify": {
+        "sms": false,
+        "email": false,
+        "whatsapp": false
+      },
       "reminderEnable": false
+    },
+    {
+      "what": "diagnostic create_payment_link at Rs 10,000, not an agreement payment, authorised by the applicant in chat",
+      "amountPaise": 1000000,
+      "reference": "adaptive_diag_10000_a",
+      "outcome": "succeeded",
+      "paymentLinkId": "plink_TlO5h9Uepj1egB",
+      "status": "created",
+      "notify": {
+        "sms": false,
+        "email": false,
+        "whatsapp": false
+      }
     }
   ],
-  "conclusion": "The MCP path works end to end in test mode. The account rejects the agreement amount of Rs 23,010 but accepts Rs 100, so the account has a per-link amount cap that is lower than the agreement payment. The exact cap is not known and is not documented by Razorpay in the sources found.",
+  "conclusion": "The MCP path works end to end in test mode. The account accepts Rs 100 and Rs 10,000 and rejects the agreement amount of Rs 23,010, so the per-link cap lies between Rs 10,000 and Rs 23,010. The exact cap is not documented by Razorpay in the sources found.",
   "note": "Agent and applicant authored. These are two real calls, not an evaluation."
 }
