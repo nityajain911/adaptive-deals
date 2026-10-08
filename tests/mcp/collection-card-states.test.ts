@@ -47,6 +47,13 @@ describe("the Razorpay action card follows the connection and the intent", () =>
     expect(out).not.toContain("Approve and create test Payment Link");
   });
 
+  it("offers to review a failed attempt again, only when connected", () => {
+    const failed = { intentId: "i", serverId: "s", toolName: "t", catalogHash: "a".repeat(64), argumentsHash: "b".repeat(64), requestedAt: "2026-10-08T12:00:00+05:30", completedAt: "2026-10-08T12:00:00+05:30", outcome: "failed" as const, externalId: null, shortUrl: null, externalStatus: null, responseHash: null, errorCode: "tool_error", safeError: "Razorpay returned an error: amount exceeds maximum amount allowed." };
+    expect(html({ connection: { connected: true, via: "remote" }, receipt: failed })).toContain("Review again");
+    expect(html({ connection: { connected: false, reason: "not_configured" }, receipt: failed })).not.toContain("Review again");
+    expect(html({ connection: { connected: true, via: "remote" }, receipt: failed })).toContain("amount exceeds maximum amount allowed");
+  });
+
   it("never leaks a secret-shaped value into its markup", () => {
     expect(html({ connection: { connected: true, via: "remote" }, intent: draft() })).not.toMatch(/rzp_(test|live)_|secret/i);
   });
