@@ -116,6 +116,17 @@ test("commercial memory · the merchant reviews exact evidence before it enters 
   await expect(page.getByTestId("economics-activate")).toBeDisabled();
 });
 
+test("commercial memory · the offer connects buyer words, merchant evidence and engine checks without leaking them to the buyer", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  const evidence = page.getByTestId("recommendation-evidence");
+  await evidence.locator("summary").click();
+  await expect(evidence).toContainText("Buyer said");
+  await expect(evidence).toContainText("Pinecone 2026 rate card");
+  await expect(evidence).toContainText("The engine checked");
+  await page.getByTestId("audit-details").click();
+  await expect(page.getByTestId("audit-commercial-memory")).toContainText("exact chunk");
+});
+
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");

@@ -9,6 +9,7 @@ import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
 import { isIllustrativeHash } from "@/lib/economics-illustrative";
+import type { CommercialMemoryDealView } from "@/lib/commercial-memory-view";
 
 /**
  * The merchant's read-only audit (spec §8.3). Links only: no forms, buttons or actions. Technical
@@ -16,6 +17,7 @@ import { isIllustrativeHash } from "@/lib/economics-illustrative";
  */
 const NAV: [string, string][] = [
   ["audit-evidence", "Evidence"],
+  ["audit-memory", "Commercial Memory"],
   ["audit-rules", "Applied merchant rules"],
   ["audit-exceptions", "Exceptions and overrides"],
   ["audit-history", "Approval and acceptance history"],
@@ -39,7 +41,7 @@ function offerStructure(s: DemoState, out: RunOutcome): EvaluatedStructure | nul
   return out.evaluation.result?.structures.find((x) => x.structure.id === id) ?? null;
 }
 
-export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome; deal: DealContext }) {
+export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; out: RunOutcome; deal: DealContext; memory?: CommercialMemoryDealView | null }) {
   const run = s.run.record;
   const policy = deal.merchant.policy;
   const sources = auditSources(s, run, s.run.viewing, deal.packages);
@@ -56,7 +58,7 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
   return (
     <div className="space-y-4 text-[13px] text-ink-2" data-testid="audit-sections">
       <nav aria-label="Audit sections" className="flex flex-wrap gap-x-3 gap-y-1">
-        {NAV.map(([id, label]) => (
+        {NAV.filter(([id]) => id !== "audit-memory" || memory).map(([id, label]) => (
           <a key={id} href={`#${id}`} data-audit-nav className="font-semibold text-blue hover:underline">
             {label}
           </a>
@@ -83,6 +85,13 @@ export function AuditSections({ s, out, deal }: { s: DemoState; out: RunOutcome;
           </ul>
         </details>
       </section>
+
+      {memory ? <section aria-labelledby="audit-memory" data-testid="audit-commercial-memory">
+        <H id="audit-memory">Commercial Memory</H>
+        <p className="text-[12px] text-muted">Eligible merchant and buyer evidence retrieved by code. Source access rules were applied before ranking.</p>
+        {memory.history ? <p className="mt-1"><span className="font-medium text-ink">Buyer history</span> · {memory.history.sourceTitle} · {memory.history.effectiveFrom}</p> : <p className="mt-1 text-muted">No eligible buyer history was used.</p>}
+        <ul className="mt-2 space-y-1">{memory.merchantEvidence.map((item) => <li key={`${item.serviceId}-${item.kind}`}><span className="font-medium text-ink">{item.serviceName} · {item.kind}</span> · {item.sourceTitle} · exact chunk {item.chunkId}</li>)}</ul>
+      </section> : null}
 
       {branch ? (
         <section aria-labelledby="audit-branch" data-testid="branch-audit">

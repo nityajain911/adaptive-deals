@@ -13,6 +13,8 @@ import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
 import { branchChangedAnswers } from "@/lib/decision-branch";
+import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
+import { RelevantHistory } from "@/components/commercial-memory/deal-evidence";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -44,6 +46,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const confirmedAt = answers.map((a) => a.answeredAt).sort().at(-1) ?? null;
   const offerVersion = s.selectedOption?.draftVersion ?? s.agreements.at(-1)?.version ?? null;
   const primary = current ? progress.primaryAction : null;
+  const memory = commercialMemoryForDeal({ merchantId: activeCase.deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: packages.map((item) => item.id) });
 
   const questions = r.displayed.questions.map((q) => {
     const draft = latestClarificationForQuestion(s, q.id);
@@ -137,6 +140,8 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             </ul>
             {evidenceDetails}
           </Card>
+
+          <RelevantHistory memory={memory} />
 
           {unmapped.length ? (
             <ScopeConfirmationCard

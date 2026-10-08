@@ -24,6 +24,8 @@ import { headlineFor } from "@/lib/offer-copy";
 import { offerNarrative } from "@/lib/offer-narrative";
 import { strategyFeasibleOf } from "@/lib/service";
 import { STRATEGY_LABEL, strategyView } from "@/domain/strategy";
+import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
+import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
@@ -193,6 +195,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   );
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
+  const memory = commercialMemoryForDeal({ merchantId: deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: x.structure.scope.map((item) => item.packageId) });
   const alt = isLeader ? view.withinApprovalAlternative : null;
   const leaderNote = isLeader && x.approval === "requires_approval" ? (
     alt ? (
@@ -249,6 +252,15 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
               <DontProceed />
             </>
           }
+        />
+        <RecommendationEvidence
+          buyerQuote={buyerSaid?.quote ?? null}
+          memory={memory}
+          engineFacts={[
+            `${x.sellerChecks.filter((check) => check.status === "pass").length} merchant checks passed`,
+            `${x.buyerChecks.filter((check) => check.status === "pass").length} buyer checks passed`,
+            x.approval === "within_limit" ? "Within the buyer's stated approval limit" : "Buyer approval is still required",
+          ]}
         />
         <SuccessMeasure />
         <Alternatives options={options} selectedId={x.structure.id} />
