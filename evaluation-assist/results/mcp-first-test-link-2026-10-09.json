@@ -1,0 +1,27 @@
+{
+  "schema": "adaptive-deals.mcp-real-call-record.v1",
+  "observedAt": "2026-10-09",
+  "via": "Razorpay hosted MCP server, remote, test key (rzp_test_)",
+  "calls": [
+    {
+      "what": "create_payment_link for the accepted agreement's first payment, approved by the applicant on the Track card",
+      "amountPaise": 2301000,
+      "outcome": "failed",
+      "razorpayError": "creating payment link failed: amount exceeds maximum amount allowed",
+      "linkCreated": false,
+      "checkedBy": "read-only fetch_all_payment_links by reference: 0 links"
+    },
+    {
+      "what": "diagnostic create_payment_link, not an agreement payment, authorised by the applicant in chat",
+      "amountPaise": 10000,
+      "reference": "adaptive_diag_100_a",
+      "outcome": "succeeded",
+      "paymentLinkId": "plink_TlNy9IkINXBQtW",
+      "status": "created",
+      "notify": { "sms": false, "email": false, "whatsapp": false },
+      "reminderEnable": false
+    }
+  ],
+  "conclusion": "The MCP path works end to end in test mode. The account rejects the agreement amount of Rs 23,010 but accepts Rs 100, so the account has a per-link amount cap that is lower than the agreement payment. The exact cap is not known and is not documented by Razorpay in the sources found.",
+  "note": "Agent and applicant authored. These are two real calls, not an evaluation."
+}
