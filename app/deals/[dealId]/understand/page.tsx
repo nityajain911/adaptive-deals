@@ -4,7 +4,7 @@ import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/compo
 import { StageShell } from "@/components/deal/stage-shell";
 import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
 import { InfoButton } from "@/components/info-button";
-import { Badge, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { originalProposalOf } from "@/lib/deal-context";
@@ -108,7 +108,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             ) : null}
             {evidenceDetails}
             <div className="mt-4">
-              <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} />
+              <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} showDrafts={questions.length === 0} />
             </div>
           </details>
         </Card>
@@ -147,14 +147,12 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
 
           {questions.length ? (
             <Card className="p-5" data-testid="questions-card">
-              <h2 className="text-[16px] font-semibold text-ink">{questions.length === 1 ? "Confirm one detail" : `Confirm ${questions.length === 2 ? "two" : questions.length} details`}</h2>
+              <h2 className="text-[16px] font-semibold text-ink">{questions.length === 1 ? "A question for the buyer" : "Questions for the buyer"}</h2>
+              {questions.some((x) => !x.draft?.sentAt) ? <p className="mt-1 text-[13px] text-muted">Not sent yet. Nothing reaches the buyer until you send.</p> : null}
               <ol className="mt-3 space-y-3">
                 {questions.map(({ q, draft, reply }, qi) => (
                   <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
-                    <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                      {draft?.sentAt ? <Badge tone="green">Sent</Badge> : <Badge tone="neutral">Not sent yet</Badge>}
-                    </div>
-                    <p className="mt-2 text-[15px] font-medium text-ink">
+                    <p className="text-[15px] font-medium text-ink">
                       {q.question} <InfoButton label="Why this question matters" testId={`why-${q.id}`}>{q.whyItMatters}</InfoButton>
                     </p>
                     {reply ? (
@@ -176,7 +174,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
             </Card>
           ) : null}
         </div>
-        <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} />
+        <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} showDrafts={questions.length === 0} />
       </div>
     </StageShell>
   );

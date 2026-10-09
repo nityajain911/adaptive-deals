@@ -170,7 +170,7 @@ export function CommercialMemoryPanel({ sources, onApply }: { sources: MemorySou
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[18px] font-semibold text-ink">Your documents</h2>
-          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-ink-2">Add your rate card or cost sheet and we&apos;ll fill in your prices and costs for you to check. Nothing changes until you save.</p>
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-ink-2">Add your rate card or cost sheet and we&apos;ll fill in your prices and costs for you to check.</p>
           
         </div>
         <Button variant="primary" data-testid="memory-draft" disabled={pending} onClick={() => void run(async () => {

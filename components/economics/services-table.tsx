@@ -1,6 +1,7 @@
 "use client";
 
 import type { ServicePackage } from "@/domain/types";
+import { InfoButton } from "@/components/info-button";
 import { rupeesInput, toNonNegativePaise, toPaise } from "@/lib/money-input";
 
 const input = "mt-1 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink";
@@ -10,7 +11,7 @@ export function ServicesTable({ services, onChange }: { services: ServicePackage
   return (
     <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="economics-services">
       <h2 className="text-[18px] font-semibold text-ink">Your services</h2>
-      <p className="mt-1 text-[13px] leading-5 text-ink-2">What you charge and what each one costs you to deliver. Deals you have already quoted keep their prices.</p>
+      <p className="mt-1 text-[13px] leading-5 text-ink-2">What you charge and what each one costs you to deliver. <InfoButton label="About quoted deals" testId="services-info">Deals you have already quoted keep their prices.</InfoButton></p>
       <div className="mt-4 divide-y divide-line">
         {services.map((service, index) => (
           <div key={service.id} className="py-4 first:pt-0 last:pb-0" data-testid={`service-row-${service.id}`}>

@@ -67,7 +67,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
       ? [replacement ? `Use version ${replacement.version} for the current terms and payment status.` : "This version is retained only as agreement history."]
       : lifecycle.state === "declined"
         ? ["No payment setup was created for this version."]
-        : [lifecycle.detail, `Work runs from ${view.delivery.from} to ${view.delivery.to}.`];
+        : [lifecycle.detail];
   const link = v.status === "active" || v.status === "accepted" || v.status === "superseded" ? s.paymentLinks.at(-1) ?? null : null;
 
   return (
@@ -180,7 +180,7 @@ function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement }: { life
   if (["setup_pending", "payment_scheduled", "payment_pending", "retry_scheduled", "paid"].includes(lifecycle.state))
     return (
       <div className={cx(box, "bg-green-weak text-green")} role="status" data-testid="buyer-status">
-        <strong>Accepted · {lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}. {lifecycle.detail}
+        <strong>Accepted · {lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}.
       </div>
     );
   if (lifecycle.state === "declined")

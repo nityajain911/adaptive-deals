@@ -6,7 +6,7 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ServicePackage } from "@/domain/types";
 import type { DealBaseline } from "@/domain/deal-baseline";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
+import { alternativeContributionLine, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
 import Link from "next/link";

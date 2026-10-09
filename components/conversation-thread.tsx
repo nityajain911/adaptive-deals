@@ -38,7 +38,7 @@ function linkify(text: string): ReactNode[] {
   );
 }
 
-export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2 }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number }) {
+export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2, showDrafts = true }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number; showDrafts?: boolean }) {
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -53,7 +53,8 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
 
   const highlights = chatHighlights(s.run.record.engine.profile, s.run.record.engine.rejectedFields, opening);
   const sentItems = shown.filter((i) => i.direction !== "outbound" || i.sentAt);
-  const drafts = scope === "understand" ? shown.filter((i) => i.direction === "outbound" && !i.sentAt) : [];
+  // The questions card on Understand already lists the unsent questions; showing them again here is noise.
+  const drafts = scope === "understand" && showDrafts ? shown.filter((i) => i.direction === "outbound" && !i.sentAt) : [];
 
   const bubbleShell = (side: "left" | "right", testId: string, children: ReactNode, extra?: Record<string, string>) => (
     <li key={testId} className={cx("max-w-[88%] rounded-lg px-3 py-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]", side === "right" ? "ml-auto rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white")} data-testid={testId} data-side={side} {...extra}>
