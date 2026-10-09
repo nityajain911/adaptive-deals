@@ -26,39 +26,24 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import Groq from "groq-sdk";
-import { KEY_VARS, liveAvailability } from "@/ai/config";
-import { GroqProvider } from "@/ai/groq-provider";
 import { runConstruct, type RunOutcome } from "@/ai/orchestrator";
+import { KEY_VARS } from "@/ai/config";
 import type { ModelProvider } from "@/ai/provider";
 import type { AiTask } from "@/ai/schemas";
 import { FixedClock } from "@/domain/clock";
 import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
 import { defaultOptions, newLedger, RecordingProvider, Stop, type Ledger } from "./recording-provider";
+import { recordingProviderFromFreeze, type RecordingProviderFreeze } from "./recording-live-provider";
 
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const options = defaultOptions(Number(arg("max-model-outputs") ?? 6));
+type CaseRecordingFreeze = RecordingProviderFreeze & {
+  scope: CaseId[];
+  maximumProviderRequests: number;
+  networkCallsMade: number;
+};
 
-/** Reads the provider's retry timing off a rate-limit error before the provider class reduces it to a failure kind. */
-function timedClient(client: Groq, ledger: Ledger) {
-  return {
-    chat: {
-      completions: {
-        create: async (params: never) => {
-          try {
-            return await client.chat.completions.create(params);
-          } catch (error) {
-            const headers = (error as { headers?: Record<string, string> | { get?: (k: string) => string | null } }).headers;
-            const raw = headers && typeof (headers as { get?: unknown }).get === "function" ? (headers as { get: (k: string) => string | null }).get("retry-after") : (headers as Record<string, string> | undefined)?.["retry-after"];
-            const seconds = raw ? Number(raw) : NaN;
-            ledger.retryAfterMs = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds * 1000) : null;
-            throw error;
-          }
-        },
-      },
-    },
-  };
-}
+const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE.json"), "utf8")) as CaseRecordingFreeze;
+const options = defaultOptions(Number(arg("max-model-outputs") ?? 6), freeze.maximumProviderRequests);
 
 function summarise(caseId: CaseId, out: RunOutcome, answered: string[]) {
   const item = demoCase(caseId)!;
@@ -96,7 +81,7 @@ function supersededStep(dir: string, runId: string, task: AiTask) {
 
 async function record(caseId: CaseId, live: ModelProvider, ledger: Ledger, dir: string, rerun: { runId: string; task: AiTask } | null) {
   const item = demoCase(caseId)!;
-  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${caseId}.json`), rerun ? { [rerun.task]: 1 } : {}, options);
+  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${live.name}-${caseId}.json`), rerun ? { [rerun.task]: 1 } : {}, options);
   if (rerun) {
     // The earlier attempt is preserved in the report, struck from the reusable outputs, and counted
     // against the rerun budget; every other step of the case is reused unchanged.
@@ -120,10 +105,9 @@ async function record(caseId: CaseId, live: ModelProvider, ledger: Ledger, dir: 
 }
 
 async function main() {
-  const availability = liveAvailability();
-  console.log(`Provider: ${availability.provider} · model: ${availability.available ? availability.model : "(unavailable)"} · model-output cap: ${options.modelOutputCap}`);
-  if (!availability.available) throw new Error(`Live model unavailable: ${availability.reason}`);
-  if (availability.provider !== "groq") throw new Error("These recordings are authorised for Groq only");
+  if (freeze.networkCallsMade !== 0) throw new Error("Recording freeze no longer represents a pre-call checkpoint");
+  const live = recordingProviderFromFreeze(freeze);
+  console.log(`Provider: ${live.name} · model: ${live.model} · model-output cap: ${options.modelOutputCap} · provider-request cap: ${options.requestCap}`);
   const only = arg("only");
   const rerunTask = arg("rerun-step") as AiTask | undefined;
   const supersede = arg("supersede");
@@ -131,6 +115,7 @@ async function main() {
   const rerun = rerunTask && supersede ? { runId: supersede, task: rerunTask } : null;
   const selected = only ? CASE_IDS.filter((id) => id === only) : [...CASE_IDS];
   if (only && selected.length === 0) throw new Error(`Unknown case: ${only}`);
+  if (selected.some((id) => !freeze.scope.includes(id))) throw new Error(`Recording freeze authorises only: ${freeze.scope.join(", ")}`);
   if (process.argv.includes("--dry")) {
     if (rerun) {
       const step = supersededStep(path.join(process.env.ADAPTIVE_DEALS_DATA_DIR || path.join(process.cwd(), ".data"), "runs"), rerun.runId, rerun.task);
@@ -139,10 +124,8 @@ async function main() {
     return console.log(`Dry run: configuration is valid; would record ${selected.join(", ")}${rerun ? ` (rerunning ${rerun.task} once)` : ""}. No call made.`);
   }
 
-  const apiKey = process.env[KEY_VARS.groq]!.trim();
   const ledger = newLedger();
-  // The SDK's own silent retries are disabled so that every request is counted and paced here.
-  const live = new GroqProvider(availability.model, timedClient(new Groq({ apiKey, maxRetries: 0 }), ledger) as never, apiKey);
+  const apiKey = process.env[KEY_VARS[freeze.provider]]!.trim();
   const dir = path.join(process.env.ADAPTIVE_DEALS_DATA_DIR || path.join(process.cwd(), ".data"), "runs");
   mkdirSync(dir, { recursive: true });
 
@@ -161,10 +144,10 @@ async function main() {
       break;
     }
   }
-  const report = { recordedAt: new Date().toISOString(), provider: availability.provider, model: availability.model, requests: ledger.requests, retries: ledger.retries, rejectedAttempts: ledger.rejectedAttempts, supersedes: rerun?.runId ?? null, summaries, stopped };
+  const report = { recordedAt: new Date().toISOString(), provider: live.name, model: live.model, requestCap: options.requestCap, requests: ledger.requests, retries: ledger.retries, rejectedAttempts: ledger.rejectedAttempts, supersedes: rerun?.runId ?? null, summaries, stopped };
   const reportText = JSON.stringify(report, null, 2);
   if (reportText.includes(apiKey)) throw new Error("Refusing to write a report that contains the API key");
-  writeFileSync(path.join(dir, `final-recording-report${only ? `-${only}` : ""}${rerun ? "-rerun" : ""}.json`), reportText + "\n");
+  writeFileSync(path.join(dir, `final-recording-report-${live.name}${only ? `-${only}` : ""}${rerun ? "-rerun" : ""}.json`), reportText + "\n");
   console.log(reportText);
 }
 

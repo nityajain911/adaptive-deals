@@ -83,6 +83,21 @@ describe("recording provider", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("refuses a provider request once the frozen request ceiling is spent", async () => {
+    const { provider, ledger, calls, keptFile } = setup([ok(good)]);
+    await provider.generate(req("h1"));
+    const second = new RecordingProvider(
+      { name: "groq", model: "m", generate: async (r) => (calls.push(r), ok(good)) },
+      "preserve-scope",
+      ledger,
+      keptFile,
+      {},
+      { ...defaultOptions(6, 1), sleep: async () => undefined, now: () => 1_000_000, log: () => undefined },
+    );
+    await expect(second.generate(req("h2"))).rejects.toThrow(/request cap reached/i);
+    expect(calls).toHaveLength(1);
+  });
+
   it("can strike a stored output so that step alone is requested again", async () => {
     const { provider, calls } = setup([ok(good), ok({ note: "again" })]);
     await provider.generate(req("a"));

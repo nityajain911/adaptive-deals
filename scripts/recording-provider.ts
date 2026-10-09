@@ -20,6 +20,7 @@ export class Stop extends Error {}
 
 export interface RecordingOptions {
   modelOutputCap: number;
+  requestCap: number;
   paceMs: number;
   defaultRetryWaitMs: number;
   sleep: (ms: number) => Promise<void>;
@@ -27,8 +28,9 @@ export interface RecordingOptions {
   log: (line: string) => void;
 }
 
-export const defaultOptions = (modelOutputCap: number): RecordingOptions => ({
+export const defaultOptions = (modelOutputCap: number, requestCap = Number.POSITIVE_INFINITY): RecordingOptions => ({
   modelOutputCap,
+  requestCap,
   paceMs: 25_000,
   defaultRetryWaitMs: 60_000,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -76,6 +78,7 @@ export class RecordingProvider implements ModelProvider {
     let wait = 0;
     for (;;) {
       if (this.ledger.modelOutputs >= this.options.modelOutputCap && retryOf === null) throw new Stop("Model-output cap reached before this step; no call made");
+      if (this.ledger.requests.length >= this.options.requestCap) throw new Stop("Provider-request cap reached before this request; no call made");
       const sinceLast = this.ledger.lastRequestAt === null ? Infinity : this.options.now() - this.ledger.lastRequestAt;
       // Pace every request; after a rate limit, wait for the provider's stated time instead.
       wait = retryOf !== null && this.ledger.retryAfterMs !== null ? this.ledger.retryAfterMs + 2_000 : Math.max(0, this.options.paceMs - sinceLast);
@@ -109,4 +112,3 @@ export class RecordingProvider implements ModelProvider {
     }
   }
 }
-
