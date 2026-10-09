@@ -7,19 +7,18 @@ import { cx } from "../ui";
 
 const TITLES = {
   dont_proceed: "Don't proceed",
-  no_feasible: "Close in Adaptive Deals",
+  no_feasible: "Close this deal",
   outside: "Mark as handled outside Adaptive Deals",
 } as const;
-const DEFAULTS: Record<keyof typeof TITLES, MerchantCloseReason | ""> = { dont_proceed: "", no_feasible: "contribution_too_low", outside: "handled_elsewhere" };
 
 /**
  * Merchant closure from the Offer stage, with a stable reason code and an optional note (spec §5.7).
  * As a primary action (no-feasible, outside templates) it is the stage's single primary button.
  */
-export function DontProceed({ variant = "dont_proceed", primary = false }: { variant?: keyof typeof TITLES; primary?: boolean }) {
+export function DontProceed({ variant = "dont_proceed", primary = false, suggestedReason = null }: { variant?: keyof typeof TITLES; primary?: boolean; suggestedReason?: MerchantCloseReason | null }) {
   const { run, pending, error } = useAction();
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<MerchantCloseReason | "">(DEFAULTS[variant]);
+  const [reason, setReason] = useState<MerchantCloseReason | "">("");
   const [note, setNote] = useState("");
   if (!open)
     return (
@@ -42,9 +41,10 @@ export function DontProceed({ variant = "dont_proceed", primary = false }: { var
       <fieldset className="grid gap-1.5 sm:grid-cols-2">
         <legend className="sr-only">Reason</legend>
         {(Object.entries(MERCHANT_CLOSE_REASONS) as [MerchantCloseReason, string][]).map(([code, label]) => (
-          <label key={code} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px]", reason === code ? "border-blue bg-blue-weak" : "border-line")}>
+          <label key={code} data-testid={`close-reason-${code}`} className={cx("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px]", reason === code ? "border-blue bg-blue-weak" : "border-line")}>
             <input type="radio" name="close-reason" value={code} checked={reason === code} onChange={() => setReason(code)} />
-            {label}
+            <span>{label}</span>
+            {suggestedReason === code ? <span className="ml-auto rounded-full bg-blue-weak px-2 py-0.5 text-[12px] font-semibold text-blue">Suggested</span> : null}
           </label>
         ))}
       </fieldset>

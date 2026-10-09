@@ -1014,6 +1014,11 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
   await expect(page.getByTestId("offer-no-fit")).toBeVisible();
+  await expect(page.getByTestId("primary-action")).toHaveText("Close this deal");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("close-reason-cannot_meet_start_date")).toContainText("Suggested");
+  await expect(page.getByTestId("close-reason-cannot_meet_start_date").locator("input")).not.toBeChecked();
+  await expect(page.getByTestId("confirm-close")).toBeDisabled();
   // Once read, the deal opens where the work is.
   await page.goto("/deals/hero");
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);

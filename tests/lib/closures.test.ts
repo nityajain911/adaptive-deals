@@ -3,6 +3,8 @@ import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { isDelivered } from "@/lib/deal-records";
+import { failingChecks } from "@/domain/engine";
+import { failedChecksBlockingEveryStructure, suggestedMerchantCloseReason } from "@/lib/reason-codes";
 import { driveTo } from "../helpers/drive";
 
 /** Spec §3.3, §5.7: closures, handled messages, buyer reasons. No network. */
@@ -21,6 +23,28 @@ beforeAll(async () => {
 afterAll(() => fetchSpy.mockRestore());
 type S = Awaited<ReturnType<Svc["getState"]>>;
 const snap = (s: S) => JSON.stringify({ a: s.attempts, l: s.paymentLinks, g: s.agreements, m: s.mandate, d: s.deliveries, c: s.changeRequests, st: s.status });
+
+describe("evidence-based merchant closure reasons", () => {
+  it("suggests the requested-start-date reason for Blue Harbor's actual failed checks", async () => {
+    try {
+      const s = await svc.startCase("no-fit");
+      const out = await svc.currentOutcome(s);
+      const allFailures = [...new Set(out.evaluation.result!.structures.flatMap((structure) => failingChecks(structure).map((check) => check.code)))];
+      expect(allFailures).toEqual(["START_AFTER_LATEST_START", "CASH_AT_RISK_ABOVE_LIMIT", "REQUIRED_PACKAGE_EXCLUDED"]);
+      const codes = failedChecksBlockingEveryStructure(out.evaluation.result!.structures);
+      expect(codes).toEqual(["START_AFTER_LATEST_START"]);
+      expect(suggestedMerchantCloseReason(codes)).toBe("cannot_meet_start_date");
+    } finally {
+      await svc.startCase("reduced-scope");
+    }
+  });
+
+  it("does not suggest a reason without a matching failed check or when supported reasons conflict", () => {
+    expect(suggestedMerchantCloseReason([])).toBeNull();
+    expect(suggestedMerchantCloseReason(["BUDGET_EXCEEDS_CURRENT_PERIOD"])).toBeNull();
+    expect(suggestedMerchantCloseReason(["START_AFTER_LATEST_START", "CONTRIBUTION_BELOW_FLOOR"])).toBeNull();
+  });
+});
 
 describe("merchant closure", () => {
   it("closes from options ready; nothing is deleted; the record has provenance", async () => {

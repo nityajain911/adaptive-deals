@@ -26,7 +26,7 @@ describe("decision fingerprint (spec §3.2)", () => {
 
 describe("reason codes are stable and separate from labels (spec §5.7)", () => {
   it("lists the approved merchant codes", () => {
-    expect(Object.keys(MERCHANT_CLOSE_REASONS)).toEqual(["contribution_too_low", "scope_not_worth_delivering", "buyer_unlikely", "handled_elsewhere", "other"]);
+    expect(Object.keys(MERCHANT_CLOSE_REASONS)).toEqual(["contribution_too_low", "cannot_meet_start_date", "scope_not_worth_delivering", "buyer_unlikely", "handled_elsewhere", "other"]);
     expect(MERCHANT_CLOSE_REASONS.handled_elsewhere).toBe("Will handle outside Adaptive Deals");
   });
   it("has buyer decline codes", () => {

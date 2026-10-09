@@ -164,7 +164,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
       ? act("offer", "offer.stale", "The offer changed since you reviewed it.", "review_updated_proposal", "Review updated proposal")
       : act("offer", "offer.review", "Review this offer before sending it.", "review_buyer_proposal", "Review buyer proposal");
   }
-  if (f.engineState === "no_feasible_deal") return act("offer", "offer.no_feasible", "No offer fits both the buyer's confirmed limits and your current rules.", "close_in_adaptive_deals", "Close in Adaptive Deals");
+  if (f.engineState === "no_feasible_deal") return act("offer", "offer.no_feasible", "No offer fits both the buyer's confirmed limits and your current rules.", "close_in_adaptive_deals", "Close this deal");
   if (f.engineState === "outside_templates") return act("offer", "offer.outside_templates", "This request needs a custom arrangement.", "mark_handled_outside", "Mark as handled outside Adaptive Deals");
 
   // 4. Understand.

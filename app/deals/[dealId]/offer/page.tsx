@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { shortReason } from "@/domain/copy";
-import { failingChecks } from "@/domain/engine";
+import { failedChecksBlockingEveryStructure, suggestedMerchantCloseReason } from "@/lib/reason-codes";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import { ActionButton, PrimaryActionButton } from "@/components/client";
@@ -107,7 +107,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   }
 
   if (primaryId === "close_in_adaptive_deals" || primaryId === "mark_handled_outside") {
-    const codes = r ? [...new Set(r.structures.flatMap((x) => failingChecks(x).map((c) => c.code)))] : [];
+    const codes = r ? failedChecksBlockingEveryStructure(r.structures) : [];
     return (
       <StageShell dealId={dealId} viewing="offer">
         <Card className="space-y-3 p-5" data-testid="offer-no-fit">
@@ -119,7 +119,11 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           ) : (
             <p className="text-[13px] text-ink-2">The request can&apos;t be represented by your approved offer types. Adaptive Deals drafts no terms for it.</p>
           )}
-          <DontProceed variant={primaryId === "close_in_adaptive_deals" ? "no_feasible" : "outside"} primary />
+          <DontProceed
+            variant={primaryId === "close_in_adaptive_deals" ? "no_feasible" : "outside"}
+            primary
+            suggestedReason={primaryId === "close_in_adaptive_deals" ? suggestedMerchantCloseReason(codes) : "handled_elsewhere"}
+          />
         </Card>
       </StageShell>
     );
