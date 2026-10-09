@@ -13,6 +13,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
+import { CountUp } from "../motion/count-up";
+import { MoneySplit } from "./money-split";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
 
@@ -94,11 +96,16 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
         <div className="space-y-2">
           <div className="rounded-xl border border-line px-4 py-3">
-            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">You&apos;d keep</div>
-            <div className="tabular text-[24px] font-semibold text-ink" data-testid="offer-contribution">
-              {approxINR(e.netContributionPaise)}
+            <div className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-muted">
+              You&apos;d keep
+              <InfoButton label="About this estimate" testId="offer-keeps-info">
+                After your delivery costs and payment fees. An estimate, not a promise.
+              </InfoButton>
             </div>
-            <div className="text-[13px] text-muted" data-testid="offer-keeps">After your delivery costs and payment fees. An estimate, not a promise.</div>
+            <div className="tabular text-[24px] font-semibold text-ink" data-testid="offer-contribution">
+              about <CountUp value={Math.round(e.netContributionPaise / 100) * 100} />
+            </div>
+            <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
           </div>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
             {passesRules ? "✓ Within your limits" : "Check your limits before sending this."}

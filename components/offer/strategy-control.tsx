@@ -1,5 +1,6 @@
 "use client";
 
+import { InfoButton } from "../info-button";
 import { useState } from "react";
 import { useAction, ErrorText } from "@/components/client";
 import { STRATEGY_IDS, STRATEGY_LABEL, type StrategyId } from "@/domain/strategy";
@@ -23,7 +24,10 @@ export function StrategyControl({ current, disabled = false }: { current: Strate
   const shown = error ? current : chosen;
   return (
     <fieldset className="rounded-xl border border-line bg-surface px-4 py-2.5" data-testid="strategy-control" data-value={shown} disabled={disabled || pending}>
-      <legend className="px-1 text-[13px] font-semibold text-ink">What matters most to you?</legend>
+      <legend className="px-1 text-[13px] font-semibold text-ink">
+        What matters most to you?
+        <InfoButton label="What this priority means" testId="strategy-help-info">{STRATEGY_HELP[shown]}</InfoButton>
+      </legend>
       <div className="mt-1 flex flex-wrap gap-2">
         {STRATEGY_IDS.map((id) => (
           <label key={id} className={cx("flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] leading-5", shown === id ? "border-blue bg-blue-weak font-semibold text-ink" : "border-line text-ink-2 hover:bg-surface-muted")}>
@@ -32,7 +36,6 @@ export function StrategyControl({ current, disabled = false }: { current: Strate
           </label>
         ))}
       </div>
-      <p className="mt-1.5 text-[12px] text-muted" data-testid="strategy-help">{STRATEGY_HELP[shown]}</p>
       <ErrorText error={error} />
     </fieldset>
   );

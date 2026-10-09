@@ -29,7 +29,7 @@ export function StageTracker({ progress, dealId }: { progress: DealProgress; dea
                   current ? "border-blue bg-blue-weak text-ink" : st === "done" ? "border-line bg-surface text-ink-2" : "border-dashed border-line-strong bg-surface text-muted",
                 )}
               >
-                <span className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[13px]", current ? "bg-blue text-white" : st === "done" ? "bg-green-weak text-green" : "bg-[#eef0f3] text-ink-2")}>{st === "done" ? "✓" : i + 1}</span>
+                <span className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[13px]", current ? "bg-blue text-white [animation:step-dot_1.6s_ease-in-out_3]" : st === "done" ? "bg-green-weak text-green" : "bg-[#eef0f3] text-ink-2")}>{st === "done" ? "✓" : i + 1}</span>
                 <span className="min-w-0 flex-1">{label}</span>
                 <span className="text-[13px] font-medium text-muted">{WORD[st]}</span>
               </Link>

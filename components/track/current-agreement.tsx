@@ -1,3 +1,4 @@
+import { CollectionFlow } from "./collection-flow";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import type { CurrentAgreementSummary } from "@/lib/current-agreement";
@@ -43,6 +44,7 @@ export function CurrentAgreement({ summary }: { summary: CurrentAgreementSummary
             <Stat label={summary.kind === "accepted" ? "Deal total" : "Offer total"} value={formatINR(f.contractTotalPaise)} hint="Including GST" />
             <Stat label="Collected so far" value={formatINR(f.collectedPaise)} hint="Payments received" />
           </div>
+          {summary.kind === "accepted" ? <CollectionFlow totalPaise={f.contractTotalPaise} collectedPaise={f.collectedPaise} /> : null}
         </div>
       </div>
     </Card>

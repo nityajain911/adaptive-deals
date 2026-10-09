@@ -148,3 +148,58 @@ dialog.audit-drawer[open] {
     border-left: 0;
   }
 }
+
+/* Motion that points at the one thing to look at. All of it stops under reduced motion (see the rule above). */
+@keyframes money-split-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.money-split-segment {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  animation: money-split-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes nudge {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 40%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* The one real next step breathes a few times, then rests. */
+[data-testid="primary-action"]:not(:disabled) {
+  animation: nudge 1.8s ease-out 0.8s 3;
+}
+
+@keyframes step-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+@keyframes collection-flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.collection-flow-line {
+  stroke-dasharray: 6 6;
+  animation: collection-flow-dash 1.2s linear infinite;
+}

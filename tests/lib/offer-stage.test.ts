@@ -33,7 +33,9 @@ describe("recommendation card", () => {
   });
   it("uses forecast language only", () => {
     expect(html).toContain("You&#x27;d keep");
-    expect(html).toContain("An estimate, not a promise.");
+    // The note sits behind an info icon and is not rendered until opened.
+    expect(html).toContain('data-testid="offer-keeps-info"');
+    expect(html).toContain('data-testid="money-split"');
     expect(html).not.toMatch(/recovered|guaranteed|Realised contribution/i);
   });
   it("distinguishes the two Phase 1 payment choices and explains the split", () => {
@@ -127,6 +129,8 @@ describe("recommendation attribution on the card", () => {
   it("shows the most the merchant would spend before being paid, and keeps the forecast wording", () => {
     const html = card();
     expect(html).toContain("Most you&#x27;d spend before being paid");
-    expect(html).toContain("An estimate, not a promise.");
+    // The note sits behind an info icon and is not rendered until opened.
+    expect(html).toContain('data-testid="offer-keeps-info"');
+    expect(html).toContain('data-testid="money-split"');
   });
 });

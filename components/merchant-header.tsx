@@ -15,7 +15,7 @@ const underline = <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3p
 export function MerchantHeader({ current = "deals", dealPage = false }: { current?: "deals" | "adaptive" | "economics"; dealPage?: boolean }) {
   const onDeals = current === "deals" || current === "adaptive";
   return (
-    <header className="bg-header text-white">
+    <header className="relative bg-header text-white">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-3 sm:gap-6 sm:px-6">
         <span className="hidden text-[19px] font-extrabold italic tracking-tight sm:inline" aria-label="Razorpay">
           <span className="text-[#3d6bff]">/</span>Razorpay
@@ -48,6 +48,11 @@ export function MerchantHeader({ current = "deals", dealPage = false }: { curren
             PM
           </span>
         </div>
+      </div>
+      {/* Like the TEST pill on the Razorpay dashboard: a constant, quiet reminder that nothing here is real. */}
+      <div className="pointer-events-none absolute left-1/2 top-14 z-30 hidden -translate-x-1/2 items-center gap-2 rounded-b-2xl bg-black px-5 py-1.5 text-[11px] font-semibold tracking-[0.28em] text-white sm:flex" data-testid="simulated-pill">
+        <span aria-hidden className="h-2.5 w-5 rounded-full bg-[#1fb56f]" />
+        SIMULATED
       </div>
     </header>
   );
