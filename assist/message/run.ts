@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { AssistGroq, type AssistFailure, type AssistMeta } from "../groq";
+import type { AssistFailure, AssistMeta, AssistProvider } from "../provider";
 import { ASSIST_PROMPTS, promptHash } from "../prompts";
 import { MessageInputSchema, MessageOutputSchema, type MessageInput } from "./schema";
 import { validateMessage, type MessageReason } from "./validate";
@@ -26,7 +26,7 @@ export function messageUserContent(input: MessageInput): string {
 export const messageInputHash = (input: MessageInput): string => createHash("sha256").update(`${ASSIST_PROMPTS.negotiation_message.version}\n${messageUserContent(input)}`, "utf8").digest("hex");
 
 /** One call, filtered by code. Never throws; a failure or a rejected draft leaves the message blank for the merchant. */
-export async function runMessage(input: MessageInput, provider: AssistGroq): Promise<MessageRun> {
+export async function runMessage(input: MessageInput, provider: AssistProvider): Promise<MessageRun> {
   const prompt = ASSIST_PROMPTS.negotiation_message;
   const base = { task: "negotiation_message.v1" as const, promptHash: promptHash(prompt), inputHash: messageInputHash(input) };
   const result = await provider.generate({ system: prompt.system, user: messageUserContent(input), name: "adaptive_deals_negotiation_message", schema: MessageOutputSchema });

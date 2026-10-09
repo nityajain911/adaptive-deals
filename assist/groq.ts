@@ -1,6 +1,9 @@
 import Groq from "groq-sdk";
 import type { z } from "zod";
 import { toStrictJsonSchema } from "@/ai/strict-schema";
+import type { AssistFailure, AssistMeta, AssistProvider, AssistRequest, AssistResult } from "./provider";
+
+export type { AssistFailure, AssistMeta, AssistResult } from "./provider";
 
 const MAX_TOKENS = 2_000;
 
@@ -22,26 +25,18 @@ type Params = ReturnType<typeof buildAssistGroqParams>;
 type Completion = { model: string; choices: { finish_reason: string | null; message: { content: string | null } }[]; usage?: { prompt_tokens: number; completion_tokens: number } | null };
 export type AssistGroqClient = { chat: { completions: { create: (p: Params) => Promise<Completion> } } };
 
-export type AssistFailure = "unavailable" | "not_configured" | "truncated" | "invalid_output" | "api_error";
-export interface AssistMeta {
-  provider: "groq";
-  model: string;
-  stopReason: string | null;
-  usage: { inputTokens: number; outputTokens: number } | null;
-}
-export type AssistResult = { ok: true; raw: unknown; meta: AssistMeta } | { ok: false; failure: AssistFailure; message: string; meta: AssistMeta | null };
-
 /**
  * The only way the assist tasks reach a model. It has no tools and no access to any action. The key is read
  * by the SDK from the environment and is never logged or stored here.
  */
-export class AssistGroq {
+export class AssistGroq implements AssistProvider {
+  readonly name = "groq" as const;
   private readonly client: AssistGroqClient;
-  constructor(readonly model: string, client?: AssistGroqClient) {
-    this.client = client ?? (new Groq() as unknown as AssistGroqClient);
+  constructor(readonly model: string, client?: AssistGroqClient, apiKey?: string) {
+    this.client = client ?? (new Groq(apiKey ? { apiKey } : {}) as unknown as AssistGroqClient);
   }
 
-  async generate(args: { system: string; user: string; name: string; schema: z.ZodType }): Promise<AssistResult> {
+  async generate(args: AssistRequest): Promise<AssistResult> {
     try {
       const res = await this.client.chat.completions.create(buildAssistGroqParams({ model: this.model, ...args }));
       const choice = res.choices[0];

@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "assist-narrative-"));
 process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
-for (const key of ["GROQ_API_KEY", "ANTHROPIC_API_KEY"]) delete process.env[key];
+for (const key of ["CEREBRAS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]) delete process.env[key];
 globalThis.fetch = async () => {
   throw new Error("No network in the case generator");
 };

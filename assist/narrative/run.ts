@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { AssistGroq, type AssistFailure, type AssistMeta } from "../groq";
+import type { AssistFailure, AssistMeta, AssistProvider } from "../provider";
 import { ASSIST_PROMPTS, promptHash } from "../prompts";
 import { NarrativeInputSchema, NarrativeOutputSchema, type NarrativeInput } from "./schema";
 import { validateNarrative, type OfferVerdict } from "./validate";
@@ -20,7 +20,7 @@ export const narrativeUserContent = (input: NarrativeInput): string => JSON.stri
 export const narrativeInputHash = (input: NarrativeInput): string => createHash("sha256").update(`${ASSIST_PROMPTS.strategy_narrative.version}\n${narrativeUserContent(input)}`, "utf8").digest("hex");
 
 /** One call, validated. Every failure path returns a run with no accepted sentence, and never throws. */
-export async function runNarrative(input: NarrativeInput, provider: AssistGroq): Promise<NarrativeRun> {
+export async function runNarrative(input: NarrativeInput, provider: AssistProvider): Promise<NarrativeRun> {
   const prompt = ASSIST_PROMPTS.strategy_narrative;
   const base = { task: "strategy_narrative.v1" as const, promptHash: promptHash(prompt), inputHash: narrativeInputHash(input) };
   const none = (): OfferVerdict[] => input.offers.map((o) => ({ alias: o.alias, accepted: false, sentence: null, reasons: [] }));

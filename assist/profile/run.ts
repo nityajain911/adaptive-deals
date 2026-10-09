@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { AssistGroq, type AssistFailure, type AssistMeta } from "../groq";
+import type { AssistFailure, AssistMeta, AssistProvider } from "../provider";
 import { ASSIST_PROMPTS, promptHash } from "../prompts";
 import { ProfileInputSchema, ProfileOutputSchema, type ProfileInput } from "./schema";
 import { verifyProfile, type VerifiedProfile } from "./verify";
@@ -23,7 +23,7 @@ export const profileUserContent = (input: ProfileInput): string => `<document ki
 export const profileInputHash = (input: ProfileInput): string => createHash("sha256").update(`${ASSIST_PROMPTS.profile_extract.version}\n${profileUserContent(input)}`, "utf8").digest("hex");
 
 /** One call, verified by code. Never throws; every failure returns no proposed value. */
-export async function runProfile(input: ProfileInput, provider: AssistGroq): Promise<ProfileRun> {
+export async function runProfile(input: ProfileInput, provider: AssistProvider): Promise<ProfileRun> {
   const prompt = ASSIST_PROMPTS.profile_extract;
   const base = { task: "profile_extract.v1" as const, promptHash: promptHash(prompt), inputHash: profileInputHash(input) };
   const result = await provider.generate({ system: prompt.system, user: profileUserContent(input), name: "adaptive_deals_profile_extract", schema: ProfileOutputSchema });
