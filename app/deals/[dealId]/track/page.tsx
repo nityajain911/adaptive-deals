@@ -131,7 +131,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                 See what the buyer sees
               </Link>
             ) : null}
-            {latestDelivered ? (
+            {latestDelivered && !shown?.buyerAcceptance ? (
               <span className="inline-flex items-center gap-1 text-[13px] text-muted" data-testid="delivery-status">
                 Sent to the buyer
                 <InfoButton label="About this delivery">

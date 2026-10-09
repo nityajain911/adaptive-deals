@@ -29,6 +29,8 @@ const terms = (pay2: string) => ({
 });
 const v1 = { version: 1, status: "active", terms: terms("2026-12-01") };
 const v2 = { version: 2, status: "active", supersedes: 1, terms: terms("2026-12-21") };
+const link = { id: "plink_sim", status: "created", referenceId: "ref", shortUrl: "https://example.test", amountPaise: 2_301_000, amountPaidPaise: 0, mode: "simulated" };
+const mandate = { id: "mandate", agreementId: "agr-hero", agreementVersion: 1, method: "emandate", perDebitLimitPaise: 2_301_000, endDate: "2027-01-31", status: "pending", mode: "simulated" };
 
 describe("collection truth for an amendment", () => {
   it("original debit still scheduled (preventive)", () => {
@@ -56,15 +58,26 @@ describe("collection truth for an amendment", () => {
 });
 
 describe("payment schedule rows", () => {
+  it.each([
+    ["proposal sent", { attempts: [], agreements: [{ ...v1, status: "sent" }], paymentLinks: [], mandate: null }, [["pay-1", "Not scheduled"], ["pay-2", "Not scheduled"]]],
+    ["accepted before setup", { attempts: [att("a1", "pay-1", "2026-11-01", "scheduled"), att("a2", "pay-2", "2026-12-01", "scheduled")], agreements: [v1], paymentLinks: [], mandate }, [["pay-1", "Awaiting buyer setup"], ["pay-2", "Awaiting buyer setup"]]],
+    ["payment link created", { attempts: [att("a1", "pay-1", "2026-11-01", "scheduled"), att("a2", "pay-2", "2026-12-01", "scheduled")], agreements: [v1], paymentLinks: [link], mandate }, [["pay-1", "Payment link sent"], ["pay-2", "Awaiting buyer setup"]]],
+    ["mandate authorised", { attempts: [att("a1", "pay-1", "2026-11-01", "scheduled"), att("a2", "pay-2", "2026-12-01", "scheduled")], agreements: [v1], paymentLinks: [link], mandate: { ...mandate, status: "confirmed" } }, [["pay-1", "Payment link sent"], ["pay-2", "Scheduled"]]],
+    ["collection submitted", { attempts: [att("a1", "pay-1", "2026-11-01", "submitted"), att("a2", "pay-2", "2026-12-01", "submitted")], agreements: [v1], paymentLinks: [link], mandate: { ...mandate, status: "confirmed" } }, [["pay-1", "Processing"], ["pay-2", "Processing"]]],
+    ["confirmed success", { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "succeeded")], agreements: [v1], paymentLinks: [{ ...link, status: "paid", amountPaidPaise: 2_301_000 }], mandate: { ...mandate, status: "confirmed" } }, [["pay-1", "Paid"], ["pay-2", "Paid"]]],
+  ] as const)("labels %s truthfully", (_name, state, expected) => {
+    expect(scheduleRows(state as never, 1).map((row) => [row.lineId, row.status])).toEqual(expected);
+  });
+
   it("a failed line with an active retry shows the retry as its status", () => {
-    const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "failed"), att("r1", "pay-2", "2026-12-04", "scheduled", { origin: "internal_retry" })], agreements: [v1] } as never;
+    const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "failed"), att("r1", "pay-2", "2026-12-04", "scheduled", { origin: "internal_retry" })], agreements: [v1], paymentLinks: [], mandate: { ...mandate, status: "confirmed" } } as never;
     expect(scheduleRows(s, 1).map((r) => [r.lineId, r.status])).toEqual([
       ["pay-1", "Paid"],
-      ["pay-2", "Trying again on 4 Dec 2026"],
+      ["pay-2", "Retry scheduled for 4 Dec 2026"],
     ]);
   });
   it("a rescheduled line shows its new date and the date it replaced", () => {
-    const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "removed"), att("n1", "pay-2", "2026-12-21", "scheduled", { origin: "amendment", agreementVersion: 2 })], agreements: [{ ...v1, status: "superseded" }, v2] } as never;
-    expect(scheduleRows(s, 2).find((r) => r.lineId === "pay-2")).toMatchObject({ date: "21 Dec 2026", was: "1 Dec 2026", status: "Scheduled" });
+    const s = { attempts: [att("a1", "pay-1", "2026-11-01", "succeeded"), att("a2", "pay-2", "2026-12-01", "removed"), att("n1", "pay-2", "2026-12-21", "scheduled", { origin: "amendment", agreementVersion: 2 })], agreements: [{ ...v1, status: "superseded" }, v2], paymentLinks: [{ ...link, status: "paid" }], mandate: { ...mandate, status: "confirmed", agreementVersion: 2 } } as never;
+    expect(scheduleRows(s, 2).find((r) => r.lineId === "pay-2")).toMatchObject({ date: "21 Dec 2026", was: "1 Dec 2026", status: "Moved to 21 Dec 2026" });
   });
 });

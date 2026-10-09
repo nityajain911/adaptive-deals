@@ -98,8 +98,8 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
         <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
         {link ? (
-          <p className="-mt-3 text-[12px] text-muted" data-testid="buyer-payment-link">
-            Payment link {link.id} · {formatINR(link.amountPaise)} · {link.status === "paid" ? "paid" : "awaiting payment"} ({link.mode === "simulated" ? "simulated" : "Razorpay test mode"})
+          <p className="-mt-3 text-[14px] text-muted" data-testid="buyer-payment-link">
+            Payment link {link.status === "paid" ? "paid" : "awaiting payment"}
           </p>
         ) : null}
 

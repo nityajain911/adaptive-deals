@@ -765,6 +765,19 @@ test("step 4 · the buyer's page leads with a glance line, words the attestation
   await expect(page.getByLabel("What would you like changed?")).toHaveValue(/^I'd like a different payment date: /);
 });
 
+test("accepted terms show truthful setup copy without delivery metadata or a technical payment-link ID", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const agreement = await prepareAccepted(page);
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("delivery-status")).toHaveCount(0);
+  await expect(page.getByTestId("schedule-pay-1")).toContainText("Payment link sent");
+  await expect(page.getByTestId("schedule-pay-2")).toContainText("Awaiting buyer setup");
+
+  await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
+  await expect(page.getByTestId("buyer-payment-link")).toHaveText("Payment link awaiting payment");
+  await expect(page.getByTestId("buyer-payment-link")).not.toContainText("plink_");
+});
+
 test("step 4 · the merchant preview says it is what the buyer will see, and the simulated buyer reply is a set of choices", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await prepareOptions(page);
