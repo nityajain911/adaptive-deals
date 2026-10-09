@@ -168,7 +168,7 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
                 <ul className="mt-1 space-y-1.5">
                   {exceptions.failedRuleExceptions.map((x) => (
                     <li key={x.at} className="rounded-lg border border-[#f7dfb4] bg-amber-weak/40 px-3 py-2">
-                      <div className="font-medium text-ink">Counter-offer at {x.total}{x.negativeContribution ? " · below direct costs (typed confirmation given)" : ""}</div>
+                      <div className="font-medium text-ink">Counter-offer at {x.total}{x.negativeContribution ? " · below direct costs" : ""}</div>
                       {x.rules.length ? <div>Rules overridden: {x.rules.join("; ")}</div> : null}
                       <div>Reason: {x.reason}</div>
                       <div className="text-[12px] text-muted">{x.by} · {fmtTime(x.at)}{x.economicsVersion !== null ? ` · prices & costs version ${x.economicsVersion}` : ""}</div>

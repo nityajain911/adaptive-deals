@@ -7,7 +7,7 @@ import { driveTo } from "../helpers/drive";
 /**
  * A failed-rule exception is the merchant sending an amount the engine reported as failing a rule.
  * It needs a reason, an acknowledgement of exactly the rules shown, and, if the amount is below
- * direct costs, an exact typed confirmation. The engine's result is never changed.
+ * direct costs, nothing more than a recorded reason. The engine's result is never changed.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-exceptions-"));
 process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
@@ -28,7 +28,6 @@ afterAll(() => fetchSpy.mockRestore());
 const ASK = 4_000_000; // below the current offer, above direct costs
 const LOSS = 500_000; // ₹5,000: below the direct cost of the work
 const REASON = "The buyer pays on time and orders often";
-const PHRASE = "SELL AT A LOSS";
 
 beforeEach(async () => {
   await store.resetEconomicsStore();
@@ -68,17 +67,17 @@ describe("the reason", () => {
 });
 
 describe("an amount below direct costs", () => {
-  it("is flagged by the check, and needs the exact phrase in addition to the reason and the acknowledgement", async () => {
+  it("is flagged by the check, and needs only the merchant's reason, which is recorded with the loss", async () => {
     await sentWithRequest();
     const check = await svc.checkCounterOffer(LOSS);
     expect(check.contributionPaise).toBeLessThan(0);
     expect(check.negativeContribution).toBe(true);
     const codes = check.failing.map((f) => f.code);
-    for (const typed of [undefined, "", "sell at a loss", "SELL AT LOSS", "YES"]) {
-      await expect(svc.makeCounterOffer(LOSS, true, codes, { reason: REASON, typedConfirmation: typed })).rejects.toThrow(/SELL AT A LOSS/);
-    }
+    // No reason, no counter-offer.
+    await expect(svc.makeCounterOffer(LOSS, true, codes, { reason: "" })).rejects.toThrow(/short reason/i);
+    await expect(svc.makeCounterOffer(LOSS, true, codes, { reason: "ok" })).rejects.toThrow(/short reason/i);
     expect((await svc.getState()).counterOffers).toEqual([]);
-    const s = await svc.makeCounterOffer(LOSS, true, codes, { reason: REASON, typedConfirmation: PHRASE });
+    const s = await svc.makeCounterOffer(LOSS, true, codes, { reason: REASON });
     const counter = s.counterOffers.at(-1)!;
     expect(counter.override).toMatchObject({ reason: REASON, negativeContribution: true });
     // The engine's own result is untouched.
@@ -86,13 +85,13 @@ describe("an amount below direct costs", () => {
     expect(counter.evaluated.economics.netContributionPaise).toBeLessThan(0);
   });
 
-  it("does not need the phrase for an amount that still covers direct costs", async () => {
+  it("is no different for an amount that still covers direct costs: a reason is all it takes", async () => {
     await sentWithRequest();
     expect((await svc.checkCounterOffer(ASK)).negativeContribution).toBe(false);
     await expect(svc.makeCounterOffer(ASK, true, await codesFor(ASK), { reason: REASON })).resolves.toBeTruthy();
   });
 
-  it("needs it even when no rule fails, because the merchant's economics have no floor to catch a loss", async () => {
+  it("still counts as an exception when no rule fails, because the merchant's economics have no floor to catch a loss", async () => {
     const draft = (await import("@/lib/economics-default")).defaultEconomicsContent();
     draft.guardrails.contributionFloor = { minPercentBps: null, minPaise: null, combine: "both" };
     draft.guardrails.discountLimitBps = 10_000;
@@ -106,9 +105,9 @@ describe("an amount below direct costs", () => {
     expect(check.contributionPaise).toBeLessThan(0);
     expect(check.failing).toEqual([]);
     expect(check.negativeContribution).toBe(true);
-    await expect(svc.makeCounterOffer(LOSS, false, [], { reason: REASON })).rejects.toThrow(/override|SELL AT A LOSS/i);
-    await expect(svc.makeCounterOffer(LOSS, true, [], { reason: REASON })).rejects.toThrow(/SELL AT A LOSS/);
-    const s = await svc.makeCounterOffer(LOSS, true, [], { reason: REASON, typedConfirmation: PHRASE });
+    await expect(svc.makeCounterOffer(LOSS, false, [], { reason: REASON })).rejects.toThrow(/override/i);
+    await expect(svc.makeCounterOffer(LOSS, true, [], { reason: "" })).rejects.toThrow(/short reason/i);
+    const s = await svc.makeCounterOffer(LOSS, true, [], { reason: REASON });
     expect(s.counterOffers.at(-1)!.override).toMatchObject({ negativeContribution: true, checks: [] });
   });
 });

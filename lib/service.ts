@@ -1730,12 +1730,8 @@ export async function answerWithOffer(structureId: string): Promise<DemoState> {
   });
 }
 
-/** What the merchant must type to send an amount that is below the direct cost of the work. */
-export const LOSS_CONFIRMATION = "SELL AT A LOSS";
-
 export interface CounterException {
   reason: string;
-  typedConfirmation?: string;
 }
 
 export async function makeCounterOffer(totalPaise: number, overrideConfirmed: boolean, acknowledgedChecks: string[], exception: CounterException = { reason: "" }): Promise<DemoState> {
@@ -1753,7 +1749,6 @@ export async function makeCounterOffer(totalPaise: number, overrideConfirmed: bo
     const reason = (exception.reason ?? "").trim();
     if (needsException && reason.length < 5) throw new ActionError("Give a short reason for sending this amount (at least 5 characters)");
     if (reason.length > 300) throw new ActionError("Keep the reason under 300 characters");
-    if (negative && (exception.typedConfirmation ?? "").trim() !== LOSS_CONFIRMATION) throw new ActionError(`This amount is below your direct costs. Type ${LOSS_CONFIRMATION} to continue`);
     const at = clockOf(s).now();
     const by = "Merchant (Pinecone Media Works)";
     // Stored exactly as the engine returned it. A failed rule is not made to pass: the merchant's override is a separate record.

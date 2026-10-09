@@ -826,8 +826,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-fails")).toBeVisible();
   await shot(page, "counter-1-check-and-override");
-  await form.getByTestId("counter-override").check();
-  // Acknowledging is not enough: sending an amount that fails a rule also needs a reason.
+  // Sending an amount that fails a rule needs a reason, and nothing else.
   await expect(form.getByTestId("counter-make")).toBeDisabled();
   await form.getByTestId("counter-reason").fill("The buyer orders often and pays on time");
   await expect(form.getByTestId("counter-make")).toBeEnabled();
@@ -955,7 +954,7 @@ test("step 5 · the strategy control works from the keyboard, and a sent version
   expect((await refused.json()).ok).toBe(false);
 });
 
-test("exceptions · an amount below direct costs also needs the exact typed phrase, and the audit records the decision with its reason", async ({ page }) => {
+test("exceptions · an amount below direct costs needs only a reason, and the audit records the decision with it", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   const sent = await prepareSent(page);
   await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹5,000 instead?", topic: "price" });
@@ -965,23 +964,24 @@ test("exceptions · an amount below direct costs also needs the exact typed phra
   await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-loss")).toContainText("less than it costs you to deliver");
-  await form.getByTestId("counter-override").check();
+  // A loss is shown in red and needs only a reason.
+  await expect(form.getByTestId("counter-make")).toBeDisabled();
   await form.getByTestId("counter-reason").fill("Loss leader to win the annual contract");
-  // Reason and acknowledgement are not enough: the exact phrase is required.
-  await expect(form.getByTestId("counter-make")).toBeDisabled();
-  await form.getByTestId("counter-loss-confirm").fill("sell at a loss");
-  await expect(form.getByTestId("counter-make")).toBeDisabled();
-  await form.getByTestId("counter-loss-confirm").fill("SELL AT A LOSS");
   await expect(form.getByTestId("counter-make")).toBeEnabled();
+  await expect(form.getByTestId("counter-loss-confirm")).toHaveCount(0);
   await shot(page, "exceptions-1-loss-confirmation");
   await form.getByTestId("counter-make").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  // The loss is shown plainly on the offer, in red, and the split bar covers it.
+  await expect(page.getByTestId("offer-contribution")).toContainText("a loss of about");
+  await expect(page.getByTestId("money-split")).toHaveAttribute("data-loss", "true");
+  await expect(page.getByTestId("money-split")).toContainText("You lose");
   expect(state().counterOffers.at(-1)!.override).toMatchObject({ negativeContribution: true, reason: "Loss leader to win the annual contract" });
   expect(state().counterOffers.at(-1)!.evaluated.approvable).toBe(false);
 
   await clickReviewer(page, "audit-details");
   const audit = page.getByTestId("audit-exceptions");
-  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("below direct costs (typed confirmation given)");
+  await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("below direct costs");
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("Reason: Loss leader to win the annual contract");
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("Merchant (Pinecone Media Works)");
   await shot(page, "exceptions-2-audit");

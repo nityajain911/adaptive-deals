@@ -97,13 +97,14 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         <div className="space-y-2">
           <div className="rounded-xl border border-line px-4 py-3">
             <div className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-muted">
-              You&apos;d keep
+              {e.netContributionPaise < 0 ? "You'd lose" : "You'd keep"}
               <InfoButton label="About this estimate" testId="offer-keeps-info">
                 After your delivery costs and payment fees. An estimate, not a promise.
               </InfoButton>
             </div>
-            <div className="tabular text-[24px] font-semibold text-ink" data-testid="offer-contribution">
-              about <CountUp value={Math.round(e.netContributionPaise / 100) * 100} />
+            <div className={`tabular text-[24px] font-semibold ${e.netContributionPaise < 0 ? "text-red" : "text-ink"}`} data-testid="offer-contribution">
+              {e.netContributionPaise < 0 ? "a loss of about " : "about "}
+              <CountUp value={Math.abs(Math.round(e.netContributionPaise / 100) * 100)} />
             </div>
             <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
           </div>

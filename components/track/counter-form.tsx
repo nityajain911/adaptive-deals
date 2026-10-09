@@ -8,13 +8,12 @@ import { formatINR } from "@/domain/money";
 import { toPaise } from "@/lib/money-input";
 import type { CorridorView } from "@/lib/service";
 
-const LOSS_CONFIRMATION = "SELL AT A LOSS";
 type Basis = "including" | "excluding";
 
 /**
  * Check the buyer's amount against the merchant's rules, then answer with it. The engine rechecks the
- * amount first; a failed rule can be sent anyway only after an explicit override with a reason, which
- * is recorded as the merchant's decision, and a loss also needs a typed confirmation.
+ * amount first; an amount outside the limits, or below what the work costs, can be sent anyway once the
+ * merchant gives a reason, which is recorded as their decision with the loss amount.
  */
 export function CounterForm({ onDone }: { onDone: string }) {
   const router = useRouter();
@@ -24,18 +23,14 @@ export function CounterForm({ onDone }: { onDone: string }) {
   const [basis, setBasis] = useState<Basis | null>(null);
   // The answer is kept with the amount and basis that produced it, so an older answer can never sit beside newer inputs.
   const [checked, setChecked] = useState<{ paise: number; basis: Basis; view: CorridorView } | null>(null);
-  const [override, setOverride] = useState(false);
   const [reason, setReason] = useState("");
-  const [typed, setTyped] = useState("");
   const paise = toPaise(text);
   const view = checked && checked.paise === paise && checked.basis === basis ? checked.view : null;
   const result = view?.check ?? null;
   const needsException = !!result && (!result.passes || result.negativeContribution);
-  const ready = !!result && override && reason.trim().length >= 5 && (!result.negativeContribution || typed.trim() === LOSS_CONFIRMATION);
+  const ready = !!result && reason.trim().length >= 5;
   const reset = () => {
-    setOverride(false);
     setReason("");
-    setTyped("");
   };
   const failedRules = result?.rules.filter((r) => !r.passed) ?? [];
   const passedRules = result?.rules.filter((r) => r.passed) ?? [];
@@ -117,25 +112,15 @@ export function CounterForm({ onDone }: { onDone: string }) {
             ) : null}
           </div>
           {needsException ? (
-            <div className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2" data-testid={result.passes ? "counter-loss-only" : "counter-fails"}>
+            <div className={result.negativeContribution ? "rounded-lg border border-[#f3c1ba] bg-red-weak px-3 py-2" : "rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2"} data-testid={result.passes ? "counter-loss-only" : "counter-fails"}>
               {!result.passes ? <p className="font-semibold text-amber">This is outside your limits.</p> : null}
               {result.negativeContribution ? (
                 <p className="mt-1 font-semibold text-red" data-testid="counter-loss">This is less than it costs you to deliver: you would lose {approxINR(-result.contributionPaise)}.</p>
               ) : null}
-              <label className="mt-2 flex items-start gap-2 text-[13px] text-ink">
-                <input type="checkbox" className="mt-0.5" checked={override} onChange={(e) => setOverride(e.target.checked)} data-testid="counter-override" />
-                <span>{result.passes ? "I know this is below what it costs me, and I want to send it anyway." : "I know this is outside my limits, and I want to send it anyway."} This is recorded as my decision.</span>
-              </label>
               <label className="mt-2 block text-[13px] font-medium text-ink">
-                Reason for sending this amount
+                Why are you sending this amount?
                 <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] font-normal text-ink" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="A short reason you can read back later" data-testid="counter-reason" />
               </label>
-              {result.negativeContribution ? (
-                <label className="mt-2 block text-[13px] font-medium text-ink">
-                  Type {LOSS_CONFIRMATION} to continue
-                  <input className="mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] font-normal text-ink" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="counter-loss-confirm" />
-                </label>
-              ) : null}
             </div>
           ) : null}
           <Button
@@ -144,7 +129,7 @@ export function CounterForm({ onDone }: { onDone: string }) {
             data-testid="counter-make"
             onClick={() =>
               make.run(
-                { action: "counter_offer", totalPaise: view.requestedTotalPaise!, overrideConfirmed: needsException && override, acknowledgedChecks: result.failing.map((f) => f.code), reason: reason.trim(), typedConfirmation: typed },
+                { action: "counter_offer", totalPaise: view.requestedTotalPaise!, overrideConfirmed: needsException, acknowledgedChecks: result.failing.map((f) => f.code), reason: reason.trim() },
                 () => router.push(onDone),
               )
             }
