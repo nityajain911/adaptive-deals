@@ -147,7 +147,7 @@ export function bundledSyntheticRun(): RunRecord {
 function bundledCaseRun(caseId: CaseId): RunRecord {
   const item = demoCase(caseId);
   if (!item) throw new ActionError("Unknown case", 404);
-  return JSON.parse(readFileSync(path.join(process.cwd(), item.bundledRunPath), "utf8"));
+  return JSON.parse(readFileSync(path.join(/*turbopackIgnore: true*/ process.cwd(), item.bundledRunPath), "utf8"));
 }
 
 /** Current fictional case, validated by migration before any action reads it. */
