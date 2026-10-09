@@ -65,14 +65,18 @@ describe("AI layer boundaries", () => {
   });
 
   it("is configured from the environment without exposing the key", () => {
-    expect(readAiConfig({})).toEqual({ provider: "groq", model: "openai/gpt-oss-120b", liveAvailable: false });
-    const g = readAiConfig({ GROQ_API_KEY: "gsk-test" });
+    expect(readAiConfig({})).toEqual({ provider: "cerebras", model: "gpt-oss-120b", liveAvailable: false });
+    const cerebras = readAiConfig({ CEREBRAS_API_KEY: "csk-test" });
+    expect(cerebras).toEqual({ provider: "cerebras", model: "gpt-oss-120b", liveAvailable: true });
+    expect(JSON.stringify(cerebras)).not.toContain("csk-test");
+    const g = readAiConfig({ ADAPTIVE_DEALS_PROVIDER: " groq ", GROQ_API_KEY: "gsk-test" });
     expect(g).toEqual({ provider: "groq", model: "openai/gpt-oss-120b", liveAvailable: true });
     expect(JSON.stringify(g)).not.toContain("gsk-test");
-    // An Anthropic key does not enable the default Groq provider.
-    expect(readAiConfig({ ANTHROPIC_API_KEY: "sk-test" }).liveAvailable).toBe(false);
+    // Other providers' keys do not enable the default Cerebras provider.
+    expect(readAiConfig({ GROQ_API_KEY: "gsk-test", ANTHROPIC_API_KEY: "sk-test" }).liveAvailable).toBe(false);
     const c = readAiConfig({ ADAPTIVE_DEALS_PROVIDER: "anthropic", ADAPTIVE_DEALS_MODEL: "claude-sonnet-5", ANTHROPIC_API_KEY: "sk-test" });
     expect(c).toEqual({ provider: "anthropic", model: "claude-sonnet-5", liveAvailable: true });
+    expect(() => readAiConfig({ ADAPTIVE_DEALS_PROVIDER: "other" })).toThrow(/other.*cerebras.*groq.*anthropic/i);
   });
 });
 
@@ -81,8 +85,8 @@ describe("Run live availability", () => {
     const { createLiveProvider } = await import("@/ai/live");
     const { liveAvailability } = await import("@/ai/config");
     expect(createLiveProvider({})).toBeNull();
-    expect(liveAvailability({})).toMatchObject({ available: false, reason: expect.stringMatching(/GROQ_API_KEY.*synthetic replay/) });
-    expect(createLiveProvider({ GROQ_API_KEY: "gsk-test" })).toMatchObject({ name: "groq", model: "openai/gpt-oss-120b" });
+    expect(liveAvailability({})).toMatchObject({ available: false, provider: "cerebras", reason: expect.stringMatching(/CEREBRAS_API_KEY.*synthetic replay/) });
+    expect(createLiveProvider({ ADAPTIVE_DEALS_PROVIDER: "groq", GROQ_API_KEY: "gsk-test" })).toMatchObject({ name: "groq", model: "openai/gpt-oss-120b" });
     expect(createLiveProvider({ ADAPTIVE_DEALS_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-test", ADAPTIVE_DEALS_MODEL: "claude-opus-5" })).toMatchObject({ name: "anthropic", model: "claude-opus-5" });
   });
 });

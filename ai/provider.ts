@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { AiTask } from "./schemas";
 import type { PromptDefinition } from "./prompts";
 
-export type ProviderName = "groq" | "anthropic" | "synthetic_replay" | "recorded_replay";
+export type ProviderName = "cerebras" | "groq" | "anthropic" | "synthetic_replay" | "recorded_replay";
 
 export interface StructuredRequest {
   task: AiTask;

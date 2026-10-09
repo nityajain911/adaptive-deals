@@ -100,7 +100,7 @@ describe("hero journey through the service", () => {
   });
 
   it("Run live without a key is refused with a reason, and nothing is relabelled", async () => {
-    await expect(svc.startLiveRun()).rejects.toThrow(/GROQ_API_KEY is not set/);
+    await expect(svc.startLiveRun()).rejects.toThrow(/CEREBRAS_API_KEY is not set/);
     expect((await svc.getState()).run.record.kind).toBe("synthetic_replay");
   });
 

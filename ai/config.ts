@@ -1,14 +1,15 @@
 /**
  * Environment configuration for the AI layer. Never logs or returns a key.
- * Provider: ADAPTIVE_DEALS_PROVIDER = "groq" (default) | "anthropic".
+ * Provider: ADAPTIVE_DEALS_PROVIDER = "cerebras" (default) | "groq" | "anthropic".
  */
-export type LiveProviderName = "groq" | "anthropic";
+export type LiveProviderName = "cerebras" | "groq" | "anthropic";
 
 export const DEFAULT_MODELS: Record<LiveProviderName, string> = {
+  cerebras: "gpt-oss-120b",
   groq: "openai/gpt-oss-120b",
   anthropic: "claude-opus-5",
 };
-export const KEY_VARS: Record<LiveProviderName, string> = { groq: "GROQ_API_KEY", anthropic: "ANTHROPIC_API_KEY" };
+export const KEY_VARS: Record<LiveProviderName, string> = { cerebras: "CEREBRAS_API_KEY", groq: "GROQ_API_KEY", anthropic: "ANTHROPIC_API_KEY" };
 /** @deprecated kept for callers that only need the Anthropic default */
 export const DEFAULT_MODEL = DEFAULT_MODELS.anthropic;
 
@@ -18,8 +19,18 @@ export interface AiConfig {
   liveAvailable: boolean;
 }
 
+export class ConfigurationError extends Error {
+  override readonly name = "ConfigurationError";
+}
+
+const LIVE_PROVIDERS = ["cerebras", "groq", "anthropic"] as const;
+
 export function readAiConfig(env: Record<string, string | undefined> = process.env): AiConfig {
-  const provider: LiveProviderName = env.ADAPTIVE_DEALS_PROVIDER?.trim() === "anthropic" ? "anthropic" : "groq";
+  const configured = env.ADAPTIVE_DEALS_PROVIDER?.trim();
+  if (configured && !LIVE_PROVIDERS.includes(configured as LiveProviderName)) {
+    throw new ConfigurationError(`Unknown AI provider "${configured}"; expected cerebras, groq or anthropic`);
+  }
+  const provider: LiveProviderName = (configured || "cerebras") as LiveProviderName;
   return {
     provider,
     model: env.ADAPTIVE_DEALS_MODEL?.trim() || DEFAULT_MODELS[provider],

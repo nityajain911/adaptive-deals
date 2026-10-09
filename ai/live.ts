@@ -7,6 +7,7 @@ import type { ModelProvider } from "./provider";
 export function createLiveProvider(env: Record<string, string | undefined> = process.env): ModelProvider | null {
   const a = liveAvailability(env);
   if (!a.available) return null;
+  if (a.provider === "cerebras") return null;
   const key = env[KEY_VARS[a.provider]]!.trim();
   return a.provider === "groq" ? new GroqProvider(a.model, undefined, key) : new AnthropicProvider(a.model, undefined, key);
 }
