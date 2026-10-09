@@ -40,10 +40,22 @@ describe("commercial demo case catalog", () => {
       for (const field of item.expected.extraction.fields) {
         const message = item.deal.messages.find((candidate) => candidate.id === field.message_id);
         expect(message, `${item.id}: missing ${field.message_id}`).toBeTruthy();
-        expect(message!.text).toContain(field.evidence_quote);
+        const start = message!.text.indexOf(field.evidence_quote);
+        expect(start, `${item.id}: evidence missing from ${field.message_id}`).toBeGreaterThanOrEqual(0);
+        expect(message!.text.slice(start, start + field.evidence_quote.length)).toBe(field.evidence_quote);
         expect(field.evidence_quote).toContain(field.raw_text);
       }
     }
+  });
+
+  it("keeps reduced-scope GST basis and approval scope unresolved in the opening extraction", () => {
+    const extraction = demoCase("reduced-scope")!.expected.extraction;
+    const keys = extraction.fields.map((field) => field.key);
+    expect(keys).not.toContain("amounts_include_gst");
+    expect(keys).not.toContain("approval_limit_scope");
+    expect(extraction.ambiguities.map((ambiguity) => ambiguity.field_key)).toEqual(
+      expect.arrayContaining(["amounts_include_gst", "approval_limit_scope"]),
+    );
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {
