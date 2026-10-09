@@ -6,14 +6,13 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ServicePackage } from "@/domain/types";
 import type { DealBaseline } from "@/domain/deal-baseline";
-import { alternativeContributionLine, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
-import { CountUp } from "../motion/count-up";
 import { MoneySplit } from "./money-split";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
@@ -103,8 +102,7 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
               </InfoButton>
             </div>
             <div className={`tabular text-[24px] font-semibold ${e.netContributionPaise < 0 ? "text-red" : "text-ink"}`} data-testid="offer-contribution">
-              {e.netContributionPaise < 0 ? "a loss of about " : "about "}
-              <CountUp value={Math.abs(Math.round(e.netContributionPaise / 100) * 100)} />
+              {e.netContributionPaise < 0 ? `a loss of ${approxINR(-e.netContributionPaise)}` : approxINR(e.netContributionPaise)}
             </div>
             <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
           </div>

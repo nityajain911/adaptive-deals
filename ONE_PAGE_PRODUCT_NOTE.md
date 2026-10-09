@@ -15,14 +15,14 @@ Public evidence supports the broader prevalence of buyer cash constraints and de
 Adaptive Deals is a commercial-structuring layer between a buyer conversation and Razorpay's payment rails.
 
 1. **Understand the buyer.** AI extracts candidate constraints with verbatim evidence. Code normalises the values and identifies only the missing facts that can change the decision; AI drafts the question wording.
-2. **Review the offer.** Code enumerates every merchant-approved template and checks buyer timing, approval conditions, contribution, funding and payment fit. AI prioritises and explains only eligible structures. The merchant previews the exact buyer proposal and outbound message before approval.
+2. **Review the offer.** Code enumerates every merchant-approved template and checks buyer timing, approval conditions, contribution, funding and payment fit. Code ranks the eligible structures by the merchant's chosen priority and writes the explanation; the model's own ordering, where one was recorded, is kept only as history. The merchant previews the exact buyer proposal and outbound message before approval.
 3. **Track the deal.** The product shows the active version, agreed scope, collected amount, amount still to collect and one next action. Buyer changes become versioned amendments; accepted terms and scheduled collections change only after the required approvals.
 
 The buyer receives a mobile proposal built from canonical terms. Merchant and buyer acceptance are tied to the same terms hash. A preventive path handles “Cash is tight till the 20th” before the scheduled debit, while unsupported payment-change language goes to the merchant. The engine can return **No feasible deal** after evaluating the full approved template space.
 
 ## Product judgement and trust boundaries
 
-- **AI extracts, words and ranks. Code computes, decides and gates money.** Every displayed commercial figure comes from the deterministic engine.
+- **AI interprets the buyer's conversation and drafts the questions. Code reads the merchant's documents, calculates, checks and ranks. The merchant decides.** Every displayed commercial figure comes from the deterministic engine.
 - **Approval thresholds are conditions, not bans.** An annual option can remain feasible while clearly requiring the buyer's MD-approval attestation.
 - **Seller economics stay explicit.** Funding requirement and unpaid service value are separate concepts.
 - **Payment-change replies use narrow code rules.** An interpretation error can move money, so broader language is escalated rather than guessed. A broader AI reader would be a separate task with its own evaluation.
@@ -32,6 +32,8 @@ The buyer receives a mobile proposal built from canonical terms. Merchant and bu
 
 ## Evaluation and evidence
 
+The merchant's own prices, delivery costs and limits (their "Prices & costs") come from versioned records the merchant confirms, optionally drafted from an uploaded rate card or cost sheet by code (no model reads the document). Every recommendation is worked out from those records and the buyer's confirmed constraints, so the same buyer gets a different answer under different economics.
+
 The frozen model evaluation was run once on 20 labelled cases against `extract.v2`, `clarify.v1` and `explain.v3`:
 
 - Correctly extracted fields: **42 of 47 expected**.
@@ -40,6 +42,8 @@ The frozen model evaluation was run once on 20 labelled cases against `extract.v
 - Unnecessary clarifications asked: **0 across 20 cases**.
 - Failure states correctly identified: **14 of 16**.
 - Failing options presented as approvable: **0 of 120**.
+
+The evaluation ran when the model also proposed an order for the eligible offers. The product now ranks them in code, so the last figure no longer measures anything the model controls; it is kept unchanged as the frozen result.
 
 The 20 cases were written by OpenAI Codex at Nitya Jain's direction, so this is agent-authored evidence and not independent validation. The connected buyer journey was added without changing the frozen prompts, schemas, validators or results. Five later persona reviews were also agent-conducted role inspections, not interviews; they informed usability and integrity changes but do not establish demand.
 
