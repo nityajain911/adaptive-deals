@@ -18,7 +18,7 @@ npm run dev
 
 Open [http://localhost:3000/deals](http://localhost:3000/deals) and choose a case. The deal home (`/deals/hero`) always redirects to the stage that currently needs attention.
 
-The prototype works without credentials. Each case starts from a **hand-written sample output** (`data/synthetic/`), labelled **Sample output written by hand · no AI ran** in the reviewer audit trail, and no model call is made while you use it. New live runs use **Cerebras by default** when `CEREBRAS_API_KEY` is configured. The three earlier real Groq runs are kept unchanged in `data/case-recorded-runs/` as historical evidence; the case conversations were later rewritten to read like real WhatsApp chats, so those recordings no longer belong to any case the merchant can start (see **Recorded model runs** below). Messaging and payments are simulated.
+The prototype works without credentials and makes no model call during its saved replay. **Repair bookings now, defer social** starts from a real, frozen Cerebras run of that exact conversation, labelled **Recorded Cerebras output** in the reviewer audit trail. The other two cases use clearly labelled **hand-written sample output**. New live runs use Cerebras by default when `CEREBRAS_API_KEY` is configured. Three earlier Groq runs are kept unchanged as historical evidence of the previous conversations. Messaging and payments are simulated.
 
 ## Product journey
 
@@ -45,9 +45,9 @@ The guide explains the current decision. On a merchant step it names the product
 
 - Extracts candidate buyer constraints with verbatim evidence.
 - Drafts clarification wording.
-- Ranks, and writes a short reason for, structures that deterministic code has marked eligible.
+- Writes bounded reasons for structures that deterministic code has marked eligible.
 
-Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
+Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, ranks the eligible offers according to the merchant's chosen priority, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. A recorded model order is retained as evidence but does not drive the recommendation. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
 
 Who or what produced an output is shown in the reviewer audit trail (**For reviewers → Audit trail for this deal**), derived from the stored run rather than from the feature. The merchant's own screens stay in plain words: an offer card says *Suggested for the default priority: earning the most*, *Suggested for what matters most to you*, or *You chose this offer*, because code ranks the offers by the merchant's priority and works out every figure.
 
@@ -91,15 +91,23 @@ Razorpay's server describes its tools differently from our approval contract, so
 
 Step 2 happens on Track after the buyer accepts: **Review Razorpay test Payment Link**, then **Approve and create test Payment Link**. If a request times out, the outcome is marked unknown and reconciled by `reference_id` before any retry. Everything above is tested against a fake Razorpay MCP server. On 9 Oct 2026 the read-only discovery was run against Razorpay's hosted server with a test key: it advertised 42 tools, the Payment Link capability bound as compatible, and no tool was called (`evaluation-assist/results/mcp-discovery-2026-10-09.json`). On 9 Oct 2026 the real create path was also exercised in test mode: the agreement payment of ₹23,010 was rejected by Razorpay ("amount exceeds maximum amount allowed"), while ₹100, ₹10,000 and ₹15,000 diagnostic links were created with SMS, email and reminders off (`evaluation-assist/results/mcp-first-test-link-2026-10-09.json`). The account has a per-link cap between ₹15,000 and ₹20,000; the exact cap is unknown.
 
-## Recorded model runs (historical)
+## Recorded model runs
 
-> **Status, 8 October 2026.** These recordings were made on the first version of the three case conversations. The conversations have since been rewritten as realistic chats, so the recordings no longer match any case and the product does not load them. They are kept unchanged as evidence of what the frozen prompts did on real model output (`data/synthetic/recorded-conversations.ts` holds the exact messages they replay against, and `tests/data/case-recordings.test.ts` still verifies them). Re-recording on the rewritten conversations needs a provider key and is a separate, approved step.
+### Current hero recording
+
+On 9 October 2026, the final **Repair bookings now, defer social** conversation was run once on Cerebras `gpt-oss-120b` under the frozen recording policy. Three provider requests were made—extract, clarify and explain—with no retry. The first technically valid outputs were kept, misses included. The model found the buyer's budget, timing, approval limit and required services, drafted both clarification questions, and reached the expected phased-scope offer family. Exact validators rejected one case-mismatched evidence string and two unchecked explanation notes; the engine outcome was unchanged. The committed run is `data/case-recorded-runs/run-case-reduced-scope-ed5442a3.json`, and its report is `data/case-recorded-runs/cerebras-reduced-scope-recording-report.json`.
+
+The product loads this recording only when its deal ID and complete conversation match the current hero case byte for byte. A mismatch falls back to the labelled hand-written sample. Replaying it makes no provider call.
+
+### Earlier Groq recordings (historical)
+
+> **Status, 8 October 2026.** These recordings were made on the first version of the three case conversations. The conversations were later rewritten as realistic chats, so these Groq recordings no longer match a case the merchant can start. They remain unchanged as historical evidence (`data/synthetic/recorded-conversations.ts` holds their exact inputs, and `tests/data/case-recordings.test.ts` verifies them).
 
 Each case had one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `clarify.v1`, `explain.v3`), recorded once, kept as it came, misses included. Seven provider requests were made: five tasks produced usable model output, and two attempts at one task broke the declared output schema. The report is `data/case-recorded-runs/recording-report.json`. These are product evidence for three fictional cases, not an evaluation.
 
 | Case | What the recording shows | What the merchant does |
 | --- | --- | --- |
-| **Repair bookings now, defer social** | Groq extracts the constraints and words both questions. Its recorded run also ranked the single upfront payment first, with per-offer reasons; that is kept as history only. | Code recommends the **two-payment** offer under *Protect contribution*. **Preserve scope** leads with the annual offer, says it needs the buyer's MD approval and names the best offer without it. Back on *Protect contribution*, the preventive restructuring journey continues. |
+| **Repair bookings now, defer social** | The earlier Groq recording remains historical. The current case uses the exact-match Cerebras recording described above. | Code recommends the **two-payment** offer under *Protect contribution*. **Preserve scope** leads with the annual offer, says it needs the buyer's MD approval and names the best offer without it. Back on *Protect contribution*, the preventive restructuring journey continues. |
 | **Keep the annual scope, move the start** | Schema-valid extraction with one rejected required-scope field ("complete annual package" names no service) and one missed GST fact. The model's explanation broke its schema twice, so code writes the explanation. | **Confirms the required services** before any offer. The engine then recalculates, and the card reads *Recalculated by the engine after the merchant confirmed the services · explanation written by code.* |
 | **Decline an impossible start date** | A clean extraction. | Reads why the engine rejects every approved structure, and closes the deal. |
 
@@ -119,7 +127,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `RAZORPAY_MODE` | `test` creates the upfront link in Razorpay test mode; other values simulate it |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Test keys only; live keys are refused |
 | `ADAPTIVE_DEALS_DATA_DIR` | JSON store location; defaults to git-ignored `.data/` |
-| `ADAPTIVE_DEALS_DEMO_RUN` | `synthetic` forces the labelled hand-written sample (the default behaviour while no recording matches a case) |
+| `ADAPTIVE_DEALS_DEMO_RUN` | `synthetic` forces the labelled hand-written sample; otherwise an exact-match committed recording is used when available |
 
 ## Commands
 
@@ -150,7 +158,7 @@ domain/                 deterministic money, dates, templates, checks, economics
                         agreement hashes, collections, amendments and state machines
 ai/                     frozen schemas, versioned prompts, providers and run records
 data/synthetic/         fictional cases, hand-written sample outputs and failure scenarios
-data/case-recorded-runs/ the three historical Groq runs and their recording report (not loaded by the product)
+data/case-recorded-runs/ the current exact-match Cerebras hero run plus three historical Groq runs
 integrations/razorpay/  test-key guard and simulated/test-mode payment links
 evaluation/             development data and frozen evaluation records
 lib/                    service, derived product views, JSON store and walkthrough orchestration
@@ -166,5 +174,5 @@ app/, components/       three-stage merchant product, buyer proposal, walkthroug
 - Buyer MD approval is an attestation, not identity verification.
 - Service dates are contractual plans; actual delivery completion is not tracked.
 - Refunds, external payments and accounting reconciliation are not modelled.
-- The evidence consists of one synthetic merchant segment, three fictional cases (one recorded model run each) and agent-conducted role inspections. It does not establish market frequency.
+- The evidence consists of one synthetic merchant segment, three fictional cases (one current recorded model run and two hand-written samples), earlier historical model runs, and agent-conducted role inspections. It does not establish market frequency.
 - How often Indian service sellers negotiate commercial structure over WhatsApp remains an assumption to validate.

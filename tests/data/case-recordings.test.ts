@@ -5,27 +5,33 @@ import { replayRun } from "@/ai/orchestrator";
 import { promptHash, promptFor } from "@/ai/prompts";
 import type { RunRecord } from "@/ai/run-record";
 import { FixedClock } from "@/domain/clock";
-import { CASE_IDS, type CaseId } from "@/data/synthetic/cases";
+import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
 import { RECORDED_CASE_MESSAGES, recordedDeal } from "@/data/synthetic/recorded-conversations";
 import { CASE_RECORDED_RUN_DIR, CASE_RUN_MAP_FILE, mappedCaseRun } from "@/lib/case-runs";
 import { modelProvenance } from "@/lib/model-provenance";
 import { strategyView } from "@/domain/strategy";
 import { heroBaseline } from "../helpers";
 
-/**
- * The three committed case recordings are real Groq runs (kept as historical evidence; see recorded-conversations.ts) of the frozen prompts. These tests read
- * the files in the repository, with no temporary root, exactly as the product loads them.
- */
+/** Historical Groq evidence and the current exact-match Cerebras hero recording. */
 const dir = path.join(process.cwd(), CASE_RECORDED_RUN_DIR);
 const read = (file: string) => JSON.parse(readFileSync(path.join(dir, file), "utf8"));
-const mapping = JSON.parse(readFileSync(path.join(process.cwd(), CASE_RUN_MAP_FILE), "utf8")) as Record<CaseId, string>;
-const record = (id: CaseId) => read(`${mapping[id]}.json`) as RunRecord;
+const mapping = JSON.parse(readFileSync(path.join(process.cwd(), CASE_RUN_MAP_FILE), "utf8")) as Partial<Record<CaseId, string>>;
 const report = read("recording-report.json");
+const historical = report.acceptedRecords as Record<CaseId, string>;
+const record = (id: CaseId) => read(`${historical[id]}.json`) as RunRecord;
+const cerebrasReport = read("cerebras-reduced-scope-recording-report.json");
+const currentHero = () => read("run-case-reduced-scope-ed5442a3.json") as RunRecord;
 
 describe("the committed case recordings", () => {
-  it("map every case to exactly one recording, and the directory holds nothing else", () => {
-    expect(Object.keys(mapping).sort()).toEqual([...CASE_IDS].sort());
-    expect(readdirSync(dir).sort()).toEqual(["README.md", ...Object.values(mapping).map((id) => `${id}.json`), "recording-report.json"].sort());
+  it("maps only the exact-match hero recording and keeps historical evidence separately", () => {
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3" });
+    expect(readdirSync(dir).sort()).toEqual([
+      "README.md",
+      ...Object.values(historical).map((id) => `${id}.json`),
+      "run-case-reduced-scope-ed5442a3.json",
+      "recording-report.json",
+      "cerebras-reduced-scope-recording-report.json",
+    ].sort());
   });
 
   it.each(CASE_IDS)("%s: is a complete Groq run of the conversation it was recorded on, which is no longer a case the merchant can start", (id) => {
@@ -35,7 +41,20 @@ describe("the committed case recordings", () => {
     expect(modelProvenance(loaded).label).toBe("Recorded Groq output");
     expect(loaded.steps.every((step) => step.provider === "groq" && step.failure === null)).toBe(true);
     // The cases were rewritten as real-sounding chats, so the product must not present these as the case's own output.
-    expect(mappedCaseRun(id)).toBeNull();
+    if (id !== "reduced-scope") expect(mappedCaseRun(id)).toBeNull();
+  });
+
+  it("loads the frozen Cerebras hero and attributes every model task to Cerebras", () => {
+    const loaded = mappedCaseRun("reduced-scope");
+    expect(loaded).toEqual(currentHero());
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded!.inputs.messages).toEqual(demoCase("reduced-scope")!.deal.messages);
+    expect(loaded!.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
+      ["extract", "cerebras", "accepted_with_corrections"],
+      ["clarify", "cerebras", "accepted"],
+      ["explain", "cerebras", "accepted_with_corrections"],
+    ]);
+    expect(modelProvenance(loaded!).label).toBe("Recorded Cerebras output");
   });
 
   it.each(CASE_IDS)("%s: replays exactly, so the stored evidence still reproduces the engine's result", async (id) => {
@@ -54,6 +73,31 @@ describe("the committed case recordings", () => {
     files.push(readFileSync(path.join(process.cwd(), CASE_RUN_MAP_FILE), "utf8"));
     const pattern = /gsk_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9_-]{16,}|rzp_(live|test)_[A-Za-z0-9]+|Bearer\s+[A-Za-z0-9._-]{16,}|api[_-]?key"\s*:\s*"[^"]{8,}/i;
     for (const text of files) expect(text).not.toMatch(pattern);
+  });
+});
+
+describe("the current Cerebras hero recording report", () => {
+  it("records three successful provider requests, no retry, and the first valid outputs", () => {
+    expect(cerebrasReport).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", requestCap: 7, retries: [], rejectedAttempts: [], stopped: null });
+    expect(cerebrasReport.requests).toHaveLength(3);
+    expect(cerebrasReport.requests.map((request: { task: string; ok: boolean; schemaValid: boolean }) => [request.task, request.ok, request.schemaValid])).toEqual([
+      ["extract", true, true],
+      ["clarify", true, true],
+      ["explain", true, true],
+    ]);
+    expect(cerebrasReport.summaries[0]).toMatchObject({ caseId: "reduced-scope", runId: "run-case-reduced-scope-ed5442a3", status: "complete", caseCard: { agrees: true } });
+  });
+
+  it("keeps the reviewer documentation aligned with the mixed recorded-and-sample product", () => {
+    const readRoot = (file: string) => readFileSync(path.join(process.cwd(), file), "utf8");
+    const readme = readRoot("README.md");
+    const demo = readRoot("DEMO_SCRIPT.md");
+    const recordingReadme = readRoot(`${CASE_RECORDED_RUN_DIR}/README.md`);
+    for (const text of [readme, demo, recordingReadme]) {
+      expect(text).toMatch(/Recorded Cerebras output/i);
+      expect(text).toMatch(/hand-written sample/i);
+    }
+    expect(demo).not.toMatch(/No AI runs in this demo/);
   });
 });
 
@@ -127,7 +171,7 @@ describe("the recording report says exactly what happened", () => {
   });
 
   it("records the accepted record for each case", () => {
-    expect(report.acceptedRecords).toEqual(mapping);
+    expect(report.acceptedRecords).toEqual(historical);
     expect(report.invocations[1].stopped).toMatch(/still fails its schema/);
   });
 });

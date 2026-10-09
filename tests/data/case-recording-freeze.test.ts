@@ -55,10 +55,14 @@ describe("the pre-call case recording freeze", () => {
     });
   });
 
-  it("keeps historical Groq inputs separate and unmapped from every rewritten case", () => {
+  it("keeps historical Groq inputs separate and maps only the exact frozen Cerebras hero", () => {
     for (const id of CASE_IDS) {
       expect(RECORDED_CASE_MESSAGES[id]).not.toEqual(demoCase(id)!.deal.messages);
-      expect(mappedCaseRun(id)).toBeNull();
+      if (id === "reduced-scope") {
+        expect(mappedCaseRun(id)).toMatchObject({ runId: "run-case-reduced-scope-ed5442a3", provider: "cerebras", model: "gpt-oss-120b" });
+      } else {
+        expect(mappedCaseRun(id)).toBeNull();
+      }
     }
   });
 });

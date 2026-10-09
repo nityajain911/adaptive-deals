@@ -1020,3 +1020,13 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Freeze:** `data/synthetic/CASE_RECORDING_FREEZE.json` records the exact case-message hashes and the live hashes of `extract.v2`, `clarify.v1` and `explain.v3`. It limits any later recording to the reduced-scope hero case on Cerebras `gpt-oss-120b`, with no more than seven provider requests, technical retries only, and the first technically valid output kept with any misses.
 
 **External-call boundary:** The conversations and synthetic outputs were authored by OpenAI Codex at Nitya Jain’s direction. No model or network call was made during this work. Historical Groq recordings remain unchanged and separate from the rewritten cases. A later Cerebras recording needs separate explicit authorisation.
+
+### 2026-10-09 · Final hero conversation recorded once on Cerebras [OpenAI Codex]
+
+**Applicant authorisation and policy:** Nitya Jain authorised the frozen reduced-scope hero only, with a ceiling of seven provider requests, technical retries only, and the first technically valid output kept with misses included. The case messages, prompt versions and hashes were fixed in `data/synthetic/CASE_RECORDING_FREEZE.json` before the call.
+
+**What happened:** Cerebras `gpt-oss-120b` completed extract, clarify and explain in three requests, with no retry or provider failure. Extraction was accepted with one correction: `optional_package` was rejected because its lowercase raw text did not match the capitalised evidence quote character for character. Both clarification questions were accepted. Explanation was accepted with corrections after two option notes containing literal commercial figures were rejected. The engine still reached `options_ready`, produced the expected phased-scope family and kept every displayed number under deterministic calculation.
+
+**Product integration:** `run-case-reduced-scope-ed5442a3` is mapped only to the exact current hero conversation and displays **Recorded Cerebras output**. A message mismatch, an incomplete record or forced sample mode falls back to **Sample output written by hand · no model ran**. Preserve-scope and no-fit remain hand-written samples. Replaying the recording makes no network call. The earlier Groq recordings remain unchanged as historical evidence.
+
+**Stored evidence:** `data/case-recorded-runs/run-case-reduced-scope-ed5442a3.json` and `data/case-recorded-runs/cerebras-reduced-scope-recording-report.json`. The report records three of seven allowed requests, zero retries and zero rejected attempts; the committed artifacts contain no credential.
