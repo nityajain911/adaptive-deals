@@ -41,7 +41,7 @@ export default async function DealsPage() {
         <WalkthroughWelcome />
         <div className="max-w-[760px]">
           <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Start a deal</h1>
-          <p className="mt-2 text-[14px] leading-6 text-ink-2">A customer has told you your quote doesn&apos;t fit their budget. Pick a situation to see what they said and the offer we&apos;d suggest.</p>
+          <p className="mt-2 text-[14px] leading-6 text-ink-2">Pick a situation to see what the customer said and the offer we&apos;d suggest.</p>
         </div>
         <div className="mt-5">
           <QuickTiles tiles={tiles} />
