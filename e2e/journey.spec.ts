@@ -1009,7 +1009,7 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
   await page.goto("/deals/hero");
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
   await expect(page.getByTestId("blocking-card")).toContainText("Their budget this quarter");
-  await expect(page.getByTestId("thread-understand")).toContainText("Our retail launch can't move");
+  await expect(page.getByTestId("thread-understand")).toContainText("The issue is timing");
   await expect(page.getByTestId("see-evidence")).not.toContainText(/synthetic deal fixture|simulated WhatsApp/i);
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);

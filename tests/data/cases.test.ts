@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { replayRun } from "@/ai/orchestrator";
+import { interpretExtraction } from "@/ai/extract";
 import type { RunRecord } from "@/ai/run-record";
 import { FixedClock } from "@/domain/clock";
 import { canonicalJson } from "@/domain/agreement";
@@ -22,6 +23,13 @@ const PRESERVE_SCOPE_MESSAGES = [
   "This quarter is tight. I can release only ₹10,000 right now.",
   "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
   "Finance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.",
+] as const;
+const NO_FIT_MESSAGES = [
+  "Hi, sharing the launch proposal. It is ₹1,20,000 plus GST for website fixes, search marketing, social media and monthly reporting. We currently have delivery starting in November.",
+  "The issue is timing. We need your team to start no later than 15 October.",
+  "We need the full scope: website fixes, search, social and monthly reporting.",
+  "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
+  "We can’t move the date or reduce the scope. If you can’t start by then, please tell us clearly.",
 ] as const;
 
 function storedRun(file: string): RunRecord {
@@ -88,6 +96,23 @@ describe("commercial demo case catalog", () => {
     const gst = item.expected.extraction.fields.find((field) => field.key === "amounts_include_gst");
     expect(gst).toMatchObject({ raw_text: "before GST", message_id: "preserve-5" });
     expect(gst!.evidence_quote).toContain("₹10,000 and ₹15,000");
+  });
+
+  it("uses the approved no-fit opening and normalises its exact deadline", () => {
+    const item = demoCase("no-fit")!;
+    expect(item.deal.messages.map((message) => message.text)).toEqual(NO_FIT_MESSAGES);
+    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
+    expect(item.deal.messages.map((message) => message.id)).toEqual(["no-fit-1", "no-fit-2", "no-fit-3", "no-fit-4", "no-fit-5"]);
+    const latest = item.expected.extraction.fields.find((field) => field.key === "latest_start");
+    expect(latest).toMatchObject({ raw_text: "15 October", message_id: "no-fit-2" });
+    const profile = interpretExtraction(item.expected.extraction, {
+      dealId: item.deal.dealId,
+      messages: item.deal.messages,
+      packages: item.deal.packages,
+      timeZone: item.deal.merchant.timeZone,
+    }).profile;
+    expect(profile.latestStart).toMatchObject({ status: "stated", value: { value: "2026-10-15", precision: "day" }, unit: "day" });
+    expect(profile.requiredPackages.value).toEqual(["website-fixes", "search-marketing", "social-media", "monthly-reporting"]);
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {
