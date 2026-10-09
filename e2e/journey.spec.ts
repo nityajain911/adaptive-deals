@@ -661,7 +661,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     {
       id: "reduced-scope",
       buyer: "Kestrel Lane Clinics",
-      message: "The booking page being broken is costing us patients",
+      message: "The broken booking page is costing us patient enquiries",
       status: "clarifying",
     },
     {

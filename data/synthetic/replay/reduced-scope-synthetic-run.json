@@ -19,7 +19,7 @@
         "id": "reduced-1",
         "dealId": "case-reduced-scope",
         "author": "merchant",
-        "text": "Hi, thanks for the call on Monday. As discussed, our annual plan is ₹1,20,000 plus GST: Website fixes, Search marketing, Social media and Monthly reporting. The idea is to fix the booking journey first and then build a steady flow of enquiries.",
+        "text": "Hi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
         "timestamp": "2026-09-29T16:10:00+05:30",
         "source": "whatsapp"
       },
@@ -27,8 +27,32 @@
         "id": "reduced-2",
         "dealId": "case-reduced-scope",
         "author": "buyer",
-        "text": "Hi, thanks for sending this across. The booking page being broken is costing us patients every week, so Website fixes and Search marketing are what we need right now. Social media can wait. We only have ₹50,000 left this quarter and the new budget opens in April. I'm not sure if that ₹50,000, or our ₹60,000 MD approval limit, includes GST. I also need to check whether the limit is per payment or for the whole contract. If a smaller website and search phase fits, we can go ahead with that.",
+        "text": "Thanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.",
         "timestamp": "2026-10-01T08:47:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-3",
+        "dealId": "case-reduced-scope",
+        "author": "buyer",
+        "text": "For now, we need the website fixes and search marketing. Social media can wait.",
+        "timestamp": "2026-10-01T08:48:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-4",
+        "dealId": "case-reduced-scope",
+        "author": "buyer",
+        "text": "I only have ₹50,000 left in this quarter. Our fresh budget opens in April.",
+        "timestamp": "2026-10-01T08:49:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-5",
+        "dealId": "case-reduced-scope",
+        "author": "buyer",
+        "text": "Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
+        "timestamp": "2026-10-01T08:50:00+05:30",
         "source": "whatsapp"
       }
     ],
@@ -78,8 +102,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "9f26b0b1978ce5c89d041a8eba6df293c5da912945da708a43ab6dc654997eb5",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"reduced-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:10:00+05:30\">\nHi, thanks for the call on Monday. As discussed, our annual plan is ₹1,20,000 plus GST: Website fixes, Search marketing, Social media and Monthly reporting. The idea is to fix the booking journey first and then build a steady flow of enquiries.\n</message>\n<message id=\"reduced-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nHi, thanks for sending this across. The booking page being broken is costing us patients every week, so Website fixes and Search marketing are what we need right now. Social media can wait. We only have ₹50,000 left this quarter and the new budget opens in April. I'm not sure if that ₹50,000, or our ₹60,000 MD approval limit, includes GST. I also need to check whether the limit is per payment or for the whole contract. If a smaller website and search phase fits, we can go ahead with that.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "b2743243b149e93b5434061c0f7454726b1388edd4bdd7e257db05bdb911ce77",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"reduced-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:10:00+05:30\">\nHi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"reduced-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nThanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.\n</message>\n<message id=\"reduced-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:48:00+05:30\">\nFor now, we need the website fixes and search marketing. Social media can wait.\n</message>\n<message id=\"reduced-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:49:00+05:30\">\nI only have ₹50,000 left in this quarter. Our fresh budget opens in April.\n</message>\n<message id=\"reduced-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nAnything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -88,50 +112,50 @@
           {
             "key": "budget_now_amount",
             "raw_text": "₹50,000",
-            "evidence_quote": "We only have ₹50,000 left this quarter",
-            "message_id": "reduced-2",
+            "evidence_quote": "I only have ₹50,000 left in this quarter",
+            "message_id": "reduced-4",
             "confidence": "high"
           },
           {
             "key": "budget_now_period",
             "raw_text": "this quarter",
-            "evidence_quote": "We only have ₹50,000 left this quarter",
-            "message_id": "reduced-2",
+            "evidence_quote": "I only have ₹50,000 left in this quarter",
+            "message_id": "reduced-4",
             "confidence": "high"
           },
           {
             "key": "next_budget_date",
             "raw_text": "April",
-            "evidence_quote": "the new budget opens in April",
-            "message_id": "reduced-2",
+            "evidence_quote": "Our fresh budget opens in April",
+            "message_id": "reduced-4",
             "confidence": "high"
           },
           {
             "key": "approval_limit_amount",
             "raw_text": "₹60,000",
-            "evidence_quote": "our ₹60,000 MD approval limit",
-            "message_id": "reduced-2",
+            "evidence_quote": "Anything above ₹60,000 has to go to our MD",
+            "message_id": "reduced-5",
             "confidence": "high"
           },
           {
             "key": "required_package",
-            "raw_text": "Website fixes",
-            "evidence_quote": "Website fixes and Search marketing are what we need right now",
-            "message_id": "reduced-2",
+            "raw_text": "website fixes",
+            "evidence_quote": "we need the website fixes and search marketing",
+            "message_id": "reduced-3",
             "confidence": "high"
           },
           {
             "key": "required_package",
-            "raw_text": "Search marketing",
-            "evidence_quote": "Website fixes and Search marketing are what we need right now",
-            "message_id": "reduced-2",
+            "raw_text": "search marketing",
+            "evidence_quote": "we need the website fixes and search marketing",
+            "message_id": "reduced-3",
             "confidence": "high"
           },
           {
             "key": "optional_package",
             "raw_text": "Social media",
             "evidence_quote": "Social media can wait",
-            "message_id": "reduced-2",
+            "message_id": "reduced-3",
             "confidence": "high"
           }
         ],
@@ -211,10 +235,10 @@
         "rawText": "₹50,000 · this quarter",
         "evidence": [
           {
-            "quote": "We only have ₹50,000 left this quarter",
-            "messageId": "reduced-2",
-            "start": 190,
-            "end": 228
+            "quote": "I only have ₹50,000 left in this quarter",
+            "messageId": "reduced-4",
+            "start": 0,
+            "end": 40
           }
         ],
         "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
@@ -230,10 +254,10 @@
         "rawText": "April",
         "evidence": [
           {
-            "quote": "the new budget opens in April",
-            "messageId": "reduced-2",
-            "start": 233,
-            "end": 262
+            "quote": "Our fresh budget opens in April",
+            "messageId": "reduced-4",
+            "start": 42,
+            "end": 73
           }
         ],
         "transformation": "next april after message date 2026-10-01; month precision kept",
@@ -249,10 +273,10 @@
         "rawText": "₹60,000",
         "evidence": [
           {
-            "quote": "our ₹60,000 MD approval limit",
-            "messageId": "reduced-2",
-            "start": 297,
-            "end": 326
+            "quote": "Anything above ₹60,000 has to go to our MD",
+            "messageId": "reduced-5",
+            "start": 0,
+            "end": 42
           }
         ],
         "transformation": "numeric rupees",
@@ -268,10 +292,10 @@
         "rawText": "₹60,000",
         "evidence": [
           {
-            "quote": "our ₹60,000 MD approval limit",
-            "messageId": "reduced-2",
-            "start": 297,
-            "end": 326
+            "quote": "Anything above ₹60,000 has to go to our MD",
+            "messageId": "reduced-5",
+            "start": 0,
+            "end": 42
           }
         ],
         "transformation": "clarification answer",
@@ -291,16 +315,16 @@
         "rawText": null,
         "evidence": [
           {
-            "quote": "We only have ₹50,000 left this quarter",
-            "messageId": "reduced-2",
-            "start": 190,
-            "end": 228
+            "quote": "I only have ₹50,000 left in this quarter",
+            "messageId": "reduced-4",
+            "start": 0,
+            "end": 40
           },
           {
-            "quote": "our ₹60,000 MD approval limit",
-            "messageId": "reduced-2",
-            "start": 297,
-            "end": 326
+            "quote": "Anything above ₹60,000 has to go to our MD",
+            "messageId": "reduced-5",
+            "start": 0,
+            "end": 42
           }
         ],
         "transformation": "clarification answer",
@@ -332,16 +356,16 @@
         "rawText": null,
         "evidence": [
           {
-            "quote": "Website fixes and Search marketing are what we need right now",
-            "messageId": "reduced-2",
-            "start": 104,
-            "end": 165
+            "quote": "we need the website fixes and search marketing",
+            "messageId": "reduced-3",
+            "start": 9,
+            "end": 55
           },
           {
-            "quote": "Website fixes and Search marketing are what we need right now",
-            "messageId": "reduced-2",
-            "start": 104,
-            "end": 165
+            "quote": "we need the website fixes and search marketing",
+            "messageId": "reduced-3",
+            "start": 9,
+            "end": 55
           }
         ],
         "transformation": "matched to deal packages",
@@ -358,9 +382,9 @@
         "evidence": [
           {
             "quote": "Social media can wait",
-            "messageId": "reduced-2",
-            "start": 167,
-            "end": 188
+            "messageId": "reduced-3",
+            "start": 57,
+            "end": 78
           }
         ],
         "transformation": "matched to deal packages",
@@ -377,16 +401,16 @@
       },
       "evidence": [
         {
-          "quote": "We only have ₹50,000 left this quarter",
-          "messageId": "reduced-2",
-          "start": 190,
-          "end": 228
+          "quote": "I only have ₹50,000 left in this quarter",
+          "messageId": "reduced-4",
+          "start": 0,
+          "end": 40
         },
         {
-          "quote": "the new budget opens in April",
-          "messageId": "reduced-2",
-          "start": 233,
-          "end": 262
+          "quote": "Our fresh budget opens in April",
+          "messageId": "reduced-4",
+          "start": 42,
+          "end": 73
         }
       ],
       "rule": "Current-period budget plus a later next-budget date: no additional budget is available between them"

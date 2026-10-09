@@ -24,7 +24,7 @@ describe("the conversation reads as a chat", () => {
   it("highlights the phrases the buyer constraints came from, inside the bubble", async () => {
     const { html } = await render();
     expect(html).toContain('data-testid="chat-highlight"');
-    expect(html.replace(/<[^>]+>/g, "")).toContain("We only have ₹50,000 left this quarter");
+    expect(html.replace(/<[^>]+>/g, "")).toContain("I only have ₹50,000 left in this quarter");
   });
 
   it("shows an unsent draft in the composer area, not as a sent message", async () => {

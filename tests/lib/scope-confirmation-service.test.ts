@@ -149,7 +149,18 @@ describe("the confirmation together with clarification answers", () => {
     const item = demoCase("reduced-scope")!;
     const base = item.expected.extraction;
     const required = base.fields.find((f) => f.key === "required_package")!;
-    const extract: ExtractionOutput = { ...base, fields: [...base.fields.filter((f) => f.key !== "required_package"), { ...required, raw_text: "what we need right now" }] };
+    const extract: ExtractionOutput = {
+      ...base,
+      fields: [
+        ...base.fields.filter((f) => f.key !== "required_package"),
+        {
+          ...required,
+          raw_text: "smaller website-and-search phase",
+          evidence_quote: "a smaller website-and-search phase fits within the limit",
+          message_id: "reduced-5",
+        },
+      ],
+    };
     const outputs = { extract, clarify: caseAuthoredOutputs["reduced-scope"].clarify, explain: caseAuthoredOutputs["reduced-scope"].explain };
     const record = await recordedRun({ caseId: "reduced-scope", runId: "run-case-reduced-scope-0a1b2c3d", outputs, answers: item.expected.recordedAnswers });
     process.env.ADAPTIVE_DEALS_CASE_RUN_ROOT = rootWith([{ caseId: "reduced-scope", record }]);

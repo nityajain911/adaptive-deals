@@ -9,6 +9,13 @@ import { allDemoCases, demoCase, type CaseId } from "@/data/synthetic/cases";
 import { heroMessages } from "@/data/synthetic/hero";
 
 const CASE_IDS: CaseId[] = ["reduced-scope", "preserve-scope", "no-fit"];
+const REDUCED_SCOPE_MESSAGES = [
+  "Hi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+  "Thanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.",
+  "For now, we need the website fixes and search marketing. Social media can wait.",
+  "I only have ₹50,000 left in this quarter. Our fresh budget opens in April.",
+  "Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
+] as const;
 
 function storedRun(file: string): RunRecord {
   return JSON.parse(readFileSync(path.join(process.cwd(), file), "utf8")) as RunRecord;
@@ -56,6 +63,14 @@ describe("commercial demo case catalog", () => {
     expect(extraction.ambiguities.map((ambiguity) => ambiguity.field_key)).toEqual(
       expect.arrayContaining(["amounts_include_gst", "approval_limit_scope"]),
     );
+  });
+
+  it("uses the approved five-message reduced-scope opening without pre-answering clarification", () => {
+    const messages = demoCase("reduced-scope")!.deal.messages;
+    expect(messages.map((message) => message.text)).toEqual(REDUCED_SCOPE_MESSAGES);
+    expect(messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
+    expect(messages.map((message) => message.id)).toEqual(["reduced-1", "reduced-2", "reduced-3", "reduced-4", "reduced-5"]);
+    expect(messages.map((message) => message.text).join(" ")).not.toMatch(/both amounts include GST|per contract/i);
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {

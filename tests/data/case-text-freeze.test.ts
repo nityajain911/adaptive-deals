@@ -10,7 +10,7 @@ import { allDemoCases, type CaseId } from "@/data/synthetic/cases";
  * and record the case again.
  */
 const FROZEN: Record<CaseId, string> = {
-  "reduced-scope": "9c76751ebe892e86c968a5e0a5f26b1ff625c777e9ee5529f8a9299dbd5da617",
+  "reduced-scope": "81db55020d060e55f8927a2a81a17a3b0da6d7b4c583dbef9d729b8c71f0d7af",
   "preserve-scope": "14b67339d9fcfdb1079c10a0f90f9dcc943577cf5c2b641e9cf6996513940279",
   "no-fit": "e8641b44a3aef4383d6062b163fc07427b098482e01822dc0eab926d91b1894e",
 };
