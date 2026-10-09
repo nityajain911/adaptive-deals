@@ -999,3 +999,22 @@ test("exceptions · the audit lists an input override separately from a failed-r
   await expect(audit.getByTestId("audit-failed-rule-exceptions")).toContainText("None.");
   await expect(page.getByTestId("audit-drawer")).toContainText("Your prices & costs, version 1, with 1 deal override");
 });
+
+
+test("a new deal opens on Understand even when nothing needs asking, and the offer follows from one button", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await api(page, { action: "start_case", caseId: "no-fit" });
+  // Blue Harbor needs nothing asked: the engine already knows no offer fits. The merchant still sees what the buyer said first.
+  await page.goto("/deals/hero");
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  await expect(page.getByTestId("blocking-card")).toContainText("Their budget this quarter");
+  await expect(page.getByTestId("thread-understand")).toContainText("Our retail launch can't move");
+  await expect(page.getByTestId("see-evidence")).not.toContainText(/synthetic deal fixture|simulated WhatsApp/i);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("offer-no-fit")).toBeVisible();
+  // Once read, the deal opens where the work is.
+  await page.goto("/deals/hero");
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+});

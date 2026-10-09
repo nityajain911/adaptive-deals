@@ -31,6 +31,8 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const { dealId } = await props.params;
   const { s, out, progress, activeCase, baseline } = await loadDeal(dealId);
   const current = progress.stages.understand === "current";
+  // A deal the merchant has not yet read: nothing needs asking, but they should see what the buyer said before the offer.
+  const firstLook = !current && !s.understandReviewed && s.selectedOption === null && s.agreements.length === 0 && ["offer.review", "offer.no_feasible", "offer.outside_templates"].includes(progress.rule);
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposalOf(baseline));
   const uncaptured = uncapturedLines(out.evaluation);
@@ -55,18 +57,18 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
       <summary className="cursor-pointer text-[13px] font-semibold text-ink">Where this came from</summary>
       <ul className="mt-2 space-y-2 pb-2 text-[13px] text-ink-2">
         <li>
-          <span className="font-semibold text-ink">Original annual proposal</span> · Source: synthetic deal fixture · ₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600
+          <span className="font-semibold text-ink">Your quote</span> · ₹1,20,000 for the year + 18% GST = ₹1,41,600
         </li>
         {evidence.map((f) => (
           <li key={f.key}>
-            <span className="font-semibold text-ink">{f.label}</span> · Source: simulated WhatsApp conversation · {f.evidence.map((e) => `“${e.quote}”`).join(" ")}
+            <span className="font-semibold text-ink">{f.label}</span> · The buyer wrote: {[...new Set(f.evidence.map((e) => e.quote))].map((q) => `“${q}”`).join(" ")}
             {f.confirmedBy ? ` · confirmed in a clarification reply` : ""}
           </li>
         ))}
         {s.decisionBranch && branchChangedAnswers(s.decisionBranch)
           ? answers.map((answer) => (
               <li key={`branch-${answer.questionId}`}>
-                <span className="font-semibold text-ink">Changed clarification · {answer.questionId}</span> · Source: buyer clarification recorded by merchant · “{answer.answerText}”
+                <span className="font-semibold text-ink">Changed clarification · {answer.questionId}</span> · The buyer said: “{answer.answerText}”
               </li>
             ))
           : null}
@@ -74,7 +76,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     </details>
   );
 
-  if (!current) {
+  if (!current && !firstLook) {
     return (
       <StageShell dealId={dealId} viewing="understand">
         <Card className="p-5" data-testid="understand-settled">
@@ -133,6 +135,13 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               ))}
             </ul>
             {evidenceDetails}
+            {firstLook ? (
+              <div className="mt-4">
+                <PrimaryActionButton body={{ action: "understand_reviewed" }} onDone={stageHref(dealId, "offer")}>
+                  {progress.rule === "offer.no_feasible" ? "See why nothing fits" : "See the offer"}
+                </PrimaryActionButton>
+              </div>
+            ) : null}
           </Card>
 
           <RelevantHistory memory={memory} />

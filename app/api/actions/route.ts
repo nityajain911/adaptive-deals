@@ -128,6 +128,7 @@ const Action = z.discriminatedUnion("action", [
   // Simulated buyer reply: a pre-scripted reply or typed text, both read by the same code rules.
   z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
+  z.object({ action: z.literal("understand_reviewed") }),
   // Buyer proposal page (demo buyer view).
   z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500), topic: z.enum(["date", "scope", "price", "other"]).optional() }),
   z.object({ action: z.literal("decline"), version: z.number().int().positive(), reason: z.enum(Object.keys(BUYER_DECLINE_REASONS) as [BuyerDeclineReason, ...BuyerDeclineReason[]]).optional() }),
@@ -294,6 +295,9 @@ export async function POST(request: Request) {
         break;
       case "adopt_replies":
         await svc.adoptRepliesAsAnswers();
+        break;
+      case "understand_reviewed":
+        await svc.markUnderstandReviewed();
         break;
       case "request_change":
         await svc.requestChange(a.version, a.text, a.topic);

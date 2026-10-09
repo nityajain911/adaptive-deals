@@ -113,6 +113,8 @@ export interface DemoState {
   conversation: ConversationItem[];
   /** While true, no new AI-authored outbound drafts are created; inbound replies still arrive. */
   suggestionsPaused: boolean;
+  /** Set once the merchant has read the Understand stage and moved on, so a new deal opens there first. Absent on older stores. */
+  understandReviewed?: boolean;
   changeRequests: ChangeRequest[];
   // ── Merchant-decision redesign (store schema 2; see lib/migrate.ts) ──
   schemaVersion: number;
@@ -662,6 +664,7 @@ export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
+    s.understandReviewed = true;
     if (s.status !== "clarifying") throw new ActionError(`Answers can only be recorded while clarifying (deal is ${s.status})`);
     const asked = new Set(s.run.record.displayed.questions.map((q) => q.id));
     if (inputs.length !== asked.size || !inputs.every((i) => asked.has(i.questionId))) throw new ActionError("Answer every clarification question");
@@ -1169,6 +1172,7 @@ export async function confirmRequiredServices(packageIds: string[]): Promise<Dem
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
+    s.understandReviewed = true;
     assertNoReview(s);
     if (s.deliveries.some((d) => d.deliveredAt)) throw new ActionError("The required services cannot be confirmed after the proposal was sent");
     if (s.decisionBranch?.scope) throw new ActionError("The required services are already confirmed for this deal");
@@ -1963,5 +1967,13 @@ export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
     s.notices = s.notices.map((x) => (x.id === n.id ? sent : x));
     event(s, "advance_notice_sent", `Advance notice sent for ${n.dueDate}`, "simulated", sent.text);
     sendCode(s, "notice", noticeMessageText(sent), { noticeId: sent.id, attemptId: sent.attemptId });
+  });
+}
+
+
+/** The merchant has read what the buyer needs and is moving on to the offer. */
+export async function markUnderstandReviewed(): Promise<DemoState> {
+  return mutate((s) => {
+    s.understandReviewed = true;
   });
 }
