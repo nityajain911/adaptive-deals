@@ -10,7 +10,7 @@ export { WALKTHROUGH_VERSION } from "./walkthrough-version";
 
 export type WalkthroughCapability = "business_economics" | "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
 export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "sample" | "engine";
-export type WalkthroughProvenance = "live_groq" | "live_groq_replay" | "synthetic_replay" | "saved_groq_exact_match" | "deterministic_engine" | "merchant" | "simulated_buyer" | "razorpay_test_mode";
+export type WalkthroughProvenance = "live_model" | "recorded_model" | "synthetic_replay" | "saved_groq_exact_match" | "deterministic_engine" | "merchant" | "simulated_buyer" | "razorpay_test_mode";
 
 export interface WalkthroughObjective {
   id: string;
@@ -242,9 +242,9 @@ function outcome(state: DemoState, progress: DealProgress): string | null {
   return null;
 }
 
-const RUN_PROVENANCE: Record<ModelProvenance["source"], WalkthroughProvenance> = { hand_written: "synthetic_replay", mixed: "synthetic_replay", recorded_model: "live_groq_replay", live_model: "live_groq" };
+const RUN_PROVENANCE: Record<ModelProvenance["source"], WalkthroughProvenance> = { hand_written: "synthetic_replay", mixed: "synthetic_replay", recorded_model: "recorded_model", live_model: "live_model" };
 
-const PROVENANCE_LABEL: Record<Exclude<WalkthroughProvenance, "live_groq" | "live_groq_replay" | "synthetic_replay">, string> = {
+const PROVENANCE_LABEL: Record<Exclude<WalkthroughProvenance, "live_model" | "recorded_model" | "synthetic_replay">, string> = {
   saved_groq_exact_match: "Saved Groq response · exact input match",
   deterministic_engine: "Deterministic engine calculation",
   merchant: "Merchant decision",
@@ -261,7 +261,7 @@ function runProvenance(state: DemoState): WalkthroughProvenance {
 
 function provenanceLabel(provenance: WalkthroughProvenance | null, state: DemoState): string | null {
   if (provenance === null) return null;
-  if (provenance === "live_groq" || provenance === "live_groq_replay" || provenance === "synthetic_replay") return taskSource(state, "extract").label;
+  if (provenance === "live_model" || provenance === "recorded_model" || provenance === "synthetic_replay") return taskSource(state, "extract").label;
   return PROVENANCE_LABEL[provenance];
 }
 

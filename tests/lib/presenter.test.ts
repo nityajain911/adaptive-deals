@@ -20,6 +20,13 @@ const files = ["data/demo-run.json", "evaluation/datasets/frozen/FREEZE.json", .
 const sha = () => files.map((f) => createHash("sha256").update(readFileSync(f)).digest("hex")).join(",");
 
 describe("live-run isolation", () => {
+  it("shows the configured provider as read-only diagnostics, never as a selector", () => {
+    const page = readFileSync("app/presenter/page.tsx", "utf8");
+    expect(page).toContain("Configured live provider:");
+    expect(page).toContain("liveProviderDiagnostics");
+    expect(page).not.toMatch(/<select[^>]*provider|action:\s*["'](?:set|change)_provider/i);
+  });
+
   it("a live run gets a new run ID and never overwrites pinned, committed or frozen data", async () => {
     const before = sha();
     const liveRunsBefore = readdirSync("data/live-runs");

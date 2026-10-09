@@ -4,7 +4,8 @@ import { connection } from "next/server";
 import { DEMO_ANCHOR, SimulatedClock } from "@/domain/clock";
 import { localDateOf } from "@/domain/dates";
 import { provenanceLabel } from "@/ai/run-record";
-import { liveAvailability } from "@/ai/config";
+import { liveAvailability, readAiConfig } from "@/ai/config";
+import { providerDisplayName } from "./model-provenance";
 import { currentOutcome, getState } from "./service";
 import { dealContextFor, pinnedEconomicsOf } from "./deal-context";
 
@@ -24,9 +25,22 @@ export const loadPage = cache(async () => {
     baseline: s.baseline,
     simulatedDate: clock.isSimulated,
     provenance: provenanceLabel(s.run.record, s.run.viewing),
-    live: liveAvailability(),
+    live: liveProviderDiagnostics(),
   };
 });
+
+/** Read-only diagnostics for presenter and server-rendered views. Credentials are never returned. */
+export function liveProviderDiagnostics(env: Record<string, string | undefined> = process.env) {
+  const configured = readAiConfig(env);
+  const availability = liveAvailability(env);
+  return {
+    provider: configured.provider,
+    providerName: providerDisplayName(configured.provider),
+    model: configured.model,
+    available: availability.available,
+    reason: availability.available ? null : availability.reason,
+  };
+}
 
 import type { AgreementVersion } from "@/domain/agreement";
 import type { EvaluatedStructure } from "@/domain/engine";

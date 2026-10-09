@@ -52,6 +52,14 @@ describe("case recorded-run loader", () => {
     expect(caseRecordedRunById(RUN_ID, root)?.runId).toBe(RUN_ID);
   });
 
+  it("keeps a saved Groq recording attributed to Groq when Cerebras is configured", () => {
+    process.env.ADAPTIVE_DEALS_PROVIDER = "cerebras";
+    const record = fabricated("reduced-scope", RUN_ID);
+    const root = rootWith({ [CASE_RUN_MAP_FILE]: { "reduced-scope": RUN_ID }, [recording(RUN_ID)]: record });
+    expect(modelProvenance(mappedCaseRun("reduced-scope", root)!)).toMatchObject({ providerName: "Groq", label: "Recorded Groq output" });
+    delete process.env.ADAPTIVE_DEALS_PROVIDER;
+  });
+
   it("never reads the protected live-run directory, even when the mapping names a run stored there", () => {
     const liveId = "run-live-3f518779";
     const root = rootWith({ [CASE_RUN_MAP_FILE]: { "reduced-scope": liveId }, [`data/live-runs/${liveId}.json`]: fabricated("reduced-scope", liveId) });

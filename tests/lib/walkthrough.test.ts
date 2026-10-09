@@ -174,13 +174,24 @@ describe("run provenance", () => {
     const live = started(await svc.seedState(recordedRun(), "replay"));
     const p = await svc.progressOf(live);
     const replayed = resolve(live, p);
-    expect(replayed.provenance).toBe("live_groq_replay");
+    expect(replayed.provenance).toBe("recorded_model");
     expect(replayed.provenanceLabel).toBe("Recorded Groq output");
     expect(replayed.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: "Groq read the buyer's messages. The app keeps what is unclear and shows where each fact came from." });
     expect(replayed.objectives.find((item) => item.id === "review_decision")!.notice).toBe("You choose what matters most; the app picks the offers and works out every figure. A saved AI ranking is kept only as history.");
 
     live.run.viewing = "fresh";
-    expect(resolve(live, p)).toMatchObject({ provenance: "live_groq", provenanceLabel: "Live Groq output" });
+    expect(resolve(live, p)).toMatchObject({ provenance: "live_model", provenanceLabel: "Live Groq output" });
+  });
+
+  it("uses neutral walkthrough provenance while naming a fresh Cerebras run", async () => {
+    const record = recordedRun();
+    record.provider = "cerebras";
+    record.model = "gpt-oss-120b";
+    record.steps = record.steps.map((step) => ({ ...step, provider: "cerebras", model: "gpt-oss-120b" }));
+    const live = started(await svc.seedState(record, "fresh"));
+    const view = resolve(live, await svc.progressOf(live));
+    expect(view).toMatchObject({ provenance: "live_model", provenanceLabel: "Live Cerebras output" });
+    expect(view.objectives.find((item) => item.id === "understand_buyer")).toMatchObject({ actor: "ai", notice: expect.stringContaining("Cerebras read the buyer's messages") });
   });
 
   it("attributes each walkthrough step to its own stored step on a mixed run", async () => {

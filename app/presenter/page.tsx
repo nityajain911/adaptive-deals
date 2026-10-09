@@ -2,7 +2,6 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Link from "next/link";
 import { connection } from "next/server";
-import { liveAvailability } from "@/ai/config";
 import { PROMPTS, promptHash } from "@/ai/prompts";
 import { ActionButton } from "@/components/client";
 import { fmtTime } from "@/components/evidence";
@@ -13,6 +12,7 @@ import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
 import { dealContextFor, pinnedEconomicsOf } from "@/lib/deal-context";
+import { liveProviderDiagnostics } from "@/lib/page-data";
 
 export const metadata = { title: "Presenter · Adaptive Deals prototype" };
 
@@ -25,7 +25,7 @@ export default async function PresenterPage() {
   const s = await getState();
   const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const flags = await readPresenterFlags();
-  const live = liveAvailability();
+  const live = liveProviderDiagnostics();
   const committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
   let integrity: string;
   const outcome = await currentOutcome(s).catch(() => null);
@@ -52,10 +52,13 @@ export default async function PresenterPage() {
       <Card>
         <CardHeader title="Runs" meta={<span>Run live makes a new external model call and always creates a new run ID; it never overwrites a pinned or committed run or any frozen result.</span>} />
         <div className="flex flex-wrap items-center gap-2 p-5">
+          <p className="w-full text-[13px] text-ink-2" data-testid="presenter-provider">
+            Configured live provider: {live.providerName} · {live.model} · credential {live.available ? "available" : "unavailable"}
+          </p>
           <ActionButton body={{ action: "run_live" }} testId="presenter-run-live" disabled={!live.available}>
             Run live (new external model call)
           </ActionButton>
-          {!live.available ? <span className="text-[12px] text-muted">Unavailable: {live.reason.split(";")[0]}.</span> : null}
+          {!live.available && live.reason ? <span className="text-[12px] text-muted">Unavailable: {live.reason.split(";")[0]}.</span> : null}
           {committed.map((id) => (
             <ActionButton key={id} body={{ action: "replay_run", runId: id }} variant="ghost">
               Replay {id} (no model call)

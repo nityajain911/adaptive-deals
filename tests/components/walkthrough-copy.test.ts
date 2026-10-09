@@ -45,7 +45,7 @@ const view: WalkthroughView = {
     productLabel: "Send 2 questions to buyer",
   },
   terminalOutcome: null,
-  provenance: "live_groq_replay",
+  provenance: "recorded_model",
   provenanceLabel: "Recorded Groq output",
   stepLabel: "Step 2 of 4",
   subSteps: null,

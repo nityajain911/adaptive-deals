@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { RunRecord } from "@/ai/run-record";
-import { clarificationDraftLabel, modelProvenance, questionWordingLabel, SAMPLE_OUTPUT_LABEL, taskProvenance } from "@/lib/model-provenance";
+import { clarificationDraftLabel, modelProvenance, providerDisplayName, questionWordingLabel, SAMPLE_OUTPUT_LABEL, taskProvenance } from "@/lib/model-provenance";
 
 const read = (file: string) => JSON.parse(readFileSync(file, "utf8")) as RunRecord;
 const recorded = read("data/live-runs/run-live-3f518779.json");
@@ -20,6 +20,16 @@ describe("model provenance", () => {
   it("classifies a recorded live run by the provider that produced its steps", () => {
     expect(modelProvenance(recorded)).toMatchObject({ source: "recorded_model", modelMade: true, providerName: "Groq", label: "Recorded Groq output" });
     expect(modelProvenance(recorded, "fresh")).toMatchObject({ source: "live_model", modelMade: true, providerName: "Groq", label: "Live Groq output" });
+  });
+
+  it("labels Cerebras from the provider stored on each step, independent of current configuration", () => {
+    process.env.ADAPTIVE_DEALS_PROVIDER = "cerebras";
+    const cerebras = { ...recorded, provider: "cerebras", model: "gpt-oss-120b", steps: recorded.steps.map((step) => ({ ...step, provider: "cerebras", model: "gpt-oss-120b" })) } as RunRecord;
+    expect(modelProvenance(cerebras)).toMatchObject({ providerName: "Cerebras", label: "Recorded Cerebras output" });
+    expect(modelProvenance(cerebras, "fresh")).toMatchObject({ providerName: "Cerebras", label: "Live Cerebras output" });
+    expect(modelProvenance(recorded)).toMatchObject({ providerName: "Groq", label: "Recorded Groq output" });
+    expect(providerDisplayName("anthropic")).toBe("Anthropic");
+    delete process.env.ADAPTIVE_DEALS_PROVIDER;
   });
 
   it("keeps the provider when a replayed record carries the replay provider name", () => {
@@ -73,4 +83,3 @@ describe("attribution per stored step", () => {
     expect(taskProvenance(failed, "extract")?.modelMade).toBe(true);
   });
 });
-

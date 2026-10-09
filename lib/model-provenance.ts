@@ -1,4 +1,5 @@
 import type { RunRecord } from "@/ai/run-record";
+import type { LiveProviderName } from "@/ai/config";
 import { STATE_LABEL, type ConversationItem } from "@/domain/conversation";
 
 /**
@@ -19,7 +20,8 @@ export interface ModelProvenance {
 
 export const SAMPLE_OUTPUT_LABEL = "Sample output written by hand · no model ran";
 
-const MODEL_PROVIDERS: Record<string, string> = { groq: "Groq", anthropic: "Anthropic" };
+const MODEL_PROVIDERS: Record<LiveProviderName, string> = { cerebras: "Cerebras", groq: "Groq", anthropic: "Anthropic" };
+export const providerDisplayName = (provider: LiveProviderName): string => MODEL_PROVIDERS[provider];
 const HAND_WRITTEN: ModelProvenance = { source: "hand_written", modelMade: false, providerName: null, label: SAMPLE_OUTPUT_LABEL };
 
 type ProvenanceRecord = Pick<RunRecord, "kind" | "steps">;
@@ -27,7 +29,7 @@ type Step = RunRecord["steps"][number];
 type Viewing = "replay" | "fresh";
 
 /** A step counts as model output only in a live run, when it names a real provider. */
-const stepIsModel = (record: ProvenanceRecord, step: Step) => record.kind === "live" && step.provider in MODEL_PROVIDERS;
+const stepIsModel = (record: ProvenanceRecord, step: Step): step is Step & { provider: LiveProviderName } => record.kind === "live" && step.provider in MODEL_PROVIDERS;
 
 const modelLabel = (providerName: string, viewing: Viewing): ModelProvenance =>
   viewing === "fresh" ? { source: "live_model", modelMade: true, providerName, label: `Live ${providerName} output` } : { source: "recorded_model", modelMade: true, providerName, label: `Recorded ${providerName} output` };
