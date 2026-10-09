@@ -91,3 +91,18 @@ describe("Buyer decline reason", () => {
     for (const label of Object.values(BUYER_DECLINE_REASONS)) expect(text).toContain(label);
   });
 });
+
+
+describe("learning evidence on the outcome card", () => {
+  const html = renderToStaticMarkup(
+    OutcomeCard({ summary, signals: [], learning: { recorded: "Suggested offer followed · no pricing exception", decision: "No policy change proposed. One deal is not enough evidence." } }),
+  );
+  it("shows what was recorded, proposes nothing, and shows the path a change would take", () => {
+    expect(html).toContain("Learning evidence recorded");
+    expect(html).toContain("Suggested offer followed · no pricing exception");
+    expect(html).toContain("No policy change proposed.");
+    for (const step of ["Outcome recorded", "You approve it", "It starts as a new version"]) expect(html).toContain(step);
+    expect(html).toContain("Nothing adapts on its own.");
+    expect(html).toMatch(/<details open="" data-testid="outcome-learning"/);
+  });
+});

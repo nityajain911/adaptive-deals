@@ -4,6 +4,7 @@ import { formatINR } from "@/domain/money";
 import { approxINR } from "@/lib/offer-copy";
 import { formatDate } from "@/domain/dates";
 import type { OutcomeSummary } from "@/lib/outcome";
+import { LEARNING_PATH, type LearningEvidence } from "@/lib/learning-evidence";
 
 export const LEARNING_POLICY =
   "Outcomes across eligible stalled deals are reviewed to propose versioned improvements to recommendations and templates. Changes are evaluated before release. Merchant rules and policies never change automatically. If a proposed template or policy change affects a merchant's permitted commercial structures, it requires merchant approval before use.";
@@ -14,7 +15,7 @@ export interface OutcomeSignal {
   at: string;
 }
 
-export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; signals: OutcomeSignal[] }) {
+export function OutcomeCard({ summary, signals, learning }: { summary: OutcomeSummary; signals: OutcomeSignal[]; learning?: LearningEvidence }) {
   return (
     <Card className="p-5" data-testid="outcome-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -88,9 +89,25 @@ export function OutcomeCard({ summary, signals }: { summary: OutcomeSummary; sig
           </details>
         ) : null}
 
-        <details data-testid="outcome-learning" className="rounded-xl border border-line px-4 py-2">
-          <summary className="cursor-pointer text-[13px] font-semibold text-blue">How outcomes improve recommendations</summary>
-          <p className="py-3 text-[13px] leading-5 text-ink-2">{LEARNING_POLICY}</p>
+        <details open={learning ? true : undefined} data-testid="outcome-learning" className="rounded-xl border border-line px-4 py-2">
+          <summary className="cursor-pointer text-[13px] font-semibold text-blue">{learning ? "Learning evidence recorded" : "How outcomes improve recommendations"}</summary>
+          {learning ? (
+            <div className="space-y-2 py-3 text-[13px] leading-5 text-ink-2">
+              <p className="font-medium text-ink" data-testid="learning-recorded">{learning.recorded}</p>
+              <p data-testid="learning-decision">{learning.decision}</p>
+              <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted" data-testid="learning-path">
+                {LEARNING_PATH.map((step, i) => (
+                  <li key={step} className="flex items-center gap-2">
+                    {i > 0 ? <span aria-hidden>→</span> : null}
+                    <span className="rounded-full bg-surface-muted px-2.5 py-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[12px] text-muted">With enough real deals, a change to recommendations or limits could be tested and offered as a new version. Nothing adapts on its own.</p>
+            </div>
+          ) : (
+            <p className="py-3 text-[13px] leading-5 text-ink-2">{LEARNING_POLICY}</p>
+          )}
         </details>
       </div>
     </Card>

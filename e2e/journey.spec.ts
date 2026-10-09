@@ -1018,3 +1018,13 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
   await page.goto("/deals/hero");
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
 });
+
+
+test("the outcome card records what the deal taught, and proposes nothing from a single deal", async ({ page }) => {
+  await prepareAccepted(page);
+  await page.goto("/deals/hero/track");
+  await page.getByTestId("track-outcome-details").locator(":scope > summary").click();
+  await expect(page.getByTestId("learning-recorded")).toContainText("Suggested offer followed · no pricing exception · buyer accepted");
+  await expect(page.getByTestId("learning-decision")).toContainText("No policy change proposed.");
+  await expect(page.getByTestId("learning-path")).toContainText("You approve it");
+});

@@ -5,6 +5,7 @@ import { MarkHandledForm, PrimaryActionButton, RevealButton, ReviewWorkForm } fr
 import { ConversationThread } from "@/components/conversation-thread";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
+import { learningEvidence } from "@/lib/learning-evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
 import { NegotiationCorridor } from "@/components/track/negotiation-corridor";
@@ -228,7 +229,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
 
         <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-outcome-details">
           <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">What has happened so far</summary>
-          <OutcomeCard summary={summary} signals={outcomeSignals} />
+          <OutcomeCard summary={summary} signals={outcomeSignals} learning={learningEvidence({ selectedOption: s.selectedOption, counterOffers: s.counterOffers, economics: s.economics, agreements: s.agreements, amendments: s.amendments, changeRequests: s.changeRequests, collectedPaise: summary.collected.totalPaise })} />
         </details>
 
         <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-conversation-details">

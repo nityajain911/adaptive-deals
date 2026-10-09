@@ -434,3 +434,13 @@ The model's explanation has two parts that code validates separately: a full com
 **Saved output keeps its original provider.** Historical Groq recordings stay labelled Groq. A saved response is eligible only for its exact input hash; a mismatch acquires neither saved-output nor Cerebras attribution. New live Cerebras runs store Cerebras on each task step.
 
 **Credentials remain server-only.** Keys live in the git-ignored `.env.local`, are never returned to the browser or stored in run records, and the release gate rejects non-empty Cerebras credentials in tracked configuration or stored-run JSON.
+
+## Learning evidence and the freeze before recording (9 October 2026)
+
+**The outcome card records what a deal taught, and proposes nothing.** It lists, from stored state only, whether the suggested offer was followed, any pricing exception, the buyer's decision, change requests, payment-date changes and money collected. It then says: *No policy change proposed. One deal is not enough evidence, so this is recorded for evaluation and does not change your prices, limits or future offers.* It also shows the path a change would take (outcome recorded, evidence builds across deals, a possible change is tested, you approve it, it starts as a new version). **There is no suggestion engine and no sample-size threshold in the product.** A suggestion built from a handful of fictional deals would be exactly the kind of weak evidence this product's own rules reject; the claim made in the submission is the governed path, not a working self-improvement loop.
+
+**Decision figures never animate.** The count-up on "You'd keep" showed intermediate values for 0.7 s, so a screenshot or a video frame could show ₹3,688 beside a breakdown of ₹19,330. A figure a merchant decides on is shown exactly, at once. The split bar still fills in.
+
+**The case conversations are frozen at this checkpoint.** `tests/data/case-text-freeze.test.ts` pins a hash of each case's messages. A recording replays only against its exact words, so editing a message means re-recording that case and updating the hash in the same commit.
+
+**Demonstrating that the answer is specific to the business.** With only website-fix delivery cost changed, the hero deal gives: ₹10,000 → you keep ₹21,330; ₹12,000 → ₹19,330; ₹14,000 → ₹17,330; ₹16,000 → ₹15,330, the same offer in every case. At ₹18,000 the three-month package fails the 35% profit limit and only the annual deal (needing the buyer's MD) remains; at ₹25,000 no offer remains. The demo uses ₹16,000 and says "the offer economics changed", not "the recommendation changed".
