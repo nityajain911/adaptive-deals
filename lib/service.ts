@@ -320,7 +320,9 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
   if (selectedEconomics.version !== active.version) {
     event(s, "economics_compatible_version", `Prices & costs version ${selectedEconomics.version} applied`, "engine", `Version ${active.version} was incompatible with this deal's original services.`);
   }
-  setStatus(s, statusForEvaluation(first.evaluation), "Constraint extraction and full engine evaluation");
+  // The status follows the engine under the prices & costs this deal is pinned to, not the recording's own economics:
+  // a merchant who changed a limit can make a question unnecessary (or an offer impossible) before the deal starts.
+  setStatus(s, statusForEvaluation(economicsMatchRecording(s) ? first.evaluation : (await currentOutcome(s)).evaluation), "Constraint extraction and full engine evaluation");
   draftMissingClarifications(s);
   return s;
 }

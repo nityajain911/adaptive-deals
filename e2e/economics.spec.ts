@@ -24,6 +24,8 @@ const clarification = (id: string) => state().conversation.find((m) => m.kind ==
 async function prepareOptions(page: Page) {
   await api(page, { action: "reset" });
   await api(page, { action: "start_case", caseId: "reduced-scope" });
+  // Under limits that make the buyer's answers irrelevant the deal is ready at once and asks nothing.
+  if (state().status === "options_ready") return;
   await api(page, { action: "send_questions" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });

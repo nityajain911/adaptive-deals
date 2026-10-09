@@ -124,8 +124,11 @@ describe("a deal that started under other economics", () => {
     await driveTo(svc, (s) => s.status === "options_ready");
     const s = await svc.getState();
     expect(s.reviewRequired).toBeNull();
-    expect(s.decisionBranch).toMatchObject({ reason: "economics_changed", answersChanged: false, economics: { version: 2 } });
+    // Under these limits the engine needs no answers, so the deal is ready at once and no answer-driven branch exists.
     expect(await svc.progressOf(s)).toMatchObject({ stage: "offer" });
+    expect((await svc.currentOutcome(s)).evaluation.state).toBe("options_ready");
+    // And the merchant can actually take the next step (this used to fail with "Options are not ready (deal is clarifying)").
+    await expect(svc.reviewBuyerProposal()).resolves.toBeTruthy();
   });
 });
 
