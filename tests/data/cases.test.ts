@@ -144,6 +144,21 @@ describe("commercial demo case catalog", () => {
     }
   });
 
+  it("binds every bundled sample to its current case messages and hand-written provenance", () => {
+    for (const item of allDemoCases()) {
+      const run = storedRun(item.bundledRunPath);
+      expect(run.kind).toBe("synthetic_replay");
+      expect(run.provider).toBe("synthetic_replay");
+      expect(run.inputs.messages).toEqual(item.deal.messages);
+      expect(run.steps.length).toBeGreaterThan(0);
+      for (const step of run.steps) {
+        expect(step.provider).toBe("synthetic_replay");
+        expect(step.model).toMatch(/synthetic outputs written by hand/i);
+      }
+      expect(JSON.stringify(run)).not.toMatch(/recorded cerebras output|live cerebras output/i);
+    }
+  });
+
   it("labels designed proof points honestly and leaves the historical hero untouched", () => {
     for (const item of allDemoCases()) {
       expect(item.provenance).toBe("Synthetic scenario");
