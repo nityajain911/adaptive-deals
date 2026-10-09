@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { CasePicker, type CasePickerCard } from "@/components/deal/case-picker";
-import Link from "next/link";
+import { QuickTiles, type QuickTile } from "@/components/deal/quick-tiles";
 import { MerchantHeader } from "@/components/merchant-header";
 import { WalkthroughWelcome } from "@/components/walkthrough/welcome";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
@@ -26,6 +26,13 @@ export default async function DealsPage() {
     actionLabel: "Start this deal",
   }));
 
+  const openDeal = allDemoCases().find((item) => item.id === s.caseId);
+  const tiles: QuickTile[] = [
+    { href: "/economics", label: "Prices & costs", hint: "What you charge and your limits", icon: "prices", testId: "deals-economics-link" },
+    ...(openDeal ? [{ href: "/deals/hero", label: "Your open deal", hint: openDeal.buyer.name, icon: "deal", testId: "deals-open-deal" } as QuickTile] : []),
+    ...(s.agreements.length ? [{ href: "/deals/hero/track", label: "Payments", hint: "What has been collected", icon: "payments", testId: "deals-payments" } as QuickTile] : []),
+  ];
+
   return (
     <>
       <WalkthroughServer dealId="hero" />
@@ -36,7 +43,9 @@ export default async function DealsPage() {
           <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Start a deal</h1>
           <p className="mt-2 text-[14px] leading-6 text-ink-2">A customer has told you your quote doesn&apos;t fit their budget. Pick a situation to see what they said and the offer we&apos;d suggest.</p>
         </div>
-        <p className="mt-3 max-w-[760px] text-[13px] text-ink-2" data-testid="deals-economics-note">Offers are worked out from your <Link href="/economics" className="font-semibold text-blue hover:underline" data-testid="deals-economics-link">prices &amp; costs</Link>.</p>
+        <div className="mt-5">
+          <QuickTiles tiles={tiles} />
+        </div>
         <div className="mt-6"><CasePicker cards={cards} activeCaseId={s.caseId} /></div>
       </main>
       <footer className="px-4 py-6 text-center text-[12px] text-muted">Synthetic data · fictional merchant and buyers. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.</footer>
