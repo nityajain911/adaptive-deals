@@ -11,7 +11,7 @@ import { recordEvidenceConfirmation, recordRetrievalRun } from "@/commercial-mem
 import { chunkSource } from "@/commercial-memory/chunker";
 import { retrieveCommercialEvidence } from "@/commercial-memory/retrieval";
 import { rerankCommercialCandidates } from "@/commercial-memory/reranker";
-import { GroqCommercialRerankProvider } from "@/commercial-memory/reranker-provider";
+import { createLiveCommercialRerankProvider } from "@/commercial-memory/reranker-provider";
 import { detectEvidenceConflicts } from "@/commercial-memory/conflicts";
 
 const draftInput = z.object({ action: z.literal("draft_economics_from_memory") }).strict();
@@ -68,9 +68,14 @@ export async function POST(request: Request) {
         allowedAccess: ["merchant_wide", "commercial", "finance_restricted", "buyer_specific"],
         limit: 8,
       }, sources, sources.flatMap(chunkSource));
-      const provider = input.liveAi && process.env.GROQ_API_KEY?.trim() ? new GroqCommercialRerankProvider() : undefined;
+      const provider = input.liveAi ? createLiveCommercialRerankProvider() : undefined;
       const ranked = await rerankCommercialCandidates(input.query, lexical.candidates, { provider });
-      const id = `memory-test-${createHash("sha256").update(`${input.query}:${ranked.inputHash}`, "utf8").digest("hex").slice(0, 16)}`;
+      const id = `memory-test-${createHash("sha256").update(JSON.stringify({
+        query: input.query,
+        inputHash: ranked.inputHash,
+        attribution: ranked.attribution,
+        selectedChunkIds: ranked.candidates.map((candidate) => candidate.id),
+      }), "utf8").digest("hex").slice(0, 16)}`;
       await recordRetrievalRun({
         id,
         merchantId: "merchant-pinecone",

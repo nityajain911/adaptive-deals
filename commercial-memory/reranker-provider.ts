@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { z } from "zod";
-import type { AssistResult } from "@/assist/groq";
-import { AssistGroq } from "@/assist/groq";
+import { createLiveAssistProvider } from "@/assist/live";
+import type { AssistProvider, AssistResult } from "@/assist/provider";
 import { COMMERCIAL_RERANK_VERSION, CommercialRerankOutputSchema, type CommercialRerankProvider } from "./reranker";
 
 export const COMMERCIAL_RERANK_SYSTEM = `You rerank a closed list of commercial evidence excerpts for Adaptive Deals. Return candidate IDs only; never answer the query.
@@ -15,14 +15,16 @@ Rules:
 
 export const COMMERCIAL_RERANK_PROMPT_HASH = createHash("sha256").update(`${COMMERCIAL_RERANK_VERSION}\n${COMMERCIAL_RERANK_SYSTEM}`, "utf8").digest("hex");
 
-export interface RerankGenerator {
+export interface RerankGenerator extends Pick<AssistProvider, "name" | "model"> {
   generate(args: { system: string; user: string; name: string; schema: z.ZodType }): Promise<AssistResult>;
 }
 
-export class GroqCommercialRerankProvider implements CommercialRerankProvider {
+const DISPLAY = { cerebras: "Cerebras", groq: "Groq", anthropic: "Anthropic" } as const;
+
+export class LiveCommercialRerankProvider implements CommercialRerankProvider {
   readonly name: string;
-  constructor(private readonly generator: RerankGenerator = new AssistGroq(process.env.ADAPTIVE_DEALS_RERANK_MODEL?.trim() || "openai/gpt-oss-120b")) {
-    this.name = "Groq";
+  constructor(private readonly generator: RerankGenerator) {
+    this.name = DISPLAY[generator.name];
   }
 
   async rerank(input: Parameters<CommercialRerankProvider["rerank"]>[0]): Promise<unknown> {
@@ -35,4 +37,9 @@ export class GroqCommercialRerankProvider implements CommercialRerankProvider {
     if (!result.ok) throw new Error(`Commercial reranker unavailable: ${result.failure}`);
     return result.raw;
   }
+}
+
+export function createLiveCommercialRerankProvider(env: Record<string, string | undefined> = process.env): LiveCommercialRerankProvider | undefined {
+  const provider = createLiveAssistProvider(env);
+  return provider ? new LiveCommercialRerankProvider(provider) : undefined;
 }

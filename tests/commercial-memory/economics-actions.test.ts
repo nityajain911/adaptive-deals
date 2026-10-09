@@ -49,6 +49,26 @@ describe("Commercial Memory economics actions", () => {
     expect((tested.body.result as { candidates: unknown[] }).candidates[0]).toMatchObject({ sourceId: "source-service-rules", quote: expect.stringContaining("Monthly reporting") });
   });
 
+  it("uses the centrally configured Cerebras reranker instead of checking only for a Groq key", async () => {
+    process.env.ADAPTIVE_DEALS_PROVIDER = "cerebras";
+    process.env.CEREBRAS_API_KEY = "csk-fixture";
+    const original = globalThis.fetch;
+    globalThis.fetch = async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as { messages: { content: string }[] };
+      const user = JSON.parse(body.messages[1]!.content) as { candidates: { chunkId: string }[] };
+      const ids = user.candidates.map((candidate) => candidate.chunkId);
+      return new Response(JSON.stringify({ model: "gpt-oss-120b", choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ order: ids, relevance: ids.map((chunkId) => ({ chunkId, label: "supporting" })) }) } }] }), { status: 200 });
+    };
+    try {
+      const tested = await post({ action: "test_memory_query", query: "Can monthly reporting be sold by itself?", liveAi: true });
+      expect(tested.body.result, JSON.stringify(tested.body)).toMatchObject({ attribution: "live_ai", note: "Reranked live by Cerebras" });
+    } finally {
+      globalThis.fetch = original;
+      delete process.env.ADAPTIVE_DEALS_PROVIDER;
+      delete process.env.CEREBRAS_API_KEY;
+    }
+  });
+
   it("abstains for an unsupported query and never fills the result with weak evidence", async () => {
     const tested = await post({ action: "test_memory_query", query: "What is our office electricity bill?", liveAi: false });
     expect(tested.body.result).toMatchObject({ status: "insufficient_evidence", attribution: "code", candidates: [] });
