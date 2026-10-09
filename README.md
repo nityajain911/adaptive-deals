@@ -18,7 +18,7 @@ npm run dev
 
 Open [http://localhost:3000/deals](http://localhost:3000/deals) and choose a case. The deal home (`/deals/hero`) always redirects to the stage that currently needs attention.
 
-The prototype works without credentials. Each case starts from a **hand-written sample output** (`data/synthetic/`), labelled **Sample output written by hand · no AI ran** in the reviewer audit trail, and no model call is made while you use it. The three earlier real Groq runs are kept unchanged in `data/case-recorded-runs/` as historical evidence; the case conversations were later rewritten to read like real WhatsApp chats, so those recordings no longer belong to any case the merchant can start (see **Recorded model runs** below). Messaging and payments are simulated.
+The prototype works without credentials. Each case starts from a **hand-written sample output** (`data/synthetic/`), labelled **Sample output written by hand · no AI ran** in the reviewer audit trail, and no model call is made while you use it. New live runs use **Cerebras by default** when `CEREBRAS_API_KEY` is configured. The three earlier real Groq runs are kept unchanged in `data/case-recorded-runs/` as historical evidence; the case conversations were later rewritten to read like real WhatsApp chats, so those recordings no longer belong to any case the merchant can start (see **Recorded model runs** below). Messaging and payments are simulated.
 
 ## Product journey
 
@@ -57,9 +57,9 @@ Commercial Memory retrieves only evidence the merchant is allowed to use: active
 
 Prices & costs can be drafted from this evidence, but a merchant must select the values, review the ordinary version diff and activate it. Deal decisions then combine three distinct inputs: the buyer's confirmed words, the merchant's cited business records and deterministic engine checks. Private costs and policies never reach the buyer proposal.
 
-The presenter page includes an unseen-query proof. Lexical code retrieval always runs first. The optional, separately versioned Groq reranker can reorder only the closed list of eligible chunk IDs; an invalid response or unavailable provider keeps the code order and says so. The frozen, agent-authored retrieval set currently records 13 of 13 expected sources in the top three, 2 of 2 abstentions, and 32 of 32 valid citations. These are synthetic product checks, not independent validation.
+The presenter page includes an unseen-query proof. Lexical code retrieval always runs first. The optional, separately versioned reranker uses the configured live provider and can reorder only the closed list of eligible chunk IDs; an invalid response or unavailable provider keeps the code order and says so. The frozen, agent-authored retrieval set currently records 13 of 13 expected sources in the top three, 2 of 2 abstentions, and 32 of 32 valid citations. These are synthetic product checks, not independent validation.
 
-Run the reproducible code-only report with `npm run eval:memory`. No Groq call is required.
+Run the reproducible code-only report with `npm run eval:memory`. No model call is required.
 
 #### Bring your own rate card or cost sheet
 
@@ -111,8 +111,9 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 
 | Variable | Purpose |
 | --- | --- |
-| `ADAPTIVE_DEALS_PROVIDER` | `groq` (default) or `anthropic` |
-| `GROQ_API_KEY` | Enables a new live Groq run from the presenter page |
+| `ADAPTIVE_DEALS_PROVIDER` | `cerebras` (default), `groq` or `anthropic`; backend-only and applied after restart |
+| `CEREBRAS_API_KEY` | Enables new live Cerebras runs and live reranking with the default provider |
+| `GROQ_API_KEY` | Used only when the backend provider is set to Groq |
 | `ADAPTIVE_DEALS_MODEL` | Provider model ID |
 | `ANTHROPIC_API_KEY` | Used only with the Anthropic provider |
 | `RAZORPAY_MODE` | `test` creates the upfront link in Razorpay test mode; other values simulate it |
@@ -128,7 +129,7 @@ Copy `.env.example` to `.env.local`. Every variable is optional.
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | Lint check |
 | `npm run build` | Production build |
-| `npm run test:e2e` | Desktop and mobile browser journeys against one production server on port 3200 (the labelled hand-written sample); writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1`; set `ADAPTIVE_E2E_SHOT_PREFIX` (for example `ux-2026-10-06-`) to write a new set without overwriting existing files |
+| `npm run test:e2e` | Browser journeys against the sample product on port 3200 and a localhost-only Cerebras fixture on port 3202; writes review screenshots unless `ADAPTIVE_E2E_NO_SHOTS=1` |
 | `npm run check:release -- --build` | Checks product claims and reports applicant-owned placeholders without failing on them |
 | `npm run check:release -- --submission` | Final gate; also fails while applicant-owned sections remain |
 | `npm run reset:seed` | Restores the clean default case |

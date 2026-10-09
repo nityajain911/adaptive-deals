@@ -422,3 +422,15 @@ The model's explanation has two parts that code validates separately: a full com
 **The earlier Groq recordings are kept as history, not shown.** Rewriting the conversations means the three recorded runs no longer match any case, and the product does not load a recording for a conversation it was not made on. They stay unchanged in `data/case-recorded-runs/`, their exact messages are in `data/synthetic/recorded-conversations.ts`, and `tests/data/case-recordings.test.ts` still verifies them. Every case now shows a hand-written sample until someone records new runs (a separate, approved step that needs a provider key). Claims in the pitch must say so.
 
 **Wording that feeds the model was not changed.** `explainAmbiguity`, `outcomeWord` and `READING_LABEL` keep their original text because they are part of the clarification prompt input; changing them would alter recorded input hashes and invalidate replays.
+
+## Cerebras is the primary live provider (9 October 2026)
+
+**New live work defaults to Cerebras.** Constraint extraction, clarification wording, the frozen explanation task, assist tasks and Commercial Memory reranking use one centrally configured provider. The default is Cerebras with `gpt-oss-120b`; Groq and Anthropic remain backend alternatives.
+
+**The merchant and buyer never choose a provider.** Selection is an operating decision made through server environment variables and takes effect after restart. Presenter shows the configured provider, model and credential availability, but it has no selector.
+
+**There is no silent cross-provider failover.** If Cerebras is selected and unavailable, the task uses its defined code fallback or honest failure state. The same action never calls Groq or Anthropic, because that would obscure cost and provenance.
+
+**Saved output keeps its original provider.** Historical Groq recordings stay labelled Groq. A saved response is eligible only for its exact input hash; a mismatch acquires neither saved-output nor Cerebras attribution. New live Cerebras runs store Cerebras on each task step.
+
+**Credentials remain server-only.** Keys live in the git-ignored `.env.local`, are never returned to the browser or stored in run records, and the release gate rejects non-empty Cerebras credentials in tracked configuration or stored-run JSON.

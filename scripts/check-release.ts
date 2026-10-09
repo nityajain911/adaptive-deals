@@ -16,12 +16,15 @@ export interface ReleaseResult {
   bannedClaims: ReleaseIssue[];
   futureFrozenWork: ReleaseIssue[];
   walkthroughLeaks: ReleaseIssue[];
+  secretLeaks: ReleaseIssue[];
   failures: string[];
 }
 
 const BANNED = /\b(revenue recovered|cash recovered|guaranteed contribution|confirmed via WhatsApp)\b/i;
 const FUTURE_FROZEN = /\b(?:obtain|create|write|label|run)\b[^\n]{0,80}\bfrozen (?:evaluation|set|test set)\b/i;
 const WALKTHROUGH_LEAK = /₹\s*\d|\bStandalone three-month package\b|invoice_[A-Za-z0-9_]+|\bmodel confidence\b|\bRun live\b|\bFail next send\b|\braw prompt hash\b|\bfrozen evaluation\b/i;
+const CEREBRAS_KEY = /\bcsk-[A-Za-z0-9_-]{24,}\b/;
+const NON_EMPTY_CEREBRAS_ENV = /^\s*CEREBRAS_API_KEY\s*=\s*([^#\s]+)\s*(?:#.*)?$/;
 
 const linesWith = (root: string, file: string, pattern: RegExp): ReleaseIssue[] => {
   const absolute = path.join(root, file);
@@ -38,6 +41,22 @@ function codeFiles(root: string, relative: string): string[] {
   return readdirSync(absolute).flatMap((name) => codeFiles(root, path.join(relative, name))).filter((file) => /\.(?:ts|tsx)$/.test(file));
 }
 
+function filesEnding(root: string, relative: string, suffix: string): string[] {
+  const absolute = path.join(root, relative);
+  if (!existsSync(absolute)) return [];
+  if (statSync(absolute).isFile()) return relative.endsWith(suffix) ? [relative] : [];
+  return readdirSync(absolute).flatMap((name) => filesEnding(root, path.join(relative, name), suffix));
+}
+
+const secretIssues = (root: string, files: string[]): ReleaseIssue[] => files.flatMap((file) => {
+  const absolute = path.join(root, file);
+  if (!existsSync(absolute)) return [];
+  return readFileSync(absolute, "utf8").split(/\r?\n/).flatMap((text, index) => {
+    const exposed = CEREBRAS_KEY.test(text) || (file === ".env.example" && NON_EMPTY_CEREBRAS_ENV.test(text));
+    return exposed ? [{ file, line: index + 1, text: "[redacted]" }] : [];
+  });
+});
+
 export function checkRelease({ root, mode }: { root: string; mode: ReleaseMode }): ReleaseResult {
   const placeholderFiles = ["ONE_PAGE_PRODUCT_NOTE.md", "AI_BUILD_LOG.md"];
   const applicantPlaceholders = placeholderFiles.flatMap((file) => linesWith(root, file, /\[APPLICANT\]/));
@@ -51,12 +70,14 @@ export function checkRelease({ root, mode }: { root: string; mode: ReleaseMode }
   const futureFrozenWork = linesWith(root, "ONE_PAGE_PRODUCT_NOTE.md", FUTURE_FROZEN);
   const walkthroughFiles = [...codeFiles(root, "components/walkthrough"), "lib/walkthrough.ts"].filter((file) => existsSync(path.join(root, file)));
   const walkthroughLeaks = walkthroughFiles.flatMap((file) => linesWith(root, file, WALKTHROUGH_LEAK));
+  const secretLeaks = secretIssues(root, [".env.example", ...filesEnding(root, "data", ".json")]);
   const failures: string[] = [];
   if (mode === "submission" && applicantPlaceholders.length) failures.push("Applicant-owned sections are still incomplete.");
   if (bannedClaims.length) failures.push("Banned outcome claims remain in merchant-facing content.");
   if (futureFrozenWork.length) failures.push("The product note still describes the frozen evaluation as future work.");
   if (walkthroughLeaks.length) failures.push("The walkthrough contains hardcoded commercial output or presenter-only copy.");
-  return { ok: failures.length === 0, applicantPlaceholders, bannedClaims, futureFrozenWork, walkthroughLeaks, failures };
+  if (secretLeaks.length) failures.push("A Cerebras credential appears in tracked configuration or stored-run data.");
+  return { ok: failures.length === 0, applicantPlaceholders, bannedClaims, futureFrozenWork, walkthroughLeaks, secretLeaks, failures };
 }
 
 function print(result: ReleaseResult, mode: ReleaseMode) {
@@ -65,7 +86,7 @@ function print(result: ReleaseResult, mode: ReleaseMode) {
     console.log(`Awaiting applicant: ${result.applicantPlaceholders.length} placeholder line(s)`);
     for (const issue of result.applicantPlaceholders) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
   }
-  for (const issue of [...result.bannedClaims, ...result.futureFrozenWork, ...result.walkthroughLeaks]) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
+  for (const issue of [...result.bannedClaims, ...result.futureFrozenWork, ...result.walkthroughLeaks, ...result.secretLeaks]) console.log(`- ${issue.file}:${issue.line} ${issue.text}`);
   if (result.ok) console.log("PASS");
   else for (const failure of result.failures) console.error(`FAIL: ${failure}`);
 }

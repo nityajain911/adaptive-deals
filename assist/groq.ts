@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 import type { z } from "zod";
 import { toStrictJsonSchema } from "@/ai/strict-schema";
-import type { AssistFailure, AssistMeta, AssistProvider, AssistRequest, AssistResult } from "./provider";
+import type { AssistMeta, AssistProvider, AssistRequest, AssistResult } from "./provider";
 
 export type { AssistFailure, AssistMeta, AssistResult } from "./provider";
 

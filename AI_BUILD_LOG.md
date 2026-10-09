@@ -995,3 +995,20 @@ Seven requests in total: five returned model output and two were rejected by the
 Agent task: act as a merchant and as a buyer end to end, make every label understandable to a generic merchant, make the cases realistic, and hide what does not help the decision. Decisions made by the applicant: rename Business economics to Prices & costs; merge the Deals tabs; move audit, comparison, memory and MCP detail behind reviewer or "details" areas; rewrite buyer chats to sound real; keep screens simple.
 
 What the agent did: rewrote copy across the merchant, buyer and track screens, rebuilt the header with a reviewer menu, rewrote the three case conversations and regenerated their sample outputs, rebased about 100 unit assertions and the browser tests on the new wording, and recorded the decisions in PRODUCT_DECISIONS.md. What it deliberately did not touch: any text that feeds a model prompt (so recorded input hashes stay valid). Result: 1,183 unit tests and 82 browser tests pass on a production build; no model call was made.
+
+### 2026-10-09 · Cerebras made the primary live provider [OpenAI Codex]
+
+**Applicant decision:** use Cerebras as the primary live provider. Groq stays available only as a backend alternative; merchants and buyers do not choose the provider.
+
+**Implemented:**
+- Central configuration defaults to `cerebras` / `gpt-oss-120b` and requires the selected provider's own key.
+- A server-only Cerebras adapter sends strict JSON-schema requests with no tools, a bounded timeout and fixed, secret-safe errors.
+- Construct tasks, assist tasks and Commercial Memory reranking use the configured provider through provider-neutral interfaces.
+- Provenance comes from each stored task step. New Cerebras output reads **Live/Recorded Cerebras output**; historical Groq recordings stay Groq.
+- Presenter diagnostics show the configured provider, model and credential availability without exposing a selector or key.
+- A localhost-only browser fixture proves valid Cerebras output, a 429 fallback, malformed reranker rejection and the absence of provider controls from merchant and buyer views.
+- The release check rejects a non-empty `CEREBRAS_API_KEY` in tracked configuration and Cerebras key-like tokens in stored-run JSON, reporting only redacted file and line information.
+
+**Verification at implementation:** 72 Commercial Memory tests; 61 focused provenance tests; 4 Cerebras browser journeys; 82 existing product browser journeys. The fixture never contacts Cerebras or any external model.
+
+**External-call boundary:** no real Cerebras call was made and no Cerebras result is claimed. Historical Groq artifacts, frozen prompts, schemas, cases and results were not rewritten or relabelled.
