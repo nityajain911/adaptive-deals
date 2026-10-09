@@ -79,7 +79,7 @@ describe("confirming the required services", () => {
     expect(branch.scope!.sources).toEqual([
       {
         rawText: "complete annual package",
-        evidenceQuote: "We need the complete annual package for the admissions launch",
+        evidenceQuote: "We need the complete annual package for the admissions season",
         messageId: "preserve-2",
         extractInputHash: before.run.record.steps.find((x) => x.task === "extract")!.inputHash,
       },

@@ -19,7 +19,7 @@
         "id": "preserve-1",
         "dealId": "case-preserve-scope",
         "author": "merchant",
-        "text": "Hi, sharing our annual plan again: ₹1,20,000 plus GST for Website fixes, Search marketing, Social media and Monthly reporting across the whole admissions season.",
+        "text": "Hi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.",
         "timestamp": "2026-09-29T16:20:00+05:30",
         "source": "whatsapp"
       },
@@ -27,8 +27,32 @@
         "id": "preserve-2",
         "dealId": "case-preserve-scope",
         "author": "buyer",
-        "text": "We need the complete annual package for the admissions launch, so please don't cut anything. We only have ₹10,000 free this quarter. That ₹10,000 and our ₹15,000 approval limit per payment both exclude GST. Our next campaign budget opens on 1st May 2027. We're flexible on timing as long as the full plan stays.",
+        "text": "Thanks. We need the complete annual package for the admissions season, so please don’t remove anything.",
         "timestamp": "2026-10-01T08:50:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "preserve-3",
+        "dealId": "case-preserve-scope",
+        "author": "buyer",
+        "text": "This quarter is tight. I can release only ₹10,000 right now.",
+        "timestamp": "2026-10-01T08:51:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "preserve-4",
+        "dealId": "case-preserve-scope",
+        "author": "buyer",
+        "text": "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
+        "timestamp": "2026-10-01T08:52:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "preserve-5",
+        "dealId": "case-preserve-scope",
+        "author": "buyer",
+        "text": "Finance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.",
+        "timestamp": "2026-10-01T08:53:00+05:30",
         "source": "whatsapp"
       }
     ],
@@ -61,8 +85,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "4ee69cf9d25989c4a2dcdbee1d4ce54340a30614099b7335d8f4f908e3da407e",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"preserve-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:20:00+05:30\">\nHi, sharing our annual plan again: ₹1,20,000 plus GST for Website fixes, Search marketing, Social media and Monthly reporting across the whole admissions season.\n</message>\n<message id=\"preserve-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nWe need the complete annual package for the admissions launch, so please don't cut anything. We only have ₹10,000 free this quarter. That ₹10,000 and our ₹15,000 approval limit per payment both exclude GST. Our next campaign budget opens on 1st May 2027. We're flexible on timing as long as the full plan stays.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "2aa12abac2db629013c6551d40b07a9d606829880f0eaddadd8924740f05ce44",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"preserve-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:20:00+05:30\">\nHi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.\n</message>\n<message id=\"preserve-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nThanks. We need the complete annual package for the admissions season, so please don’t remove anything.\n</message>\n<message id=\"preserve-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:51:00+05:30\">\nThis quarter is tight. I can release only ₹10,000 right now.\n</message>\n<message id=\"preserve-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nOur next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.\n</message>\n<message id=\"preserve-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:53:00+05:30\">\nFinance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -71,49 +95,56 @@
           {
             "key": "budget_now_amount",
             "raw_text": "₹10,000",
-            "evidence_quote": "We only have ₹10,000 free this quarter",
-            "message_id": "preserve-2",
+            "evidence_quote": "I can release only ₹10,000 right now",
+            "message_id": "preserve-3",
             "confidence": "high"
           },
           {
             "key": "budget_now_period",
-            "raw_text": "this quarter",
-            "evidence_quote": "We only have ₹10,000 free this quarter",
-            "message_id": "preserve-2",
+            "raw_text": "This quarter",
+            "evidence_quote": "This quarter is tight",
+            "message_id": "preserve-3",
             "confidence": "high"
           },
           {
             "key": "approval_limit_amount",
             "raw_text": "₹15,000",
-            "evidence_quote": "our ₹15,000 approval limit per payment",
-            "message_id": "preserve-2",
+            "evidence_quote": "approve up to ₹15,000 per payment",
+            "message_id": "preserve-5",
             "confidence": "high"
           },
           {
             "key": "approval_limit_scope",
             "raw_text": "per payment",
-            "evidence_quote": "our ₹15,000 approval limit per payment",
-            "message_id": "preserve-2",
+            "evidence_quote": "approve up to ₹15,000 per payment",
+            "message_id": "preserve-5",
+            "confidence": "high"
+          },
+          {
+            "key": "amounts_include_gst",
+            "raw_text": "before GST",
+            "evidence_quote": "Both the ₹10,000 and ₹15,000 figures are before GST",
+            "message_id": "preserve-5",
             "confidence": "high"
           },
           {
             "key": "next_budget_date",
-            "raw_text": "1st May 2027",
-            "evidence_quote": "Our next campaign budget opens on 1st May 2027",
-            "message_id": "preserve-2",
+            "raw_text": "1 May",
+            "evidence_quote": "Our next campaign budget opens on 1 May",
+            "message_id": "preserve-4",
             "confidence": "high"
           },
           {
             "key": "required_package",
             "raw_text": "complete annual package",
-            "evidence_quote": "We need the complete annual package for the admissions launch",
+            "evidence_quote": "We need the complete annual package for the admissions season",
             "message_id": "preserve-2",
             "confidence": "high"
           },
           {
             "key": "other_constraint",
-            "raw_text": "don't cut anything",
-            "evidence_quote": "please don't cut anything",
+            "raw_text": "please don’t remove anything",
+            "evidence_quote": "please don’t remove anything",
             "message_id": "preserve-2",
             "confidence": "high"
           }
@@ -157,13 +188,19 @@
         "label": "Budget available now",
         "status": "stated",
         "display": "₹10,000 available 1 Oct 2026 – 31 Dec 2026",
-        "rawText": "₹10,000 · this quarter",
+        "rawText": "₹10,000 · This quarter",
         "evidence": [
           {
-            "quote": "We only have ₹10,000 free this quarter",
-            "messageId": "preserve-2",
-            "start": 93,
-            "end": 131
+            "quote": "I can release only ₹10,000 right now",
+            "messageId": "preserve-3",
+            "start": 23,
+            "end": 59
+          },
+          {
+            "quote": "This quarter is tight",
+            "messageId": "preserve-3",
+            "start": 0,
+            "end": 21
           }
         ],
         "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
@@ -176,13 +213,13 @@
         "label": "Next budget",
         "status": "stated",
         "display": "Available from 1 May 2027 (day precision); amount not stated",
-        "rawText": "1st May 2027",
+        "rawText": "1 May",
         "evidence": [
           {
-            "quote": "Our next campaign budget opens on 1st May 2027",
-            "messageId": "preserve-2",
-            "start": 207,
-            "end": 253
+            "quote": "Our next campaign budget opens on 1 May",
+            "messageId": "preserve-4",
+            "start": 0,
+            "end": 39
           }
         ],
         "transformation": "next may after message date 2026-10-01, day 1",
@@ -198,10 +235,10 @@
         "rawText": "₹15,000",
         "evidence": [
           {
-            "quote": "our ₹15,000 approval limit per payment",
-            "messageId": "preserve-2",
-            "start": 150,
-            "end": 188
+            "quote": "approve up to ₹15,000 per payment",
+            "messageId": "preserve-5",
+            "start": 16,
+            "end": 49
           }
         ],
         "transformation": "numeric rupees",
@@ -217,10 +254,10 @@
         "rawText": "per payment",
         "evidence": [
           {
-            "quote": "our ₹15,000 approval limit per payment",
-            "messageId": "preserve-2",
-            "start": 150,
-            "end": 188
+            "quote": "approve up to ₹15,000 per payment",
+            "messageId": "preserve-5",
+            "start": 16,
+            "end": 49
           }
         ],
         "transformation": "scope keyword",
@@ -231,26 +268,20 @@
       {
         "key": "amountsIncludeGst",
         "label": "Amounts include GST",
-        "status": "ambiguous",
-        "display": null,
-        "rawText": null,
+        "status": "stated",
+        "display": "Amounts exclude GST",
+        "rawText": "before GST",
         "evidence": [
           {
-            "quote": "We only have ₹10,000 free this quarter",
-            "messageId": "preserve-2",
-            "start": 93,
-            "end": 131
-          },
-          {
-            "quote": "our ₹15,000 approval limit per payment",
-            "messageId": "preserve-2",
-            "start": 150,
-            "end": 188
+            "quote": "Both the ₹10,000 and ₹15,000 figures are before GST",
+            "messageId": "preserve-5",
+            "start": 73,
+            "end": 124
           }
         ],
-        "transformation": null,
+        "transformation": "GST keyword",
         "confidence": "high",
-        "note": "Amounts are stated without saying whether GST is included",
+        "note": null,
         "confirmedBy": null
       },
       {
@@ -293,14 +324,14 @@
         "key": "other_0",
         "label": "Other constraint",
         "status": "stated",
-        "display": "don't cut anything",
-        "rawText": "don't cut anything",
+        "display": "please don’t remove anything",
+        "rawText": "please don’t remove anything",
         "evidence": [
           {
-            "quote": "please don't cut anything",
+            "quote": "please don’t remove anything",
             "messageId": "preserve-2",
-            "start": 66,
-            "end": 91
+            "start": 74,
+            "end": 102
           }
         ],
         "transformation": null,
@@ -317,16 +348,22 @@
       },
       "evidence": [
         {
-          "quote": "We only have ₹10,000 free this quarter",
-          "messageId": "preserve-2",
-          "start": 93,
-          "end": 131
+          "quote": "I can release only ₹10,000 right now",
+          "messageId": "preserve-3",
+          "start": 23,
+          "end": 59
         },
         {
-          "quote": "Our next campaign budget opens on 1st May 2027",
-          "messageId": "preserve-2",
-          "start": 207,
-          "end": 253
+          "quote": "This quarter is tight",
+          "messageId": "preserve-3",
+          "start": 0,
+          "end": 21
+        },
+        {
+          "quote": "Our next campaign budget opens on 1 May",
+          "messageId": "preserve-4",
+          "start": 0,
+          "end": 39
         }
       ],
       "rule": "Current-period budget plus a later next-budget date: no additional budget is available between them"
@@ -343,25 +380,7 @@
       "state": "options_ready",
       "missingRequired": [],
       "outsideTemplates": [],
-      "ambiguities": [
-        {
-          "field": "amountsIncludeGst",
-          "decisionRelevant": false,
-          "readings": [
-            "yes",
-            "no"
-          ],
-          "differingStructures": [],
-          "feasibleCountByReading": {
-            "yes": 1,
-            "no": 1
-          },
-          "withinLimitCountByReading": {
-            "yes": 1,
-            "no": 1
-          }
-        }
-      ],
+      "ambiguities": [],
       "templatesEvaluated": [
         "split_payment",
         "phased_scope",
@@ -618,7 +637,7 @@
           "template": "phased_scope",
           "scopeKind": "phase_1",
           "verdict": "rejected",
-          "approval": "requires_approval",
+          "approval": "within_limit",
           "approvable": false,
           "failingCodes": [
             "BUDGET_EXCEEDS_CURRENT_PERIOD",
@@ -986,25 +1005,7 @@
       "state": "options_ready",
       "missingRequired": [],
       "outsideTemplates": [],
-      "ambiguities": [
-        {
-          "field": "amountsIncludeGst",
-          "decisionRelevant": false,
-          "readings": [
-            "yes",
-            "no"
-          ],
-          "differingStructures": [],
-          "feasibleCountByReading": {
-            "yes": 1,
-            "no": 1
-          },
-          "withinLimitCountByReading": {
-            "yes": 1,
-            "no": 1
-          }
-        }
-      ],
+      "ambiguities": [],
       "templatesEvaluated": [
         "split_payment",
         "phased_scope",
@@ -1261,7 +1262,7 @@
           "template": "phased_scope",
           "scopeKind": "phase_1",
           "verdict": "rejected",
-          "approval": "requires_approval",
+          "approval": "within_limit",
           "approvable": false,
           "failingCodes": [
             "BUDGET_EXCEEDS_CURRENT_PERIOD",

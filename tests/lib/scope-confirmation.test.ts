@@ -29,7 +29,7 @@ describe("an unmapped required-services phrase", () => {
     expect(sources).toEqual([
       {
         rawText: "complete annual package",
-        evidenceQuote: "We need the complete annual package for the admissions launch",
+        evidenceQuote: "We need the complete annual package for the admissions season",
         messageId: "preserve-2",
         extractInputHash: "abc123",
       },

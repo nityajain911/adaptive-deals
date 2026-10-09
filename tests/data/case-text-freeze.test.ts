@@ -11,7 +11,7 @@ import { allDemoCases, type CaseId } from "@/data/synthetic/cases";
  */
 const FROZEN: Record<CaseId, string> = {
   "reduced-scope": "81db55020d060e55f8927a2a81a17a3b0da6d7b4c583dbef9d729b8c71f0d7af",
-  "preserve-scope": "14b67339d9fcfdb1079c10a0f90f9dcc943577cf5c2b641e9cf6996513940279",
+  "preserve-scope": "a98421b32768095881447b048a786171388886f23c17ddc337324ea6c759f30f",
   "no-fit": "e8641b44a3aef4383d6062b163fc07427b098482e01822dc0eab926d91b1894e",
 };
 

@@ -46,6 +46,12 @@ describe("relative dates are normalised from each message's own timestamp", () =
   it("reads a bare 'May' as the month", () => {
     expect(ok("May", "2026-10-01T08:47:00+05:30")).toEqual({ value: "2027-05", precision: "month" });
   });
+  it("reads an explicit day and month as the next occurrence with day precision", () => {
+    expect(ok("1 May", "2026-10-01T08:47:00+05:30")).toEqual({ value: "2027-05-01", precision: "day" });
+    expect(ok("May 1", "2026-10-01T08:47:00+05:30")).toEqual({ value: "2027-05-01", precision: "day" });
+    expect(ok("1 October", "2026-10-01T08:47:00+05:30")).toEqual({ value: "2026-10-01", precision: "day" });
+    expect(ok("1 October", "2026-10-02T08:47:00+05:30")).toEqual({ value: "2027-10-01", precision: "day" });
+  });
   it("does not treat the verb 'may' as a month", () => {
     expect(ok("we may pay by the 20th", "2026-12-01T11:05:00+05:30")).toEqual({ value: "2026-12-20", precision: "day" });
   });

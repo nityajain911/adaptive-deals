@@ -16,6 +16,13 @@ const REDUCED_SCOPE_MESSAGES = [
   "I only have ₹50,000 left in this quarter. Our fresh budget opens in April.",
   "Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
 ] as const;
+const PRESERVE_SCOPE_MESSAGES = [
+  "Hi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.",
+  "Thanks. We need the complete annual package for the admissions season, so please don’t remove anything.",
+  "This quarter is tight. I can release only ₹10,000 right now.",
+  "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
+  "Finance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.",
+] as const;
 
 function storedRun(file: string): RunRecord {
   return JSON.parse(readFileSync(path.join(process.cwd(), file), "utf8")) as RunRecord;
@@ -71,6 +78,16 @@ describe("commercial demo case catalog", () => {
     expect(messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
     expect(messages.map((message) => message.id)).toEqual(["reduced-1", "reduced-2", "reduced-3", "reduced-4", "reduced-5"]);
     expect(messages.map((message) => message.text).join(" ")).not.toMatch(/both amounts include GST|per contract/i);
+  });
+
+  it("uses the approved five-message preserve-scope opening with an explicit pre-GST basis", () => {
+    const item = demoCase("preserve-scope")!;
+    expect(item.deal.messages.map((message) => message.text)).toEqual(PRESERVE_SCOPE_MESSAGES);
+    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
+    expect(item.deal.messages.map((message) => message.id)).toEqual(["preserve-1", "preserve-2", "preserve-3", "preserve-4", "preserve-5"]);
+    const gst = item.expected.extraction.fields.find((field) => field.key === "amounts_include_gst");
+    expect(gst).toMatchObject({ raw_text: "before GST", message_id: "preserve-5" });
+    expect(gst!.evidence_quote).toContain("₹10,000 and ₹15,000");
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {

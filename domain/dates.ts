@@ -140,12 +140,19 @@ function isMonthMay(tokens: string[], i: number): boolean {
   if (tokens.length === 1) return true;
   const prev = tokens[i - 1] ?? "";
   const next = tokens[i + 1] ?? "";
-  return /^(in|next|by|till|until|from|of|after|this|early|mid|late)$/.test(prev) || /^\d/.test(next);
+  return /^(in|next|by|till|until|from|of|after|this|early|mid|late)$/.test(prev) || /^\d/.test(prev) || /^\d/.test(next);
 }
 
 function ordinalDay(text: string): number | null {
   const m = /\b(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\b/.exec(text);
   return m ? Number(m[1]) : null;
+}
+
+function dayBesideNamedMonth(text: string): number | null {
+  const before = /\b(\d{1,2})(?:st|nd|rd|th)?\s+[a-z]{3,9}\b/.exec(text);
+  if (before) return Number(before[1]);
+  const after = /\b[a-z]{3,9}\s+(\d{1,2})(?:st|nd|rd|th)?\b/.exec(text);
+  return after ? Number(after[1]) : null;
 }
 
 /**
@@ -175,7 +182,7 @@ export function normaliseRelativeDate(raw: string, messageTimestamp: string, tim
   }
 
   // till the 20th / by the 5th (no month named)
-  const day = ordinalDay(text);
+  const day = ordinalDay(text) ?? dayBesideNamedMonth(text);
   const monthTokens = text
     .split(/\s+/)
     .filter((t, i, all) => t.replace(/[^a-z]/g, "") !== "may" || isMonthMay(all, i))
@@ -201,7 +208,9 @@ export function normaliseRelativeDate(raw: string, messageTimestamp: string, tim
     if (target > m) year = y;
     else if (target < m) year = y + 1;
     else {
-      if (!explicitNext) {
+      if (day !== null && !explicitNext) {
+        year = day >= d ? y : y + 1;
+      } else if (!explicitNext) {
         return {
           ok: false,
           kind: "ambiguous",
@@ -211,8 +220,7 @@ export function normaliseRelativeDate(raw: string, messageTimestamp: string, tim
           ],
           reason: `"${raw}" was written during that month; it could mean this month or next year`,
         };
-      }
-      year = y + 1;
+      } else year = y + 1;
     }
     const value = makeDate(year, target, 1).slice(0, 7);
     if (day !== null) {
