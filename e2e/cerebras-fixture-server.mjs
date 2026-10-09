@@ -53,7 +53,7 @@ const server = createServer((request, response) => {
 const waitForSampleBuild = async () => {
   for (let attempt = 0; attempt < 600; attempt += 1) {
     try {
-      const response = await fetch("http://127.0.0.1:3200/deals/hero");
+      const response = await fetch("http://127.0.0.1:3200/sample-documents/pinecone-rate-card-oct-2026.csv");
       if (response.ok) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 500));

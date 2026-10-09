@@ -25,14 +25,15 @@ export default defineConfig({
       // Default remains the production Turbopack build. The explicit fallback is for restricted
       // runners that forbid the local port Turbopack's PostCSS worker opens during compilation.
       command: process.env.ADAPTIVE_E2E_WEBPACK === "1" ? "npx next build --webpack && npx next start -p 3200" : "npx next build && npx next start -p 3200",
-      url: "http://localhost:3200/deals/hero",
+      // Readiness must not render a stateful route before the first test can reset its isolated store.
+      url: "http://localhost:3200/sample-documents/pinecone-rate-card-oct-2026.csv",
       timeout: 300_000,
       reuseExistingServer: process.env.E2E_REUSE === "1",
       env: { ...NO_KEYS, ADAPTIVE_DEALS_DATA_DIR: ".data-e2e", ADAPTIVE_DEALS_DEMO_RUN: "synthetic" },
     },
     {
       command: "node e2e/cerebras-fixture-server.mjs",
-      url: "http://localhost:3202/presenter",
+      url: "http://localhost:3202/sample-documents/pinecone-rate-card-oct-2026.csv",
       timeout: 300_000,
       reuseExistingServer: false,
       env: {

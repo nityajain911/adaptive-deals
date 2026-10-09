@@ -67,7 +67,8 @@ test("scope · preserve scope holds at Understand until the merchant confirms th
   await expect(page.getByTestId("stage-tracker").locator('[data-stage="understand"]')).toHaveAttribute("aria-current", "step");
   await expect(page.getByTestId("scope-message")).toContainText("They asked for “complete annual package” but did not say which services that means.");
   await expect(page.getByTestId("scope-attribution")).toHaveText("Tick the services they need. We will work out the offers from your answer.");
-  await expect(page.getByTestId("uncaptured")).toContainText("Whether GST is included was not mentioned. Every offer works either way, so we did not need to ask.");
+  await expect(page.getByTestId("blocking-card")).toContainText("₹10,000 excluding GST");
+  await expect(page.getByTestId("uncaptured")).toHaveCount(0);
 
   // The offer cannot be reached by the page or by the endpoint.
   await page.goto("/deals/hero/offer");

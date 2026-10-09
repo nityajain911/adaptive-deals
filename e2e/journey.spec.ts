@@ -673,7 +673,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     {
       id: "no-fit",
       buyer: "Blue Harbor Foods",
-      message: "Our retail launch can't move",
+      message: "The issue is timing",
       status: "no_feasible_structure",
     },
   ] as const;
