@@ -86,6 +86,7 @@ describe("Run live availability", () => {
     const { liveAvailability } = await import("@/ai/config");
     expect(createLiveProvider({})).toBeNull();
     expect(liveAvailability({})).toMatchObject({ available: false, provider: "cerebras", reason: expect.stringMatching(/CEREBRAS_API_KEY.*synthetic replay/) });
+    expect(createLiveProvider({ CEREBRAS_API_KEY: "csk-test" })).toMatchObject({ name: "cerebras", model: "gpt-oss-120b" });
     expect(createLiveProvider({ ADAPTIVE_DEALS_PROVIDER: "groq", GROQ_API_KEY: "gsk-test" })).toMatchObject({ name: "groq", model: "openai/gpt-oss-120b" });
     expect(createLiveProvider({ ADAPTIVE_DEALS_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-test", ADAPTIVE_DEALS_MODEL: "claude-opus-5" })).toMatchObject({ name: "anthropic", model: "claude-opus-5" });
   });
