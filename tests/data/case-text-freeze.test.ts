@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { canonicalJson } from "@/domain/agreement";
 import { allDemoCases, type CaseId } from "@/data/synthetic/cases";
@@ -14,10 +16,15 @@ const FROZEN: Record<CaseId, string> = {
   "preserve-scope": "a98421b32768095881447b048a786171388886f23c17ddc337324ea6c759f30f",
   "no-fit": "50465eabd7296c608e5b9e2e50923f2e5c9fbc8886f3f63463a116269c8cbebc",
 };
+const recordingFreeze = JSON.parse(
+  readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE.json"), "utf8"),
+) as { cases: Record<CaseId, { messagesSha256: string }> };
 
 describe("the case conversations are frozen", () => {
   it.each(allDemoCases().map((c) => [c.id] as const))("%s: its messages hash to the frozen value", (id) => {
     const item = allDemoCases().find((c) => c.id === id)!;
-    expect(createHash("sha256").update(canonicalJson(item.deal.messages)).digest("hex")).toBe(FROZEN[id]);
+    const current = createHash("sha256").update(canonicalJson(item.deal.messages)).digest("hex");
+    expect(current).toBe(FROZEN[id]);
+    expect(recordingFreeze.cases[id].messagesSha256).toBe(current);
   });
 });

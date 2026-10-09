@@ -1012,3 +1012,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Verification at implementation:** 72 Commercial Memory tests; 61 focused provenance tests; 4 Cerebras browser journeys; 82 existing product browser journeys. The fixture never contacts Cerebras or any external model.
 
 **External-call boundary:** no real Cerebras call was made and no Cerebras result is claimed. Historical Groq artifacts, frozen prompts, schemas, cases and results were not rewritten or relabelled.
+
+### 2026-10-09 · Realistic case conversations frozen before any new recording [OpenAI Codex]
+
+**What changed:** The three demo cases now use short, realistic merchant and buyer messages. Their hand-written extraction outputs cite the exact new messages, and credential-free synthetic replays reproduce the intended reduced-scope, preserve-scope and no-fit decisions. The date normaliser now reads an explicit day before a named month, such as “1 May”, using the message timestamp to choose the year.
+
+**Freeze:** `data/synthetic/CASE_RECORDING_FREEZE.json` records the exact case-message hashes and the live hashes of `extract.v2`, `clarify.v1` and `explain.v3`. It limits any later recording to the reduced-scope hero case on Cerebras `gpt-oss-120b`, with no more than seven provider requests, technical retries only, and the first technically valid output kept with any misses.
+
+**External-call boundary:** The conversations and synthetic outputs were authored by OpenAI Codex at Nitya Jain’s direction. No model or network call was made during this work. Historical Groq recordings remain unchanged and separate from the rewritten cases. A later Cerebras recording needs separate explicit authorisation.
