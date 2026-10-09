@@ -159,7 +159,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               <h2 className="text-[16px] font-semibold text-ink">{questions.length === 1 ? "A question for the buyer" : "Questions for the buyer"}</h2>
               {questions.some((x) => !x.draft?.sentAt) ? <p className="mt-1 text-[13px] text-muted">Not sent yet. Nothing reaches the buyer until you send.</p> : null}
               <ol className="mt-3 space-y-3">
-                {questions.map(({ q, draft, reply }, qi) => (
+                {questions.map(({ q, reply }, qi) => (
                   <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
                     <p className="text-[15px] font-medium text-ink">
                       {q.question} <InfoButton label="Why this question matters" testId={`why-${q.id}`}>{q.whyItMatters}</InfoButton>
@@ -169,8 +169,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                         Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>
                         {!reply.refs.answerValue && primary?.id === "interpret_reply" ? <InterpretForm messageId={reply.id} buyerText={reply.text} options={INTERPRET_OPTIONS[q.id] ?? []} primary={qi === questions.findIndex((x) => x.reply && !x.reply.refs.answerValue)} /> : null}
                       </div>
-                    ) : draft?.sentAt ? (
-                      <p className="mt-2 text-[13px] text-muted">Waiting for the buyer.</p>
                     ) : null}
                   </li>
                 ))}
@@ -178,7 +176,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
               <div className="mt-4">
                 {primary?.id === "send_questions" ? <PrimaryActionButton body={{ action: "send_questions" }}>{primary.label}</PrimaryActionButton> : null}
                 {primary?.id === "use_answers" ? <PrimaryActionButton body={{ action: "adopt_replies" }} onDone={stageHref(dealId, "offer")}>{primary.label}</PrimaryActionButton> : null}
-                {progress.kind === "waiting_on_buyer" ? <p className="text-[13px] font-medium text-ink-2" data-testid="waiting">Waiting for the buyer.</p> : null}
               </div>
             </Card>
           ) : null}

@@ -4,7 +4,7 @@ import { Badge, type Tone } from "../ui";
 
 const TAG: Record<DealProgress["kind"], [Tone, string]> = {
   action_required: ["amber", "Action required"],
-  waiting_on_buyer: ["blue", "Waiting on buyer"],
+  waiting_on_buyer: ["blue", "Waiting for buyer"],
   waiting_on_system: ["neutral", "Waiting on system"],
   informational: ["green", "Up to date"],
   terminal: ["neutral", "Closed"],

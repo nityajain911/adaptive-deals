@@ -172,7 +172,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     const n = f.questionCountUnsent;
     return act("understand", "understand.send", `Confirm ${countWord(n)} ${n === 1 ? "detail" : "details"} before we can recommend an offer.`, "send_questions", n === 1 ? "Send question to buyer" : `Send ${n} questions to buyer`);
   }
-  if (f.unansweredQuestions > 0) return info("understand", "understand.waiting", "waiting_on_buyer", "buyer", "Waiting for the buyer to answer.");
+  if (f.unansweredQuestions > 0) return info("understand", "understand.waiting", "waiting_on_buyer", "buyer", "Their reply will appear here. Nothing else is needed from you.");
   if (f.repliesNeedInterpretation > 0) return act("understand", "understand.interpret", "One answer needs your interpretation.", "interpret_reply", "Interpret buyer's reply");
   if (f.engineState === "ambiguous") return act("understand", "understand.use_answers", "The buyer answered. Use these answers to build an offer.", "use_answers", "Use these answers");
   return act("understand", "understand.missing", "We need the buyer's budget before we can recommend an offer.", "send_missing_question", "Send question to buyer");

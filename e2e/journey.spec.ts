@@ -191,7 +191,7 @@ test("P0 · mixed and unsure clarification replies stay unresolved until the mer
     await page.goto("/deals/hero/understand");
     await expect(page.getByTestId("status-headline")).toContainText("needs your interpretation");
     await page.locator('[data-testid^="ask-again-"]').click();
-    await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer");
+    await expect(page.getByTestId("status-headline")).toContainText("Their reply will appear here. Nothing else is needed from you.");
     const after = state();
     expect(after.conversation.filter((message) => message.kind === "clarification" && message.refs.questionId === uncertain.questionId)).toHaveLength(2);
     expect(JSON.stringify({ agreements: after.agreements, attempts: after.attempts, paymentLinks: after.paymentLinks, mandate: after.mandate, amendments: after.amendments })).toBe(commercial);
@@ -213,7 +213,9 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expectStage(page, "understand", "Confirm two details", "Send 2 questions to buyer");
   await shot(page, "desktop-1-understand");
   await clickPrimary(page);
-  await expectStage(page, "understand", "Waiting for the buyer", undefined);
+  await expectStage(page, "understand", "Their reply will appear here. Nothing else is needed from you.", undefined);
+  await expect(page.getByText("Waiting for buyer", { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId("questions-card")).not.toContainText("Waiting for the buyer.");
 
   // The simulated buyer's replies are choices, including honest uncertainty.
   await expect(page.getByTestId("walkthrough-reply-clar-gst-unclear")).toBeVisible();
