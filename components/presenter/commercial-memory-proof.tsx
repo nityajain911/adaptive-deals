@@ -14,7 +14,7 @@ const post = async (body: Record<string, unknown>) => {
   return json.result;
 };
 
-const attribution = (result: QueryResult) => result.attribution === "live_ai" ? "Live Groq rerank" : result.attribution === "recorded_ai" ? "Recorded AI rerank" : "Code retrieval";
+const attribution = (result: QueryResult) => result.attribution === "live_ai" ? "Live AI rerank" : result.attribution === "recorded_ai" ? "Recorded AI rerank" : "Code retrieval";
 
 export function CommercialMemoryProof({ liveAvailable }: { liveAvailable: boolean }) {
   const [query, setQuery] = useState("Can monthly reporting be sold by itself?");

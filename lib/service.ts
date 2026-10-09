@@ -276,7 +276,7 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
   const deal = selectedRecord.inputs.dealId === HERO_DEAL_ID ? heroDeal() : item.deal;
   if (selectedRecord.inputs.dealId !== deal.dealId) throw new ActionError("The selected run does not belong to this case");
   const provider = new ReplayProvider(selectedRecord.kind === "live" ? "recorded_replay" : "synthetic_replay", selectedRecord.model, selectedRecord.steps);
-  const first = await runConstruct({ provider, kind: selectedRecord.kind, runId: selectedRecord.runId, clock: new FixedClock(), deal, recordedAtWall: selectedRecord.recordedAtWall });
+  const first = await runConstruct({ provider, kind: selectedRecord.kind, runId: selectedRecord.runId, clock: new FixedClock(), deal, previous: selectedRecord, recordedAtWall: selectedRecord.recordedAtWall });
   const s: DemoState = {
     schema: "adaptive-deals.store.v1",
     dealId: HERO_DEAL_ID,

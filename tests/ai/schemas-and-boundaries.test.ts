@@ -6,6 +6,7 @@ import { ClarificationOutputSchema, ExplanationOutputSchema, ExtractionOutputSch
 import { buildRequestParams } from "@/ai/anthropic-provider";
 import { buildExtractionRequest } from "@/ai/extract";
 import { readAiConfig, supportsTemperature } from "@/ai/config";
+import { CEREBRAS_CHAT_COMPLETIONS_URL, cerebrasBaseUrl } from "@/ai/cerebras-http";
 import { heroMessages, heroPackages } from "@/data/synthetic/hero";
 import { heroOutputs } from "./helpers";
 
@@ -77,6 +78,12 @@ describe("AI layer boundaries", () => {
     const c = readAiConfig({ ADAPTIVE_DEALS_PROVIDER: "anthropic", ADAPTIVE_DEALS_MODEL: "claude-sonnet-5", ANTHROPIC_API_KEY: "sk-test" });
     expect(c).toEqual({ provider: "anthropic", model: "claude-sonnet-5", liveAvailable: true });
     expect(() => readAiConfig({ ADAPTIVE_DEALS_PROVIDER: "other" })).toThrow(/other.*cerebras.*groq.*anthropic/i);
+  });
+
+  it("honours a local Cerebras URL only inside the explicit browser-test boundary", () => {
+    const local = "http://127.0.0.1:4312/v1/chat/completions";
+    expect(cerebrasBaseUrl({ CEREBRAS_API_BASE_URL: local })).toBe(CEREBRAS_CHAT_COMPLETIONS_URL);
+    expect(cerebrasBaseUrl({ ADAPTIVE_DEALS_E2E: "1", CEREBRAS_API_BASE_URL: local })).toBe(local);
   });
 });
 
