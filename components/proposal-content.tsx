@@ -11,7 +11,7 @@ import { cx } from "./ui";
  * buyer page and the merchant preview so both show exactly the same scope, totals, dates, mandate
  * requirement and consequences. Contains no actions and no merchant-only information.
  */
-export function AmendmentDifferences({ differences }: { differences: AmendmentDifference[] }) {
+export function AmendmentDifferences({ differences, paymentAmounts = {} }: { differences: AmendmentDifference[]; paymentAmounts?: Record<string, number> }) {
   const paymentDates = differences.filter((d) => d.category === "payment_date" && d.changed);
   const invoiceDates = differences.filter((d) => d.category === "planned_invoice_date" && d.changed);
   const amount = differences.find((d) => d.category === "amount");
@@ -23,7 +23,9 @@ export function AmendmentDifferences({ differences }: { differences: AmendmentDi
       <h2 className="font-semibold text-ink">What is changing</h2>
       <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-2">
         {paymentDates.map((d) => (
-          <li key={`payment-${d.lineId}`}>Payment date moves from {formatDate(d.before!)} to {formatDate(d.after!)}.</li>
+          <li key={`payment-${d.lineId}`}>
+            <strong>Payment date changed.</strong> {paymentAmounts[d.lineId ?? ""] ? `${formatINR(paymentAmounts[d.lineId ?? ""])} ` : ""}moves from {formatDate(d.before!)} to {formatDate(d.after!)}.
+          </li>
         ))}
         {invoiceDates.map((d) => (
           <li key={`invoice-${d.lineId}`}>Invoice date moves from {formatDate(d.before!)} to {formatDate(d.after!)}.</li>
@@ -38,13 +40,14 @@ export function AmendmentDifferences({ differences }: { differences: AmendmentDi
   );
 }
 
-export function ProposalContent({ view, merchantName, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [] }: { view: ProposalView; merchantName: string; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[] }) {
+export function ProposalContent({ view, merchantName, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [], showNextSteps = true, showAuthorityRequirement = true }: { view: ProposalView; merchantName: string; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[]; showNextSteps?: boolean; showAuthorityRequirement?: boolean }) {
+  const paymentAmounts = Object.fromEntries(view.payments.map((payment) => [payment.id, payment.totalPaise]));
   return (
     <div className="space-y-5" data-testid="proposal-content">
       <p className="rounded-xl bg-blue-weak px-4 py-3 text-[15px] font-semibold leading-6 text-ink" data-testid="proposal-glance">
         {proposalGlance(view)}
       </p>
-      {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} /> : null}
+      {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} paymentAmounts={paymentAmounts} /> : null}
       <section aria-labelledby="scope">
         <h2 id="scope" className="text-[13px] font-semibold uppercase tracking-wide text-muted">
           What&apos;s included
@@ -83,9 +86,10 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
         <div className="tabular mt-0.5 text-[28px] font-bold tracking-tight text-ink" data-testid="buyer-total">
           {formatINR(view.totalPaise)}
         </div>
-        <div className="tabular text-[12px] text-muted">
-          {formatINR(view.prePaise)} + GST {view.gstRatePercent} {formatINR(view.gstPaise)}
-        </div>
+        <details className="mt-1 text-[12px] text-muted">
+          <summary className="cursor-pointer">Price and GST details</summary>
+          <div className="tabular mt-1">{formatINR(view.prePaise)} + GST {view.gstRatePercent} {formatINR(view.gstPaise)}</div>
+        </details>
       </section>
 
       <section aria-labelledby="payments">
@@ -116,20 +120,24 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
               Automatic payments
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-ink-2" data-testid="recurring">
-              {recurringStatement(view.recurring, merchantName)}
+              Your next payment is collected automatically. We will remind you {view.recurring.noticeDays} days before it.
             </p>
+            <details className="mt-1 text-[12px] leading-5 text-muted">
+              <summary className="cursor-pointer">How automatic payments work</summary>
+              <p className="mt-1">{recurringStatement(view.recurring, merchantName)}</p>
+            </details>
           </div>
         </section>
       ) : null}
 
-      {view.authorityReason ? (
+      {showAuthorityRequirement && view.authorityReason ? (
         <section aria-label="Approval requirement" className="rounded-xl border border-line px-4 py-3 text-[13px] text-ink-2" data-testid="authority-requirement">
           {authorityStatement(view.authorityReason, view.totalPaise).label}
           {authorityStatement(view.authorityReason, view.totalPaise).note ? <span className="text-muted"> {authorityStatement(view.authorityReason, view.totalPaise).note}</span> : null}
         </section>
       ) : null}
 
-      <section aria-labelledby="next">
+      {showNextSteps ? <section aria-labelledby="next">
         <h2 id="next" className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-muted">
           <CalendarClock aria-hidden className="h-3.5 w-3.5" /> {nextHeading}
         </h2>
@@ -138,7 +146,7 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
             <li key={i}>{n}</li>
           ))}
         </ol>
-      </section>
+      </section> : null}
     </div>
   );
 }

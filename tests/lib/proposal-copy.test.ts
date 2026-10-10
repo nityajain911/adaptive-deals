@@ -5,13 +5,13 @@ const view = {
   included: [{ name: "Website fixes" }, { name: "Search marketing" }, { name: "Monthly reporting" }],
   excluded: [{ name: "Social media" }],
   totalPaise: 4_602_000,
-  payments: [{}, {}],
+  payments: [{ totalPaise: 2_301_000, date: "1 Nov 2026" }, { totalPaise: 2_301_000, date: "1 Dec 2026" }],
 };
 
 describe("the buyer's glance line", () => {
-  it("states total, payment count and what is included, from the canonical view", () => {
-    expect(proposalGlance(view as never)).toBe("₹46,020 including GST · 2 payments · Website fixes, Search marketing and Monthly reporting");
-    expect(proposalGlance({ ...view, payments: [{}] } as never)).toContain("1 payment ·");
+  it("states scope, what is due now and the next payment from the canonical view", () => {
+    expect(proposalGlance(view as never)).toBe("Website fixes, Search marketing and Monthly reporting · ₹23,010 now, then ₹23,010 on 1 Dec 2026.");
+    expect(proposalGlance({ ...view, payments: [view.payments[0]] } as never)).toContain("₹23,010 now");
   });
 });
 
@@ -22,7 +22,7 @@ describe("authority wording is built from the terms being accepted", () => {
     expect(s.note).toBe("We can't check who approved it.");
   });
   it("names the amount for a standalone scope, and is silent when nothing is needed", () => {
-    expect(authorityStatement("phase_scope", 4_602_000).label).toBe("I confirm I am allowed to buy this ₹46,020 package.");
+    expect(authorityStatement("phase_scope", 4_602_000).label).toBe("I confirm I can approve this ₹46,020 package on its own.");
     expect(authorityStatement(null, 1)).toEqual({ label: null, note: null });
   });
 });

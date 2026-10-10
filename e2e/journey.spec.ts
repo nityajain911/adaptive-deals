@@ -594,7 +594,7 @@ test("P0 · a merchant-selected annual offer keeps its attribution and MD approv
   await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
 
   await page.goto(`/proposal/${draft.agreementId}/v${draft.version}`);
-  await expect(page.getByTestId("authority-requirement")).toContainText("I confirm my company has approved");
+  await expect(page.getByTestId("buyer-actions")).toContainText("I confirm my company has approved");
   await expect(page.getByTestId("accept")).toBeDisabled();
   await page.getByTestId("authority").check();
   await expect(page.getByTestId("accept")).toBeEnabled();
@@ -755,9 +755,9 @@ test("step 4 · the buyer's page leads with a glance line, words the attestation
   await page.setViewportSize(MOBILE);
   const agreement = await prepareSent(page);
   await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
-  await expect(page.getByTestId("proposal-glance")).toContainText("including GST · 2 payments ·");
-  await expect(page.getByTestId("recurring")).toContainText("You allow Pinecone Media Works to take the payments above automatically");
-  await expect(page.getByTestId("recurring")).toContainText("only if you both agree to a new version");
+  await expect(page.getByTestId("proposal-glance")).toContainText("₹23,010 now, then ₹23,010 on 1 Dec 2026");
+  await expect(page.getByTestId("recurring")).toContainText("next payment is collected automatically");
+  await expect(page.getByTestId("recurring")).toContainText("remind you 3 days before");
   await page.getByTestId("request-change").click();
   await expect(page.getByTestId("change-starter-date")).toBeVisible();
   await expect(page.getByTestId("change-starter-scope")).toBeVisible();

@@ -243,7 +243,7 @@ describe("shared proposal content (spec §5.6)", () => {
     to.paymentSchedule[1].dueDate.value = "2026-12-21";
     to.invoiceSchedule[1].invoiceDate.value = "2026-12-21";
     const html = renderToStaticMarkup(AmendmentDifferences({ differences: amendmentDiff(from, to) }));
-    expect(html).toContain("Payment date moves from");
+    expect(html).toContain("Payment date changed.");
     expect(html).toContain("Invoice date moves from");
     expect(html).toContain("Same work, same months.");
     expect(html).toContain("Your automatic payment setup still works.");

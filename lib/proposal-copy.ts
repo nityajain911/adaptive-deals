@@ -3,16 +3,18 @@ import type { ProposalView } from "@/lib/views";
 
 const list = (items: string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 
-/** One line a buyer can read first: the total, how many payments, and what is included. */
-export function proposalGlance(v: Pick<ProposalView, "included" | "totalPaise" | "payments">): string {
-  const n = v.payments.length;
-  return `${formatINR(v.totalPaise)} including GST · ${n} payment${n === 1 ? "" : "s"} · ${list(v.included.map((i) => i.name))}`;
+/** One line a buyer can read first: what they buy, what is due now, and the next commitment. */
+export function proposalGlance(v: Pick<ProposalView, "included" | "payments">): string {
+  const [first, second] = v.payments;
+  if (!first) return list(v.included.map((i) => i.name));
+  const later = second ? `, then ${formatINR(second.totalPaise)} on ${second.date}` : "";
+  return `${list(v.included.map((i) => i.name))} · ${formatINR(first.totalPaise)} now${later}.`;
 }
 
 /** The attestation the buyer makes, worded from the terms they accept. The disclosure stays a separate note. */
 export function authorityStatement(reason: ProposalView["authorityReason"], totalPaise: number): { label: string | null; note: string | null } {
   if (reason === "required_approval") return { label: `I confirm my company has approved this ${formatINR(totalPaise)} deal.`, note: "We can't check who approved it." };
-  if (reason === "phase_scope") return { label: `I confirm I am allowed to buy this ${formatINR(totalPaise)} package.`, note: null };
+  if (reason === "phase_scope") return { label: `I confirm I can approve this ${formatINR(totalPaise)} package on its own.`, note: "It has value on its own and is not part of a larger purchase split to avoid approval." };
   return { label: null, note: null };
 }
 

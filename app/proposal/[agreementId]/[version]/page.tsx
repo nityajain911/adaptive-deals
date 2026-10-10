@@ -96,7 +96,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
 
       <div className="space-y-5 px-5 py-5">
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} />
+        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} showNextSteps={!lifecycle.showResponseActions} showAuthorityRequirement={!lifecycle.showResponseActions} />
         {link ? (
           <p className="-mt-3 text-[14px] text-muted" data-testid="buyer-payment-link">
             Payment link {link.status === "paid" ? "paid" : "awaiting payment"}
@@ -106,9 +106,17 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         {/* 8. Actions */}
         {lifecycle.showResponseActions ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
-            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} />
-            <RequestChangeForm version={v.version} />
+            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} submitLabel={amendment && differences.every((difference) => !difference.changed || difference.category === "payment_date" || difference.category === "planned_invoice_date") ? "Accept new date" : undefined} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} />
+            <RequestChangeForm version={v.version} label={amendment ? "Request another change" : undefined} />
             {amendment ? <p className="text-center text-[12px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : <DeclineButton version={v.version} />}
+          </section>
+        ) : null}
+        {lifecycle.showResponseActions ? (
+          <section aria-labelledby="next" className="border-t border-line pt-4">
+            <h2 id="next" className="text-[13px] font-semibold uppercase tracking-wide text-muted">{lifecycle.nextHeading}</h2>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-[13px] leading-5 text-ink-2" data-testid="next-steps">
+              {nextSteps.map((step, index) => <li key={index}>{step}</li>)}
+            </ol>
           </section>
         ) : null}
         {myRequests.length ? (

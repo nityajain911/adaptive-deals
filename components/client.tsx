@@ -152,7 +152,7 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
   );
 }
 
-export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number }) {
+export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise, submitLabel }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number; submitLabel?: string }) {
   const { run, pending, error } = useAction();
   const [authority, setAuthority] = useState(false);
   return (
@@ -173,7 +173,7 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
         </label>
       ) : null}
       <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (!!authorityReason && !authority)} data-testid="accept">
-        {pending ? "Accepting…" : action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal"}
+        {pending ? "Accepting…" : submitLabel ?? (action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal")}
       </Button>
       <p className="text-center text-[12px] text-muted">
         You are accepting this proposal exactly as shown.
@@ -187,7 +187,7 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
 
 // ── Buyer proposal actions ──────────────────────────────────────────────────
 
-export function RequestChangeForm({ version }: { version: number }) {
+export function RequestChangeForm({ version, label = "Request a change" }: { version: number; label?: string }) {
   const { run, pending, error } = useAction();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -195,7 +195,7 @@ export function RequestChangeForm({ version }: { version: number }) {
   if (!open)
     return (
       <Button className="w-full" onClick={() => setOpen(true)} data-testid="request-change" aria-expanded={false}>
-        Request a change
+        {label}
       </Button>
     );
   return (
