@@ -162,7 +162,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   <div className="mt-1 text-ink-2">{item.detail}</div>
                   {item.note ? <div className="mt-1 text-ink-2">Your note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   
-                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} /> : null}
+                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={item.sourceId} buyerRequest={item.text} /> : null}
                   <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />
                 </li>
               ))}

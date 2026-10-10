@@ -825,15 +825,16 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await page.goto("/deals/hero/track");
   // A pending buyer request opens its card by itself.
   await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
+  await expect(page.getByTestId("negotiation-corridor")).toContainText("Decide how to answer");
+  await page.getByTestId("check-buyer-amount").click();
   const form = page.getByTestId("counter-form");
-  await expect(page.getByTestId("negotiation-corridor")).toContainText("Your offer is ₹46,020 including GST");
 
   // The engine rechecks, names the failed rule, and the merchant cannot proceed without the override.
   await form.getByTestId("counter-total").fill("40000");
   await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
-  await expect(form.getByTestId("counter-fails")).toContainText("This is outside your limits.");
-  await expect(form.getByTestId("counter-make")).toBeDisabled();
+  await expect(form.getByTestId("counter-fails")).toContainText("Outside your rules");
+  await expect(form.getByTestId("review-exception")).toBeVisible();
   // An answer belongs to the amount it was checked for: editing the amount removes it.
   await form.getByTestId("counter-total").fill("6000");
   await expect(form.getByTestId("counter-result")).toHaveCount(0);
@@ -842,6 +843,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await expect(form.getByTestId("counter-fails")).toBeVisible();
   await shot(page, "counter-1-check-and-override");
   // Sending an amount that fails a rule needs a reason, and nothing else.
+  await form.getByTestId("review-exception").click();
   await expect(form.getByTestId("counter-make")).toBeDisabled();
   await form.getByTestId("counter-reason").fill("The buyer orders often and pays on time");
   await expect(form.getByTestId("counter-make")).toBeEnabled();
@@ -905,7 +907,7 @@ test("counter-offer · choosing 'A lower price' makes the counter available", as
   await page.getByTestId("send-change-request").click();
   await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
   await page.goto("/deals/hero/track");
-  await expect(page.getByTestId("counter-form")).toBeVisible();
+  await expect(page.getByTestId("check-buyer-amount")).toBeVisible();
 });
 
 test("step 5 · the Offer screen leads with the merchant's strategy, and each strategy's leader is computed by code", async ({ page }) => {
@@ -974,16 +976,17 @@ test("exceptions · an amount below direct costs needs only a reason, and the au
   const sent = await prepareSent(page);
   await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹5,000 instead?", topic: "price" });
   await page.goto("/deals/hero/track");
+  await page.getByTestId("check-buyer-amount").click();
   const form = page.getByTestId("counter-form");
   await form.getByTestId("counter-total").fill("5000");
   await form.getByTestId("corridor-basis-including").check();
   await form.getByTestId("counter-check").click();
   await expect(form.getByTestId("counter-loss")).toContainText("less than it costs you to deliver");
   // A loss is shown in red and needs only a reason.
+  await form.getByTestId("review-exception").click();
   await expect(form.getByTestId("counter-make")).toBeDisabled();
   await form.getByTestId("counter-reason").fill("Loss leader to win the annual contract");
   await expect(form.getByTestId("counter-make")).toBeEnabled();
-  await expect(form.getByTestId("counter-loss-confirm")).toHaveCount(0);
   await shot(page, "exceptions-1-loss-confirmation");
   await form.getByTestId("counter-make").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);

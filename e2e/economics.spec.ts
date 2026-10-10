@@ -255,7 +255,7 @@ test("corridor · the ladder is shown, and the 5% row prepares an offer that pas
   await sentUnderIllustrativeLadder(page);
   const corridor = page.getByTestId("negotiation-corridor");
   await expect(corridor).toBeVisible();
-  await expect(corridor.getByTestId("corridor-lowest")).toContainText("The lowest you can go");
+  await expect(corridor.getByTestId("corridor-lowest")).toContainText("lowest verified total");
   await expect(corridor.getByTestId("ladder-0")).toBeVisible();
   await expect(corridor.getByTestId("ladder-500")).toBeVisible();
   await expect(corridor.getByTestId("ladder-1000")).toBeVisible();
