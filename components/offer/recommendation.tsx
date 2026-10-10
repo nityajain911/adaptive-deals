@@ -6,7 +6,8 @@ import { formatINR, sum } from "@/domain/money";
 import type { MerchantPolicy } from "@/domain/types";
 import type { ServicePackage } from "@/domain/types";
 import type { DealBaseline } from "@/domain/deal-baseline";
-import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules, offerSummary } from "@/lib/offer-copy";
+import { alternativeContributionLine, approxINR, counterReason, headlineFor, joinRules } from "@/lib/offer-copy";
+import { dealTransformation, type DealTransformation } from "@/lib/deal-transformation";
 import { originalProposalOf, packageName } from "@/lib/deal-context-shared";
 import type { CounterOffer } from "@/lib/deal-records";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import type { ReactNode } from "react";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
 import { MoneySplit } from "./money-split";
+import { DealTransformationCard } from "./deal-transformation";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
 
@@ -28,12 +30,14 @@ export function contextLine(baseline: DealBaseline, budgetPaise: number | null, 
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, policy, baseline, packages, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null }: {
+export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null }: {
   x: EvaluatedStructure;
   policy: MerchantPolicy;
   baseline: DealBaseline;
   packages: ServicePackage[];
-  context: string;
+  transformation?: DealTransformation;
+  /** Deprecated presentation input retained for recorded component fixtures. */
+  context?: string;
   primary: ReactNode;
   presentation: "recommended" | "merchant_selected";
   /** The reason shown for this offer, written by code. */
@@ -51,7 +55,8 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
   comparison?: ReactNode;
 }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
-  const summary = offerSummary(x, baseline, packages, policy.gstRateBps);
+  void context;
+  const transformation = suppliedTransformation ?? dealTransformation({ baseline, offer: x, packages, originalApprovalLabel: "Original approval not recorded" });
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
   const funding = [...x.sellerChecks].find((c) => c.id === "seller_cash_at_risk");
   const passesRules = contribution?.status === "pass" && funding?.status === "pass";
@@ -63,10 +68,8 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         <h2 className="mt-2 text-[22px] font-bold tracking-tight text-ink" data-testid="offer-headline">
           {headlineFor(x)}
         </h2>
-        <p className="mt-1 text-[13px] text-ink-2" data-testid="offer-context">
-          {context}
-        </p>
       </div>
+      <DealTransformationCard value={transformation} />
       {leaderNote ? <div className="border-b border-line bg-amber-weak/50 px-5 py-3 text-[14px]" data-testid="leader-note">{leaderNote}</div> : null}
       <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
         <div className="space-y-3">
@@ -136,27 +139,6 @@ export function Recommendation({ x, policy, baseline, packages, context, primary
         </div>
       </div>
       {comparison ? <div className="border-t border-line px-5 py-4">{comparison}</div> : null}
-      <details className="border-t border-line px-5 py-3" data-testid="offer-details">
-        <summary className="cursor-pointer text-[13px] font-semibold text-blue">What changes from your original quote</summary>
-        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div data-testid="offer-achieves">
-            <h3 className="text-[13px] font-semibold text-ink">What you get</h3>
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
-              {summary.achieves.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
-          </div>
-          <div data-testid="offer-changes">
-            <h3 className="text-[13px] font-semibold text-ink">What changes</h3>
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-ink-2">
-              {summary.changes.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </details>
       <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
         <span className="font-semibold text-ink">Why this one: </span>
         <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</span>

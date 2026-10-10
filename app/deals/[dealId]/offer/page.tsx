@@ -12,7 +12,7 @@ import { DontProceed } from "@/components/offer/dont-proceed";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
-import { Alternatives, contextLine, OtherOptions, Recommendation, Rejections } from "@/components/offer/recommendation";
+import { Alternatives, OtherOptions, Recommendation, Rejections } from "@/components/offer/recommendation";
 import { DealOverrides, type OverrideAccount } from "@/components/offer/deal-overrides";
 import { StrategyComparison } from "@/components/offer/strategy-comparison";
 import { StrategyControl } from "@/components/offer/strategy-control";
@@ -28,6 +28,7 @@ import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 import { buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
 import { sourceTracesForDeal } from "@/lib/source-trace";
+import { dealTransformation } from "@/lib/deal-transformation";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
@@ -191,13 +192,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const standard = view.mode === "standard";
   const options = standard ? view.ranked : view.discounted;
   const p = out.profile;
-  const context = contextLine(
-    baseline,
-    p.budgetNow.value?.amountPaise ?? null,
-    p.approvalLimit.value?.amountPaise ?? null,
-    p.approvalScope.status === "stated" && p.approvalScope.value === "per_contract",
-    p.amountsIncludeGst.value === "yes",
-  );
+  const originalApprovalLabel = p.approvalLimit.value && baseline.quotedTotalPaise > p.approvalLimit.value.amountPaise ? "Needs buyer approval" : "Buyer can approve";
+  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate });
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
   const knowledgeSources = await loadKnowledgeSources();
@@ -243,7 +239,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           policy={policy}
           baseline={baseline}
           packages={deal.packages}
-          context={context}
+          transformation={transformation}
           presentation={selectedByMerchant ? "merchant_selected" : "recommended"}
           reason={narrative.reason}
           attribution={narrative.attribution}
