@@ -138,6 +138,31 @@ test("hide leaves the product usable and the header resumes the updated objectiv
   await expect(guide(page)).toContainText("Simulated buyer action");
 });
 
+test("a hidden walkthrough has a visible resume button at desktop, tablet and phone widths", async ({ page }) => {
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await reset(page);
+    await startCase(page);
+    await page.goto("/deals/hero/understand");
+    await openGuide(page);
+    const menu = page.getByTestId("reviewer-menu");
+    if (await menu.getAttribute("open") !== null) await page.getByTestId("reviewer-menu-toggle").click();
+    if (width === 390) await page.getByTestId("walkthrough-mobile-toggle").click();
+    await guide(page).getByRole("button", { name: "Hide" }).click();
+    await expect(guide(page)).toHaveCount(0);
+    await expect(page.getByTestId("walkthrough-resume")).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("walkthrough-resume")).toBeVisible();
+    const before = JSON.stringify(state());
+    await page.getByTestId("walkthrough-resume").click();
+    await expect(guide(page)).toBeVisible();
+    await expect(guide(page)).toContainText("STEP 3 OF 6");
+    await expect(page.getByTestId("walkthrough-resume")).toHaveCount(0);
+    expect(JSON.stringify(state())).toBe(before);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  }
+});
+
 test("restart warns and atomically returns to case selection", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await reset(page);

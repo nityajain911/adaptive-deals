@@ -1050,3 +1050,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Presentation:** The quote-to-offer comparison now shows the actual delivery start dates. Offers with more than two payments show a compact count, monthly cadence where verified, exact amount or amount range, and date range. Every individual date and amount remains available in a closed payment-schedule disclosure. No ranking rule, cost, price or contractual term changed.
 
 **Verification:** 1,264 unit tests and 95 browser journeys pass, including priority changes, tied outcomes, and a twelve-instalment disclosure at phone width. Typecheck, lint and build-mode release check pass. Confirmed the running server renders the new feedback and schedule. No model calls were made. Applicant sections remain outstanding.
+
+### 2026-10-10 — [Codex] Keep walkthrough resume discoverable
+
+**Reported:** Hiding the walkthrough left no obvious way to reopen it. The existing launcher was inside the reviewer menu.
+
+**Change:** When the guide is hidden after dismissal, a visible Resume walkthrough button appears at the bottom right, outside the product frame. It opens the current domain-derived step, clears any earlier-step review selection and expands the guide on phones. It does not reset or mutate the deal. The original reviewer-menu launcher remains available.
+
+**Verification:** A browser regression failed before the change and passes afterwards. It checks hide, refresh and resume at 1440px, 1024px and 390px, including unchanged saved deal state and no horizontal overflow. All 16 walkthrough browser tests and 1,264 unit tests pass. Typecheck, lint, production browser build and build-mode release check pass. No model call was made; applicant sections remain outstanding.

@@ -113,7 +113,20 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
     return () => window.clearTimeout(timer);
   }, [displayed.anchorId, pathname, preferences.open]);
 
-  if (!preferences.open) return null;
+  if (!preferences.open) return preferences.dismissedWelcome ? (
+    <button
+      type="button"
+      className="fixed bottom-20 right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#c7d3ff] bg-surface px-4 text-[14px] font-semibold text-blue shadow-lg hover:bg-blue-weak md:bottom-5 md:right-5"
+      data-testid="walkthrough-resume"
+      aria-label="Resume demo walkthrough"
+      onClick={() => {
+        setMobileExpanded(true);
+        update({ ...preferences, open: true, reviewingObjectiveId: null });
+      }}
+    >
+      <Compass aria-hidden className="h-4 w-4" /> Resume walkthrough
+    </button>
+  ) : null;
 
   const primary = () => {
     if (offRoute) {
