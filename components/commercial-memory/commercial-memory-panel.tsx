@@ -6,6 +6,7 @@ import type { EconomicsContent } from "@/domain/business-economics";
 import type { EconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
 import { formatINR } from "@/domain/money";
 import { Button } from "@/components/client";
+import { documentReview } from "@/lib/document-review";
 
 export interface MemorySourceSummary {
   id: string;
@@ -151,13 +152,14 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
   );
 }
 
-export function CommercialMemoryPanel({ sources, onApply }: { sources: MemorySourceSummary[]; onApply: (content: EconomicsContent) => void }) {
+export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChange }: { sources: MemorySourceSummary[]; onApply: (content: EconomicsContent) => void; onEditorVisibilityChange: (visible: boolean) => void }) {
   const router = useRouter();
   const [draft, setDraft] = useState<EconomicsEvidenceDraft | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const review = documentReview({ sources, draft });
 
   const run = async (fn: () => Promise<void>) => {
     setPending(true); setError(null); setMessage(null);
@@ -170,25 +172,28 @@ export function CommercialMemoryPanel({ sources, onApply }: { sources: MemorySou
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[18px] font-semibold text-ink">Your documents</h2>
-          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-ink-2">Add your rate card or cost sheet and we&apos;ll fill in your prices and costs for you to check.</p>
+          <p className="mt-1 max-w-2xl text-[14px] leading-5 text-ink-2" data-testid="document-default-message">{review.defaultMessage}</p>
           
         </div>
         <Button variant="primary" data-testid="memory-draft" disabled={pending} onClick={() => void run(async () => {
           const result = await call({ action: "draft_economics_from_memory" }) as EconomicsEvidenceDraft;
           setDraft(result);
           setSelected(result.proposals.filter((proposal) => proposal.status === "supported").map((proposal) => proposal.id));
+          onEditorVisibilityChange(false);
         })}>{pending ? "Reading…" : "Fill in from my documents"}</Button>
       </div>
 
-      <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
-        <summary className="cursor-pointer text-[13px] font-semibold text-ink">Documents we use</summary>
+      {review.historyDocuments.length ? <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
+        <summary className="cursor-pointer text-[13px] font-semibold text-ink">Document history</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {sources.map((source) => <div key={source.id} className="rounded-lg border border-line bg-surface px-3 py-2"><div className="text-[13px] font-medium text-ink">{source.title}</div><div className="mt-0.5 text-[12px] capitalize text-muted">{source.uploaded ? "Uploaded by you" : "Sample document"}{source.status !== "active" ? ` · ${source.status === "superseded" ? "replaced" : source.status}` : ""}</div>{source.uploaded && source.status === "active" ? <button type="button" className="mt-1 text-[12px] font-semibold text-red hover:underline" data-testid={`memory-withdraw-${source.id}`} disabled={pending} onClick={() => void run(async () => { await call({ action: "withdraw_memory_source", sourceId: source.id }); setDraft(null); router.refresh(); })}>Withdraw</button> : null}</div>)}
+          {review.historyDocuments.map((source) => <div key={source.id} className="rounded-lg border border-line bg-surface px-3 py-2"><div className="text-[13px] font-medium text-ink">{source.title}</div><div className="mt-0.5 text-[12px] capitalize text-muted">{source.uploaded ? "Uploaded by you" : "Sample document"} · {source.status === "superseded" ? "replaced" : source.status}</div></div>)}
         </div>
-      </details>
+      </details> : null}
 
       <UploadDocument sources={sources} onUploaded={() => { setDraft(null); router.refresh(); }} />
 
+      {draft && review.status === "match" ? <div className="mt-4 rounded-xl border border-[#c9e7d3] bg-green-weak p-3" data-testid="document-review-match"><p className="text-[14px] font-medium text-ink">{review.message}</p><div className="mt-3 flex gap-2"><Button onClick={() => { setDraft(null); onEditorVisibilityChange(true); }}>Done</Button><Button variant="primary" onClick={() => onEditorVisibilityChange(true)}>Review extracted values</Button></div></div> : null}
+      {draft && review.status === "differences" ? <div className="mt-4 rounded-xl border border-[#f7dfb4] bg-amber-weak p-3" data-testid="document-review-differences"><p className="text-[14px] font-medium text-ink">{review.message}</p><ul className="mt-2 space-y-2 text-[13px] text-ink-2">{review.changes.map((proposal) => <li key={proposal.id}><span className="font-semibold text-ink">{proposal.serviceName}</span> · {formatINR(proposal.currentValue)} → {formatINR(proposal.proposedValue)}<br />“{proposal.quote}”</li>)}</ul><Button className="mt-3" variant="primary" onClick={() => onEditorVisibilityChange(true)}>Review these changes</Button></div> : null}
       {draft ? <div className="mt-4 space-y-2" data-testid="memory-proposals">
         <div className="flex items-center justify-between gap-3"><h3 className="text-[15px] font-semibold text-ink">Check these values</h3></div>
         {draft.status === "conflicting_evidence" ? <p className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-amber">Two of your documents give different numbers for the same thing. Remove or replace one, then try again.</p> : null}
@@ -202,7 +207,7 @@ export function CommercialMemoryPanel({ sources, onApply }: { sources: MemorySou
         </div>)}
         <div className="flex flex-wrap items-center gap-3 pt-2"><Button variant="primary" data-testid="memory-apply" disabled={pending || selected.length === 0} onClick={() => void run(async () => {
           const result = await call({ action: "confirm_economics_from_memory", draftId: draft.id, proposalIds: selected }) as { content: EconomicsContent; confirmed: number };
-          onApply(result.content); setMessage(`${result.confirmed} values added below. Check them, then save.`);
+          onApply(result.content); onEditorVisibilityChange(true); setMessage(`${result.confirmed} values added below. Check them, then save.`);
         })}>{pending ? "Adding…" : `Use these ${selected.length} values`}</Button><span className="text-[12px] text-muted">Nothing changes until you check and save.</span></div>
       </div> : null}
       {message ? <p className="mt-3 text-[13px] font-medium text-green" role="status">{message}</p> : null}

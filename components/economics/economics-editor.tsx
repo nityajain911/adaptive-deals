@@ -45,6 +45,7 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
   const [preview, setPreview] = useState<EconomicsActivationPreview | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(true);
 
   const contentForReview = (): EconomicsContent => ({
     ...content,
@@ -63,13 +64,15 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
         <p className="mt-1 max-w-2xl text-[14px] leading-6 text-ink-2">What you charge, what it costs you to deliver, and the lowest deal you&apos;ll accept.</p>
       </div>
       {children}
-      <CommercialMemoryPanel sources={memorySources} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
+      <CommercialMemoryPanel sources={memorySources} onEditorVisibilityChange={setShowEditor} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
+      {showEditor ? <>
       <ServicesTable services={content.services} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
       <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Checking…" : "Check my changes"}</Button>
         <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Nothing changes until you check and save.</span>
       </div>
+      </> : <p className="rounded-xl border border-line bg-surface-muted px-4 py-3 text-[14px] text-ink-2" data-testid="economics-editor-hidden">Review the extracted values when you want to edit your prices, costs or rules.</p>}
       <details className="rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="demo-tools">
         <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="demo-tools-toggle">Demo tools</summary>
         <div className="mt-2 space-y-2 pb-1">
