@@ -40,14 +40,17 @@ export function AmendmentDifferences({ differences, paymentAmounts = {} }: { dif
   );
 }
 
-export function ProposalContent({ view, merchantName, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [], showNextSteps = true, showAuthorityRequirement = true }: { view: ProposalView; merchantName: string; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[]; showNextSteps?: boolean; showAuthorityRequirement?: boolean }) {
+export function ProposalContent({ view, merchantName, nextHeading, nextSteps, changedLineId = null, amendmentDifferences = [], showNextSteps = true, showAuthorityRequirement = true, revisionMode = "full" }: { view: ProposalView; merchantName: string; nextHeading: string; nextSteps: string[]; changedLineId?: string | null; amendmentDifferences?: AmendmentDifference[]; showNextSteps?: boolean; showAuthorityRequirement?: boolean; revisionMode?: "full" | "summary" | "details" }) {
   const paymentAmounts = Object.fromEntries(view.payments.map((payment) => [payment.id, payment.totalPaise]));
   return (
     <div className="space-y-5" data-testid="proposal-content">
-      <p className="rounded-xl bg-blue-weak px-4 py-3 text-[15px] font-semibold leading-6 text-ink" data-testid="proposal-glance">
-        {proposalGlance(view)}
-      </p>
-      {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} paymentAmounts={paymentAmounts} /> : null}
+      {revisionMode !== "details" ? <>
+        <p className="rounded-xl bg-blue-weak px-4 py-3 text-[15px] font-semibold leading-6 text-ink" data-testid="proposal-glance">
+          {proposalGlance(view)}
+        </p>
+        {amendmentDifferences.length ? <AmendmentDifferences differences={amendmentDifferences} paymentAmounts={paymentAmounts} /> : null}
+      </> : null}
+      {revisionMode !== "summary" ? <>
       <section aria-labelledby="scope">
         <h2 id="scope" className="text-[13px] font-semibold uppercase tracking-wide text-muted">
           What&apos;s included
@@ -147,6 +150,7 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
           ))}
         </ol>
       </section> : null}
+      </> : null}
     </div>
   );
 }

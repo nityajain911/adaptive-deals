@@ -242,11 +242,26 @@ describe("shared proposal content (spec §5.6)", () => {
     const to = structuredClone(from);
     to.paymentSchedule[1].dueDate.value = "2026-12-21";
     to.invoiceSchedule[1].invoiceDate.value = "2026-12-21";
-    const html = renderToStaticMarkup(AmendmentDifferences({ differences: amendmentDiff(from, to) }));
+    const differences = amendmentDiff(from, to);
+    const changedPayment = differences.find((difference) => difference.category === "payment_date");
+    const html = renderToStaticMarkup(AmendmentDifferences({ differences, paymentAmounts: { [changedPayment!.lineId!]: 2_301_000 } }));
     expect(html).toContain("Payment date changed.");
+    expect(html).toContain("₹23,010");
     expect(html).toContain("Invoice date moves from");
     expect(html).toContain("Same work, same months.");
     expect(html).toContain("Your automatic payment setup still works.");
     expect(html).not.toContain("everything else stays unchanged");
+  });
+  it("lets a revised proposal lead with its change, with the full terms available separately", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { ProposalContent } = await import("@/components/proposal-content");
+    const v = version(1, "sent");
+    const view = proposalView(v, heroPackages, heroMerchant.policy);
+    const summary = renderToStaticMarkup(ProposalContent({ view, merchantName: heroMerchant.name, nextHeading: "After you accept", nextSteps: view.nextSteps, revisionMode: "summary" }));
+    const details = renderToStaticMarkup(ProposalContent({ view, merchantName: heroMerchant.name, nextHeading: "After you accept", nextSteps: view.nextSteps, revisionMode: "details" }));
+    expect(summary).toContain("proposal-glance");
+    expect(summary).not.toContain("What&#x27;s included");
+    expect(details).toContain("What&#x27;s included");
+    expect(details).not.toContain("proposal-glance");
   });
 });

@@ -96,7 +96,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
 
       <div className="space-y-5 px-5 py-5">
         {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} showNextSteps={!lifecycle.showResponseActions} showAuthorityRequirement={!lifecycle.showResponseActions} />
+        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} showNextSteps={!lifecycle.showResponseActions} showAuthorityRequirement={!lifecycle.showResponseActions} revisionMode={amendment && lifecycle.showResponseActions ? "summary" : "full"} />
         {link ? (
           <p className="-mt-3 text-[14px] text-muted" data-testid="buyer-payment-link">
             Payment link {link.status === "paid" ? "paid" : "awaiting payment"}
@@ -110,6 +110,14 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             <RequestChangeForm version={v.version} label={amendment ? "Request another change" : undefined} />
             {amendment ? <p className="text-center text-[12px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : <DeclineButton version={v.version} />}
           </section>
+        ) : null}
+        {amendment && lifecycle.showResponseActions ? (
+          <details className="rounded-xl border border-line" data-testid="full-revised-proposal">
+            <summary className="cursor-pointer px-4 py-3 text-[14px] font-semibold text-ink">View full revised proposal</summary>
+            <div className="border-t border-line px-4 py-4">
+              <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} showNextSteps showAuthorityRequirement={false} revisionMode="details" />
+            </div>
+          </details>
         ) : null}
         {lifecycle.showResponseActions ? (
           <section aria-labelledby="next" className="border-t border-line pt-4">
