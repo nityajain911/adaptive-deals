@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 // Data directory is set inside the store-reading test before any dynamic import (see test-isolation).
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { RunRecord } from "@/ai/run-record";
 import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
@@ -163,6 +163,9 @@ describe("audit drawer content is read-only", () => {
     const path = await import("node:path");
     process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-audit-"));
     process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic"; // pinned to the labelled hand-written sample: this suite asserts that run
+    // The pure audit imports may have loaded the store already. Re-import it only
+    // after choosing the isolated test directory, never the merchant's demo store.
+    vi.resetModules();
     const svc = await import("@/lib/service");
     const { driveTo } = await import("../helpers/drive");
     await svc.resetToSeed();

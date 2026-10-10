@@ -68,13 +68,14 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
     }
     case "track.next_payment": {
       if (s.amendments.at(-1)?.state === "active") return null; // storyboard complete
+      // Complete the current notice exchange before jumping to a later instalment.
+      if (replyContext(s)) return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the notice", at("track"), true);
       const n = pendingNotice(s);
       if (n) {
         const timeZone = demoCase(s.caseId)?.deal.merchant.timeZone ?? "Asia/Kolkata";
         const today = localDateOf(new SimulatedClock(DEMO_ANCHOR, s.clockAdvances).now(), timeZone);
         return compareDates(today, n.sendOn) < 0 ? sys("advance_to_notice", `Advance simulated date to ${formatDate(n.sendOn)}`, at("track")) : sys("send_notice", "Send scheduled advance notice", at("track"));
       }
-      if (replyContext(s)) return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the notice", at("track"), true);
       return null;
     }
     case "track.change_request":

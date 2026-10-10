@@ -1030,3 +1030,13 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Product integration:** `run-case-reduced-scope-ed5442a3` is mapped only to the exact current hero conversation and displays **Recorded Cerebras output**. A message mismatch, an incomplete record or forced sample mode falls back to **Sample output written by hand · no model ran**. Preserve-scope and no-fit remain hand-written samples. Replaying the recording makes no network call. The earlier Groq recordings remain unchanged as historical evidence.
 
 **Stored evidence:** `data/case-recorded-runs/run-case-reduced-scope-ed5442a3.json` and `data/case-recorded-runs/cerebras-reduced-scope-recording-report.json`. The report records three of seven allowed requests, zero retries and zero rejected attempts; the committed artifacts contain no credential.
+
+### 2026-10-10 — [Codex] Fix repeated walkthrough date jumps
+
+**Reported:** A multi-instalment deal repeatedly offered later simulated dates without reaching the buyer's payment-change reply. The local server also served an older walkthrough and payment table.
+
+**Cause and correction:** The guide selected a future unsent notice before checking for an unanswered notice already delivered. It now offers that buyer reply first. A regression test with a later instalment failed before the change and passes afterwards. Restarted the local server on the current development build.
+
+**Verification isolation:** The audit-render test had loaded the shared store before selecting its temporary directory. During verification it reset the user's current demo progress. Its module cache is now reset before importing the isolated service. Saved business economics were not changed; the user was informed that the current case needs restarting.
+
+**Checks:** 1,257 unit tests and 93 browser journeys pass. Typecheck, lint and build-mode release check pass. No external model call was made. Existing applicant placeholders remain outstanding.

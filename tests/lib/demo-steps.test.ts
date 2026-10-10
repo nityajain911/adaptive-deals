@@ -90,6 +90,23 @@ describe("buyer setup gate and explicit time", () => {
 });
 
 describe("canonical preventive storyboard", () => {
+  it("offers the buyer's notice reply before advancing to another instalment", async () => {
+    await svc.resetToSeed();
+    await driveTo(svc, (x) => x.status === "active");
+    await svc.runSystemStep("pay_upfront_link");
+    await svc.runSystemStep("confirm_mandate");
+    await svc.runSystemStep("advance_to_notice");
+    const s = await svc.runSystemStep("send_notice");
+    const recurring = s.attempts.find((a) => a.method === "recurring_debit")!;
+    const notice = s.notices.find((n) => n.attemptId === recurring.id)!;
+    s.attempts.push({ ...recurring, id: "later-instalment", dueDate: "2027-01-01" });
+    s.notices.push({ ...notice, id: "later-notice", attemptId: "later-instalment", dueDate: "2027-01-01", sendOn: "2026-12-29", sentAt: null });
+
+    const next = nextDemoStep(s, await svc.progressOf(s), "hero");
+    expect(next).toMatchObject({ id: "buyer_reply", type: "buyer", systemAction: null, usesReplyControl: true });
+    expect(replyContext(s)?.inReplyTo).toBe(s.conversation.find((m) => m.kind === "notice")!.id);
+  });
+
   it("runs end to end with explicit decisions and never offers a failed debit", async () => {
     await svc.resetToSeed();
     const ids: string[] = [];
