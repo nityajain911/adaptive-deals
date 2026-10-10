@@ -96,10 +96,9 @@ describe("recommendation attribution on the card", () => {
     expect(html).toContain("Reason written by code.");
     expect(attribution(html)).not.toMatch(/\bAI\b|Groq|model/);
   });
-  it("keeps a recorded model's order and note out of the visible card, behind an information control, as history", () => {
+  it("keeps a recorded model's order and note out of the decision card", () => {
     const html = card({ evidence: evidenceFor(GROQ, recorded(GROQ)) });
-    expect(html).toContain('data-testid="recorded-evidence"');
-    // The popover's content is not rendered until it is opened, so none of it is on the card.
+    expect(html).not.toContain('data-testid="recorded-evidence"');
     expect(html).not.toContain(NOTE);
     expect(html).not.toContain("Historical evidence");
     expect(attribution(html)).not.toMatch(/Groq|ranked by Groq/);

@@ -56,6 +56,7 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
 }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   void context;
+  void evidence;
   const transformation = suppliedTransformation ?? dealTransformation({ baseline, offer: x, packages, originalApprovalLabel: "Original approval not recorded" });
   const contribution = [...x.sellerChecks].find((c) => c.id === "seller_contribution");
   const funding = [...x.sellerChecks].find((c) => c.id === "seller_cash_at_risk");
@@ -144,13 +145,6 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
         <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</span>
         <div className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted">
           <span data-testid="attribution">{counter ? counterAttribution(counter) : attribution}</span>
-          {!counter && evidence ? (
-            <InfoButton label="Recorded model order and reason" testId="recorded-evidence">
-              <span className="block font-semibold text-ink">{evidence.heading}</span>
-              {evidence.order ? <span className="mt-1 block">{evidence.order}</span> : null}
-              {evidence.reason ? <span className="mt-1 block">Its reason for this offer: {evidence.reason}</span> : null}
-            </InfoButton>
-          ) : null}
         </div>
         {counter?.override ? (
           <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">

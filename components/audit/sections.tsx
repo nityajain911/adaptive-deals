@@ -17,6 +17,7 @@ import type { CommercialMemoryDealView } from "@/lib/commercial-memory-view";
  */
 const NAV: [string, string][] = [
   ["audit-evidence", "Evidence"],
+  ["audit-ai", "AI run"],
   ["audit-memory", "Commercial Memory"],
   ["audit-rules", "Applied merchant rules"],
   ["audit-exceptions", "Exceptions and overrides"],
@@ -59,7 +60,7 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
   return (
     <div className="space-y-4 text-[13px] text-ink-2" data-testid="audit-sections">
       <nav aria-label="Audit sections" className="flex flex-wrap gap-x-3 gap-y-1">
-        {NAV.filter(([id]) => id !== "audit-memory" || memory).map(([id, label]) => (
+        {NAV.filter(([id]) => (id !== "audit-memory" || memory) && (id !== "audit-ai" || run.kind === "live")).map(([id, label]) => (
           <a key={id} href={`#${id}`} data-audit-nav className="font-semibold text-blue hover:underline">
             {label}
           </a>
@@ -86,6 +87,14 @@ export function AuditSections({ s, out, deal, memory = null }: { s: DemoState; o
           </ul>
         </details>
       </section>
+
+      {run.kind === "live" ? <section aria-labelledby="audit-ai" data-testid="audit-ai-run">
+        <H id="audit-ai">AI run</H>
+        <p className="text-[12px] text-muted">Historical model output is retained here for audit. It does not choose or rank the offer shown on the decision screen.</p>
+        <ul className="mt-1 space-y-1">
+          {run.steps.map((step, index) => <li key={`${step.task}-${index}`}><span className="font-medium text-ink">{step.task}</span> · {step.outcome} · {step.provider} / {step.model}{step.issues.length ? ` · ${step.issues.join("; ")}` : ""}</li>)}
+        </ul>
+      </section> : null}
 
       {memory ? <section aria-labelledby="audit-memory" data-testid="audit-commercial-memory">
         <H id="audit-memory">Commercial Memory</H>
