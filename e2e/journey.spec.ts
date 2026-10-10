@@ -254,7 +254,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("back-to-merchant").click();
 
   await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
-  await expect(page.getByTestId("payment-schedule")).toContainText("Still to collect (before GST)");
+  await expect(page.getByTestId("payment-timeline")).toContainText("Buyer accepted the deal");
   await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("authorises the mandate");
   await walkthroughPrimary(page).click();
@@ -459,7 +459,7 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await page.getByTestId("accept").click();
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-banner")).toBeVisible();
-  await expect(page.getByTestId("payment-schedule")).toBeVisible();
+  await expect(page.getByTestId("payment-timeline")).toBeVisible();
   await noHorizontalScroll(page);
   await shot(page, "mobile-4-track");
 });
@@ -613,7 +613,7 @@ test("P0 · a failed restructure stays actionable and leaves the original paymen
   await page.goto("/deals/hero/track");
   await expectStage(page, "track", /requested date does not fit/i, "Review with buyer");
   await expect(page.getByTestId("buyer-work-card")).toContainText("original payment remains scheduled");
-  await expect(page.getByTestId("payment-schedule")).toContainText("1 Dec 2026");
+  await expect(page.getByTestId("payment-timeline")).toContainText("1 Dec 2026");
   await expect(page.getByTestId("amendment-settled")).toHaveCount(0);
 });
 

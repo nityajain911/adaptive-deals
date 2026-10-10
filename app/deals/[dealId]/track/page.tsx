@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { computeLedger } from "@/domain/ledger";
-import { formatINR } from "@/domain/money";
 import { MarkHandledForm, PrimaryActionButton, RevealButton, ReviewWorkForm } from "@/components/client";
 import { ConversationThread } from "@/components/conversation-thread";
 import { StageShell } from "@/components/deal/stage-shell";
@@ -8,10 +6,11 @@ import { fmtTime } from "@/components/evidence";
 import { learningEvidence } from "@/lib/learning-evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
+import { PaymentTimeline } from "@/components/track/payment-timeline";
 import { NegotiationCorridor } from "@/components/track/negotiation-corridor";
 import { CurrentAgreement } from "@/components/track/current-agreement";
 import { InfoButton } from "@/components/info-button";
-import { Card, Stat } from "@/components/ui";
+import { Card } from "@/components/ui";
 import type { Structure } from "@/domain/structures";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { corridorFor } from "@/lib/service";
@@ -19,16 +18,16 @@ import { isResolvingDisposition, BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, 
 import { outcomeSummary } from "@/lib/outcome";
 import { activeVersionOf, noticeReplyOutcome, replyNeedsExactDate, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
-import { scheduleRows } from "@/lib/track-copy";
 import { contractFinancialView } from "@/lib/financial-view";
 import { currentAgreementSummary } from "@/lib/current-agreement";
 import { McpCollectionActionCard } from "@/components/mcp/collection-action-card";
 import { mcpCollectionView } from "@/lib/mcp-view";
+import { paymentTimeline } from "@/lib/payment-timeline";
 
 /** Stage 3 · Track the deal (spec §6). */
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
   const { dealId } = await props.params;
-  const { s, out, progress, activeCase, deal, today, now } = await loadDeal(dealId);
+  const { s, out, progress, activeCase, deal, now } = await loadDeal(dealId);
   if (progress.stages.track === "upcoming") {
     return (
       <StageShell dealId={dealId} viewing="track">
@@ -64,13 +63,11 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
   });
 
-  let ledger = null as ReturnType<typeof computeLedger> | null;
   let shownStructure: Structure | null = null;
   if (shown) {
     const x = s.amendments.find((a) => a.toVersion === shown.version)?.revised ?? out.evaluation.result?.structures.find((e) => e.structure.id === shown.structureId);
     if (x) {
       shownStructure = x.structure;
-      ledger = computeLedger({ structure: x.structure, attempts: s.attempts, asOf: today, timeZone: deal.merchant.timeZone });
     }
   }
 
@@ -94,6 +91,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
         },
       })
     : null;
+  const timeline = shown ? paymentTimeline(s, shown.version) : [];
   // A buyer's price request on a proposal they have not accepted gets the negotiation corridor, computed by code.
   const priceRequest = s.status === "sent" ? workItems.find((item) => item.kind === "buyer_request" && item.sourceKind === "message" && !s.amendments.some((a) => a.toVersion === item.version) && s.conversation.find((m) => m.id === item.sourceId)?.refs.topic === "price") : undefined;
   const priceRequestId = priceRequest?.sourceId ?? null;
@@ -149,6 +147,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             <CurrentAgreement summary={agreementSummary} />
           </details>
         ) : null}
+        {shown ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
 
         {shown?.buyerAcceptance && (mcpView.connection.connected || mcpView.intent || mcpView.receipt) ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
 
@@ -197,35 +196,6 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           </details>
         ) : null}
 
-        {shown ? (
-          <Card className="p-5" data-testid="payment-schedule">
-            <h2 className="text-[15px] font-semibold text-ink">Payments</h2>
-            <ul className="mt-2 divide-y divide-line">
-              {scheduleRows(s, shown.version).map((r) => (
-                <li key={r.lineId} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[14px]" data-testid={`schedule-${r.lineId}`}>
-                  <span className="text-ink">
-                    {r.date}
-                    {r.was ? <span className="text-muted"> (was {r.was})</span> : null}
-                    <span className="ml-2 text-[13px] text-muted">{r.method}</span>
-                  </span>
-                  <span className="tabular text-ink">
-                    {formatINR(r.amountPaise)} <span className="ml-2 text-[13px] font-medium text-ink-2">{r.status}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {ledger && financial?.state === "accepted" ? (
-              <details className="mt-3 rounded-xl border border-line px-4 py-2">
-                <summary className="cursor-pointer text-[13px] font-semibold text-blue">Payment details</summary>
-                <div className="grid grid-cols-2 gap-2 py-2 md:grid-cols-3">
-                  <Stat label="Still to collect (before GST)" value={formatINR(ledger.balance.prePaise)} />
-                  <Stat label="GST still to collect" value={formatINR(ledger.balance.gstPaise)} />
-                  <Stat label="Collected so far" value={formatINR(ledger.collected.totalPaise)} hint={`${formatINR(ledger.collected.prePaise)} before GST`} />
-                </div>
-              </details>
-            ) : null}
-          </Card>
-        ) : null}
 
         <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-outcome-details">
           <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">What has happened so far</summary>

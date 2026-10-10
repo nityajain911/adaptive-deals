@@ -1,4 +1,3 @@
-import { CollectionFlow } from "./collection-flow";
 import { formatDate } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
 import type { CurrentAgreementSummary } from "@/lib/current-agreement";
@@ -40,7 +39,6 @@ export function CurrentAgreement({ summary }: { summary: CurrentAgreementSummary
               {f.nextPayment ? <p className="mt-2 text-[13px] text-ink-2">Next: {formatINR(f.nextPayment.amountPaise)} on {formatDate(f.nextPayment.dueDate)}.</p> : <p className="mt-2 text-[13px] text-ink-2">Nothing more is due.</p>}
             </>
           ) : <p className="mt-2 text-[13px] text-ink-2"><span className="tabular text-[22px] font-bold text-ink">{formatINR(f.contractTotalPaise)}</span> including GST</p>}
-          {summary.kind === "accepted" ? <CollectionFlow totalPaise={f.contractTotalPaise} collectedPaise={f.collectedPaise} /> : null}
         </div>
       </div>
     </Card>
