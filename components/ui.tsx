@@ -19,7 +19,7 @@ export function CardHeader({ title, id, meta, actions }: { title: ReactNode; id?
         <h2 id={id} className="text-[15px] font-semibold text-ink">
           {title}
         </h2>
-        {meta ? <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted">{meta}</div> : null}
+        {meta ? <div className="mt-1 flex flex-wrap items-center gap-2 text-[14px] leading-5 text-muted">{meta}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
@@ -125,7 +125,7 @@ export function Table({ head, rows, caption, className, hideOnMobile = [] }: { h
 
 export function Notice({ tone = "neutral", title, children }: { tone?: Tone; title?: ReactNode; children?: ReactNode }) {
   return (
-    <div className={cx("rounded-xl border px-4 py-3 text-[13px]", TONES[tone])} role="note">
+    <div className={cx("rounded-xl border px-4 py-3 text-[14px] leading-5", TONES[tone])} role="note">
       {title ? <div className="font-semibold">{title}</div> : null}
       {children ? <div className={cx(title ? "mt-1" : "", "text-ink-2")}>{children}</div> : null}
     </div>
@@ -133,5 +133,5 @@ export function Notice({ tone = "neutral", title, children }: { tone?: Tone; tit
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-line-strong px-4 py-6 text-center text-[13px] text-muted">{children}</div>;
+  return <div className="rounded-xl border border-dashed border-line-strong px-4 py-6 text-center text-[14px] text-muted">{children}</div>;
 }

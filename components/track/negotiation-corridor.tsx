@@ -46,9 +46,9 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest }: {
   };
   return (
     <section className="mt-3 space-y-4 rounded-xl border border-[#d6defe] bg-blue-weak/30 p-4" data-testid="negotiation-corridor" aria-label="Negotiation decision">
-      <div><h3 className="text-[15px] font-semibold text-ink">Decide how to answer</h3><p className="mt-1 text-[13px] text-ink-2">Buyer: “{buyerRequest}”</p></div>
+      <div><h3 className="text-[15px] font-semibold text-ink">Decide how to answer</h3><p className="mt-1 text-[14px] text-ink-2">Buyer: “{buyerRequest}”</p></div>
       <CorridorAnchors view={view} buyerRequest={buyerRequest} />
-      <p className="text-[13px] text-muted" data-testid="corridor-lowest">{view.lowestUnavailable === "evaluation_limit" ? "We could not verify a lowest total. Check an amount instead." : safeMinimum === null ? "No lower total is currently verified within your rules." : `The lowest verified total is ${formatINR(safeMinimum)} including GST.`}</p>
+      <p className="text-[14px] text-muted" data-testid="corridor-lowest">{view.lowestUnavailable === "evaluation_limit" ? "We could not verify a lowest total. Check an amount instead." : safeMinimum === null ? "No lower total is currently verified within your rules." : `The lowest verified total is ${formatINR(safeMinimum)} including GST.`}</p>
       {step === "choose" ? <>
         <div className="flex flex-wrap gap-2" data-testid="corridor-actions">
           {safeMinimum !== null ? <Button variant="primary" disabled={pending} data-testid="offer-safe-minimum" onClick={offerSafeMinimum}>Offer {formatINR(safeMinimum)}</Button> : null}
@@ -57,12 +57,12 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest }: {
           <DecisionAction testId="handle-outside" body={{ action: "review_work", sourceKind: "message", sourceId: requestId, disposition: "handled_outside" }} onDone={() => router.refresh()}>Handle outside Adaptive Deals</DecisionAction>
           <Button data-testid="leave-request-open" onClick={() => setLeftOpen(true)}>Leave request open</Button>
         </div>
-        {leftOpen ? <p className="rounded-lg bg-surface px-3 py-2 text-[13px] text-ink-2" data-testid="request-left-open">No message or offer will be sent. This request stays open for you to return to.</p> : null}
+        {leftOpen ? <p className="rounded-lg bg-surface px-3 py-2 text-[14px] text-ink-2" data-testid="request-left-open">No message or offer will be sent. This request stays open for you to return to.</p> : null}
         <ErrorText error={error} />
       </> : <CounterForm onDone={onDone} onBack={() => setStep("choose")} />}
-      <details open className="text-[13px]" data-testid="corridor-ladder"><summary className="cursor-pointer font-semibold text-ink">Approved discount stops</summary>{discountRows.length > 1 ? <ul className="mt-2 space-y-2">{discountRows.map((row) => <li key={row.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid={`ladder-${row.discountBps}`}><span>{row.discountBps / 100}% discount · {formatINR(row.totalPaise)} incl. GST</span>{row.isCurrent ? <span className="text-muted">Current offer</span> : row.passes ? <OfferThis offer={row} onDone={onDone} /> : <span className="text-muted">Outside your rules</span>}</li>)}</ul> : <p className="mt-1 text-ink-2">Your prices and costs allow no discount.</p>}</details>
+      <details open className="text-[14px]" data-testid="corridor-ladder"><summary className="cursor-pointer font-semibold text-ink">Approved discount stops</summary>{discountRows.length > 1 ? <ul className="mt-2 space-y-2">{discountRows.map((row) => <li key={row.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid={`ladder-${row.discountBps}`}><span>{row.discountBps / 100}% discount · {formatINR(row.totalPaise)} incl. GST</span>{row.isCurrent ? <span className="text-muted">Current offer</span> : row.passes ? <OfferThis offer={row} onDone={onDone} /> : <span className="text-muted">Outside your rules</span>}</li>)}</ul> : <p className="mt-1 text-ink-2">Your prices and costs allow no discount.</p>}</details>
       {view.scopeAlternatives.length || view.timingAlternatives.length ? <details className="text-[13px]" data-testid="corridor-alternatives"><summary className="cursor-pointer font-semibold text-ink">Other ways to respond</summary><ul className="mt-2 space-y-2">{[...view.scopeAlternatives, ...view.timingAlternatives].map((offer) => <li key={offer.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2"><span>{offer.headline} · {formatINR(offer.totalPaise)} incl. GST</span><OfferThis offer={offer} onDone={onDone} /></li>)}</ul></details> : null}
-      <p className="text-[12px] text-muted" data-testid="corridor-private">They only see the offer you approve and send, never your costs or rules.</p>
+      <p className="text-[14px] text-muted" data-testid="corridor-private">They only see the offer you approve and send, never your costs or rules.</p>
     </section>
   );
 }

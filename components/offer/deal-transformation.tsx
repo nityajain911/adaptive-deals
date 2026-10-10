@@ -7,7 +7,7 @@ export function DealTransformationCard({ value }: { value: DealTransformation })
       <TransformationColumn title="Original quote" total={value.original.totalPaise} scope={value.original.scopeLabel} duration={value.original.durationLabel} approval={value.original.approvalLabel} />
       <div className="hidden items-center text-center text-[20px] text-blue md:flex" aria-hidden>→</div>
       <TransformationColumn title="Adaptive offer" total={value.adaptive.totalPaise} scope={value.adaptive.scopeLabel} duration={value.adaptive.durationLabel} approval={value.adaptive.approvalLabel} recommended />
-      {value.economicsChanged ? <p className="md:col-span-3 text-[13px] text-ink-2">Your prices or costs changed in version {value.economicsChanged.toVersion}. This offer now keeps {formatINR(value.economicsChanged.contributionDeltaPaise)} {value.economicsChanged.contributionDeltaPaise < 0 ? "less" : "more"} after costs.</p> : null}
+      {value.economicsChanged ? <p className="md:col-span-3 text-[14px] text-ink-2">Your prices or costs changed in version {value.economicsChanged.toVersion}. This offer now keeps {formatINR(value.economicsChanged.contributionDeltaPaise)} {value.economicsChanged.contributionDeltaPaise < 0 ? "less" : "more"} after costs.</p> : null}
     </section>
   );
 }

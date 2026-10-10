@@ -17,7 +17,7 @@ export function PaymentTimeline({ items, currentSentence, expectation }: { items
   return <Card className="p-5" data-testid="payment-timeline">
     <h2 className="text-[16px] font-semibold text-ink">Agreement and payments</h2>
     <p className="mt-1 text-[14px] text-ink-2" data-testid="timeline-current-state">{currentSentence}</p>
-    <p className="mt-1 text-[13px] text-muted" data-testid="timeline-expectation">{expectation}</p>
+    <p className="mt-1 text-[14px] text-muted" data-testid="timeline-expectation">{expectation}</p>
     <ol className="mt-5 space-y-0" aria-label="Agreement and payment timeline">
       {items.map((item, index) => {
         const style = STYLE[item.state];
@@ -27,7 +27,7 @@ export function PaymentTimeline({ items, currentSentence, expectation }: { items
           <Icon aria-hidden className={`relative z-10 mt-0.5 h-5 w-5 bg-surface ${style.colour}`} />
           <div className="min-w-0">
             <div className="text-[14px] font-semibold text-ink">{item.label}</div>
-            {item.detail ? <p className="mt-0.5 text-[13px] leading-5 text-ink-2">{item.detail}</p> : null}
+            {item.detail ? <p className="mt-0.5 text-[14px] leading-5 text-ink-2">{item.detail}</p> : null}
           </div>
         </li>;
       })}

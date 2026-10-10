@@ -24,9 +24,9 @@ export function SourceDecisionTrace({ traces, title = "How this decision is grou
           <li key={trace.id} className="grid gap-2 rounded-lg border border-line bg-surface p-3 text-[14px] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]" data-testid={`source-trace-${trace.id}`}>
             <div>
               <div className="text-[12px] font-semibold uppercase tracking-wide text-muted">Source</div>
-              <p className="mt-1 text-[13px] font-semibold text-ink-2">{trace.sourceLabel}</p>
+              <p className="mt-1 text-[14px] font-semibold text-ink-2">{trace.sourceLabel}</p>
               <p className="mt-1 leading-5 text-ink">“{trace.quote}”</p>
-              <button type="button" className="mt-1 text-[13px] font-semibold text-blue hover:underline" onClick={() => focusSource(trace.sourceId)}>
+              <button type="button" className="mt-1 text-[14px] font-semibold text-blue hover:underline" onClick={() => focusSource(trace.sourceId)}>
                 View source
               </button>
             </div>

@@ -8,6 +8,7 @@ import { fmtTime } from "@/components/evidence";
 import { AuditSections } from "@/components/audit/sections";
 import { OtherOutcomes } from "@/components/presenter/other-outcomes";
 import { CommercialMemoryProof } from "@/components/presenter/commercial-memory-proof";
+import { PresenterTabs } from "@/components/presenter/presenter-tabs";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
@@ -49,6 +50,7 @@ export default async function PresenterPage() {
         </Link>
       </div>
 
+      <PresenterTabs controls={<div className="space-y-5">
       <Card>
         <CardHeader title="Runs" meta={<span>Run live makes a new external model call and always creates a new run ID; it never overwrites a pinned or committed run or any frozen result.</span>} />
         <div className="flex flex-wrap items-center gap-2 p-5">
@@ -122,6 +124,7 @@ export default async function PresenterPage() {
 
       <OtherOutcomes scenario={s.scenario} />
 
+      </div>} evidence={<div className="space-y-5">
       <Card>
         <CardHeader title="Run record and integrity" />
         <div className="space-y-3 p-5 text-[13px]">
@@ -197,6 +200,7 @@ export default async function PresenterPage() {
           </div>
         </div>
       </Card>
+      </div>} />
     </main>
   );
 }

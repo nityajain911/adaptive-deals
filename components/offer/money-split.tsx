@@ -46,7 +46,7 @@ export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gst
           <span key={p.id} className={`money-split-segment ${p.bar}`} style={{ width: `${(p.barPaise / total) * 100}%`, animationDelay: `${i * 120}ms` }} />
         ))}
       </div>
-      <figcaption className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] text-ink-2">
+      <figcaption className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[14px] text-ink-2">
         {bar.map((p) => (
           <span key={p.id} className={`flex items-center gap-1.5 ${p.id === "loss" ? "font-semibold text-red" : ""}`}>
             <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${p.dot}`} />
@@ -55,7 +55,7 @@ export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gst
           </span>
         ))}
       </figcaption>
-      {loss > 0 ? <p className="mt-1.5 text-[12px] text-red">The price is {rupees(loss)} short of your delivery costs and fees.</p> : null}
+      {loss > 0 ? <p className="mt-1.5 text-[14px] text-red">The price is {rupees(loss)} short of your delivery costs and fees.</p> : null}
     </figure>
   );
 }

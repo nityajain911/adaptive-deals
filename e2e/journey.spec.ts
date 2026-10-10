@@ -434,6 +434,17 @@ test("Other outcomes live on the presenter page only", async ({ page }) => {
   await expect(page.getByTestId("other-outcomes")).toBeVisible();
 });
 
+test("presenter keeps demo controls separate from records and integrity evidence", async ({ page }) => {
+  await page.goto("/presenter");
+  await expect(page.getByTestId("presenter-demo-controls")).toBeVisible();
+  await expect(page.getByTestId("presenter-evidence")).toBeHidden();
+  await expect(page.getByText("Run record and integrity", { exact: true })).toBeHidden();
+  await page.getByRole("tab", { name: "Evidence and integrity" }).click();
+  await expect(page.getByTestId("presenter-evidence")).toBeVisible();
+  await expect(page.getByText("Run record and integrity", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("presenter-demo-controls")).toBeHidden();
+});
+
 test("390px layouts remain focused and free of horizontal overflow", async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await reset(page);
