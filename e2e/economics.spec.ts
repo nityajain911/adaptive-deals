@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import type { DemoState } from "@/lib/service";
@@ -107,7 +108,7 @@ test("commercial memory · the merchant reviews exact evidence before it enters 
   await page.goto("/economics");
   const memory = page.getByTestId("commercial-memory");
   // Changed from 9: the ninth source belongs to a second fictional merchant (the isolation test corpus) and must never be listed to this one.
-  await expect(memory).toContainText("Documents we use");
+  await expect(memory).toContainText("Your documents");
   await expect(memory).not.toContainText("Saffron");
   await expect(memory).toContainText("Pinecone 2026 rate card");
   await memory.getByTestId("memory-draft").click();
@@ -276,7 +277,7 @@ test("corridor · the buyer's page never shows the merchant's limits, and the co
   await page.setViewportSize({ width: 390, height: 844 });
   const sent = await sentUnderIllustrativeLadder(page);
   await expect(page.getByTestId("negotiation-corridor")).toBeVisible();
-  await expect(page.getByTestId("corridor-private")).toContainText("never your limits");
+  await expect(page.getByTestId("corridor-private")).toContainText("never your costs or rules");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await shot(page, "corridor-2-mobile");
   await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
@@ -349,14 +350,9 @@ async function openUpload(page: Page) {
   await expect(page.getByTestId("memory-upload-submit")).toBeVisible();
 }
 test.describe("bring your own documents", () => {
-test.afterEach(async ({ page }) => {
-    // Uploaded documents are session-local; withdraw whatever a test added so later tests see only the sample sources.
-    await page.goto("/economics");
-    await page.getByText("Documents we use").click().catch(() => undefined);
-    for (const button of await page.locator('[data-testid^="memory-withdraw-"]').all()) {
-      await button.click();
-      await page.waitForLoadState("networkidle");
-    }
+  test.beforeEach(async () => {
+    // Uploads are session-local. Start every upload journey with only the bundled sample documents.
+    await rm(path.join(".data-e2e", "knowledge", "uploads"), { recursive: true, force: true });
   });
 
 test("upload · a pasted CSV that replaces the sample is read, quoted exactly, and reaches a draft only after confirmation", async ({ page }) => {
@@ -461,7 +457,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await page.getByTestId("memory-upload-submit").click();
     await expect(page.getByTestId("memory-upload-result")).toContainText("Found 2 prices");
     await expect(page.getByTestId("memory-upload-notes")).toContainText("looks like an instruction");
-    await page.getByText("Documents we use").click();
+    await page.getByText("Document history").click();
     const withdraw = page.locator('[data-testid^="memory-withdraw-"]').first();
     await expect(withdraw).toBeVisible();
     await withdraw.click();

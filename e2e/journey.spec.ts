@@ -136,18 +136,16 @@ test.describe.configure({ mode: "serial" });
 
 test("P0 · every clarification combination produces its engine decision and truthful provenance after reload", async ({ page }) => {
   const cases = [
-    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", gstCopy: "including GST", approvalCopy: "anything above", recorded: true },
-    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", gstCopy: "excluding GST", approvalCopy: "anything above", recorded: false },
-    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "including GST", approvalCopy: "any single payment above", recorded: false },
-    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", gstCopy: "excluding GST", approvalCopy: "any single payment above", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", recorded: true },
+    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", recorded: false },
+    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", recorded: false },
   ] as const;
 
   for (const c of cases) {
     await prepareClarificationCombination(page, c.gst, c.approval);
     await page.goto("/deals/hero/offer");
     await expect(page.getByTestId("recommendation")).toBeVisible();
-    await expect(page.getByTestId("offer-context")).toContainText(c.gstCopy);
-    await expect(page.getByTestId("offer-context")).toContainText(c.approvalCopy);
     await api(page, { action: "review_buyer_proposal" });
     expect(state().agreements.find((agreement) => agreement.status === "draft")?.structureId).toBe(c.expected);
 

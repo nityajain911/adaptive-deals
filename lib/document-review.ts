@@ -10,6 +10,7 @@ export interface DocumentReviewSource {
 export interface DocumentReview {
   activeDocuments: DocumentReviewSource[];
   historyDocuments: DocumentReviewSource[];
+  manageableDocuments: DocumentReviewSource[];
   defaultMessage: string;
   status: "idle" | "match" | "differences";
   message: string | null;
@@ -20,8 +21,10 @@ export interface DocumentReview {
 export function documentReview({ sources, draft }: { sources: DocumentReviewSource[]; draft?: EconomicsEvidenceDraft | null }): DocumentReview {
   const activeDocuments = sources.filter((source) => source.status === "active");
   const historyDocuments = sources.filter((source) => source.status !== "active");
+  // Active uploads need a removal control, while bundled active sources do not.
+  const manageableDocuments = sources.filter((source) => source.status !== "active" || source.uploaded);
   const defaultMessage = `Your offers use prices and costs from ${activeDocuments.length} active business document${activeDocuments.length === 1 ? "" : "s"}.`;
-  if (!draft) return { activeDocuments, historyDocuments, defaultMessage, status: "idle", message: null, changes: [] };
+  if (!draft) return { activeDocuments, historyDocuments, manageableDocuments, defaultMessage, status: "idle", message: null, changes: [] };
 
   const supported = draft.proposals.filter((proposal) => proposal.status === "supported");
   const changes = supported.filter((proposal) => proposal.proposedValue !== proposal.currentValue);
@@ -29,7 +32,7 @@ export function documentReview({ sources, draft }: { sources: DocumentReviewSour
     return {
       activeDocuments,
       historyDocuments,
-      defaultMessage,
+      manageableDocuments, defaultMessage,
       status: "match",
       message: `${supported.length} value${supported.length === 1 ? "" : "s"} found. All already match your saved prices and costs.`,
       changes,
@@ -38,7 +41,7 @@ export function documentReview({ sources, draft }: { sources: DocumentReviewSour
   return {
     activeDocuments,
     historyDocuments,
-    defaultMessage,
+    manageableDocuments, defaultMessage,
     status: "differences",
     message: `${changes.length} change${changes.length === 1 ? "" : "s"} found.`,
     changes,

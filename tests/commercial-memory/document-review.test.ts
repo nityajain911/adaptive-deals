@@ -27,6 +27,11 @@ describe("document review", () => {
     expect(view.defaultMessage).toBe("Your offers use prices and costs from 2 active business documents.");
   });
 
+  it("keeps an active uploaded document manageable without putting bundled active sources in history", () => {
+    const view = documentReview({ sources: [...sources, { id: "upload", title: "October rates", status: "active", uploaded: true }] });
+    expect(view.manageableDocuments.map((source) => source.title)).toEqual(["Old rate card", "Withdrawn cost sheet", "October rates"]);
+  });
+
   it("shows a compact match result when every supported value already matches", () => {
     const view = documentReview({ sources, draft: draft([proposal(), proposal({ id: "p2", field: "services.search-marketing.listPricePaise" })]) });
     expect(view.status).toBe("match");

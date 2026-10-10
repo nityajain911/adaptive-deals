@@ -26,7 +26,7 @@ export default defineConfig({
     {
       // Default remains the production Turbopack build. The explicit fallback is for restricted
       // runners that forbid the local port Turbopack's PostCSS worker opens during compilation.
-      command: process.env.ADAPTIVE_E2E_WEBPACK === "1" ? "npx next build --webpack && npx next start -p 3200" : "npx next build && npx next start -p 3200",
+      command: process.env.ADAPTIVE_E2E_WEBPACK === "1" ? "node e2e/prepare-test-data.mjs && npx next build --webpack && npx next start -p 3200" : "node e2e/prepare-test-data.mjs && npx next build && npx next start -p 3200",
       // Readiness must not render a stateful route before the first test can reset its isolated store.
       url: "http://localhost:3200/sample-documents/pinecone-rate-card-oct-2026.csv",
       timeout: 300_000,
@@ -34,7 +34,7 @@ export default defineConfig({
       env: { ...NO_KEYS, ADAPTIVE_DEALS_DATA_DIR: ".data-e2e", ADAPTIVE_DEALS_DEMO_RUN: "synthetic" },
     },
     {
-      command: "node e2e/wait-for-primary.mjs http://localhost:3200/deals && npx next start -p 3201",
+      command: "node e2e/wait-for-primary.mjs http://localhost:3200/sample-documents/pinecone-rate-card-oct-2026.csv && npx next start -p 3201",
       url: "http://localhost:3201/sample-documents/pinecone-rate-card-oct-2026.csv",
       timeout: 300_000,
       reuseExistingServer: process.env.E2E_REUSE === "1",

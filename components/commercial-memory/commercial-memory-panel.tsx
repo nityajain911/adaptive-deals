@@ -183,10 +183,10 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
         })}>{pending ? "Reading…" : "Fill in from my documents"}</Button>
       </div>
 
-      {review.historyDocuments.length ? <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
+      {review.manageableDocuments.length ? <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
         <summary className="cursor-pointer text-[13px] font-semibold text-ink">Document history</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {review.historyDocuments.map((source) => <div key={source.id} className="rounded-lg border border-line bg-surface px-3 py-2"><div className="text-[13px] font-medium text-ink">{source.title}</div><div className="mt-0.5 text-[12px] capitalize text-muted">{source.uploaded ? "Uploaded by you" : "Sample document"} · {source.status === "superseded" ? "replaced" : source.status}</div></div>)}
+          {review.manageableDocuments.map((source) => <div key={source.id} className="rounded-lg border border-line bg-surface px-3 py-2"><div className="flex items-start justify-between gap-3"><div><div className="text-[13px] font-medium text-ink">{source.title}</div><div className="mt-0.5 text-[12px] capitalize text-muted">{source.uploaded ? "Uploaded by you" : "Sample document"} · {source.status === "superseded" ? "replaced" : source.status}</div></div>{source.uploaded && source.status === "active" ? <Button className="shrink-0" data-testid={`memory-withdraw-${source.id}`} disabled={pending} onClick={() => void run(async () => { await call({ action: "withdraw_memory_source", sourceId: source.id }); setDraft(null); router.refresh(); })}>Remove</Button> : null}</div></div>)}
         </div>
       </details> : null}
 
