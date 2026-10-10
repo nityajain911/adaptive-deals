@@ -126,7 +126,7 @@ test("commercial memory · the offer connects buyer words, merchant evidence and
   await page.goto("/deals/hero/offer");
   const evidence = page.getByTestId("recommendation-evidence");
   await evidence.locator("summary").click();
-  await expect(evidence).toContainText("Buyer said");
+  await expect(evidence).toContainText("Buyer message");
   await expect(evidence).toContainText("Pinecone 2026 rate card");
   await expect(evidence).toContainText("The engine checked");
   await page.getByTestId("reviewer-menu-toggle").click();

@@ -53,7 +53,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     return { q, draft, reply, answer };
   });
 
-  const evidenceDetails = <div className="mt-3" data-walkthrough="constraint-evidence"><SourceDecisionTrace traces={sourceTraces} /></div>;
+  const evidenceDetails = <div className="mt-3" data-testid="see-evidence" data-walkthrough="constraint-evidence"><SourceDecisionTrace traces={sourceTraces} /></div>;
 
   if (!current && !firstLook) {
     return (

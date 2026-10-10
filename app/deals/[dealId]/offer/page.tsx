@@ -197,11 +197,21 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
   const knowledgeSources = await loadKnowledgeSources();
-  const sourceTraces = sourceTracesForDeal({
+  const allSourceTraces = sourceTracesForDeal({
     profile: s.run.record.engine.profile,
     messages: s.run.record.inputs.messages,
     documentDraft: buildEconomicsEvidenceDraft(pinned, knowledgeSources, "2026-10-08"),
     documentSources: knowledgeSources,
+  });
+  const includedNames = new Set(x.structure.scope.map((item) => deal.packages.find((service) => service.id === item.packageId)?.name));
+  const relevantBuyerLabels = new Set(["Budget now", "Buyer approval limit", "Required packages"]);
+  const seenTrace = new Set<string>();
+  const sourceTraces = allSourceTraces.filter((trace) => {
+    const relevant = trace.sourceKind === "buyer_message" ? relevantBuyerLabels.has(trace.derivedLabel) : [...includedNames].some((name) => name && trace.derivedLabel.startsWith(name));
+    const key = `${trace.sourceKind}:${trace.derivedLabel}:${trace.quote}`;
+    if (!relevant || seenTrace.has(key)) return false;
+    seenTrace.add(key);
+    return true;
   });
   const alt = isLeader ? view.withinApprovalAlternative : null;
   const leaderNote = isLeader && x.approval === "requires_approval" ? (
