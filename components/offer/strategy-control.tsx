@@ -17,7 +17,7 @@ export const STRATEGY_HELP: Record<StrategyId, string> = {
  * How the feasible offers are ranked for this deal. It only re-orders offers the engine already
  * approved; it never adds one or relaxes a rule. Native radio inputs, so the arrow keys work.
  */
-export function StrategyControl({ current, disabled = false }: { current: StrategyId; disabled?: boolean }) {
+export function StrategyControl({ current, disabled = false, resultNote = null }: { current: StrategyId; disabled?: boolean; resultNote?: string | null }) {
   const { run, pending, error } = useAction();
   // Show the choice at once; the page re-renders with the server's answer, and a refusal puts the old choice back.
   const [chosen, setChosen] = useState<StrategyId>(current);
@@ -36,6 +36,7 @@ export function StrategyControl({ current, disabled = false }: { current: Strate
           </label>
         ))}
       </div>
+      {resultNote ? <p className="mt-2 text-[14px] leading-5 text-ink-2" role="status" data-testid="priority-result-note">{resultNote}</p> : null}
       <ErrorText error={error} />
     </fieldset>
   );

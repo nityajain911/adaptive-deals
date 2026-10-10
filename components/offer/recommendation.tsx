@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
 import { MoneySplit } from "./money-split";
+import { OfferPaymentSchedule } from "./payment-schedule";
 import { DealTransformationCard } from "./deal-transformation";
 import { ApprovalBadge } from "../structure-card";
 import { Badge } from "../ui";
@@ -79,9 +80,7 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
             <div className="tabular text-[30px] font-bold tracking-tight text-ink" data-testid="offer-total">
               {formatINR(total)} <span className="text-[14px] font-medium text-muted">including GST</span>
             </div>
-            <div className="text-[14px] text-ink-2" data-testid="offer-payments">
-              {x.structure.payments.length === 1 ? "One payment" : `${x.structure.payments.length} payments`}: {x.structure.payments.map((p) => `${formatINR(p.totalPaise)} on ${formatDate(p.dueDate)}`).join(", ")}
-            </div>
+            <OfferPaymentSchedule payments={x.structure.payments} />
             <div className="mt-1" data-testid="offer-approval">
               <ApprovalBadge approval={x.approval} />
             </div>

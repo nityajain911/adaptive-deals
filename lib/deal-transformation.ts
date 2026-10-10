@@ -1,6 +1,7 @@
 import type { DealBaseline } from "@/domain/deal-baseline";
 import type { EvaluatedStructure } from "@/domain/engine";
 import type { ServicePackage } from "@/domain/types";
+import { formatDate } from "@/domain/dates";
 
 export type TransformationChange = "scope" | "timing" | "payment_split" | "approval";
 
@@ -37,13 +38,13 @@ export function dealTransformation(args: {
   const original = {
     totalPaise: args.baseline.quotedTotalPaise,
     scopeLabel: scopeLabel(args.baseline.quotedScope, args.packages),
-    durationLabel: `${monthLabel(originalMonths)} · ${originalPayments} payment${originalPayments === 1 ? "" : "s"}`,
+    durationLabel: `${args.originalStartDate ? `Starts ${formatDate(args.originalStartDate)} · ` : ""}${monthLabel(originalMonths)} · ${originalPayments} payment${originalPayments === 1 ? "" : "s"}`,
     approvalLabel: args.originalApprovalLabel,
   };
   const adaptive = {
     totalPaise: args.offer.structure.payments.reduce((sum, payment) => sum + payment.totalPaise, 0),
     scopeLabel: scopeLabel(args.offer.structure.scope, args.packages),
-    durationLabel: `${monthLabel(adaptiveMonths)} · ${adaptivePayments} payment${adaptivePayments === 1 ? "" : "s"}`,
+    durationLabel: `Starts ${formatDate(args.offer.structure.startDate)} · ${monthLabel(adaptiveMonths)} · ${adaptivePayments} payment${adaptivePayments === 1 ? "" : "s"}`,
     approvalLabel: approvalLabel(args.offer.approval),
   };
   const changes: TransformationChange[] = [];

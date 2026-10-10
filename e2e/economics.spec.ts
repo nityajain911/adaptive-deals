@@ -342,6 +342,34 @@ test("strategies · rows that lead with the same offer say so", async ({ page })
   await expect(page.getByTestId("strategy-same-protect_contribution")).toHaveCount(0);
 });
 
+test("strategies · the main offer updates and explains priorities that share a recommendation", async ({ page }) => {
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
+  await page.getByTestId("strategy-preserve_scope").check();
+  await expect(page.getByTestId("offer-total")).toContainText("₹1,41,600");
+  await expect(page.getByTestId("priority-result-note")).toContainText("Spend the least up front");
+  await page.getByTestId("strategy-minimise_cash_exposure").check();
+  await expect(page.getByTestId("attribution")).toContainText("what matters most to you");
+  await expect(page.getByTestId("priority-result-note")).toContainText("Keep the full project");
+  await expect(page.getByTestId("offer-total")).toContainText("₹1,41,600");
+});
+
+test("offer · twelve instalments have a compact summary with an exact expandable schedule", async ({ page }) => {
+  await api(page, { action: "select_option", structureId: "deferred_start:start=2027-05-01,plan=monthly_12" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-payments")).toContainText("12 monthly payments of ₹11,800");
+  await expect(page.getByTestId("deal-transformation")).toContainText("Starts 1 May 2027");
+  const schedule = page.getByTestId("offer-payment-schedule");
+  await expect(schedule).not.toHaveAttribute("open", "");
+  await expect(schedule.locator("ol")).toBeHidden();
+  await schedule.getByText("View payment schedule", { exact: true }).click();
+  await expect(schedule.locator("li")).toHaveCount(12);
+  await expect(schedule.locator("li").first()).toContainText("1 May 2027");
+  await expect(schedule.locator("li").last()).toContainText("1 Apr 2028");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
 // ---- Bring your own documents: CSV, pasted text and a text-based PDF ----
 
 async function openUpload(page: Page) {

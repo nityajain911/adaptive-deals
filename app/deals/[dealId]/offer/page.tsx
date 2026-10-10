@@ -23,7 +23,8 @@ import { pinnedEconomicsOf } from "@/lib/deal-context";
 import { headlineFor } from "@/lib/offer-copy";
 import { offerNarrative } from "@/lib/offer-narrative";
 import { strategyFeasibleOf } from "@/lib/service";
-import { strategyView } from "@/domain/strategy";
+import { STRATEGY_IDS, strategyView } from "@/domain/strategy";
+import { priorityResultNote } from "@/lib/priority-feedback";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 import { buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
@@ -160,7 +161,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const activeCounter = liveCounter && liveCounter.source !== "listed_offer" && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
   const selectedId = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : view.leader?.structure.id;
   const x = eligible.find((e) => e.structure.id === selectedId);
-  const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} />;
+  const priorityRows = STRATEGY_IDS.map((id) => ({ id, leaderId: strategyView(feasible, id, baseline).leader?.structure.id ?? null }));
+  const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} resultNote={selectedId === view.leader?.structure.id ? priorityResultNote(priorityRows, s.economics.strategy) : null} />;
   const pinned = await pinnedEconomicsOf(s);
   const account: OverrideAccount = {
     services: s.baseline.servicePrices.map((price) => ({ id: price.packageId, name: pinned.services.find((x) => x.id === price.packageId)?.name ?? price.packageId, costPaise: pinned.services.find((x) => x.id === price.packageId)?.directCostPaise ?? 0 })),

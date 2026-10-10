@@ -31,4 +31,11 @@ describe("deal transformation", () => {
     expect(view.changes).toEqual([]);
     expect(view.economicsChanged).toEqual({ fromVersion: 1, toVersion: 2, contributionDeltaPaise: -400_000 });
   });
+
+  it("shows the actual start dates when adapting timing without changing scope", () => {
+    const view = dealTransformation({ baseline, offer: offer(undefined, 12, "within_limit", "2027-05-01"), packages, originalApprovalLabel: "Buyer can approve", originalStartDate: "2026-11-01" });
+    expect(view.original.durationLabel).toContain("1 Nov 2026");
+    expect(view.adaptive.durationLabel).toContain("1 May 2027");
+    expect(view.changes).toContain("timing");
+  });
 });

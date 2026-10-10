@@ -1040,3 +1040,13 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Verification isolation:** The audit-render test had loaded the shared store before selecting its temporary directory. During verification it reset the user's current demo progress. Its module cache is now reset before importing the isolated service. Saved business economics were not changed; the user was informed that the current case needs restarting.
 
 **Checks:** 1,257 unit tests and 93 browser journeys pass. Typecheck, lint and build-mode release check pass. No external model call was made. Existing applicant placeholders remain outstanding.
+
+### 2026-10-10 — [Codex] Make priority ties and long payment schedules readable
+
+**Reported:** Switching the merchant priority appeared to leave the adaptive offer unchanged, and the offer displayed all twelve instalments as one long sentence.
+
+**Finding:** An isolated copy of the current Preserve Scope deal showed all four priorities selecting the same May-2027 twelve-payment offer. The equal price was a real result, not a stale calculation. The selector now explains ties in the main view using the engine-ranked leaders; merchant-selected exceptions retain their existing handling.
+
+**Presentation:** The quote-to-offer comparison now shows the actual delivery start dates. Offers with more than two payments show a compact count, monthly cadence where verified, exact amount or amount range, and date range. Every individual date and amount remains available in a closed payment-schedule disclosure. No ranking rule, cost, price or contractual term changed.
+
+**Verification:** 1,264 unit tests and 95 browser journeys pass, including priority changes, tied outcomes, and a twelve-instalment disclosure at phone width. Typecheck, lint and build-mode release check pass. Confirmed the running server renders the new feedback and schedule. No model calls were made. Applicant sections remain outstanding.
