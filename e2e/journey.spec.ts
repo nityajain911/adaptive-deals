@@ -781,8 +781,8 @@ test("accepted terms show truthful setup copy without delivery metadata or a tec
   const agreement = await prepareAccepted(page);
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("delivery-status")).toHaveCount(0);
-  await expect(page.getByTestId("schedule-pay-1")).toContainText("Payment link sent");
-  await expect(page.getByTestId("schedule-pay-2")).toContainText("Awaiting buyer setup");
+  await expect(page.getByTestId("payment-timeline")).toContainText("Payment link · ₹23,010");
+  await expect(page.getByTestId("payment-timeline")).toContainText("Automatic payment setup requested");
 
   await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
   await expect(page.getByTestId("buyer-payment-link")).toHaveText("Payment link awaiting payment");

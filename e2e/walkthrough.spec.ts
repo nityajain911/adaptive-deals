@@ -139,6 +139,7 @@ test("hide leaves the product usable and the header resumes the updated objectiv
 });
 
 test("restart warns and atomically returns to case selection", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await reset(page);
   await startCase(page);
   await api(page, { action: "send_questions" });
