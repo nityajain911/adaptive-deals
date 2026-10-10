@@ -65,7 +65,7 @@ describe("walkthrough state comes from the deal", () => {
     const view = resolve(fresh, p);
     expect(view.currentObjectiveId).toBe("choose_case");
     expect(view.currentAction).toMatchObject({ actor: "merchant", href: "/deals" });
-    expect(view.stepLabel).toBe("Step 2 of 5"); // economics is now step 1 of the core journey
+    expect(view.stepLabel).toBe("Step 2 of 6"); // economics is now step 1 of the core journey
     expect(view.completedObjectiveIds).toContain("business_economics");
   });
 
@@ -73,7 +73,7 @@ describe("walkthrough state comes from the deal", () => {
     const p = await svc.progressOf(fresh);
     const view = walkthroughView({ state: fresh, progress: p, dealId: "hero", capabilities: walkthroughCapabilities(), route: "economics" });
     expect(view.currentObjectiveId).toBe("business_economics");
-    expect(view.stepLabel).toBe("Step 1 of 5");
+    expect(view.stepLabel).toBe("Step 1 of 6");
     expect(view.currentAction).toMatchObject({ actor: "merchant", href: "/economics", systemAction: null, productLabel: "Review changes" });
     expect(view.provenance).toBe("merchant");
     // Once a case has started, the same page no longer claims the economics step.
@@ -92,7 +92,7 @@ describe("walkthrough state comes from the deal", () => {
     ["understand.scope", "understand", "merchant", "understand_buyer", "merchant"],
     ["offer.review", "offer", "merchant", "review_decision", "merchant"],
     ["track.sent_awaiting_buyer", "track", "buyer", "confirm_terms", "buyer"],
-    ["track.buyer_setup", "track", "buyer", "setup_collection", "system"],
+    ["track.buyer_setup", "track", "buyer", "confirm_terms", "system"],
   ] as const)("maps %s to its learning objective and action actor", (rule, stage, progressActor, objective, actionActor) => {
     const view = resolve(started(), progress(rule, stage, progressActor, progressActor === "merchant" ? "action_required" : "waiting_on_buyer"));
     expect(view.currentObjectiveId).toBe(objective);
@@ -104,17 +104,17 @@ describe("walkthrough state comes from the deal", () => {
     state.conversation.push({ id: "msg-price", kind: "change_request", from: "buyer", text: "Lower?", at: "2026-10-01T10:00:00+05:30", refs: { topic: "price" } } as unknown as DemoState["conversation"][number]);
     const view = resolve(state, progress("track.buyer_request", "track", "merchant", "action_required"));
     expect(view.currentObjectiveId).toBe("negotiate_price");
-    expect(view.stepLabel).toBe("Explore another product capability");
+    expect(view.stepLabel).toBe("Optional exploration");
     expect(JSON.stringify(view.objectives.find((x) => x.id === "negotiate_price"))).toMatch(/never saves your prices or sends an offer/);
     // A change request about anything else keeps its previous mapping.
     expect(resolve(started(), progress("track.buyer_request", "track", "merchant", "action_required")).currentObjectiveId).not.toBe("negotiate_price");
   });
 
-  it("keeps preventive depth out of the core step count", () => {
+  it("keeps only optional explorations outside the six-step core", () => {
     const view = resolve(started(), progress("track.next_payment", "track", null, "informational"));
     expect(view.currentObjectiveId).toBe("preventive_restructure");
-    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["setup_collection", "preventive_restructure", "negotiate_price"]); // negotiate_price was added with the corridor
-    expect(view.stepLabel).toBe("Explore another product capability");
+    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["no_fit", "negotiate_price"]);
+    expect(view.stepLabel).toBe("Step 6 of 6");
   });
 
   it("keeps migration review at the last stage supported by the records", () => {
@@ -148,7 +148,7 @@ describe("capability and outcome honesty", () => {
     expect([...walkthroughCapabilities()]).toEqual(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation"]);
     const view = resolve(started(), await svc.progressOf(fresh));
     expect(view.objectives.map((x) => x.capability)).not.toEqual(expect.arrayContaining(["live_customisation", "test_invoice"]));
-    expect(view.stepLabel).toBe("Step 3 of 5");
+    expect(view.stepLabel).toBe("Step 3 of 6");
   });
 
   it("contains no copied commercial output", async () => {

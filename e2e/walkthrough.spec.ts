@@ -62,15 +62,15 @@ test("first visit starts at case selection and deliberate selection advances to 
   await page.getByTestId("start-walkthrough").click();
   // The guide opens on the merchant's own inputs: the business economics.
   await expect(page).toHaveURL(/\/economics$/);
-  await expect(guide(page)).toContainText("STEP 1 OF 5");
+  await expect(guide(page)).toContainText("STEP 1 OF 6");
   await expect(guide(page)).toContainText("Set your prices & costs");
   await guide(page).getByRole("button", { name: "Continue: choose a buyer situation" }).click();
   await expect(page).toHaveURL(/\/deals$/);
-  await expect(guide(page)).toContainText("STEP 2 OF 5");
+  await expect(guide(page)).toContainText("STEP 2 OF 6");
   await page.getByTestId("select-case-reduced-scope").click();
   await page.getByTestId("start-selected-case").click();
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
-  await expect(guide(page)).toContainText("STEP 3 OF 5");
+  await expect(guide(page)).toContainText("STEP 3 OF 6");
   await expect(guide(page)).toContainText("Understand the buyer");
 });
 
@@ -80,7 +80,7 @@ test("guide completes the core journey while every merchant decision stays in th
   await page.goto("/deals/hero/understand");
   await openGuide(page);
 
-  await expect(guide(page)).toContainText("Merchant action");
+  await expect(guide(page)).toContainText("Your turn");
   await productPrimary(page);
   await expect(guide(page).getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-gst-yes");
   await guide(page).locator("[data-walkthrough-primary]").click();
@@ -90,21 +90,25 @@ test("guide completes the core journey while every merchant decision stays in th
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/offer$/);
-  await expect(guide(page)).toContainText("STEP 4 OF 5");
+  await expect(guide(page)).toContainText("STEP 4 OF 6");
   await productPrimary(page);
   await expect(page).toHaveURL(/\/offer\/preview$/);
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Approve and send to buyer");
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/track$/);
-  await expect(guide(page)).toContainText("STEP 5 OF 5");
+  await expect(guide(page)).toContainText("STEP 5 OF 6");
   await expect(guide(page).locator("[data-walkthrough-primary]")).toContainText("Take me there");
   await guide(page).locator("[data-walkthrough-primary]").click();
   await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
   await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
   await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
-  await expect(guide(page)).toContainText(/Explore another product capability/i);
+  await expect(guide(page)).toContainText("STEP 5 OF 6");
+  await page.goto("/deals/hero/track");
+  await guide(page).locator("[data-walkthrough-primary]").click();
+  await guide(page).locator("[data-walkthrough-primary]").click();
+  await expect(guide(page)).toContainText("STEP 6 OF 6");
 });
 
 test("route changes and reload preserve the domain-derived objective and Take me there restores focus", async ({ page }) => {
@@ -131,7 +135,7 @@ test("hide leaves the product usable and the header resumes the updated objectiv
   await expect(guide(page)).toHaveCount(0);
   await productPrimary(page);
   await clickReviewer(page, "walkthrough-launcher");
-  await expect(guide(page)).toContainText("Buyer action");
+  await expect(guide(page)).toContainText("Simulated buyer action");
 });
 
 test("restart warns and atomically returns to case selection", async ({ page }) => {
@@ -143,7 +147,7 @@ test("restart warns and atomically returns to case selection", async ({ page }) 
   page.once("dialog", (dialog) => dialog.accept());
   await guide(page).getByRole("button", { name: "Restart" }).click();
   await expect(page).toHaveURL(/\/economics$/);
-  await expect(guide(page)).toContainText("STEP 1 OF 5");
+  await expect(guide(page)).toContainText("STEP 1 OF 6");
   expect(state().events.some((event) => event.kind === "case_started")).toBe(false);
 });
 
@@ -238,18 +242,32 @@ test("simulated buyer and system controls are violet and labelled, and the buyer
   await expect(guide(page).getByTestId("walkthrough-consequence")).toContainText("Simulated system event");
 });
 
-test("the guide shows the actions inside Understand and moves along as they happen", async ({ page }) => {
+test("the guide keeps the current buyer action focused instead of repeating a stage checklist", async ({ page }) => {
   await reset(page);
   await startCase(page);
   await page.goto("/deals/hero/understand");
   await openGuide(page);
-  const items = guide(page).getByTestId("walkthrough-substeps").locator("li");
-  await expect(items).toHaveCount(3);
-  await expect(items.nth(0)).toHaveAttribute("aria-current", "step");
+  await expect(guide(page).getByTestId("walkthrough-substeps")).toHaveCount(0);
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Send 2 questions to buyer");
   await api(page, { action: "send_questions" });
   await page.reload();
-  await expect(items.nth(1)).toHaveAttribute("aria-current", "step");
-  await expect(items.nth(0)).toContainText("Send the questions");
+  await expect(guide(page).getByTestId("walkthrough-reply-choice")).toBeVisible();
+});
+
+test("1024 px uses a floating coachmark and keeps the merchant frame full width", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await reset(page);
+  await page.goto("/deals");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByTestId("start-walkthrough").click();
+  const coachmark = guide(page);
+  const box = await coachmark.boundingBox();
+  expect(box!.width).toBeCloseTo(360, 0);
+  expect(box!.height).toBeLessThan(700);
+  expect(box!.y).toBeGreaterThan(0);
+  expect(await page.evaluate(() => getComputedStyle(document.body).paddingRight)).toBe("0px");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
 test("the walkthrough ends with a summary and a way to try another case", async ({ page }) => {

@@ -114,25 +114,14 @@ const REGISTRY: readonly WalkthroughObjective[] = [
   },
   {
     id: "confirm_terms",
-    actor: "merchant",
-    title: "Confirm the exact terms",
-    instruction: "Both sides approve the same version of the terms.",
-    notice: "You and the buyer agree to exactly the same terms.",
+    actor: "buyer",
+    title: "Buyer accepts and collection begins",
+    instruction: "Let the buyer accept the exact offer, then see the collection setup.",
+    notice: "The buyer accepts the same terms you sent. Collection starts only after that.",
     href: "/deals/:dealId/track",
     anchorId: "final-terms",
     optional: false,
     capability: "current_offer",
-  },
-  {
-    id: "setup_collection",
-    actor: "system",
-    title: "Set up collection",
-    instruction: "Simulate the buyer setting up payment.",
-    notice: "Collection starts only after the buyer accepts the terms.",
-    href: "/deals/:dealId/track",
-    anchorId: "collection-setup",
-    optional: true,
-    capability: "preventive_depth",
   },
   {
     id: "preventive_restructure",
@@ -142,8 +131,19 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     notice: "The app checks the new schedule before either side agrees.",
     href: "/deals/:dealId/track",
     anchorId: "collection-setup",
-    optional: true,
+    optional: false,
     capability: "preventive_depth",
+  },
+  {
+    id: "no_fit",
+    actor: "engine",
+    title: "Explore when no offer fits",
+    instruction: "See why the buyer's request cannot be offered within your current rules.",
+    notice: "No offer is recommended when the buyer's needs and your rules do not safely fit together.",
+    href: "/deals/:dealId/offer",
+    anchorId: "commercial-recommendation",
+    optional: true,
+    capability: "current_offer",
   },
   {
     id: "negotiate_price",
@@ -225,11 +225,12 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
 
 function objectiveFor(progress: DealProgress, state: DemoState): string {
   if (progress.rule === "track.buyer_request" && state.conversation.some((m) => m.kind === "change_request" && m.refs?.topic === "price")) return "negotiate_price";
+  if (progress.rule === "offer.no_feasible") return "no_fit";
   if (progress.rule === "review.required") return progress.stage === "understand" ? "understand_buyer" : "review_decision";
   if (progress.rule.startsWith("understand.")) return "understand_buyer";
   if (progress.rule.startsWith("offer.")) return "review_decision";
   if (progress.rule === "track.sent_awaiting_buyer" || progress.rule === "track.terminal") return "confirm_terms";
-  if (progress.rule === "track.buyer_setup") return "setup_collection";
+  if (progress.rule === "track.buyer_setup") return "confirm_terms";
   return "preventive_restructure";
 }
 
@@ -288,7 +289,8 @@ function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProven
   if (objectiveId === "understand_buyer") return runProvenance(state);
   if (objectiveId === "review_decision") return "deterministic_engine";
   if (objectiveId === "confirm_terms") return "merchant";
-  if (objectiveId === "setup_collection" || objectiveId === "preventive_restructure") return "simulated_buyer";
+  if (objectiveId === "preventive_restructure") return "simulated_buyer";
+  if (objectiveId === "no_fit") return "deterministic_engine";
   if (objectiveId === "negotiate_price") return "merchant";
   return null;
 }
@@ -301,7 +303,7 @@ export function walkthroughView({ state, progress, dealId, capabilities, route }
   const completedObjectiveIds = objectives.slice(0, Math.max(0, currentIndex)).map((item) => item.id);
   const core = objectives.filter((item) => !item.optional);
   const coreIndex = core.findIndex((item) => item.id === currentObjectiveId);
-  const stepLabel = coreIndex >= 0 ? `Step ${coreIndex + 1} of ${core.length}` : "Explore another product capability";
+  const stepLabel = coreIndex >= 0 ? `Step ${coreIndex + 1} of ${core.length}` : "Optional exploration";
   const caseAction: WalkthroughAction = {
     id: "choose_case",
     actor: "merchant",

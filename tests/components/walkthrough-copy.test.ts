@@ -47,7 +47,7 @@ const view: WalkthroughView = {
   terminalOutcome: null,
   provenance: "recorded_model",
   provenanceLabel: "Recorded Groq output",
-  stepLabel: "Step 2 of 4",
+  stepLabel: "Step 2 of 6",
   subSteps: null,
   finish: null,
 };
@@ -55,14 +55,15 @@ const view: WalkthroughView = {
 describe("buildathon walkthrough presentation", () => {
   const base = { primaryDisabled: false, onPrimary: () => undefined, onBack: () => undefined, onNext: () => undefined, onHide: () => undefined, onRestart: () => undefined };
 
-  it("shows one focused instruction, actor and trust explanation", () => {
+  it("shows one focused value sentence, action and source disclosure", () => {
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
     expect(html).toContain("DEMO WALKTHROUGH");
     expect(html).toContain("STEP 2 OF 2");
     expect(html).toContain("Understand the buyer");
     expect(html).toContain("Review the extracted constraints and evidence.");
-    expect(html).toContain("What to notice");
-    expect(html).toContain("Merchant action");
+    expect(html).not.toContain("What to notice");
+    expect(html).toContain("How this step is sourced");
+    expect(html).toContain("AI analysis");
     expect(html).toContain("Recorded Groq output");
     expect(html).not.toMatch(/₹|contribution|invoice_[A-Za-z0-9]|model confidence/i);
   });
@@ -86,14 +87,13 @@ describe("buildathon walkthrough presentation", () => {
     expect(html).toContain("on the buyer&#x27;s page");
   });
 
-  it("shows the actions inside the stage and where the person is", () => {
+  it("keeps stage substeps out of the focused walkthrough panel", () => {
     const withSteps: WalkthroughView = { ...view, subSteps: [{ label: "Send the questions", state: "done" }, { label: "Buyer answers", state: "current" }, { label: "Use the answers", state: "todo" }] };
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: withSteps, displayedObjectiveId: "understand_buyer", primaryLabel: null }));
-    expect(html).toContain('aria-label="Actions in this step"');
-    expect(html).toContain('aria-current="step"');
-    expect(html).toMatch(/Send the questions<span class="sr-only"> \(done\)/);
-    expect(html).toMatch(/Buyer answers<span class="sr-only"> \(now\)/);
-    expect(html).toMatch(/Use the answers<span class="sr-only"> \(later\)/);
+    expect(html).not.toContain('aria-label="Actions in this step"');
+    expect(html).not.toContain("Send the questions");
+    expect(html).not.toContain("Buyer answers");
+    expect(html).not.toContain("Use the answers");
   });
 
   it("ends with a summary and a way to try another case, and no further action", () => {
@@ -165,7 +165,7 @@ describe("buildathon walkthrough presentation", () => {
       onHide: () => undefined,
       onRestart: () => undefined,
     }));
-    expect(html).toContain("Simulated system action");
+    expect(html).toContain("AI analysis");
     expect(html).toContain("Simulated system event · buyer pays the upfront link");
   });
 });

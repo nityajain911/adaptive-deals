@@ -150,7 +150,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const currentIndex = view.objectives.findIndex((item) => item.id === view.currentObjectiveId);
 
   return (
-    <aside className={`walkthrough-shell fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t border-line bg-surface shadow-[0_-10px_35px_rgba(16,24,40,0.16)] ${mobileExpanded ? "max-h-[62dvh]" : "max-h-[64px]"} md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[360px] md:border-l md:border-t-0`} role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
+    <aside className={`walkthrough-shell fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t border-line bg-surface shadow-[0_-10px_35px_rgba(16,24,40,0.16)] ${mobileExpanded ? "max-h-[62dvh]" : "max-h-[64px]"} md:inset-x-auto md:bottom-5 md:right-5 md:w-[360px] md:max-h-[min(640px,calc(100dvh-2.5rem))] md:rounded-2xl md:border xl:inset-y-0 xl:bottom-auto xl:right-0 xl:max-h-none xl:rounded-none xl:border-l xl:border-t-0`} role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
       <button
         type="button"
         className="flex h-16 w-full items-center justify-between gap-3 px-4 text-left md:hidden"
@@ -169,7 +169,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
         </span>
         {mobileExpanded ? <ChevronDown aria-hidden className="h-5 w-5 shrink-0 text-muted" /> : <ChevronUp aria-hidden className="h-5 w-5 shrink-0 text-muted" />}
       </button>
-      <div id="walkthrough-content" className={`${mobileExpanded ? "block h-[calc(62dvh-64px)]" : "hidden"} md:block md:h-full`}>
+      <div id="walkthrough-content" className={`${mobileExpanded ? "block h-[calc(62dvh-64px)]" : "hidden"} md:block md:h-[min(640px,calc(100dvh-2.5rem))] xl:h-full`}>
         <WalkthroughProgress
           view={view}
           displayedObjectiveId={displayedId}

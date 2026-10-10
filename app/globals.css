@@ -101,7 +101,7 @@ html[data-walkthrough-open][data-walkthrough-expanded] body {
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   html[data-walkthrough-open] body,
   html[data-walkthrough-open][data-walkthrough-expanded] body {
     padding-right: 360px;
