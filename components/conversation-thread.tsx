@@ -106,6 +106,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         {buyer && highlights.get(message.id)?.length ? <HighlightedText text={message.text} highlights={highlights.get(message.id)!} /> : <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{message.text}</p>}
         <div className="mt-1 text-right text-[13px] text-muted">{fmtTime(message.timestamp)}</div>
       </>,
+      { id: `source-${message.id}`, tabIndex: "-1" },
     );
   };
 

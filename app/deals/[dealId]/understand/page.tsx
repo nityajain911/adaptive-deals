@@ -10,10 +10,11 @@ import { loadDeal, stageHref } from "@/lib/deal-page";
 import { originalProposalOf } from "@/lib/deal-context";
 import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
-import { branchChangedAnswers } from "@/lib/decision-branch";
 import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RelevantHistory } from "@/components/commercial-memory/deal-evidence";
+import { SourceDecisionTrace } from "@/components/evidence/source-decision-trace";
+import { sourceTracesForDeal } from "@/lib/source-trace";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -40,7 +41,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const scope = s.decisionBranch?.scope ?? null;
   const packages = activeCase.deal.packages;
   const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} /> : null;
-  const evidence = r.engine.profile.filter((f) => f.evidence.length);
+  const sourceTraces = sourceTracesForDeal({ profile: r.engine.profile, messages: r.inputs.messages });
   const answers = decisionAnswers(s);
   const primary = current ? progress.primaryAction : null;
   const memory = commercialMemoryForDeal({ merchantId: activeCase.deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: packages.map((item) => item.id) }, await loadKnowledgeSources());
@@ -52,29 +53,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     return { q, draft, reply, answer };
   });
 
-  const evidenceDetails = (
-    <details className="mt-3 rounded-xl border border-line bg-surface-muted px-4 py-2" data-testid="see-evidence" data-walkthrough="constraint-evidence">
-      <summary className="cursor-pointer text-[13px] font-semibold text-ink">Where this came from</summary>
-      <ul className="mt-2 space-y-2 pb-2 text-[13px] text-ink-2">
-        <li>
-          <span className="font-semibold text-ink">Your quote</span> · ₹1,20,000 for the year + 18% GST = ₹1,41,600
-        </li>
-        {evidence.map((f) => (
-          <li key={f.key}>
-            <span className="font-semibold text-ink">{f.label}</span> · The buyer wrote: {[...new Set(f.evidence.map((e) => e.quote))].map((q) => `“${q}”`).join(" ")}
-            {f.confirmedBy ? ` · confirmed in a clarification reply` : ""}
-          </li>
-        ))}
-        {s.decisionBranch && branchChangedAnswers(s.decisionBranch)
-          ? answers.map((answer) => (
-              <li key={`branch-${answer.questionId}`}>
-                <span className="font-semibold text-ink">Changed clarification · {answer.questionId}</span> · The buyer said: “{answer.answerText}”
-              </li>
-            ))
-          : null}
-      </ul>
-    </details>
-  );
+  const evidenceDetails = <div className="mt-3" data-walkthrough="constraint-evidence"><SourceDecisionTrace traces={sourceTraces} /></div>;
 
   if (!current && !firstLook) {
     return (

@@ -27,6 +27,12 @@ describe("the conversation reads as a chat", () => {
     expect(html.replace(/<[^>]+>/g, "")).toContain("I only have ₹50,000 left in this quarter");
   });
 
+  it("gives each opening message a focusable source target for decision traces", async () => {
+    const { s, html } = await render();
+    expect(html).toContain(`id="source-${s.run.record.inputs.messages[0].id}"`);
+    expect(html).toContain('tabindex="-1"');
+  });
+
   it("shows an unsent draft in the composer area, not as a sent message", async () => {
     const { s, html } = await render();
     const draft = s.conversation.find((i) => i.direction === "outbound" && !i.sentAt);
