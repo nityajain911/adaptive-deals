@@ -6,7 +6,8 @@ import { WalkthroughWelcome } from "@/components/walkthrough/welcome";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 import { allDemoCases } from "@/data/synthetic/cases";
 import { modelProvenance } from "@/lib/model-provenance";
-import { demoCaseRunRecord, getState } from "@/lib/service";
+import { OpenDealRow } from "@/components/deal/open-deal-row";
+import { demoCaseRunRecord, getState, progressOf } from "@/lib/service";
 
 export const metadata = { title: "Deals · Adaptive Deals" };
 
@@ -27,9 +28,9 @@ export default async function DealsPage() {
   }));
 
   const openDeal = allDemoCases().find((item) => item.id === s.caseId);
+  const progress = openDeal ? await progressOf(s) : null;
   const tiles: QuickTile[] = [
     { href: "/economics", label: "Prices & costs", hint: "What you charge and your limits", icon: "prices", testId: "deals-economics-link" },
-    ...(openDeal ? [{ href: "/deals/hero", label: "Your open deal", hint: openDeal.buyer.name, icon: "deal", testId: "deals-open-deal" } as QuickTile] : []),
     ...(s.agreements.length ? [{ href: "/deals/hero/track", label: "Payments", hint: "What has been collected", icon: "payments", testId: "deals-payments" } as QuickTile] : []),
   ];
 
@@ -43,6 +44,7 @@ export default async function DealsPage() {
           <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Start a deal</h1>
           <p className="mt-2 text-[14px] leading-6 text-ink-2">Pick a situation to see what the customer said and the offer we&apos;d suggest.</p>
         </div>
+        {openDeal && progress ? <div className="mt-5"><OpenDealRow buyer={openDeal.buyer.name} progress={progress} dealId="hero" /></div> : null}
         <div className="mt-5">
           <QuickTiles tiles={tiles} />
         </div>

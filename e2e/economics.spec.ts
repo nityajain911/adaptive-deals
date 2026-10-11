@@ -273,6 +273,17 @@ test("corridor · the ladder is shown, and the 5% row prepares an offer that pas
   await expect(page.locator("body")).toContainText("prices & costs, version 2 (illustrative example)", { ignoreCase: true });
 });
 
+test("corridor · the suggested counter-offer is the engine's lowest compliant total and needs no override", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await sentUnderIllustrativeLadder(page);
+  const path = page.getByTestId("path-suggested");
+  await expect(path).toContainText("Suggested counter-offer");
+  await expect(path.getByTestId("suggested-unavailable")).toHaveCount(0);
+  await path.getByTestId("offer-safe-minimum").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  expect(state().counterOffers.at(-1)!.override).toBeNull();
+});
+
 test("corridor · the buyer's page never shows the merchant's limits, and the corridor fits a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const sent = await sentUnderIllustrativeLadder(page);

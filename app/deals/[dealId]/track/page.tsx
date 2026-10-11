@@ -3,8 +3,7 @@ import { MarkHandledForm, PrimaryActionButton, RevealButton, ReviewWorkForm } fr
 import { ConversationThread } from "@/components/conversation-thread";
 import { StageShell } from "@/components/deal/stage-shell";
 import { fmtTime } from "@/components/evidence";
-import { learningEvidence } from "@/lib/learning-evidence";
-import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
+import { performanceLine, performanceView } from "@/lib/performance-view";
 import { AmendmentCard } from "@/components/track/amendment-card";
 import { PaymentTimeline } from "@/components/track/payment-timeline";
 import type { ChangeRequestDetail } from "@/domain/change-request";
@@ -12,11 +11,9 @@ import { NegotiationCorridor } from "@/components/track/negotiation-corridor";
 import { CurrentAgreement } from "@/components/track/current-agreement";
 import { InfoButton } from "@/components/info-button";
 import { Card } from "@/components/ui";
-import type { Structure } from "@/domain/structures";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { corridorFor } from "@/lib/service";
-import { isResolvingDisposition, BUYER_DECLINE_REASONS, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type MerchantCloseReason } from "@/lib/deal-records";
-import { outcomeSummary } from "@/lib/outcome";
+import { isResolvingDisposition } from "@/lib/deal-records";
 import { activeVersionOf, noticeReplyOutcome, replyNeedsExactDate, unresolvedWork } from "@/lib/views";
 import { proposalLinkOf } from "@/lib/track-links";
 import { contractFinancialView } from "@/lib/financial-view";
@@ -69,21 +66,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
   });
 
-  let shownStructure: Structure | null = null;
-  if (shown) {
-    const x = s.amendments.find((a) => a.toVersion === shown.version)?.revised ?? out.evaluation.result?.structures.find((e) => e.structure.id === shown.structureId);
-    if (x) {
-      shownStructure = x.structure;
-    }
-  }
-
-  const summary = outcomeSummary({
-    s,
-    acceptedStructure: shown?.buyerAcceptance ? shownStructure : null,
-    policy: deal.merchant.policy,
-    now,
-    timeZone: deal.merchant.timeZone,
-  });
+  const outcomeLine = performanceLine(performanceView({ s, out, deal, now }).summary);
   const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
   const agreementSummary = shown && financial
     ? currentAgreementSummary({
@@ -103,19 +86,6 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const priceRequestId = priceRequest?.sourceId ?? null;
   const corridor = priceRequest ? await corridorFor({}).catch(() => null) : null;
   const mcpView = await mcpCollectionView();
-  const outcomeSignals: OutcomeSignal[] = s.outcomes.map((o) => {
-    let label: string;
-    if (o.type === "buyer_accepted") label = `Buyer accepted version ${o.version}`;
-    else if (o.type === "buyer_requested_change") label = `Buyer requested a change to version ${o.version}`;
-    else if (o.type === "buyer_declined") label = `Buyer declined${o.reasonCode ? ` · ${BUYER_DECLINE_REASONS[o.reasonCode as BuyerDeclineReason]}` : ""}`;
-    else if (o.type === "merchant_closed") label = `Merchant closed the deal${o.reasonCode ? ` · ${MERCHANT_CLOSE_REASONS[o.reasonCode as MerchantCloseReason]}` : ""}`;
-    else label = "Merchant selected an alternative offer";
-    return { id: o.id, label, at: o.at };
-  });
-  for (const e of s.events.filter((x) => ["payment_succeeded", "debit_failed", "payment_rescheduled"].includes(x.kind))) {
-    outcomeSignals.push({ id: e.id, label: e.title, at: e.at });
-  }
-  outcomeSignals.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 
   return (
     <StageShell dealId={dealId} viewing="track">
@@ -136,26 +106,22 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
               </Link>
             ) : null}
             {latestDelivered && !shown?.buyerAcceptance ? (
-              <span className="inline-flex items-center gap-1 text-[13px] text-muted" data-testid="delivery-status">
-                Sent to the buyer
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium text-green" data-testid="delivery-status">
+                <span aria-hidden className="h-2 w-2 rounded-full bg-green" />
+                Sent to {activeCase.buyer.name} at {fmtTime(latestDelivered.deliveredAt!)}
                 <InfoButton label="About this delivery">
                   Sent {fmtTime(latestDelivered.deliveredAt!)} on WhatsApp (simulated). Version {latestDelivered.version}.
                 </InfoButton>
               </span>
             ) : null}
+            <Link href="/deals" className="ml-auto inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-surface-muted" data-testid="return-to-deals">
+              Return to deals
+            </Link>
           </div>
         </Card>
         </div>
 
-        {agreementSummary ? (
-          <details open={!hasAction} className="group" data-testid="track-agreement-details" data-walkthrough="final-terms">
-            <summary className="cursor-pointer rounded-xl border border-line bg-surface px-5 py-3 text-[15px] font-semibold text-ink group-open:hidden">Agreed deal</summary>
-            <CurrentAgreement summary={agreementSummary} />
-          </details>
-        ) : null}
-        {shown ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
-
-        {shown?.buyerAcceptance && (mcpView.connection.connected || mcpView.intent || mcpView.receipt) ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
+        <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} compact={4} />
 
         {workItems.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
@@ -168,7 +134,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   {item.note ? <div className="mt-1 text-ink-2">Your note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   
                   {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={item.sourceId} buyerRequest={item.text} requested={structuredPrice(s.conversation.find((m) => m.id === item.sourceId)?.refs.request)} /> : null}
-                  <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />
+                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? null : <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />}
                 </li>
               ))}
             </ul>
@@ -203,15 +169,21 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
         ) : null}
 
 
-        <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-outcome-details">
-          <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">What has happened so far</summary>
-          <OutcomeCard summary={summary} signals={outcomeSignals} learning={learningEvidence({ selectedOption: s.selectedOption, counterOffers: s.counterOffers, economics: s.economics, agreements: s.agreements, amendments: s.amendments, changeRequests: s.changeRequests, collectedPaise: summary.collected.totalPaise })} />
-        </details>
+        {agreementSummary ? (
+          <details open={!hasAction} className="group" data-testid="track-agreement-details" data-walkthrough="final-terms">
+            <summary className="cursor-pointer rounded-xl border border-line bg-surface px-5 py-3 text-[15px] font-semibold text-ink group-open:hidden">Agreed deal</summary>
+            <CurrentAgreement summary={agreementSummary} />
+          </details>
+        ) : null}
+        {shown ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
 
-        <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="track-conversation-details">
-          <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">Messages with the buyer</summary>
-          <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} />
-        </details>
+        {shown?.buyerAcceptance && (mcpView.connection.connected || mcpView.intent || mcpView.receipt) ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
+
+
+        <Link href={`/deals/${dealId}/performance`} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-5 py-3 text-[15px] hover:border-[#c7d3ff]" data-testid="track-outcome-link">
+          <span><span className="font-semibold text-ink">Deal outcome</span> <span className="text-ink-2">· {outcomeLine}</span></span>
+          <span className="font-semibold text-blue">See performance →</span>
+        </Link>
       </div>
     </StageShell>
   );

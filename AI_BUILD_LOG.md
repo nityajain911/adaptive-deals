@@ -1074,3 +1074,14 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **What changed:** acceptance, the inline pay step, the guided request form (price, services, date, other), the decline link, structured change requests validated against the exact sent terms, the merchant's amount form prefilled from the buyer's request, and the walkthrough handing payment to the buyer's page. **Not changed:** the engine, terms hashes, payment schedule, amendments, prompts and recordings. **Agent's pushback accepted by the applicant:** keep the attestation (it is a domain condition) and do not promise a Version 2.
 
 **Checks:** 1,281 unit tests and 100 browser journeys pass; typecheck and lint clean; no model or Razorpay call made.
+
+### 2026-10-12 — [Claude Code] Phase 2 of the UX list: merchant deal management
+
+**Asked by the applicant:** return the merchant after sending, condense the status timeline, reduce the counter-offer choices to three paths, bring the chat to the top, move analytics off the deal screen, and show a scope-adjusted "Version 2".
+
+**What changed:** a sent confirmation with a Return to deals button and a Deals status row; a horizontal status line derived from deal state; Hold firm / Suggested counter-offer / Choose your own amount; the chat above the answers; a Performance tab for outcome and learning; an honest "nothing lower fits your rules" message instead of an invented offer.
+
+**Where I disagreed and the applicant agreed:** no auto-redirect (the merchant needs the confirmation); "Suggested counter-offer", not "AI counter-offer" (code owns the money); the scope-dropping "Version 2" was not built because the engine has no approved structure below ₹46,020 for the hero case, and the applicant will change the discount limit for the demo.
+
+**Checks:** see the commit; no model or Razorpay call made.
+

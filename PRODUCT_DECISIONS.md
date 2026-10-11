@@ -456,3 +456,18 @@ The model's explanation has two parts that code validates separately: a full com
 **The wording does not promise a Version 2.** After sending: "Sent. Pinecone Media Works will review your request. This current offer remains valid until a new one is agreed upon." Before sending: "This sends your request to Pinecone Media Works. They may reply with an updated version. Nothing changes unless you both agree."
 
 **Decline is a quiet link at the very bottom** ("I'm no longer interested"), with a confirmation and the existing optional reasons.
+
+## Merchant deal management, Phase 2 (12 October 2026)
+
+**No auto-redirect after sending.** Sending a contract is high-stakes, so the merchant stays on Track and sees "Sent to {buyer} at {time}", with a **Return to deals** button. The Deals page shows the open deal as one status row (who it is with, where it stands, what happens next).
+
+**One compact status line.** The tall three-stage list is a single horizontal line (Issue understood → Offer sent → Waiting on buyer). Each label comes from the deal's recorded state, each step is a dot plus words (never colour alone), and phones also read "Step n of 3".
+
+**Three ways to answer a price request.** Hold firm, Suggested counter-offer, Choose your own amount. "Suggested", not "AI": the rules engine works out the money; the model only extracts and words. The override reason appears only when an amount breaks a rule. Handle-outside and leave-open sit under More options.
+
+**Honest when nothing fits.** If the engine has no approved offer below the current one, the suggestion says so and names the lowest ("Nothing lower than ₹46,020 is within your rules, so ₹40,000 cannot be offered"). No new offer type was added; a "drop a service" version is a deliberate non-goal for now.
+
+**The chat leads the deal screen.** The buyer's message is at the top of Track with the answers directly beneath it.
+
+**Analytics have their own tab.** "Outcome and learning" moved to **Performance**. Track keeps a one-line deal outcome that links to it, and never prints a ₹0 figure.
+

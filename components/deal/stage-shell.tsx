@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { loadDeal } from "@/lib/deal-page";
 import { AuditDrawer } from "../audit/audit-drawer";
@@ -23,6 +24,10 @@ export async function StageShell({ dealId, viewing, children }: { dealId: string
           <h1 className="text-[22px] font-bold tracking-tight text-ink sm:text-[28px]">{activeCase.buyer.name}</h1>
           <p className="mt-0.5 text-[13px] text-muted">{activeCase.proposalSummary}</p>
         </div>
+        <nav aria-label="Deal tabs" className="flex items-center gap-4 text-[14px] font-semibold">
+          <Link href="/deals" className="text-blue hover:underline" data-testid="all-deals-link">All deals</Link>
+          {progress.stages.track !== "upcoming" ? <Link href={`/deals/${dealId}/performance`} className="text-blue hover:underline" data-testid="performance-tab">Performance</Link> : null}
+        </nav>
       </div>
       <StatusBanner progress={progress} viewing={viewing} dealId={dealId} />
       {reevaluation ? <ReevaluationBanner preview={reevaluation} serviceNames={deal.packages.map((p) => p.name)} /> : null}

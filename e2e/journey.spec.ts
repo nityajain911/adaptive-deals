@@ -732,15 +732,23 @@ test("step 3 · info buttons open on click and close on Escape, and the settled 
   await expect(page.getByTestId("understand-summary")).toContainText("Budget ₹50,000 now including GST");
 });
 
-test("step 3 · Track leads with the next step, collapses the rest, and does not repeat the headline", async ({ page }) => {
+test("step 3 · Track confirms the send, offers a way back, and keeps analytics on the Performance tab", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await prepareSent(page);
   await page.goto("/deals/hero/track");
   const headline = (await page.getByTestId("status-headline").innerText()).trim();
   await expect(page.getByTestId("now-card")).not.toContainText(headline);
   await expect(page.getByTestId("now-card")).toContainText("Next step");
-  await expect(page.getByTestId("track-outcome-details")).not.toHaveAttribute("open", "");
-  await expect(page.getByTestId("track-conversation-details")).not.toHaveAttribute("open", "");
+  await expect(page.getByTestId("delivery-status")).toContainText(/Sent to .+ at /);
+  await expect(page.getByTestId("return-to-deals")).toBeVisible();
+  await expect(page.getByTestId("thread-track")).toBeVisible();
+  await expect(page.getByTestId("outcome-card")).toHaveCount(0);
+  await expect(page.getByTestId("track-outcome-link")).toContainText("Nothing collected yet");
+  await expect(page.getByTestId("track-outcome-link")).not.toContainText("₹0");
+  await page.getByTestId("return-to-deals").click();
+  await expect(page).toHaveURL(/\/deals$/);
+  await expect(page.getByTestId("open-deal-row")).toContainText("Waiting on buyer");
+  await page.goto("/deals/hero/track");
   await page.getByTestId("delivery-status").getByRole("button").click();
   await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("WhatsApp (simulated)");
 });
@@ -844,6 +852,31 @@ test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }
   await expect(page.locator("main")).not.toContainText(/permitted structures|merchant-approved template/i);
 });
 
+test("counter-offer · a price request shows three paths under the chat, and says plainly when nothing lower fits the rules", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do a lower total: 40000?", topic: "price", detail: { kind: "price", targetPaise: 4_000_000, gstBasis: "including" } });
+  await page.goto("/deals/hero/track");
+  const corridor = page.getByTestId("negotiation-corridor");
+  await expect(corridor.getByTestId("path-hold-firm")).toBeVisible();
+  await expect(corridor.getByTestId("path-suggested")).toContainText("Suggested counter-offer");
+  await expect(corridor.getByTestId("path-own-amount")).toBeVisible();
+  await expect(page.getByText(/AI counter-offer/i)).toHaveCount(0);
+  // The engine has nothing at or below the ask, so the suggestion says so instead of inventing one.
+  await expect(corridor.getByTestId("suggested-unavailable")).toContainText("cannot be offered");
+  await expect(corridor.getByTestId("offer-safe-minimum")).toHaveCount(0);
+  // The buyer's message sits above the three paths, and the rarer answers wait behind "More options".
+  const chat = await page.getByTestId("thread-track").boundingBox();
+  const decision = await corridor.boundingBox();
+  expect(chat!.y).toBeLessThan(decision!.y);
+  await expect(corridor.getByTestId("handle-outside")).toBeHidden();
+  await corridor.getByTestId("corridor-more").locator("summary").click();
+  await expect(corridor.getByTestId("handle-outside")).toBeVisible();
+  // Holding firm answers the request without sending anything new.
+  await corridor.getByTestId("keep-current-offer").click();
+  await expect(page.getByTestId("negotiation-corridor")).toHaveCount(0);
+});
+
 test("counter-offer · the merchant answers a buyer's request for a lower amount, overriding a failed rule on the record", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   const sent = await prepareSent(page);
@@ -851,7 +884,7 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await page.goto("/deals/hero/track");
   // A pending buyer request opens its card by itself.
   await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
-  await expect(page.getByTestId("negotiation-corridor")).toContainText("Decide how to answer");
+  await expect(page.getByTestId("negotiation-corridor")).toContainText("How do you want to answer?");
   await page.getByTestId("check-buyer-amount").click();
   const form = page.getByTestId("counter-form");
 
@@ -1122,7 +1155,8 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
 test("the outcome card records what the deal taught, and proposes nothing from a single deal", async ({ page }) => {
   await prepareAccepted(page);
   await page.goto("/deals/hero/track");
-  await page.getByTestId("track-outcome-details").locator(":scope > summary").click();
+  await page.getByTestId("track-outcome-link").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/performance$/);
   await expect(page.getByTestId("learning-recorded")).toContainText("Suggested offer followed · no pricing exception · buyer accepted");
   await expect(page.getByTestId("learning-decision")).toContainText("No policy change proposed.");
   await expect(page.getByTestId("learning-path")).toContainText("You approve it");
