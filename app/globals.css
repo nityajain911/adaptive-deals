@@ -101,12 +101,34 @@ html[data-walkthrough-open][data-walkthrough-expanded] body {
   }
 }
 
+@media (min-width: 768px) {
+  html[data-walkthrough-open] body,
+  html[data-walkthrough-open][data-walkthrough-expanded] body {
+    padding-right: 320px;
+    padding-bottom: 0;
+    scroll-padding-bottom: 0;
+  }
+}
+
 @media (min-width: 1280px) {
   html[data-walkthrough-open] body,
   html[data-walkthrough-open][data-walkthrough-expanded] body {
     padding-right: 360px;
-    padding-bottom: 0;
-    scroll-padding-bottom: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  html[data-walkthrough-open] [aria-label="Deal stages"] > ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  html[data-walkthrough-open] [data-testid="sticky-next"] {
+    bottom: 64px;
+  }
+  html[data-walkthrough-open][data-walkthrough-expanded] [data-testid="sticky-next"] {
+    display: none;
   }
 }
 

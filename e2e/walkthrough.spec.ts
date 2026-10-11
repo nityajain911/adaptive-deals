@@ -280,20 +280,42 @@ test("the guide keeps the current buyer action focused instead of repeating a st
   await expect(guide(page).getByTestId("walkthrough-reply-choice")).toBeVisible();
 });
 
-test("1024 px uses a floating coachmark and keeps the merchant frame full width", async ({ page }) => {
-  await page.setViewportSize({ width: 1024, height: 900 });
+test("tablet and desktop dock the walkthrough beside the product instead of covering it", async ({ page }) => {
+  for (const width of [768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await reset(page);
+    await startCase(page);
+    await page.goto("/deals/hero/understand");
+    await openGuide(page);
+    const box = (await guide(page).boundingBox())!;
+    expect(box.width).toBe(width >= 1280 ? 360 : 320);
+    const product = (await page.locator("main").boundingBox())!;
+    expect(product.x + product.width).toBeLessThanOrEqual(box.x);
+    const action = page.getByTestId("primary-action");
+    await action.scrollIntoViewIfNeeded();
+    const actionBox = (await action.boundingBox())!;
+    expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(box.x);
+    await expect(action).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  }
+});
+
+test("Show me collapses the phone guide and reveals the product action", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
   await reset(page);
-  await page.goto("/deals");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await page.getByTestId("start-walkthrough").click();
-  const coachmark = guide(page);
-  const box = await coachmark.boundingBox();
-  expect(box!.width).toBeCloseTo(360, 0);
-  expect(box!.height).toBeLessThan(700);
-  expect(box!.y).toBeGreaterThan(0);
-  expect(await page.evaluate(() => getComputedStyle(document.body).paddingRight)).toBe("0px");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await startCase(page);
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  await page.getByTestId("walkthrough-mobile-toggle").click();
+  await guide(page).locator("[data-walkthrough-show]").click();
+  await expect(page.getByTestId("walkthrough-mobile-toggle")).toHaveAttribute("aria-expanded", "false");
+  const action = page.getByTestId("primary-action");
+  await expect(action).toBeFocused();
+  await expect.poll(async () => {
+    const a = (await action.boundingBox())!;
+    const g = (await guide(page).boundingBox())!;
+    return a.y + a.height <= g.y;
+  }).toBe(true);
 });
 
 test("the walkthrough ends with a summary and a way to try another case", async ({ page }) => {

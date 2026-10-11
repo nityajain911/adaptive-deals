@@ -1058,3 +1058,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Change:** When the guide is hidden after dismissal, a visible Resume walkthrough button appears at the bottom right, outside the product frame. It opens the current domain-derived step, clears any earlier-step review selection and expands the guide on phones. It does not reset or mutate the deal. The original reviewer-menu launcher remains available.
 
 **Verification:** A browser regression failed before the change and passes afterwards. It checks hide, refresh and resume at 1440px, 1024px and 390px, including unchanged saved deal state and no horizontal overflow. All 16 walkthrough browser tests and 1,264 unit tests pass. Typecheck, lint, production browser build and build-mode release check pass. No model call was made; applicant sections remain outstanding.
+
+### 2026-10-11 — [Codex] Stop the walkthrough covering product controls
+
+**Reported:** The open walkthrough side pane covered the product. At 768–1279px it floated over the merchant frame without reserving any width.
+
+**Change:** The guide now docks beside the product from 768px, reserving 320px on tablets and 360px on larger desktops. The stage tracker stacks within the narrower tablet workspace. On phones, Show me collapses the guide before focusing the product action; sticky actions sit above the collapsed guide and are hidden while it is expanded. Closing the guide restores the full product width.
+
+**Verification:** The tablet-overlap and phone-collapse regressions failed before implementation. All 17 walkthrough checks and all 97 browser journeys now pass; the tests assert product/action bounds at 768px, 1024px and 1440px and a revealed action at phone width. All 1,264 unit tests, typecheck, lint and build-mode release checks pass. The running local product responds successfully. No external AI calls were made and the user's deal progress and existing screenshot edits were preserved. Applicant sections remain outstanding.
