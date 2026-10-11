@@ -104,7 +104,7 @@ describe("Track precedence is exhaustive (rows 1–10)", () => {
     expect(T({ changeRequests: [{ state: "change_requested", agreementVersion: 0 }] }, { nextPayment: { amountPaise: 2301000, dueDate: "2026-12-01" } }).rule).toBe("track.next_payment"); // stale excluded
     expect(T({}, { attentionMessages: 2 }).primaryAction?.label).toBe("Review 2 buyer messages");
     expect(T({}, { attentionMessages: 1 }).primaryAction?.label).toBe("Review buyer message");
-    expect(T({}, { buyerSetup: { linkUnpaid: true, mandatePending: true } }).headline).toBe("Buyer accepted. Waiting for the buyer to pay the upfront link and authorise recurring payments.");
+    expect(T({}, { buyerSetup: { linkUnpaid: true, mandatePending: true } }).headline).toBe("Buyer accepted. Waiting for the buyer to pay and set up automatic payments.");
     expect(T({}, { buyerSetup: { linkUnpaid: false, mandatePending: true } }).kind).toBe("waiting_on_buyer");
     expect(T({}, { pendingDebit: "submitted" }).kind).toBe("waiting_on_system");
     expect(T({}, { pendingDebit: { retryOn: "2026-12-04" } }).headline).toBe("Debit failed · retry scheduled for 4 Dec 2026.");

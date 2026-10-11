@@ -129,8 +129,23 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
   z.object({ action: z.literal("understand_reviewed") }),
+  z.object({ action: z.literal("buyer_complete_setup") }),
   // Buyer proposal page (demo buyer view).
-  z.object({ action: z.literal("request_change"), version: z.number().int().positive(), text: z.string().trim().min(2).max(500), topic: z.enum(["date", "scope", "price", "other"]).optional() }),
+  z.object({
+    action: z.literal("request_change"),
+    version: z.number().int().positive(),
+    // Free text, or the optional note that goes with a structured request (the server builds the message from the request).
+    text: z.string().trim().max(500).default(""),
+    topic: z.enum(["date", "scope", "price", "other"]).optional(),
+    detail: z
+      .discriminatedUnion("kind", [
+        z.object({ kind: z.literal("price"), targetPaise: z.number().int().positive().max(100_000_000_00), gstBasis: z.enum(["including", "excluding"]) }).strict(),
+        z.object({ kind: z.literal("scope"), packageIds: z.array(z.string().max(60)).max(12) }).strict(),
+        z.object({ kind: z.literal("date"), lineId: z.string().max(60), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict(),
+        z.object({ kind: z.literal("other") }).strict(),
+      ])
+      .optional(),
+  }),
   z.object({ action: z.literal("decline"), version: z.number().int().positive(), reason: z.enum(Object.keys(BUYER_DECLINE_REASONS) as [BuyerDeclineReason, ...BuyerDeclineReason[]]).optional() }),
   z.object({ action: z.literal("close_by_merchant"), reason: z.enum(Object.keys(MERCHANT_CLOSE_REASONS) as [MerchantCloseReason, ...MerchantCloseReason[]]), note: z.string().max(300).optional() }),
   z.object({ action: z.literal("mark_message_handled"), messageId: z.string().max(40), note: z.string().max(300).optional() }),
@@ -296,11 +311,14 @@ export async function POST(request: Request) {
       case "adopt_replies":
         await svc.adoptRepliesAsAnswers();
         break;
+      case "buyer_complete_setup":
+        await svc.buyerCompleteSetup();
+        break;
       case "understand_reviewed":
         await svc.markUnderstandReviewed();
         break;
       case "request_change":
-        await svc.requestChange(a.version, a.text, a.topic);
+        await svc.requestChange(a.version, a.text, a.topic, a.detail);
         break;
       case "decline":
         await svc.declineAgreement(a.version, a.reason);

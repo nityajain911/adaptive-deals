@@ -67,12 +67,14 @@ describe("buyer setup gate and explicit time", () => {
   it("cannot reach the notice while buyer setup is incomplete", async () => {
     await svc.resetToSeed();
     await driveTo(svc, (x) => x.status === "active"); // accepted: link unpaid, mandate pending
-    expect((await step())!.systemAction).toBe("pay_upfront_link");
+    // The buyer pays and sets up automatic payment on their own page; the guide only points there.
+    expect(await step()).toMatchObject({ id: "buyer_setup", type: "buyer", systemAction: null, href: "/proposal/agr-hero/v1" });
     for (const id of ["advance_to_notice", "send_notice"] as const) await expect(svc.runSystemStep(id)).rejects.toThrow(/Buyer setup is not complete/);
-    await svc.runSystemStep("pay_upfront_link");
-    expect((await step())!.systemAction).toBe("confirm_mandate");
+    await svc.simulate("payment_link_paid");
+    // Half-done setup still belongs to the buyer's page.
+    expect(await step()).toMatchObject({ id: "buyer_setup", type: "buyer", systemAction: null });
     for (const id of ["advance_to_notice", "send_notice"] as const) await expect(svc.runSystemStep(id)).rejects.toThrow(/Buyer setup is not complete/);
-    await svc.runSystemStep("confirm_mandate");
+    await svc.buyerCompleteSetup();
     expect((await step())!.systemAction).toBe("advance_to_notice");
   });
   it("time advancement is its own recorded step before the notice", async () => {
@@ -127,8 +129,7 @@ describe("canonical preventive storyboard", () => {
       "use_answers",
       "review_buyer_proposal",
       "buyer_accept",
-      "pay_upfront_link",
-      "confirm_mandate",
+      "buyer_setup",
       "advance_to_notice",
       "send_notice",
       "buyer_reply",

@@ -166,6 +166,7 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
 const PRODUCT_LABEL: Record<string, string> = {
   approve_and_send_draft: "Approve and send to buyer",
   buyer_accept: "Accept proposal",
+  buyer_setup: "Pay and set up auto-pay",
   buyer_accept_revision: "Accept revised proposal",
 };
 
@@ -177,7 +178,7 @@ function action(step: DemoStep | null, dealId: string, progress: DealProgress): 
 
 const UNDERSTAND_STEPS = ["Send the questions", "Buyer answers", "Use the answers"];
 const OFFER_STEPS = ["Choose the offer", "Preview and send"];
-const SETUP_STEPS = ["Buyer pays the upfront link", "Buyer authorises recurring payments"];
+const SETUP_STEPS = ["Buyer pays and sets up auto-pay"];
 
 const track = (labels: string[], current: number): WalkthroughSubStep[] => labels.map((label, i) => ({ label, state: i < current ? "done" : i === current ? "current" : "todo" }));
 
@@ -196,7 +197,7 @@ function subSteps(state: DemoState, progress: DealProgress): WalkthroughSubStep[
     case "offer.stale":
       return track(OFFER_STEPS, progress.rule === "offer.review" && hasDraft(state) ? 1 : 0);
     case "track.buyer_setup":
-      return track(SETUP_STEPS, state.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled") ? 0 : 1);
+      return track(SETUP_STEPS, 0);
     default:
       return null;
   }

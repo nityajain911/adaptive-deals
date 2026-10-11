@@ -58,14 +58,9 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       const v = progress.version ?? 1;
       return nav("buyer_accept", "buyer", "Next: the buyer accepts on the proposal page", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", v));
     }
-    case "track.buyer_setup": {
-      const linkUnpaid = s.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled");
-      if (linkUnpaid) {
-        const link = s.attempts.find((a) => a.method === "payment_link" && a.status === "scheduled")!;
-        return sys("pay_upfront_link", `Simulate: buyer pays the upfront link on ${formatDate(link.dueDate)}`, at("track"));
-      }
-      return sys("confirm_mandate", "Simulate: buyer authorises the mandate", at("track"));
-    }
+    case "track.buyer_setup":
+      // The buyer pays and sets up automatic payment in one step on their proposal page.
+      return nav("buyer_setup", "buyer", "Next: the buyer pays on the proposal page", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", progress.version ?? 1));
     case "track.next_payment": {
       if (s.amendments.at(-1)?.state === "active") return null; // storyboard complete
       // Complete the current notice exchange before jumping to a later instalment.

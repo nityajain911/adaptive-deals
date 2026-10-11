@@ -150,7 +150,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const yourTurn = inProduct ? { who: action!.type === "buyer" ? ("buyer" as const) : ("merchant" as const), label: action!.productLabel } : null;
   const showMe = () => {
     setMobileExpanded(false);
-    const button = document.querySelector<HTMLElement>('[data-testid="primary-action"], [data-testid="accept"]');
+    const button = document.querySelector<HTMLElement>('[data-testid="primary-action"], [data-testid="accept"], [data-testid="setup-pay"]');
     if (!button) {
       focusTarget(displayed.anchorId);
       return;

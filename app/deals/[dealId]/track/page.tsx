@@ -7,6 +7,7 @@ import { learningEvidence } from "@/lib/learning-evidence";
 import { OutcomeCard, type OutcomeSignal } from "@/components/outcome-card";
 import { AmendmentCard } from "@/components/track/amendment-card";
 import { PaymentTimeline } from "@/components/track/payment-timeline";
+import type { ChangeRequestDetail } from "@/domain/change-request";
 import { NegotiationCorridor } from "@/components/track/negotiation-corridor";
 import { CurrentAgreement } from "@/components/track/current-agreement";
 import { InfoButton } from "@/components/info-button";
@@ -25,6 +26,11 @@ import { mcpCollectionView } from "@/lib/mcp-view";
 import { paymentTimeline } from "@/lib/payment-timeline";
 
 /** Stage 3 · Track the deal (spec §6). */
+/** The amount and GST basis a buyer typed into the price form, as the merchant's amount form starts out. */
+function structuredPrice(request: ChangeRequestDetail | undefined): { amountText: string; basis: "including" | "excluding" } | undefined {
+  return request?.kind === "price" ? { amountText: String(request.targetPaise / 100), basis: request.gstBasis } : undefined;
+}
+
 export default async function TrackPage(props: PageProps<"/deals/[dealId]/track">) {
   const { dealId } = await props.params;
   const { s, out, progress, activeCase, deal, now } = await loadDeal(dealId);
@@ -161,7 +167,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                   <div className="mt-1 text-ink-2">{item.detail}</div>
                   {item.note ? <div className="mt-1 text-ink-2">Your note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   
-                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={item.sourceId} buyerRequest={item.text} /> : null}
+                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={item.sourceId} buyerRequest={item.text} requested={structuredPrice(s.conversation.find((m) => m.id === item.sourceId)?.refs.request)} /> : null}
                   <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />
                 </li>
               ))}

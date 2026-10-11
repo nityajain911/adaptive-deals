@@ -12,12 +12,13 @@ import type { CorridorView } from "@/lib/service";
 type Basis = "including" | "excluding";
 
 /** Step two and three of a merchant price decision. A check is read-only until a counter is explicitly reviewed. */
-export function CounterForm({ onDone, onBack }: { onDone: string; onBack: () => void }) {
+export function CounterForm({ onDone, onBack, initial }: { onDone: string; onBack: () => void; initial?: { amountText: string; basis: Basis } }) {
   const router = useRouter();
   const check = useAction();
   const make = useAction();
-  const [text, setText] = useState("");
-  const [basis, setBasis] = useState<Basis | null>(null);
+  // A request the buyer made with the amount form arrives with its amount and GST basis already filled in.
+  const [text, setText] = useState(initial?.amountText ?? "");
+  const [basis, setBasis] = useState<Basis | null>(initial?.basis ?? null);
   const [checked, setChecked] = useState<{ paise: number; basis: Basis; view: CorridorView } | null>(null);
   const [exceptionStep, setExceptionStep] = useState(false);
   const [reason, setReason] = useState("");

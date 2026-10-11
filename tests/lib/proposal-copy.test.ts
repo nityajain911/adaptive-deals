@@ -18,11 +18,11 @@ describe("the buyer's glance line", () => {
 describe("authority wording is built from the terms being accepted", () => {
   it("names the amount for approval above a limit, and keeps the verification disclosure separate", () => {
     const s = authorityStatement("required_approval", 14_160_000);
-    expect(s.label).toBe("I confirm my company has approved this ₹1,41,600 deal.");
+    expect(s.label).toBe("By accepting, you confirm your company has approved this ₹1,41,600 deal.");
     expect(s.note).toBe("We can't check who approved it.");
   });
   it("names the amount for a standalone scope, and is silent when nothing is needed", () => {
-    expect(authorityStatement("phase_scope", 4_602_000).label).toBe("I confirm I can approve this ₹46,020 package on its own.");
+    expect(authorityStatement("phase_scope", 4_602_000).label).toBe("By accepting, you confirm you can approve this ₹46,020 package on its own.");
     expect(authorityStatement(null, 1)).toEqual({ label: null, note: null });
   });
 });

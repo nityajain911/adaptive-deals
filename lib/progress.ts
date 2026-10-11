@@ -141,7 +141,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     if (s.status === "sent") return info("track", "track.sent_awaiting_buyer", "waiting_on_buyer", "buyer", `Waiting for the buyer to review offer version ${latest}.`, latest);
     const { linkUnpaid, mandatePending } = f.buyerSetup;
     if (linkUnpaid || mandatePending) {
-      const what = linkUnpaid && mandatePending ? "pay the upfront link and authorise recurring payments" : linkUnpaid ? "pay the upfront link" : "authorise recurring payments";
+      const what = linkUnpaid && mandatePending ? "pay and set up automatic payments" : linkUnpaid ? "pay the upfront amount" : "set up automatic payments";
       return info("track", "track.buyer_setup", "waiting_on_buyer", "buyer", `Buyer accepted. Waiting for the buyer to ${what}.`, activeV);
     }
     if (f.pendingDebit === "submitted") return info("track", "track.debit_pending", "waiting_on_system", "system", "Awaiting payment outcome.", activeV);

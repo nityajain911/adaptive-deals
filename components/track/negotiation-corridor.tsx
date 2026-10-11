@@ -33,7 +33,7 @@ function CorridorAnchors({ view, buyerRequest }: { view: CorridorView; buyerRequ
 }
 
 /** The merchant-only path for a buyer's price request. No commercial rule is changed here. */
-export function NegotiationCorridor({ view, onDone, requestId, buyerRequest }: { view: CorridorView; onDone: string; requestId: string; buyerRequest: string }) {
+export function NegotiationCorridor({ view, onDone, requestId, buyerRequest, requested }: { view: CorridorView; onDone: string; requestId: string; buyerRequest: string; requested?: { amountText: string; basis: "including" | "excluding" } }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   const [step, setStep] = useState<"choose" | "check">("choose");
@@ -59,7 +59,7 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest }: {
         </div>
         {leftOpen ? <p className="rounded-lg bg-surface px-3 py-2 text-[14px] text-ink-2" data-testid="request-left-open">No message or offer will be sent. This request stays open for you to return to.</p> : null}
         <ErrorText error={error} />
-      </> : <CounterForm onDone={onDone} onBack={() => setStep("choose")} />}
+      </> : <CounterForm onDone={onDone} onBack={() => setStep("choose")} initial={requested} />}
       <details open className="text-[14px]" data-testid="corridor-ladder"><summary className="cursor-pointer font-semibold text-ink">Approved discount stops</summary>{discountRows.length > 1 ? <ul className="mt-2 space-y-2">{discountRows.map((row) => <li key={row.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid={`ladder-${row.discountBps}`}><span>{row.discountBps / 100}% discount · {formatINR(row.totalPaise)} incl. GST</span>{row.isCurrent ? <span className="text-muted">Current offer</span> : row.passes ? <OfferThis offer={row} onDone={onDone} /> : <span className="text-muted">Outside your rules</span>}</li>)}</ul> : <p className="mt-1 text-ink-2">Your prices and costs allow no discount.</p>}</details>
       {view.scopeAlternatives.length || view.timingAlternatives.length ? <details className="text-[13px]" data-testid="corridor-alternatives"><summary className="cursor-pointer font-semibold text-ink">Other ways to respond</summary><ul className="mt-2 space-y-2">{[...view.scopeAlternatives, ...view.timingAlternatives].map((offer) => <li key={offer.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2"><span>{offer.headline} · {formatINR(offer.totalPaise)} incl. GST</span><OfferThis offer={offer} onDone={onDone} /></li>)}</ul></details> : null}
       <p className="text-[14px] text-muted" data-testid="corridor-private">They only see the offer you approve and send, never your costs or rules.</p>

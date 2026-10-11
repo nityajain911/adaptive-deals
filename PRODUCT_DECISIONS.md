@@ -444,3 +444,15 @@ The model's explanation has two parts that code validates separately: a full com
 **The case conversations are frozen at this checkpoint.** `tests/data/case-text-freeze.test.ts` pins a hash of each case's messages. A recording replays only against its exact words, so editing a message means re-recording that case and updating the hash in the same commit.
 
 **Demonstrating that the answer is specific to the business.** With only website-fix delivery cost changed, the hero deal gives: ₹10,000 → you keep ₹21,330; ₹12,000 → ₹19,330; ₹14,000 → ₹17,330; ₹16,000 → ₹15,330, the same offer in every case. At ₹18,000 the three-month package fails the 35% profit limit and only the annual deal (needing the buyer's MD) remains; at ₹25,000 no offer remains. The demo uses ₹16,000 and says "the offer economics changed", not "the recommendation changed".
+
+## The buyer page, Phase 1 (12 October 2026)
+
+**No checkbox; the attestation sits beside the button.** Where the agreement truly requires the buyer to attest (an offer above their approval limit, or a standalone phase package), one sentence above **Accept proposal** says what accepting confirms ("By accepting, you confirm …"), and pressing Accept records the confirmation. The domain rule, the terms hash and the audit record are unchanged: acceptance is still refused without the confirmation, which is now supplied by the visible sentence and the click. It is a weaker deliberate-act signal than a tick, and that trade-off was chosen for conversion.
+
+**Accept, then pay, on the same page, without a reload.** Acceptance (the contract) and payment (the money) stay two recorded events. After accepting, the page becomes the payment step in place: one button, **Pay ₹23,010 and set up auto-pay**, which records the upfront payment and the automatic-payment authorisation as two simulated events, in order, once. There are no card or UPI fields; the footer still says no real payment is taken. When a real Razorpay test link exists, the page links to it instead of simulating. The presenter's two system steps remain as an API fallback.
+
+**Change requests are guided and structured.** A lower price asks for a target total and whether it includes GST (it must be lower once GST is counted); a change to what's included asks for the services; a payment date asks for which payment and a future date; anything else is free text. The merchant's message is built from the structured request, so the amount, services or date always match what was asked, and the structured request is stored beside the message. The merchant's amount form starts with what the buyer asked for.
+
+**The wording does not promise a Version 2.** After sending: "Sent. Pinecone Media Works will review your request. This current offer remains valid until a new one is agreed upon." Before sending: "This sends your request to Pinecone Media Works. They may reply with an updated version. Nothing changes unless you both agree."
+
+**Decline is a quiet link at the very bottom** ("I'm no longer interested"), with a confirmation and the existing optional reasons.

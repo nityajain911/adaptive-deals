@@ -7,6 +7,7 @@ import { applyCollectionUpdate, proposeReschedule, transitionAmendment, type Ame
 import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/domain/clock";
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
+import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
 import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
@@ -1551,18 +1552,44 @@ export async function adoptRepliesAsAnswers(): Promise<DemoState> {
 }
 
 /** Buyer asks for a change from the proposal page. Terms are not touched. */
-export async function requestChange(version: number, text: string, topic?: "date" | "scope" | "price" | "other"): Promise<DemoState> {
+export async function requestChange(version: number, text: string, topic?: "date" | "scope" | "price" | "other", detail?: ChangeRequestDetail): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate((s) => {
     const v = s.agreements.find((x) => x.version === version);
     if (!v || v.status !== "sent") throw new ActionError("Only a sent proposal can receive a change request");
     const proposal = [...s.conversation].reverse().find((i) => (i.kind === "proposal" || i.kind === "amendment") && i.refs.agreementVersion === version);
     if (!proposal) throw new ActionError("No proposal message for this version");
-    const item = applyBuyerReply(s, { inReplyTo: proposal.id, text, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
-    if (topic) s.conversation = s.conversation.map((m) => (m.id === item.id ? { ...m, refs: { ...m.refs, topic } } : m));
+    // A structured request is checked against the exact terms it refers to, and the merchant's message is built from it.
+    let message = text.trim();
+    if (detail) {
+      const ctx = changeRequestContext(s, v, deal);
+      const problem = validateChangeRequest(detail, ctx);
+      if (problem) throw new ActionError(problem);
+      if (detail.kind === "other" && message.length < 2) throw new ActionError("Tell us what you would like changed");
+      message = describeChangeRequest(detail, message, ctx);
+    } else if (message.length < 2) {
+      throw new ActionError("Tell us what you would like changed");
+    }
+    const item = applyBuyerReply(s, { inReplyTo: proposal.id, text: message, at: clockOf(s).now(), scripted: false, kind: "change_request", source: "buyer_proposal_page" });
+    const kind = detail?.kind ?? topic;
+    if (kind || detail) s.conversation = s.conversation.map((m) => (m.id === item.id ? { ...m, refs: { ...m.refs, ...(kind ? { topic: kind } : {}), ...(detail && detail.kind !== "other" ? { request: detail } : {}) } } : m));
     event(s, "change_request_received", `Buyer requested a change to version ${version}`, "buyer_demo", "Terms are unchanged; the merchant decides how to respond.");
     // The buyer's message is the source evidence; the outcome links to it rather than copying it.
     outcome(s, { type: "buyer_requested_change", reasonCode: null, note: null, actor: "buyer", version, source: { kind: "message", id: item.id } });
   });
+}
+
+/** What a buyer's change request is checked against: the exact terms of the version they are looking at. */
+function changeRequestContext(s: DemoState, v: AgreementVersion, deal: ReturnType<typeof dealContextFor>): ChangeRequestContext {
+  return {
+    currentTotalPaise: sum(v.terms.paymentSchedule.map((p) => p.totalPaise)),
+    services: deal.packages.map((p) => ({ id: p.id, name: p.name })),
+    includedIds: v.terms.scope.map((x) => x.packageId),
+    lines: v.terms.paymentSchedule.map((p) => ({ id: p.id, date: p.dueDate.value, totalPaise: p.totalPaise })),
+    today: localDateOf(clockOf(s).now(), deal.merchant.timeZone),
+    gstRateBps: deal.merchant.policy.gstRateBps,
+  };
 }
 
 export interface CounterCheck {
@@ -1939,6 +1966,28 @@ export async function runScenario(id: string | null): Promise<DemoState> {
     const current = activeCase(s).deal;
     const out = await runConstruct({ provider, kind: "synthetic_replay", runId: `run-${sc.id}`, clock: new FixedClock(), deal: { ...current, dealId: sc.id, messages: sc.messages } });
     s.scenario = { id: sc.id, record: out.record };
+  });
+}
+
+// ── The buyer completes setup from the proposal page ─────────────────────────
+
+/**
+ * After accepting, the buyer pays the upfront payment and authorises automatic payments in one step on
+ * the same page. Both are simulated events (nothing real moves) and reuse the same two transitions the
+ * presenter's system steps use, in the same order. Repeating the call, or calling it when part of the
+ * setup is already done, completes only what is left; with nothing left it changes nothing.
+ */
+export async function buyerCompleteSetup(): Promise<DemoState> {
+  let s = await getState();
+  const v = activeVersion(s);
+  if (!v || v.status !== "active") throw new ActionError("Accept the proposal before paying");
+  const linkDue = s.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled" && a.agreementVersion === v.version);
+  const mandatePending = s.mandate?.status === "pending";
+  if (!linkDue && !mandatePending) return s;
+  if (linkDue) s = await simulate("payment_link_paid");
+  if (s.mandate?.status === "pending") s = await simulate("mandate_confirmed");
+  return mutate((st) => {
+    event(st, "buyer_setup_completed", "Buyer paid the upfront payment and set up automatic payment", "buyer_demo", "Simulated: no real money moved.");
   });
 }
 

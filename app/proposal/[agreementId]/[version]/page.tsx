@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Lock } from "lucide-react";
-import { formatDate } from "@/domain/dates";
+import { DEMO_ANCHOR, SimulatedClock } from "@/domain/clock";
+import type { ChangeRequestContext } from "@/domain/change-request";
+import { formatDate, localDateOf } from "@/domain/dates";
 import { formatINR } from "@/domain/money";
-import { AcceptForm, DeclineButton, RequestChangeForm } from "@/components/client";
+import { AcceptForm, DeclineButton } from "@/components/client";
+import { RequestChangeForm } from "@/components/buyer/request-change-form";
+import { SetupDone, SetupPanel } from "@/components/buyer/setup-panel";
 import { ProposalContent } from "@/components/proposal-content";
 import { fmtTime } from "@/components/evidence";
 import { cx } from "@/components/ui";
@@ -70,6 +74,23 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         : [lifecycle.detail];
   const link = v.status === "active" || v.status === "accepted" || v.status === "superseded" ? s.paymentLinks.at(-1) ?? null : null;
 
+  // After acceptance the buyer pays and authorises automatic payment on this same page; nothing here is real money.
+  const unpaidLink = !amendment && v.status === "active" ? versionAttempts.find((a) => a.method === "payment_link" && a.status === "scheduled") ?? null : null;
+  const mandatePending = !amendment && v.status === "active" && s.mandate?.status === "pending";
+  const nextRecurring = v.terms.paymentSchedule.find((line) => line.method === "recurring_debit") ?? null;
+  const setupNeeded = !!unpaidLink || mandatePending;
+  const paidLinkAttempt = versionAttempts.find((a) => a.method === "payment_link" && a.status === "succeeded") ?? null;
+  const nextScheduled = [...versionAttempts].filter((a) => a.status === "scheduled").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
+  const setupDone = !amendment && v.status === "active" && !setupNeeded && !!paidLinkAttempt;
+  const requestContext: ChangeRequestContext = {
+    currentTotalPaise: v.terms.paymentSchedule.reduce((total, line) => total + line.totalPaise, 0),
+    services: deal.packages.map((p) => ({ id: p.id, name: p.name })),
+    includedIds: v.terms.scope.map((x) => x.packageId),
+    lines: v.terms.paymentSchedule.map((line) => ({ id: line.id, date: line.dueDate.value, totalPaise: line.totalPaise })),
+    today: localDateOf(new SimulatedClock(DEMO_ANCHOR, s.clockAdvances).now(), deal.merchant.timeZone),
+    gstRateBps: deal.merchant.policy.gstRateBps,
+  };
+
   return (
     <article className="mx-auto w-full max-w-[480px] overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(16,24,40,0.08),0_0_0_1px_var(--border)]" data-testid="buyer-view" aria-labelledby="proposal-title">
       {/* 1. Merchant and buyer */}
@@ -91,24 +112,28 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             Check what is changing below before you accept.
           </p>
         ) : null}
-        <StatusBanner lifecycle={lifecycle} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} />
+        <StatusBanner setupNeeded={setupNeeded} lifecycle={lifecycle} acceptedAt={v.buyerAcceptance?.at ?? null} declinedAt={v.buyerDecline?.at ?? null} replacement={replacement ? proposalLink(replacement) : null} />
       </header>
 
       <div className="space-y-5 px-5 py-5">
-        {/* 2–7. Shared canonical content (same component as the merchant preview) */}
-        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} showNextSteps={!lifecycle.showResponseActions} showAuthorityRequirement={!lifecycle.showResponseActions} revisionMode={amendment && lifecycle.showResponseActions ? "summary" : "full"} />
-        {link ? (
-          <p className="-mt-3 text-[14px] text-muted" data-testid="buyer-payment-link">
-            Payment link {link.status === "paid" ? "paid" : "awaiting payment"}
-          </p>
+        {setupNeeded ? (
+          <SetupPanel
+            payNow={unpaidLink ? { amountPaise: unpaidLink.amountPaise } : null}
+            autopay={mandatePending && nextRecurring ? { amountPaise: nextRecurring.totalPaise, dateLabel: formatDate(nextRecurring.dueDate.value), noticeDays: view.recurring?.noticeDays ?? 3 } : null}
+            realLinkUrl={unpaidLink && link?.mode === "real_test" ? link.shortUrl : null}
+          />
+        ) : setupDone ? (
+          <SetupDone paidPaise={paidLinkAttempt ? paidLinkAttempt.amountPaise : null} next={nextScheduled ? { amountPaise: nextScheduled.amountPaise, dateLabel: formatDate(nextScheduled.dueDate) } : null} />
         ) : null}
 
+        {/* 2–7. Shared canonical content (same component as the merchant preview) */}
+        <ProposalContent view={view} merchantName={deal.merchant.name} nextHeading={lifecycle.nextHeading} nextSteps={nextSteps} changedLineId={changedLine?.id ?? null} amendmentDifferences={differences} showNextSteps={!lifecycle.showResponseActions} showAuthorityRequirement={false} revisionMode={amendment && lifecycle.showResponseActions ? "summary" : "full"} />
         {/* 8. Actions */}
         {lifecycle.showResponseActions ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
             <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} submitLabel={amendment && differences.every((difference) => !difference.changed || difference.category === "payment_date" || difference.category === "planned_invoice_date") ? "Accept new date" : undefined} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} />
-            <RequestChangeForm version={v.version} label={amendment ? "Request another change" : undefined} />
-            {amendment ? <p className="text-center text-[12px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : <DeclineButton version={v.version} />}
+            <RequestChangeForm version={v.version} merchantName={deal.merchant.name} context={requestContext} label={amendment ? "Request another change" : undefined} kinds={amendment ? ["date", "other"] : undefined} />
+            {amendment ? <p className="text-center text-[13px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : null}
           </section>
         ) : null}
         {amendment && lifecycle.showResponseActions ? (
@@ -133,7 +158,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
               <div key={r.id} className="rounded-xl border border-[#ddd5ff] bg-violet-weak px-4 py-3 text-[13px]">
                 <div className="font-semibold text-ink">Change requested · {fmtTime(r.createdAt)}</div>
                 <p className="mt-0.5 text-ink-2">“{r.text}”</p>
-                <p className="mt-1 text-[12px] text-muted">We have sent this to {deal.merchant.name}. This proposal stays as it is until they send you a new version.</p>
+                <p className="mt-1 text-[12px] text-muted">Sent. {deal.merchant.name} will review your request. This current offer remains valid until a new one is agreed upon.</p>
               </div>
             ))}
           </section>
@@ -181,13 +206,14 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             </div>
           </dl>
         </details>
+        {lifecycle.showResponseActions && !amendment ? <div className="pt-2"><DeclineButton version={v.version} /></div> : null}
         <p className="text-center text-[12px] text-muted">Fictional merchant and buyer · synthetic figures · no real payment is taken</p>
       </div>
     </article>
   );
 }
 
-function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement }: { lifecycle: BuyerProposalLifecycle; acceptedAt: string | null; declinedAt: string | null; replacement: string | null }) {
+function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement, setupNeeded }: { lifecycle: BuyerProposalLifecycle; acceptedAt: string | null; declinedAt: string | null; replacement: string | null; setupNeeded: boolean }) {
   const box = "mt-3 rounded-xl px-3 py-2 text-[13px]";
   if (lifecycle.state === "awaiting_response")
     return <div className={cx(box, "bg-blue-weak text-blue-ink")} role="status" data-testid="buyer-status"><strong>{lifecycle.headline}.</strong> {lifecycle.detail}</div>;
@@ -196,7 +222,7 @@ function StatusBanner({ lifecycle, acceptedAt, declinedAt, replacement }: { life
   if (["setup_pending", "payment_scheduled", "payment_pending", "retry_scheduled", "paid"].includes(lifecycle.state))
     return (
       <div className={cx(box, "bg-green-weak text-green")} role="status" data-testid="buyer-status">
-        <strong>Accepted · {lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}.
+        {setupNeeded ? <strong>You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}.</strong> : <><strong>Accepted · {lifecycle.headline}.</strong> You accepted this version{acceptedAt ? ` on ${fmtTime(acceptedAt)}` : ""}.</>}
       </div>
     );
   if (lifecycle.state === "declined")

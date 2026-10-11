@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { BUYER_DECLINE_REASONS, type BuyerDeclineReason } from "@/lib/reason-codes";
-import { authorityStatement, CHANGE_STARTERS } from "@/lib/proposal-copy";
+import { authorityStatement } from "@/lib/proposal-copy";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -154,30 +154,26 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
 
 export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise, submitLabel }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number; submitLabel?: string }) {
   const { run, pending, error } = useAction();
-  const [authority, setAuthority] = useState(false);
+  // There is no checkbox: the attestation is written beside the button, and pressing Accept records it.
+  const notice = authorityReason ? authorityStatement(authorityReason, totalPaise) : null;
+  const authorityConfirmed = !!authorityReason;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        run(action === "accept_agreement" ? { action, version, termsHash, authorityConfirmed: authority } : { action, termsHash, authorityConfirmed: authority });
+        run(action === "accept_agreement" ? { action, version, termsHash, authorityConfirmed } : { action, termsHash, authorityConfirmed });
       }}
     >
-      {authorityReason ? (
-        <label className="flex items-start gap-2 text-[13px] text-ink-2">
-          <input type="checkbox" className="mt-0.5" checked={authority} onChange={(e) => setAuthority(e.target.checked)} data-testid="authority" />
-          <span>
-            {authorityStatement(authorityReason, totalPaise).label}
-            {authorityStatement(authorityReason, totalPaise).note ? <span className="block text-[12px] text-muted">{authorityStatement(authorityReason, totalPaise).note}</span> : null}
-          </span>
-        </label>
+      {notice?.label ? (
+        <p className="text-[14px] leading-5 text-ink-2" data-testid="authority-notice">
+          {notice.label}
+          {notice.note ? <span className="block text-[13px] text-muted">{notice.note}</span> : null}
+        </p>
       ) : null}
-      <Button variant="primary" type="submit" className="w-full min-h-11 text-[14px]" disabled={pending || (!!authorityReason && !authority)} data-testid="accept">
+      <Button variant="primary" type="submit" className="min-h-12 w-full text-[15px]" disabled={pending} data-testid="accept">
         {pending ? "Accepting…" : submitLabel ?? (action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal")}
       </Button>
-      <p className="text-center text-[12px] text-muted">
-        You are accepting this proposal exactly as shown.
-      </p>
       <ErrorText error={error} />
     </form>
   );
@@ -186,57 +182,6 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
 // ── Simulated conversation ──────────────────────────────────────────────────
 
 // ── Buyer proposal actions ──────────────────────────────────────────────────
-
-export function RequestChangeForm({ version, label = "Request a change" }: { version: number; label?: string }) {
-  const { run, pending, error } = useAction();
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
-  const [topic, setTopic] = useState<"date" | "scope" | "price" | "other">("other");
-  if (!open)
-    return (
-      <Button className="w-full" onClick={() => setOpen(true)} data-testid="request-change" aria-expanded={false}>
-        {label}
-      </Button>
-    );
-  return (
-    <form
-      className="space-y-2 rounded-xl border border-line p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        run({ action: "request_change", version, text, topic }, () => {
-          setText("");
-          setTopic("other");
-          setOpen(false);
-        });
-      }}
-    >
-      <div className="flex flex-wrap gap-2" role="group" aria-label="What would you like to change?">
-        {CHANGE_STARTERS.map((c) => (
-          <button key={c.id} type="button" data-testid={`change-starter-${c.id}`} onClick={() => {
-              setText(c.text);
-              setTopic(c.id);
-            }} className="rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-muted">
-            {c.label}
-          </button>
-        ))}
-      </div>
-      <label className="block text-[13px] font-semibold text-ink">
-        What would you like changed?
-        <textarea className="mt-1 block min-h-20 w-full rounded-lg border border-line-strong px-3 py-2 text-[14px] font-normal text-ink" value={text} maxLength={500} onChange={(e) => setText(e.target.value)} autoFocus />
-      </label>
-      <p className="text-[12px] text-muted">Your message goes to Pinecone Media Works in your conversation and refers to version {version}. The proposal itself does not change.</p>
-      <div className="flex gap-2">
-        <Button type="submit" variant="primary" disabled={pending || text.trim().length < 2} data-testid="send-change-request">
-          {pending ? "Sending…" : "Send request"}
-        </Button>
-        <Button type="button" onClick={() => setOpen(false)} disabled={pending}>
-          Cancel
-        </Button>
-      </div>
-      <ErrorText error={error} />
-    </form>
-  );
-}
 
 export function DeclineReasonSelect({ value, onChange, disabled = false }: { value: BuyerDeclineReason | ""; onChange: (value: BuyerDeclineReason | "") => void; disabled?: boolean }) {
   return (
@@ -266,9 +211,9 @@ export function DeclineButton({ version }: { version: number }) {
   const [reason, setReason] = useState<BuyerDeclineReason | "">("");
   if (!confirming)
     return (
-      <Button variant="ghost" className="w-full text-ink-2" onClick={() => setConfirming(true)} data-testid="decline">
-        Decline
-      </Button>
+      <button type="button" className="mx-auto block rounded px-2 py-1 text-[14px] text-muted underline underline-offset-2 hover:text-ink" onClick={() => setConfirming(true)} data-testid="decline">
+        I&apos;m no longer interested
+      </button>
     );
   return (
     <div role="group" aria-label="Confirm decline" className="space-y-2 rounded-xl border border-[#f6cfc9] bg-red-weak p-3 text-[13px]">

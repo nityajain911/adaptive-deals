@@ -1066,3 +1066,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Change:** The guide now docks beside the product from 768px, reserving 320px on tablets and 360px on larger desktops. The stage tracker stacks within the narrower tablet workspace. On phones, Show me collapses the guide before focusing the product action; sticky actions sit above the collapsed guide and are hidden while it is expanded. Closing the guide restores the full product width.
 
 **Verification:** The tablet-overlap and phone-collapse regressions failed before implementation. All 17 walkthrough checks and all 97 browser journeys now pass; the tests assert product/action bounds at 768px, 1024px and 1440px and a revealed action at phone width. All 1,264 unit tests, typecheck, lint and build-mode release checks pass. The running local product responds successfully. No external AI calls were made and the user's deal progress and existing screenshot edits were preserved. Applicant sections remain outstanding.
+
+### 2026-10-12 — [Claude Code] Phase 1 of the UX list: the buyer experience
+
+**Asked by the applicant:** remove the acceptance checkbox, keep the buyer from a "waiting to pay" dead end, guide the change request, make it conversational, move Decline away, soften the disclaimer. **Applicant decisions:** one tap to pay and authorise; the attestation sentence replaces the checkbox; wording as approved, with the post-send sentence shortened.
+
+**What changed:** acceptance, the inline pay step, the guided request form (price, services, date, other), the decline link, structured change requests validated against the exact sent terms, the merchant's amount form prefilled from the buyer's request, and the walkthrough handing payment to the buyer's page. **Not changed:** the engine, terms hashes, payment schedule, amendments, prompts and recordings. **Agent's pushback accepted by the applicant:** keep the attestation (it is a domain condition) and do not promise a Version 2.
+
+**Checks:** 1,281 unit tests and 100 browser journeys pass; typecheck and lint clean; no model or Razorpay call made.

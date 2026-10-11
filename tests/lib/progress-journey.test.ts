@@ -39,8 +39,8 @@ const START = [
   "The buyer answered. Use these answers to build an offer.",
   "Review this offer before sending it.",
   "Waiting for the buyer to review offer version 1.",
-  "Buyer accepted. Waiting for the buyer to pay the upfront link and authorise recurring payments.",
-  "Buyer accepted. Waiting for the buyer to authorise recurring payments.",
+  "Buyer accepted. Waiting for the buyer to pay and set up automatic payments.",
+  "Buyer accepted. Waiting for the buyer to set up automatic payments.",
   "Up to date · next payment ₹23,010 on 1 Dec 2026.",
 ];
 const END = [

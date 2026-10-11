@@ -325,7 +325,7 @@ export function buyerProposalLifecycle(args: {
     return { ...base, state: "waiting_on_merchant", headline: "Waiting for Pinecone Media Works", detail: "Your change request was sent. This version stays unchanged while the merchant reviews it.", nextHeading: "While you wait", setupBasis: "proposed", showResponseActions: false };
   }
   if (agreement.status === "sent") {
-    return { ...base, state: "awaiting_response", headline: "Review and respond", detail: "The payment steps below start only after you accept.", nextHeading: "After you accept", setupBasis: "proposed", showResponseActions: true };
+    return { ...base, state: "awaiting_response", headline: "Review and respond", detail: "You pay on this page right after you accept.", nextHeading: "After you accept", setupBasis: "proposed", showResponseActions: true };
   }
 
   const link = args.paymentLinkStatus === "paid" ? "payment link paid" : args.paymentLinkStatus === "partially_paid" ? "payment link partly paid" : args.paymentLinkStatus ? "payment link waiting to be paid" : "no payment link needed";
@@ -366,9 +366,9 @@ export function proposalView(v: Pick<AgreementVersion, "version" | "terms">, pac
   const recurringLines = t.paymentSchedule.filter((p) => p.method === "recurring_debit");
   const link = t.paymentSchedule.find((p) => p.method === "payment_link");
   const nextSteps = [
-    link ? `You get a payment link for ${formatINR(link.totalPaise)}, due ${formatDate(link.dueDate.value)}.` : null,
+    link ? `You pay ${formatINR(link.totalPaise)} on this page right after you accept.` : null,
     t.mandate && recurringLines.length
-      ? `You set up automatic payments of up to ${formatINR(t.mandate.perDebitLimitPaise)} each, until ${formatDate(t.mandate.endDate.value)}. ${recurringLines.length === 1 ? "The later payment is" : "Later payments are"} taken on the dates above, and we remind you ${policy.advanceNoticeDays} days before.`
+      ? `In the same step you authorise automatic payments of up to ${formatINR(t.mandate.perDebitLimitPaise)} each, until ${formatDate(t.mandate.endDate.value)}. ${recurringLines.length === 1 ? "The later payment is" : "Later payments are"} taken on the dates above, and we remind you ${policy.advanceNoticeDays} days before.`
       : null,
     `Work starts ${formatDate(`${t.deliverySchedule[0].month.value}-01`)}.`,
     "If a date does not work for you, tell us when you get the reminder. Nothing changes until you accept a new version.",

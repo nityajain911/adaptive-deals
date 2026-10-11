@@ -92,7 +92,7 @@ describe("walkthrough state comes from the deal", () => {
     ["understand.scope", "understand", "merchant", "understand_buyer", "merchant"],
     ["offer.review", "offer", "merchant", "review_decision", "merchant"],
     ["track.sent_awaiting_buyer", "track", "buyer", "confirm_terms", "buyer"],
-    ["track.buyer_setup", "track", "buyer", "confirm_terms", "system"],
+    ["track.buyer_setup", "track", "buyer", "confirm_terms", "buyer"],
   ] as const)("maps %s to its learning objective and action actor", (rule, stage, progressActor, objective, actionActor) => {
     const view = resolve(started(), progress(rule, stage, progressActor, progressActor === "merchant" ? "action_required" : "waiting_on_buyer"));
     expect(view.currentObjectiveId).toBe(objective);

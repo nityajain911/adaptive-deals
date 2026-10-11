@@ -246,16 +246,14 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("open-buyer-proposal").click();
   await expect(page.getByTestId("buyer-view")).toBeVisible();
   await shot(page, "desktop-4-buyer-proposal");
-  await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  await expect(page.getByTestId("buyer-status")).toContainText("You accepted this version");
+  // The buyer pays and sets up auto-pay on this same page.
+  await page.getByTestId("setup-pay").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
   await page.getByTestId("back-to-merchant").click();
 
-  await expectStage(page, "track", /Waiting for the buyer to pay the upfront link and authorise/, undefined);
   await expect(page.getByTestId("payment-timeline")).toContainText("Buyer accepted the deal");
-  await walkthroughPrimary(page).click();
-  await expect(walkthroughPrimary(page)).toContainText("authorises the mandate");
-  await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("Advance simulated date");
   await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("Send scheduled advance notice");
@@ -272,9 +270,8 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("approve-revised-terms").click();
   await expectStage(page, "track", "Waiting for the buyer to accept the revised terms", undefined);
   await page.getByTestId("open-buyer-proposal").click();
-  await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  await expect(page.getByTestId("buyer-status")).toContainText(/Accepted|You accepted/);
   await page.getByTestId("back-to-merchant").click();
   await expect(page.getByTestId("amendment-settled")).toContainText("Payment rescheduled to 21 Dec 2026");
   await expectStage(page, "track", /next payment ₹23,010 on 21 Dec 2026/, undefined);
@@ -299,10 +296,9 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/track$/);
   await page.getByTestId("open-buyer-proposal").click();
-  await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
-  await api(page, { action: "demo_system_step", stepId: "pay_upfront_link" });
-  await api(page, { action: "demo_system_step", stepId: "confirm_mandate" });
+  await page.getByTestId("setup-pay").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
   await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
   await api(page, { action: "demo_system_step", stepId: "send_notice" });
   const notice = state().conversation.findLast((m) => m.kind === "notice")!;
@@ -312,9 +308,8 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await page.getByTestId("primary-action").click();
   await page.getByTestId("approve-revised-terms").click();
   await page.getByTestId("open-buyer-proposal").click();
-  await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("Accepted");
+  await expect(page.getByTestId("buyer-status")).toContainText(/Accepted|You accepted/);
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("amendment-settled")).toBeVisible();
   await expect(page.getByTestId("walkthrough")).toHaveCount(0);
@@ -464,7 +459,6 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await page.getByTestId("open-buyer-proposal").click();
   await noHorizontalScroll(page);
   await shot(page, "mobile-3-buyer-proposal");
-  await page.getByTestId("authority").check();
   await page.getByTestId("accept").click();
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-banner")).toBeVisible();
@@ -603,9 +597,9 @@ test("P0 · a merchant-selected annual offer keeps its attribution and MD approv
   await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
 
   await page.goto(`/proposal/${draft.agreementId}/v${draft.version}`);
-  await expect(page.getByTestId("buyer-actions")).toContainText("I confirm my company has approved");
-  await expect(page.getByTestId("accept")).toBeDisabled();
-  await page.getByTestId("authority").check();
+  // No checkbox: the attestation is a sentence beside the button, and Accept is ready to press.
+  await expect(page.getByTestId("authority-notice")).toContainText("By accepting, you confirm your company has approved");
+  await expect(page.locator('input[type="checkbox"]')).toHaveCount(0);
   await expect(page.getByTestId("accept")).toBeEnabled();
 });
 
@@ -768,12 +762,34 @@ test("step 4 · the buyer's page leads with a glance line, words the attestation
   await expect(page.getByTestId("recurring")).toContainText("next payment is collected automatically");
   await expect(page.getByTestId("recurring")).toContainText("remind you 3 days before");
   await page.getByTestId("request-change").click();
-  await expect(page.getByTestId("change-starter-date")).toBeVisible();
-  await expect(page.getByTestId("change-starter-scope")).toBeVisible();
-  await expect(page.getByTestId("change-starter-other")).toBeVisible();
-  await expect(page.getByTestId("change-starter-price")).toBeVisible();
+  for (const kind of ["price", "scope", "date", "other"]) await expect(page.getByTestId(`change-starter-${kind}`)).toBeVisible();
+  await page.getByTestId("change-starter-price").click();
+  await expect(page.getByTestId("change-amount")).toBeVisible();
+  await expect(page.getByTestId("change-gst-including")).toBeChecked();
+  await page.getByTestId("change-starter-scope").click();
+  await expect(page.getByTestId("change-service-social-media")).not.toBeChecked();
+  await expect(page.getByTestId("change-service-website-fixes")).toBeChecked();
   await page.getByTestId("change-starter-date").click();
-  await expect(page.getByLabel("What would you like changed?")).toHaveValue(/^I'd like a different payment date: /);
+  await expect(page.getByTestId("change-line")).toBeVisible();
+  await expect(page.getByTestId("change-date")).toBeVisible();
+  await page.getByTestId("change-starter-other").click();
+  await expect(page.getByTestId("change-note")).toBeVisible();
+  await noHorizontalScroll(page);
+});
+
+test("the buyer's decline is a quiet link at the very bottom, after a confirmation", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  const agreement = await prepareSent(page);
+  await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
+  const decline = page.getByTestId("decline");
+  await expect(decline).toHaveText("I'm no longer interested");
+  // It sits below the response actions, not beside them.
+  const accept = await page.getByTestId("accept").boundingBox();
+  const link = await decline.boundingBox();
+  expect(link!.y).toBeGreaterThan(accept!.y + accept!.height);
+  await decline.click();
+  await expect(page.getByTestId("confirm-decline")).toBeVisible();
+  expect(state().agreements.find((a) => a.version === agreement.version)!.status).toBe("sent");
 });
 
 test("accepted terms show truthful setup copy without delivery metadata or a technical payment-link ID", async ({ page }) => {
@@ -785,8 +801,9 @@ test("accepted terms show truthful setup copy without delivery metadata or a tec
   await expect(page.getByTestId("payment-timeline")).toContainText("Automatic payment setup requested");
 
   await page.goto(`/proposal/${agreement.agreementId}/v${agreement.version}`);
-  await expect(page.getByTestId("buyer-payment-link")).toHaveText("Payment link awaiting payment");
-  await expect(page.getByTestId("buyer-payment-link")).not.toContainText("plink_");
+  await expect(page.locator("body")).not.toContainText("plink_");
+  await expect(page.getByTestId("buyer-status")).toContainText("You accepted this version");
+  await expect(page.getByTestId("setup-panel")).toBeVisible();
 });
 
 test("step 4 · the merchant preview says it is what the buyer will see, and the simulated buyer reply is a set of choices", async ({ page }) => {
@@ -897,7 +914,8 @@ test("counter-offer · only a request the buyer marked as about the price is ans
   // Typed without choosing a starter: recorded as "something else", so no price counter.
   await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
   await page.getByTestId("request-change").click();
-  await page.getByLabel("What would you like changed?").fill("Could you do 40000?");
+  await page.getByTestId("change-starter-other").click();
+  await page.getByTestId("change-note").fill("Could you do 40000?");
   await page.getByTestId("send-change-request").click();
   await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
   await page.goto("/deals/hero/track");
@@ -912,11 +930,60 @@ test("counter-offer · choosing 'A lower price' makes the counter available", as
   await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
   await page.getByTestId("request-change").click();
   await page.getByTestId("change-starter-price").click();
-  await page.getByLabel("What would you like changed?").fill("Could you do a lower total: 40000?");
+  // The send button waits for a valid amount that is really lower, and shows the message the merchant will read.
+  await expect(page.getByTestId("send-change-request")).toBeDisabled();
+  await page.getByTestId("change-amount").fill("90000");
+  await expect(page.getByTestId("change-problem")).toContainText("lower than the current ₹46,020");
+  await expect(page.getByTestId("send-change-request")).toBeDisabled();
+  await page.getByTestId("change-amount").fill("40000");
+  await expect(page.getByTestId("change-preview")).toHaveText("Could you do ₹40,000 including GST?");
+  await expect(page.getByTestId("send-change-request")).toHaveText("Send to Pinecone Media Works");
   await page.getByTestId("send-change-request").click();
-  await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
+  await expect(page.getByTestId("buyer-change-requests")).toContainText("Sent. Pinecone Media Works will review your request. This current offer remains valid until a new one is agreed upon.");
+  const request = state().conversation.findLast((m) => m.kind === "change_request")!;
+  expect(request.text).toBe("Could you do ₹40,000 including GST?");
+  expect(request.refs).toMatchObject({ topic: "price", request: { kind: "price", targetPaise: 4_000_000, gstBasis: "including" } });
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("check-buyer-amount")).toBeVisible();
+  // The merchant's amount form starts with what the buyer asked for.
+  await page.getByTestId("check-buyer-amount").click();
+  await expect(page.getByTestId("counter-total")).toHaveValue("40000");
+  await expect(page.getByTestId("corridor-basis-including")).toBeChecked();
+});
+
+test("a buyer asks for a different scope and a different date with guided inputs, and the merchant reads plain sentences", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await page.getByTestId("request-change").click();
+  await page.getByTestId("change-starter-scope").click();
+  await expect(page.getByTestId("send-change-request")).toBeDisabled(); // nothing changed yet
+  await page.getByTestId("change-service-monthly-reporting").uncheck();
+  await expect(page.getByTestId("change-preview")).toHaveText("Could we change what's included to Website fixes and Search marketing?");
+  await page.getByTestId("send-change-request").click();
+  await expect(page.getByTestId("buyer-change-requests")).toBeVisible();
+  expect(state().conversation.findLast((m) => m.kind === "change_request")!.refs).toMatchObject({ topic: "scope", request: { kind: "scope", packageIds: ["website-fixes", "search-marketing"] } });
+});
+
+test("after accepting, the buyer pays and sets up auto-pay in one tap on the same page, without a reload", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  const sent = await prepareSent(page);
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await page.evaluate(() => ((window as unknown as { __kept: number }).__kept = 1));
+  await page.getByTestId("accept").click();
+  // The page turns into the payment step in place: same document, no navigation.
+  await expect(page.getByTestId("setup-pay")).toHaveText("Pay ₹23,010 and set up auto-pay");
+  expect(await page.evaluate(() => (window as unknown as { __kept?: number }).__kept)).toBe(1);
+  await expect(page.locator("body")).not.toContainText(/card number|UPI ID/i);
+  await noHorizontalScroll(page);
+  await page.getByTestId("setup-pay").click();
+  await expect(page.getByTestId("setup-done")).toContainText("₹23,010 paid. Next: ₹23,010 on 1 Dec 2026, collected automatically.");
+  expect(await page.evaluate(() => (window as unknown as { __kept?: number }).__kept)).toBe(1);
+  const final = state();
+  expect(final.attempts.find((a) => a.method === "payment_link")!.status).toBe("succeeded");
+  expect(final.mandate?.status).toBe("confirmed");
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).not.toContainText("Waiting for the buyer to pay");
 });
 
 test("step 5 · the Offer screen leads with the merchant's strategy, and each strategy's leader is computed by code", async ({ page }) => {

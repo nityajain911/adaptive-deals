@@ -11,10 +11,13 @@ export function proposalGlance(v: Pick<ProposalView, "included" | "payments">): 
   return `${list(v.included.map((i) => i.name))} · ${formatINR(first.totalPaise)} now${later}.`;
 }
 
-/** The attestation the buyer makes, worded from the terms they accept. The disclosure stays a separate note. */
+/**
+ * The attestation the buyer makes by accepting, worded from the terms they accept and shown beside the Accept
+ * button (there is no checkbox). The disclosure stays a separate note.
+ */
 export function authorityStatement(reason: ProposalView["authorityReason"], totalPaise: number): { label: string | null; note: string | null } {
-  if (reason === "required_approval") return { label: `I confirm my company has approved this ${formatINR(totalPaise)} deal.`, note: "We can't check who approved it." };
-  if (reason === "phase_scope") return { label: `I confirm I can approve this ${formatINR(totalPaise)} package on its own.`, note: "It has value on its own and is not part of a larger purchase split to avoid approval." };
+  if (reason === "required_approval") return { label: `By accepting, you confirm your company has approved this ${formatINR(totalPaise)} deal.`, note: "We can't check who approved it." };
+  if (reason === "phase_scope") return { label: `By accepting, you confirm you can approve this ${formatINR(totalPaise)} package on its own.`, note: "It has value on its own and is not part of a larger purchase split to avoid approval." };
   return { label: null, note: null };
 }
 
