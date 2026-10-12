@@ -39,8 +39,8 @@ export function ServicesTable({ services, guardrails, onChange }: { services: Se
           {services.map((service, i) => {
             const status = serviceStatus(service, guardrails);
             return (
-              <div key={service.id} role="row" className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_40px]" data-testid={`service-row-${service.id}`}>
-                <div role="cell" className="col-span-2 min-w-0 sm:col-span-1">
+              <div key={service.id} role="row" className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_40px] items-end gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_40px] sm:items-center" data-testid={`service-row-${service.id}`}>
+                <div role="cell" className="col-span-3 min-w-0 sm:col-span-1">
                   <span className="block text-[15px] font-semibold text-ink">{service.name}</span>
                   <span className="block text-[12px] text-muted">{service.kind === "monthly" ? "Every month" : "Once"}</span>
                   {status.tone !== "green" ? <span className={cx("mt-0.5 flex items-center gap-1.5 text-[12px] font-medium", TONE[status.tone])} data-testid={`status-${service.id}`}><span aria-hidden className={cx("h-2 w-2 rounded-full", DOT[status.tone])} />{status.label}</span> : null}
@@ -51,7 +51,7 @@ export function ServicesTable({ services, guardrails, onChange }: { services: Se
                 <label role="cell" className="text-[12px] font-semibold text-muted sm:text-[0px]"><span className="sm:sr-only">Your cost (₹)</span>
                   <input data-testid="cost" inputMode="decimal" aria-label={`${service.name}: your cost`} className={cx(cell, "mt-1 sm:mt-0")} defaultValue={rupeesInput(service.directCostPaise)} onChange={(event) => { const value = toNonNegativePaise(event.target.value); if (value !== null) edit(i, { directCostPaise: value }); }} />
                 </label>
-                <div role="cell" className="row-span-2 self-center sm:row-span-1">
+                <div role="cell">
                   <button type="button" onClick={() => setEditing(service.id)} aria-label={`Edit rules for ${service.name}`} data-testid={`edit-rules-${service.id}`} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-ink-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue"><Settings2 aria-hidden className="h-4 w-4" /></button>
                 </div>
               </div>

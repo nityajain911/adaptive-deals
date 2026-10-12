@@ -225,3 +225,17 @@ dialog.audit-drawer[open] {
   stroke-dasharray: 6 6;
   animation: collection-flow-dash 1.2s linear infinite;
 }
+
+/* On a phone the guide is a bottom sheet; the settings page's sticky next step sits above it, not under it. */
+@media (max-width: 767px) {
+  html[data-walkthrough-open] .settings-action-bar {
+    bottom: 64px;
+  }
+}
+
+/* The presenter button steps up so it never covers the sticky next step on a phone. */
+@media (max-width: 767px) {
+  html:has(.settings-action-bar) [data-testid="presenter-frame"] {
+    bottom: 9.25rem;
+  }
+}

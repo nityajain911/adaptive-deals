@@ -1153,3 +1153,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Agreed layout changes made first:** redundant copy was cut (the repeated page subtitle, the "standard price" lines, the repeated "nothing changes" notes, the design commentary). **Where it differs from the brief:** the upload dialog opens on request and not unprompted (so it can not block a recording or a test); the sync is not silent (the merchant still checks and saves); three deals are held by saving and restoring the deal being worked on, not by a rewrite of routes and state, and without a database.
 
+### 2026-10-12 — [Claude Code] A sticky next step on Deal settings
+
+**Asked by the applicant:** a frictionless hand-off from configuring settings to starting a deal: a terminal save hub ("Save & create your first deal") and a persistent action bar.
+
+**Where the brief was already met or changed:** the stranded top-of-page "Start a deal" was removed in the previous round, so the work here was the bottom: a sticky bar with one primary action per state, and "Save & start a deal" in place of the lone save button, plus "Save only" for a merchant who does not want to start yet. The bar replaces the inline check and save buttons rather than adding to them.
+

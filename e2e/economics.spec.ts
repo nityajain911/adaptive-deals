@@ -96,12 +96,44 @@ test("economics · an invalid ladder cannot be activated, and the page fits a ph
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
-test("economics · reviewing with nothing changed says so and offers no activation", async ({ page }) => {
+test("economics · with nothing changed the page offers the way on, not a save", async ({ page }) => {
   await page.goto("/economics");
-  await page.getByTestId("economics-review-button").click();
-  await expect(page.getByTestId("economics-unchanged")).toContainText("Nothing has changed yet");
-  await expect(page.getByTestId("economics-activate")).toBeDisabled();
+  const bar = page.getByTestId("settings-action-bar");
+  await expect(bar).toHaveAttribute("data-state", "saved");
+  await expect(bar).toContainText("Saved as version 1");
+  await expect(bar.getByTestId("settings-go-deals")).toHaveAttribute("href", "/deals");
+  await expect(page.getByTestId("economics-review-button")).toHaveCount(0);
+  await expect(page.getByTestId("economics-activate")).toHaveCount(0);
+  // An edit turns it into a check; putting the value back turns it into the way on again.
+  const price = page.getByTestId("service-row-website-fixes").getByTestId("price");
+  await price.fill("25000");
+  await expect(bar).toHaveAttribute("data-state", "unsaved");
+  await expect(page.getByTestId("economics-review-button")).toBeVisible();
+  await price.fill("24000");
+  await expect(bar).toHaveAttribute("data-state", "saved");
   await expect(page.getByTestId("economics-version")).toContainText("Version 1");
+});
+
+test("economics · the next step stays at the bottom of the screen while you scroll, and saving can carry straight on to a deal", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await page.goto("/economics");
+  const bar = page.getByTestId("settings-action-bar");
+  await page.getByTestId("service-row-website-fixes").getByTestId("price").fill("25000");
+  await expect(bar).toHaveAttribute("data-state", "unsaved");
+  // Wherever the merchant is on the page, the one next step is in view.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const box = await bar.boundingBox();
+  expect(box!.y + box!.height).toBeGreaterThan(640);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(700);
+  await page.getByTestId("economics-review-button").click();
+  await expect(bar).toHaveAttribute("data-state", "checked");
+  await expect(page.getByTestId("economics-activate")).toBeEnabled();
+  await page.getByTestId("economics-activate-and-start").click();
+  await expect(page).toHaveURL(/\/deals$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Active deals");
+  await page.goto("/economics");
+  await expect(page.getByTestId("economics-current")).toContainText("Saved as version 2");
+  await expect(page.getByTestId("settings-action-bar")).toHaveAttribute("data-state", "saved");
 });
 
 test("commercial memory · the merchant reviews exact evidence before it enters the economics draft", async ({ page }) => {
@@ -118,9 +150,9 @@ test("commercial memory · the merchant reviews exact evidence before it enters 
   await expect(memory).toContainText("Website fixes,12000,start of delivery month");
   await memory.getByTestId("memory-apply").click();
   await expect(memory).toContainText("values added below");
-  await page.getByTestId("economics-review-button").click();
-  await expect(page.getByTestId("economics-unchanged")).toContainText("Nothing has changed yet");
-  await expect(page.getByTestId("economics-activate")).toBeDisabled();
+  // The values were the ones already saved, so there is nothing to check or save: the page offers the way on.
+  await expect(page.getByTestId("settings-action-bar")).toHaveAttribute("data-state", "saved");
+  await expect(page.getByTestId("economics-review-button")).toHaveCount(0);
 });
 
 test("commercial memory · the offer connects buyer words, merchant evidence and engine checks without leaking them to the buyer", async ({ page }) => {

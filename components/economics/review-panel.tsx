@@ -2,12 +2,10 @@
 
 import { formatINR } from "@/domain/money";
 import type { EconomicsActivationPreview } from "@/lib/economics-activation";
-import { Button } from "@/components/client";
 import { describeInputChange, describeReevaluation } from "@/lib/reevaluation-copy";
 
-export function ReviewPanel({ preview, pending, error, onActivate }: { preview: EconomicsActivationPreview; pending: boolean; error: string | null; onActivate: () => void }) {
-  const errors = preview.issues.filter((issue) => issue.level === "error");
-  return (
+export function ReviewPanel({ preview, error }: { preview: EconomicsActivationPreview; error: string | null }) {
+    return (
     <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="economics-review">
       <h2 className="text-[18px] font-semibold text-ink">Check before you save</h2>
       <p className="mt-1 text-[13px] text-ink-2">New deals will use these prices and costs once you save them.</p>
@@ -42,9 +40,6 @@ export function ReviewPanel({ preview, pending, error, onActivate }: { preview: 
         );
       })() : null}
       {error ? <p className="mt-3 text-[13px] text-red" role="alert">{error}</p> : null}
-      <div className="mt-4">
-        <Button variant="primary" data-testid="economics-activate" disabled={pending || preview.unchanged || errors.length > 0 || preview.unreachableFloor} onClick={onActivate}>{pending ? "Saving…" : "Save these prices & costs"}</Button>
-      </div>
     </section>
   );
 }

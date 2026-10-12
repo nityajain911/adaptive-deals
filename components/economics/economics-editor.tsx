@@ -9,6 +9,7 @@ import { ServicesTable } from "./services-table";
 import { GuardrailsForm } from "./guardrails-form";
 import { ReviewPanel } from "./review-panel";
 import { WhatIfPanel } from "./what-if-panel";
+import { SettingsActionBar } from "./settings-action-bar";
 import { CommercialMemoryPanel, type MemorySourceSummary } from "@/components/commercial-memory/commercial-memory-panel";
 
 type Json = { ok: boolean; result?: unknown; error?: string };
@@ -18,6 +19,8 @@ async function action(body: Record<string, unknown>): Promise<unknown> {
   if (!json.ok) throw new Error(json.error ?? "Action failed");
   return json.result;
 }
+
+const keyOf = (content: EconomicsContent, ladder: string) => JSON.stringify({ services: content.services, guardrails: content.guardrails, ladder: ladder.split(",").map((x) => x.trim()).filter(Boolean).join(",") });
 
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
 
@@ -46,11 +49,22 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(true);
+  const [savedKey, setSavedKey] = useState(() => keyOf(editableContent(active), active.discountLadderBps.map((x) => x / 100).join(", ")));
 
   const contentForReview = (): EconomicsContent => ({
     ...content,
     discountLadderBps: ladderText.split(",").map((x) => x.trim()).filter(Boolean).map((x) => Math.round(Number(x) * 100)),
   });
+  const check = () => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); });
+  const activate = async () => {
+    const result = await action({ action: "activate_economics" }) as { version: number; activatedAt: string; label: string | null };
+    setVersion(result.version); setActivatedAt(result.activatedAt); setLabel(result.label);
+    const saved = contentForReview();
+    setContent(saved); setSavedKey(keyOf(saved, ladderText)); setPreview(null);
+    router.refresh();
+  };
+  const barState = preview ? "checked" : keyOf(content, ladderText) !== savedKey ? "unsaved" : "saved";
+  const canSave = !!preview && !pending && !preview.unchanged && !preview.issues.some((issue) => issue.level === "error") && !preview.unreachableFloor;
   const run = async (fn: () => Promise<void>) => {
     setPending(true); setError(null);
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Action failed"); }
@@ -67,10 +81,6 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
         <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
         <WhatIfPanel content={content} />
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Checking…" : "Check my changes"}</Button>
-        <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Deals already quoted keep their prices. Nothing changes until you check and save.</span>
-      </div>
       </> : <p className="rounded-xl border border-line bg-surface-muted px-4 py-3 text-[14px] text-ink-2" data-testid="economics-editor-hidden">Review the extracted values when you want to edit your prices, costs or rules.</p>}
       <details className="rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="demo-tools">
         <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="demo-tools-toggle">Demo tools</summary>
@@ -83,7 +93,8 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
         </div>
       </details>
       {error && !preview ? <p role="alert" className="text-[13px] text-red">{error}</p> : null}
-      {preview ? <ReviewPanel preview={preview} pending={pending} error={error} onActivate={() => void run(async () => { const result = await action({ action: "activate_economics" }) as { version: number; activatedAt: string; label: string | null }; setVersion(result.version); setActivatedAt(result.activatedAt); setLabel(result.label); setContent(contentForReview()); setPreview(null); router.refresh(); })} /> : null}
+      {preview ? <ReviewPanel preview={preview} error={error} /> : null}
+      {showEditor ? <SettingsActionBar state={barState} version={version} pending={pending} canSave={canSave} onCheck={check} onSave={() => void run(activate)} onSaveAndStart={() => void run(async () => { await activate(); router.push("/deals"); })} /> : null}
     </div>
   );
 }

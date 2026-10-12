@@ -549,3 +549,9 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Limits are in two groups with sliders.** Margin guardrails: lowest profit (slider 10–50%), biggest discount (slider 0–25%), smallest payment. Cashflow guardrails: most spent before being paid, longest wait. Each percentage keeps a number box that accepts any valid value; the slider only keeps to its range.
 
+## One next step on Deal settings (12 October 2026)
+
+**The page ends in a way forward, and the way forward is always in view.** A sticky bar at the bottom of the screen holds the single next step for whatever state the page is in: **Check my changes** when there are unsaved edits; **Save only** and **Save & start a deal** once the changes have been checked (the second saves and goes straight to Active deals); and **Go to Active deals** when nothing is pending. It replaces the inline check button and the save button inside the review, so there is one obvious primary action instead of several. When the values in the documents are the ones already saved, the page says there is nothing to check and offers the way on, rather than a "check" that would only say "nothing changed".
+
+**Competing directions are down to one.** The top-of-page "Start a deal" and the result card were removed earlier; the tabs, the bar and the guide's "Continue" all lead to the same place. The sticky bar steps above the guide's bottom sheet on a phone, and the Presenter button steps above the bar.
+
