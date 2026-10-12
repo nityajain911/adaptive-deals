@@ -669,13 +669,15 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();
-    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("An AI reader proposed");
     await expect(page.getByTestId("memory-upload-reader")).toContainText("all passed the check");
     // No extra click: the review appears by itself and the manual forms step aside.
     const proposals = page.getByTestId("memory-proposals");
     await expect(proposals).toContainText("Review what we found");
     await expect(page.getByTestId("review-question")).toContainText("Do these prices look correct?");
-    await expect(page.getByTestId("review-readers")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("review-readers")).toContainText("an AI reader");
+    // The merchant is never told which model answered, or whether it was a recording.
+    await expect(page.locator("main")).not.toContainText(/Cerebras|Groq|gpt-oss|Recorded .* output/);
     await expect(proposals.getByText("Line reader and AI agree", { exact: true })).toHaveCount(4);
     await expect(page.getByTestId("economics-editor-hidden")).toBeVisible();
     await shot(page, "docs-1-review");
@@ -689,7 +691,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();
-    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("An AI reader proposed");
     await expect(page.getByTestId("memory-upload-reader")).toContainText("all passed the check");
     const proposals = page.getByTestId("memory-proposals");
     await expect(proposals).toContainText("Review what we found");
@@ -703,7 +705,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await page.getByTestId("memory-upload-text").fill(readFileSync("data/document-eval/messy-email.txt", "utf8").trimEnd());
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();
-    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("An AI reader proposed");
     const proposals = page.getByTestId("memory-proposals");
     await expect(proposals).toContainText("₹26,000");
     await expect(proposals.getByTestId("alias-note")).toHaveCount(2);
@@ -717,7 +719,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await openUpload(page);
     await page.getByTestId("memory-upload-text").fill("Service,Price\nWebsite fixes,26001");
     await page.getByTestId("memory-upload-submit").click();
-    await expect(page.getByTestId("memory-upload-reader")).toContainText("No AI reading is available");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("Read by the built-in line reader");
     await expect(page.getByTestId("review-readers")).toContainText("not AI");
     await expect(page.getByTestId("memory-proposals").getByTestId("proposal-reader").first()).toHaveText("Line reader");
   });

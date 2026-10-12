@@ -1237,3 +1237,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Reported by the applicant:** Kestrel (questions cannot be edited; "I'll follow up later" does nothing), Blue Harbor (does not open on Understand from the inbox), Northstar (a start that far away is not a good recommendation); fix such bugs across the flows.
 
 **What I found and did:** all four, plus an unexplained "not restructured" message and ISO dates in the chat, are fixed or explained (see PRODUCT_DECISIONS). A click-through of every button on every screen for the three cases on the recorded runs found no other dead controls. **Not changed:** Northstar's recommendation itself. The engine's logic is sound for the buyer's own constraint (their budget opens on 1 May) and the merchant's limits; a better offer would need a new structure ("start a small first phase now, the full plan from May"), which is a product decision for the applicant.
+
+### 2026-10-13 — [Claude Code] Live Cerebras and Groq behind the scenes
+
+**Asked by the applicant:** live AI for new rate cards and for unclear payment replies, Cerebras first, then Groq, then the recorded values; nothing about it visible to the merchant; no call cap. **Applicant decision:** a rate card that is a bundled sample keeps its recorded values, and only a new upload goes to a live model.
+
+**Where I departed from the brief:** the payment-reply suggestion has to be visible as a plain suggestion, because a model quietly setting a payment date would break "the merchant approves anything that moves money"; the provider and the fallback are what is hidden. The reply schema carries the day and month as written (text), not as numbers, to keep the rule that a model supplies no numeric field.

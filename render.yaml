@@ -16,3 +16,8 @@ services:
         value: /tmp/adaptive-deals
       - key: RAZORPAY_MODE
         value: simulated
+      # Optional live AI (Cerebras first, then Groq). Set both as secrets in the Render dashboard; without them the app uses its recorded values.
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

@@ -16,6 +16,8 @@ import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
 import { dealContextFor, pinnedEconomicsOf } from "@/lib/deal-context";
 import { liveProviderDiagnostics } from "@/lib/page-data";
+import { loadKnowledgeSources } from "@/lib/knowledge";
+import { loadReadings, readingLabel } from "@/commercial-memory/upload/ai-reader";
 import { JsonBlock } from "@/components/json-block";
 import { CopyButton } from "@/components/copy-button";
 import { ReproducedBadge } from "@/components/audit/sections";
@@ -43,6 +45,7 @@ export default async function PresenterPage() {
       return { id, label: `earlier run ${id.slice(-8)}` };
     }
   });
+  const documentReadings = Object.entries(await loadReadings(await loadKnowledgeSources()));
   const outcome = await currentOutcome(s).catch(() => null);
   const reproduced = await checkReproduced(s);
   let frozen: { promptHashes: Record<string, string> } = { promptHashes: {} };
@@ -155,6 +158,30 @@ export default async function PresenterPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="AI readings behind the merchant's screens" meta={<span>Which model answered, and what was tried first. The merchant sees none of this.</span>} />
+        <div className="space-y-2 p-5 text-[12px]" data-testid="presenter-ai-readings">
+          {documentReadings.length ? (
+            <ul className="space-y-1">
+              {documentReadings.map(([id, reading]) => (
+                <li key={id} data-testid={`presenter-reading-${id}`}>
+                  Rate card or cost sheet <code>{id}</code> · {readingLabel(reading)}{reading.attempts?.length ? ` · tried ${reading.attempts.map((a) => `${a.provider}: ${a.outcome}`).join(", ")}` : ""}
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-muted">No document has been read by a model in this session.</p>}
+          {(s.replySuggestions ?? []).length ? (
+            <ul className="space-y-1">
+              {(s.replySuggestions ?? []).map((x) => (
+                <li key={x.messageId} data-testid={`presenter-suggestion-${x.messageId}`}>
+                  Reply {x.messageId} · “{x.phrase}” → unavailable through {x.unavailableUntil} · {x.provider} / {x.model} · tried {x.attempts.map((a) => `${a.provider}: ${a.outcome}`).join(", ")} · {x.state}
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-muted">No payment reply has needed a model reading in this session.</p>}
         </div>
       </Card>
 

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ReplySuggestionBlock } from "@/components/track/reply-suggestion";
+import { formatDate } from "@/domain/dates";
 import { MarkHandledForm, PrimaryActionButton, RevealButton, ReviewWorkForm } from "@/components/client";
 import { ConversationThread } from "@/components/conversation-thread";
 import { StageShell } from "@/components/deal/stage-shell";
@@ -167,6 +169,10 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                       {claimed ? "They say they paid, but we haven't received it. Check your payment records before doing anything." : dateAmbiguity ? "Reply to them and ask for one exact date." : "Reply to them and agree what happens next."}
                     </div>
                     
+                    {(() => {
+                      const sug = (s.replySuggestions ?? []).find((x) => x.messageId === m.id && x.state === "pending");
+                      return sug ? <ReplySuggestionBlock messageId={m.id} phrase={sug.phrase} until={formatDate(sug.unavailableUntil)} earliest={formatDate(sug.earliestDebit)} /> : null;
+                    })()}
                     <MarkHandledForm messageId={m.id} />
                   </li>
                 );

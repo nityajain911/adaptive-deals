@@ -131,6 +131,8 @@ const Action = z.discriminatedUnion("action", [
   // Simulated buyer reply: a pre-scripted reply or typed text, both read by the same code rules.
   z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
+  z.object({ action: z.literal("use_reply_suggestion"), messageId: z.string().max(40) }),
+  z.object({ action: z.literal("ignore_reply_suggestion"), messageId: z.string().max(40) }),
   z.object({ action: z.literal("change_answer"), questionId: z.string().max(40), value: z.string().max(20) }),
   z.object({ action: z.literal("understand_reviewed") }),
   z.object({ action: z.literal("buyer_complete_setup") }),
@@ -321,6 +323,13 @@ export async function POST(request: Request) {
       case "buyer_reply":
         await svc.buyerReply({ inReplyTo: a.inReplyTo, scriptId: a.scriptId, text: a.text });
         await svc.applyClearAnswers();
+        await svc.suggestReplyReading();
+        break;
+      case "use_reply_suggestion":
+        await svc.useReplySuggestion(a.messageId);
+        break;
+      case "ignore_reply_suggestion":
+        await svc.ignoreReplySuggestion(a.messageId);
         break;
       case "change_answer":
         await svc.changeAnswer(a.questionId, a.value);

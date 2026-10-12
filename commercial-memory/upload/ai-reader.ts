@@ -1,7 +1,7 @@
 import "server-only";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { createLiveProvider } from "@/ai/live";
+import { createLiveChain, generateWithFallback } from "@/ai/live";
 import { promptHash } from "@/ai/prompts";
 import type { ProviderName } from "@/ai/provider";
 import { DocumentReadingSchema } from "@/ai/schemas";
@@ -29,6 +29,8 @@ export interface StoredDocumentReading {
   recordingId: string | null;
   rawOutput: unknown;
   readAt: string;
+  /** Which providers were tried for a live reading, in order. For the audit only; never shown to the merchant. */
+  attempts?: import("@/ai/live").ChainAttempt[];
 }
 
 export type DocumentReadOutcome =
@@ -55,8 +57,8 @@ function recordings(): Recording[] {
   return readdirSync(dir).filter((name) => name.endsWith(".json")).map((name) => JSON.parse(readFileSync(path.join(dir, name), "utf8")) as Recording);
 }
 
-/** A live model call is made only when explicitly switched on, with a configured key. Otherwise nothing is sent anywhere. */
-const liveEnabled = () => process.env.ADAPTIVE_DEALS_DOCUMENT_AI === "live";
+/** A document with no recording is read by a live model when a key is configured. ADAPTIVE_DEALS_DOCUMENT_AI=off turns that off. */
+const liveEnabled = () => process.env.ADAPTIVE_DEALS_DOCUMENT_AI !== "off";
 
 /**
  * Ask for an AI reading of one document: a recording of this exact request when there is one, a live call only when
@@ -74,13 +76,14 @@ export async function readDocumentWithAi(active: BusinessEconomics, source: Know
     await saveReading(reading);
     return { mode: "recorded", reading };
   }
-  if (!liveEnabled()) return { mode: "unavailable", message: "No AI reading is available for this document, so only the built-in line reader was used." };
-  const provider = createLiveProvider();
-  if (!provider) return { mode: "unavailable", message: "The AI reader is not configured, so only the built-in line reader was used." };
-  const result = await provider.generate(request);
-  if (!result.ok) return { mode: "failed", message: "The AI reader could not read this document, so only the built-in line reader was used." };
-  if (!DocumentReadingSchema.safeParse(result.raw).success) return { mode: "failed", message: "The AI's answer did not match the expected format, so only the built-in line reader was used." };
-  const reading: StoredDocumentReading = { ...base, provider: result.meta.provider, model: result.meta.model, temperature: result.meta.temperature, usage: result.meta.usage ?? null, origin: "live", recordingId: null, rawOutput: result.raw };
+  if (!liveEnabled()) return { mode: "unavailable", message: "Read by the built-in line reader." };
+  const chain = createLiveChain();
+  if (!chain.length) return { mode: "unavailable", message: "Read by the built-in line reader." };
+  const outcome = await generateWithFallback(chain, request);
+  if (!outcome.ok) return { mode: "failed", message: "Read by the built-in line reader." };
+  const result = outcome.result;
+  if (!DocumentReadingSchema.safeParse(result.raw).success) return { mode: "failed", message: "Read by the built-in line reader." };
+  const reading: StoredDocumentReading = { ...base, provider: result.meta.provider, model: result.meta.model, temperature: result.meta.temperature, usage: result.meta.usage ?? null, origin: "live", recordingId: null, rawOutput: result.raw, attempts: outcome.attempts };
   await saveReading(reading);
   return { mode: "live", reading };
 }

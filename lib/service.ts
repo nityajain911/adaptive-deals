@@ -12,6 +12,8 @@ import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
+import { createLiveChain, generateWithFallback } from "@/ai/live";
+import { buildReplyReadRequest, verifyReplyReading, type ReplySuggestion } from "./reply-reading";
 import { CounterError, counterStructure, failingCounterChecks, isCounterStructureId, scopeReducedStructure } from "@/domain/counter";
 import { lowestCompliantTotal } from "@/domain/corridor";
 import { listValueOf } from "@/domain/deal-baseline";
@@ -58,7 +60,7 @@ import {
   rescheduledMessageText,
   type ConversationItem,
 } from "@/domain/conversation";
-import { CLASSIFICATION_LABEL } from "@/domain/replies";
+import { CLASSIFICATION_LABEL, type ReplyClassification } from "@/domain/replies";
 import { ChangeRequestAlreadyOpenError, createChangeRequest, RestructureError, transitionChangeRequest, type ChangeRequest } from "@/domain/restructure";
 import { decisionEvidenceSnapshot, unreviewedDecisionEvidence } from "./decision-evidence";
 import { caseRecordedRunById, mappedCaseRun } from "./case-runs";
@@ -132,6 +134,8 @@ export interface DemoState {
   workDispositions: WorkDisposition[];
   /** The merchant's counters to a buyer's request for a lower total; the latest is the live one. */
   counterOffers: CounterOffer[];
+  /** Suggested readings of buyer replies the rules could not read; each waits for the merchant. Absent on older stores. */
+  replySuggestions?: ReplySuggestion[];
   interpretations: Interpretation[];
   /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
   decisionBranch: DecisionBranch | null;
@@ -1550,6 +1554,71 @@ function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; 
     }
   }
   return reply;
+}
+
+
+/** Reasons for which code's rules could not read a date and a model's suggestion may be offered to the merchant. */
+const SUGGESTIBLE = new Set(["unsupported_date_expression", "unsupported"]);
+
+/**
+ * For the newest buyer reply to a payment notice that the rules could not read, ask a model (Cerebras, then Groq) for a
+ * suggested reading. Code checks the quote and works out the date; what survives is only a suggestion. Any failure leaves the
+ * reply for the merchant exactly as it was. Never throws.
+ */
+export async function suggestReplyReading(chain = createLiveChain()): Promise<void> {
+  try {
+    if (!chain.length) return;
+    const before = await getState();
+    const reply = [...before.conversation].reverse().find((i) => i.direction === "inbound" && i.kind === "buyer_reply" && i.classification?.kind === "needs_attention" && SUGGESTIBLE.has(i.classification.reason) && before.conversation.find((m) => m.id === i.inReplyTo)?.kind === "notice");
+    if (!reply || (before.replySuggestions ?? []).some((x) => x.messageId === reply.id)) return;
+    const timeZone = activeCase(before).deal.merchant.timeZone;
+    const outcome = await generateWithFallback(chain, buildReplyReadRequest(reply.text));
+    const attempts = outcome.attempts.map((a) => ({ ...a }));
+    const verdict = outcome.ok ? verifyReplyReading(outcome.result.raw, reply.text, reply.createdAt, timeZone) : null;
+    await mutate((s) => {
+      if ((s.replySuggestions ?? []).some((x) => x.messageId === reply.id)) return;
+      if (verdict?.ok && outcome.ok) {
+        s.replySuggestions = [...(s.replySuggestions ?? []), { ...verdict.reading, messageId: reply.id, state: "pending", provider: outcome.result.meta.provider, model: outcome.result.meta.model, attempts, at: clockOf(s).now() }];
+        event(s, "reply_suggestion", "A suggested reading of the buyer's reply was prepared", "live_model", `“${verdict.reading.phrase}” → unavailable through ${verdict.reading.unavailableUntil} · ${outcome.result.meta.provider} / ${outcome.result.meta.model} · code checked the quote and worked out the date; nothing changes until the merchant uses it`);
+      } else {
+        event(s, "reply_suggestion_none", "No suggested reading was used for the buyer's reply", "engine", `${verdict && !verdict.ok ? verdict.reason : "No provider answered."} · tried ${attempts.map((a) => `${a.provider}: ${a.outcome}`).join(", ") || "none"}`);
+      }
+    });
+  } catch {
+    // The reply stays with the merchant, as before.
+  }
+}
+
+/** The merchant uses a suggested reading: the reply then starts a change request exactly as a rule-read one would. */
+export async function useReplySuggestion(messageId: string): Promise<DemoState> {
+  return mutate((s) => {
+    const sug = (s.replySuggestions ?? []).find((x) => x.messageId === messageId && x.state === "pending");
+    if (!sug) throw new ActionError("There is no suggested reading to use");
+    const i = s.conversation.findIndex((m) => m.id === messageId);
+    const reply = s.conversation[i];
+    if (!reply) throw new ActionError("Unknown message", 404);
+    const classification: ReplyClassification = { kind: "change_requested", phrase: sug.phrase, unavailableUntil: sug.unavailableUntil, earliestDebit: sug.earliestDebit, replyDate: sug.replyDate, transformation: `suggested reading (${sug.direction}) confirmed by the merchant; day resolved by code from the reply date ${sug.replyDate}; the earliest debit is the day after cash frees up` };
+    const v = activeVersion(s);
+    if (!v) throw new ActionError("No active agreement");
+    try {
+      const cr = createChangeRequest({ id: `chg-${s.changeRequests.length + 1}`, reply: { ...reply, classification }, conversation: s.conversation, notices: s.notices, attempts: s.attempts, activeVersion: v.version, existing: s.changeRequests });
+      s.conversation[i] = { ...reply, classification };
+      s.changeRequests.push(cr);
+      s.replySuggestions = (s.replySuggestions ?? []).map((x) => (x.messageId === messageId ? { ...x, state: "used" as const } : x));
+      event(s, "change_requested", "Change requested", "merchant", `The merchant used a suggested reading of “${cr.phrase}”: unavailable through ${cr.unavailableUntil}; earliest proposed debit ${cr.earliestDebit} (${cr.scheduleLineId})`);
+    } catch (e) {
+      if (e instanceof RestructureError) throw new ActionError(e.message);
+      throw e;
+    }
+  });
+}
+
+export async function ignoreReplySuggestion(messageId: string): Promise<DemoState> {
+  return mutate((s) => {
+    if (!(s.replySuggestions ?? []).some((x) => x.messageId === messageId && x.state === "pending")) throw new ActionError("There is no suggested reading to ignore");
+    s.replySuggestions = (s.replySuggestions ?? []).map((x) => (x.messageId === messageId ? { ...x, state: "ignored" as const } : x));
+    event(s, "reply_suggestion_ignored", "The merchant ignored a suggested reading", "merchant", null);
+  });
 }
 
 type ScriptedReply = (typeof heroScriptedReplies)[number];

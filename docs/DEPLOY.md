@@ -9,3 +9,5 @@ Needs one always-on instance (state is in files, so do not scale to several). It
 **Any container host (Railway, Fly.io, Cloud Run):** use the `Dockerfile`; port 3000.
 
 Environment: `ADAPTIVE_DEALS_SESSIONS=1`, `ADAPTIVE_DEALS_DATA_DIR=/tmp/adaptive-deals`, `RAZORPAY_MODE=simulated`. Leave every `*_API_KEY` unset.
+
+**Live AI (optional).** Set `CEREBRAS_API_KEY` and `GROQ_API_KEY` as secrets in the host's dashboard (never in the repo). A rate card the judge uploads that is not one of the bundled samples is then read by Cerebras, then Groq if Cerebras fails; and a payment reply the rules cannot read ("20 tak cash tight hai") gets a suggested date for the merchant to confirm. The bundled sample documents always replay their recorded readings, and with no keys everything falls back to recorded values and the built-in rules.

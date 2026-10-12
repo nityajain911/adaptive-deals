@@ -125,11 +125,26 @@ export const DocumentReadingSchema = z
   .strict();
 export type DocumentReading = z.infer<typeof DocumentReadingSchema>;
 
+/**
+ * What a model proposes after reading a buyer's reply to a payment notice that code's own rules could not read, such as
+ * "20 tak cash tight hai". Words only, no numbers as numbers: code finds the quote in the reply, resolves the date and checks it.
+ */
+export const PaymentReplyReadingSchema = z
+  .object({
+    phrase: z.string().min(1).max(80).describe("Words copied exactly from the reply that state the date"),
+    day_text: z.string().min(1).max(12).describe("The day of the month exactly as the reply writes it, e.g. 20 or 20th"),
+    month_text: z.string().min(1).max(20).nullable().describe("The month exactly as the reply writes it, only if it names one; otherwise null"),
+    direction: z.enum(["until", "after", "from", "unclear"]).describe("until/after: cash is unavailable through that day; from: cash is available from that day; unclear if the reply does not say"),
+  })
+  .strict();
+export type PaymentReplyReading = z.infer<typeof PaymentReplyReadingSchema>;
+
 export const TASK_SCHEMAS = {
   extract: ExtractionOutputSchema,
   clarify: ClarificationOutputSchema,
   explain: ExplanationOutputSchema,
   read_document: DocumentReadingSchema,
+  read_reply: PaymentReplyReadingSchema,
 } as const;
 export type AiTask = keyof typeof TASK_SCHEMAS;
 export type TaskOutput<T extends AiTask> = z.infer<(typeof TASK_SCHEMAS)[T]>;

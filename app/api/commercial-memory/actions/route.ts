@@ -40,7 +40,7 @@ const currentDraft = async () => {
   const sources = await loadKnowledgeSources();
   const readings = await loadReadings(sources);
   const draft = buildEconomicsEvidenceDraft(active, sources, "2026-10-08", Object.fromEntries(Object.entries(readings).map(([id, reading]) => [id, reading.rawOutput])));
-  const readers = Object.entries(readings).map(([sourceId, reading]) => ({ sourceId, label: readingLabel(reading) }));
+  const readers = Object.entries(readings).map(([sourceId, reading]) => ({ sourceId, label: "AI reader" }));
   return { active, sources, draft, readers };
 };
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       const saved = await saveUploadedSource(built.source);
       const { source } = saved;
       const reader = "reading" in outcome
-        ? { mode: outcome.mode, label: readingLabel(outcome.reading), proposed: ai?.proposed ?? 0, rejected: ai?.rejected ?? 0, message: null as string | null }
+        ? { mode: outcome.mode, label: "AI reader", proposed: ai?.proposed ?? 0, rejected: ai?.rejected ?? 0, message: null as string | null }
         : { mode: outcome.mode, label: null as string | null, proposed: 0, rejected: 0, message: outcome.message as string | null };
       return reply({ ok: true, result: { sourceId: source.id, title: source.title, kind: source.kind, alreadyStored: saved.alreadyStored, proposalCount: merged.proposals.length, considered: rules.considered, notes: merged.notes.slice(0, 20), extractedText: built.extractedText, reader } });
     }
