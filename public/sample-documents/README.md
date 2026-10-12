@@ -4,7 +4,7 @@ Fictional documents for **Pinecone Media Works**, the demo merchant, to try **Bu
 
 | File | Upload as | What it shows |
 | --- | --- | --- |
-| `pinecone-rate-card-oct-2026.pdf` | Rate card | A designed, text-based PDF: letterhead, a table whose service descriptions wrap over several lines before the price, a discount note and terms. Four prices are read; the prose and terms are correctly ignored. |
+| `pinecone-rate-card-oct-2026.pdf` | Rate card | A designed, text-based PDF (it also replays a recorded Cerebras reading, `data/document-readings/pdf-rate-card.json`): letterhead, a table whose service descriptions wrap over several lines before the price, a discount note and terms. Four prices are read; the prose and terms are correctly ignored. |
 | `pinecone-cost-sheet-oct-2026.pdf` | Cost sheet | An internal, single-line-per-row cost table. Four costs are read. |
 | `pinecone-rate-card-oct-2026.csv` | Rate card | The same prices as a plain CSV. This exact file also replays a **recorded Cerebras reading** (`data/document-readings/clean-rate-card.json`), so the review shows each value as read by the line reader and the AI together. |
 

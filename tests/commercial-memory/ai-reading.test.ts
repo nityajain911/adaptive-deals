@@ -84,6 +84,26 @@ describe("what code accepts from the AI", () => {
     expect(result.rejected).toBe(2);
   });
 
+  it("accepts a description the model joined onto one line, and quotes the document's own text", async () => {
+    const source = await upload("Website fixes Audit of up to 25 pages, speed and mobile\nfixes, one round of revisions.\n₹26,000 One time");
+    const result = interpretDocumentReading(active, source, answer([entry("website-fixes", "Website fixes", "₹26,000", "Website fixes Audit of up to 25 pages, speed and mobile fixes, one round of revisions. ₹26,000 One time")]));
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]!.quote).toContain("mobile\nfixes");
+    expect(source.content.slice(result.proposals[0]!.start, result.proposals[0]!.end)).toBe(result.proposals[0]!.quote);
+  });
+
+  it("still refuses a joined quote whose words are not all in the document, in order", async () => {
+    const source = await upload("Website fixes Audit of pages\n₹26,000 One time");
+    const result = interpretDocumentReading(active, source, answer([entry("website-fixes", "Website fixes", "₹26,000", "Website fixes Audit of pages and a free logo ₹26,000 One time")]));
+    expect(result.proposals).toHaveLength(0);
+  });
+
+  it("lets a service that leads its entry mention another in its description, but not join two", async () => {
+    const source = await upload("Monthly reporting A one-page summary. Needs search marketing or social media.\n₹1,200 Per month");
+    const ok = interpretDocumentReading(active, source, answer([entry("monthly-reporting", "Monthly reporting", "₹1,200", "Monthly reporting A one-page summary. Needs search marketing or social media.\n₹1,200 Per month")]));
+    expect(ok.proposals).toHaveLength(1);
+  });
+
   it("drops a bundle that one amount cannot be split across", async () => {
     const source = await upload("Website fixes and Search marketing bundle: Rs 60,000");
     const result = interpretDocumentReading(active, source, answer([entry("website-fixes", "Website fixes", "Rs 60,000", "Website fixes and Search marketing bundle: Rs 60,000")]));

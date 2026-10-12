@@ -1,0 +1,44 @@
+{
+  "id": "pdf-rate-card",
+  "inputHash": "0d22806fbc045fa8954d7ee04f1012355d37a985acc99a32a0cbc2af0990362f",
+  "promptVersion": "read_document.v1",
+  "promptHash": "1b9e8a4d1f9749eff98bf3387b3772da7fc08af63ce2f67fba336d3d2cd7431e",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 1274,
+    "outputTokens": 785
+  },
+  "recordedAt": "2026-10-12T04:38:28.876Z",
+  "rawOutput": {
+    "entries": [
+      {
+        "service_id": "website-fixes",
+        "document_name": "Website fixes",
+        "amount_text": "₹26,000",
+        "evidence_quote": "Website fixes Audit of up to 25 pages, speed and mobile fixes, broken-link and form repairs, one round of revisions.\n₹26,000 One time"
+      },
+      {
+        "service_id": "search-marketing",
+        "document_name": "Search marketing",
+        "amount_text": "₹4,500",
+        "evidence_quote": "Search marketing Keyword plan, paid search campaigns and landing-page tests. Ad spend is paid by the client directly.\n₹4,500 Per month"
+      },
+      {
+        "service_id": "social-media",
+        "document_name": "Social media",
+        "amount_text": "₹3,200",
+        "evidence_quote": "Social media Twelve posts a month across two channels, community replies within one working day.\n₹3,200 Per month"
+      },
+      {
+        "service_id": "monthly-reporting",
+        "document_name": "Monthly reporting",
+        "amount_text": "₹1,200",
+        "evidence_quote": "Monthly reporting A one-page performance summary with the month's actions and next steps. Needs search marketing or social media.\n₹1,200 Per month"
+      }
+    ],
+    "unreadable_lines": [],
+    "suspected_instructions": []
+  }
+}

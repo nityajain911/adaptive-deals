@@ -487,3 +487,5 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Evaluation (four documents, one request each):** see `docs/DOCUMENT_READING_EVAL.md`. In these runs the model made no mistake the checks had to catch, so five mistakes were injected into a recorded answer; the checks dropped all five. Four documents show the design working; they do not measure accuracy.
 
+**The designed PDF is recorded too.** Its first scoring showed the check rejecting four correct values: the model joined wrapped lines, so its quote differed only in whitespace. The check now allows whitespace to differ (all other characters in order) and quotes the document's own text, and a service leading its entry may name another in its description. Both the sample CSV and PDF replay a recorded Cerebras reading.
+

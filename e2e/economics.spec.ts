@@ -567,6 +567,20 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await expect(page.getByTestId("economics-services")).toBeVisible();
   });
 
+  test("upload · the sample rate card PDF replays the recorded Cerebras reading too", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-rate-card-oct-2026.pdf");
+    await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
+    await page.getByTestId("memory-upload-replace").check();
+    await page.getByTestId("memory-upload-submit").click();
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("all passed the check");
+    const proposals = page.getByTestId("memory-proposals");
+    await expect(proposals).toContainText("Review what we found");
+    await expect(proposals.getByText("Line reader and AI agree", { exact: true })).toHaveCount(4);
+    for (const price of ["₹26,000", "₹4,500", "₹3,200", "₹1,200"]) await expect(proposals).toContainText(price);
+  });
+
   test("upload · a messy note: the AI matches the document's own names to your services, marked for you to confirm", async ({ page }) => {
     await openUpload(page);
     await page.getByTestId("memory-upload-format").selectOption("text");

@@ -7,7 +7,7 @@ export interface EvalDocument {
   id: string;
   role: string;
   file: string;
-  format: "csv" | "text";
+  format: "csv" | "text" | "pdf";
   kind: "rate_card" | "cost_sheet";
   expected: Record<string, number>;
   /** A value that is also acceptable if present, but is not required. */
@@ -18,7 +18,8 @@ export const readManifest = (): EvalDocument[] => (JSON.parse(readFileSync(path.
 
 /** The knowledge source an upload of this document produces, exactly as the product builds it. */
 export async function sourceOf(doc: EvalDocument): Promise<KnowledgeSource> {
-  const text = readFileSync(path.join(process.cwd(), doc.file), "utf8");
-  const built = await buildUploadSource({ title: doc.id, kind: doc.kind, effectiveFrom: "2026-10-08", format: doc.format, fileName: path.basename(doc.file), text }, "2026-10-09T10:00:00+05:30");
+  const bytes = readFileSync(path.join(process.cwd(), doc.file));
+  const body = doc.format === "pdf" ? { pdfBase64: bytes.toString("base64") } : { text: bytes.toString("utf8") };
+  const built = await buildUploadSource({ title: doc.id, kind: doc.kind, effectiveFrom: "2026-10-08", format: doc.format, fileName: path.basename(doc.file), ...body }, "2026-10-09T10:00:00+05:30");
   return built.source;
 }

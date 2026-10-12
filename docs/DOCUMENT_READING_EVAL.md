@@ -1,8 +1,8 @@
 # Reading rate cards: how the AI reader was checked
 
-Four documents, each read once by Cerebras `gpt-oss-120b` (prompt `read_document.v1`), recorded as it came and then scored here with **no further model call**. The model's answer is never used directly: code checks every proposed value against the document (the quote must be in it, exactly one amount must be readable from the quote, it must match the amount the AI wrote, and the quote must not name a second service or contain an instruction).
+Five documents (four for the evaluation, plus the designed PDF kept for the demo), each read once by Cerebras `gpt-oss-120b` (prompt `read_document.v1`), recorded as it came and then scored here with **no further model call**. The model's answer is never used directly: code checks every proposed value against the document (the quote must be in it, exactly one amount must be readable from the quote, it must match the amount the AI wrote, and the quote must not name a second service or contain an instruction).
 
-Expected values are what a careful person would accept. A value is *wrong* if it was accepted and is not the expected one. These are four documents, so this shows the checks working, not a measured accuracy rate.
+Expected values are what a careful person would accept. A value is *wrong* if it was accepted and is not the expected one. These are a handful of documents, so this shows the checks working, not a measured accuracy rate.
 
 | Document | AI proposed | Passed the code checks | Correct | Missed | Wrong value accepted | Built-in line reader alone |
 | --- | ---: | ---: | ---: | --- | --- | ---: |
@@ -10,8 +10,9 @@ Expected values are what a careful person would accept. A value is *wrong* if it
 | Messy and unformatted | 4 | 4 | 4/4 | none | none | 2/4 |
 | Bundled (one amount covers three services) | 2 | 2 | 2/2 | none | none | 2/2 |
 | Deliberately tricky (hidden instruction, two amounts on a line, non-price amounts) | 2 | 2 | 2/2 | none | none | 2/2 |
+| Designed PDF (the demo's PDF path) | 4 | 4 | 4/4 | none | none | 4/4 |
 
-Recorded tokens across the four requests: 6,039.
+Recorded tokens across the requests: 8,098.
 
 ## Document by document
 
@@ -93,6 +94,52 @@ Setup fee waived (usually Rs 5,000).
 - Built-in line reader alone: 2 values.
 - Both readers together (what the merchant sees): 2/2 correct; nothing wrong accepted.
 
+### Designed PDF (the demo's PDF path) (`pdf-rate-card`)
+
+```
+P Pinecone Media Works
+Websites · Search · Social · Reporting
+Pine House, Residency Road
+Bengaluru 560025, Karnataka
+hello@pineconemedia.example
++91 98000 00000
+Service Rate Card
+Effective 1 October 2026 · Replaces the rate card dated 1 April 2026 · Reference PMW/RC/2026-27/02
+SERVICE WHAT IS INCLUDED STANDARD PRICE BILLED
+Website fixes Audit of up to 25 pages, speed and mobile
+fixes, broken-link and form repairs, one round
+of revisions.
+₹26,000 One time
+Search marketing Keyword plan, paid search campaigns and
+landing-page tests. Ad spend is paid by the
+client directly.
+₹4,500 Per month
+Social media Twelve posts a month across two channels,
+community replies within one working day.
+₹3,200 Per month
+Monthly reporting A one-page performance summary with the
+month's actions and next steps. Needs search
+marketing or social media.
+₹1,200 Per month
+Quarterly commitment. Clients who commit to any monthly service for three months or more are eligible for a
+discount, agreed in writing before work starts.
+Terms
+All prices are in Indian rupees and exclude GST, which is charged at the prevailing rate.
+Work starts after 50% of the one-time fee, or the first month's fee, is received.
+Prices are valid for new quotations until 31 March 2027 and may be revised with 30 days' notice.
+Services can be bought separately except monthly reporting, which depends on another monthly
+service.
+Pinecone Media Works · Confidential rate card · Fictional company for product demonstration Page 1 of 1
+```
+
+- The AI proposed 4 lines; 4 passed the checks.
+  - kept: Website fixes ₹26,000
+  - kept: Search marketing ₹4,500
+  - kept: Social media ₹3,200
+  - kept: Monthly reporting ₹1,200
+- Built-in line reader alone: 4 values.
+- Both readers together (what the merchant sees): 4/4 correct; nothing wrong accepted.
+
 ## Does the check catch a wrong AI answer?
 
 In these four runs the model made no mistake the checks had to catch, so they were not exercised by the model itself. A live model may make a given mistake some other day, so five mistakes were put into a recorded answer on purpose (the clean rate card's). Each must be dropped.
@@ -103,10 +150,14 @@ In these four runs the model made no mistake the checks had to catch, so they we
 | An amount that is not the amount in the quote | dropped: The amount the AI wrote does not match the amount in the quote, so it was ignored |
 | A made-up line for a service not in the document | dropped: The AI's quote was not found in your document, so it was ignored |
 | A price given to a service not on the merchant's list | dropped: The AI named a service that is not one of yours, so it was ignored |
-| A bundle given to a single service | dropped: This line names more than one service, so one amount cannot be given to just one |
+| A bundle given to a single service | dropped: The quote states more than one amount, so it was not used |
+
+## A false rejection found, and fixed
+
+The first version of the check dropped all four correct values from the designed PDF: the model had joined each wrapped description into one line, so its quote differed from the document in spaces and line breaks. The check was too strict, not the model wrong. It now lets spaces and line breaks differ (every other character must still match, in order) and shows the document's own text as the quote. A service that leads its entry may also name another in its description. Only the check changed; the recording was not repeated, and the other four documents score as before.
 
 ## What the checks cannot do
 
 - They cannot tell whether an amount that is really in the document is the *price* of that service (for example a discount example beside a price). The merchant sees the exact quote beside every value before anything is applied.
 - When the document uses another name for a service, the match comes from the AI. It is marked “matched by the AI” in the review and the merchant confirms it.
-- Four documents are a demonstration of the design, not a measurement of accuracy.
+- A handful of documents is a demonstration of the design, not a measurement of accuracy.

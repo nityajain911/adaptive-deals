@@ -42,9 +42,9 @@ async function main() {
   const out = (line = "") => lines.push(line);
   out("# Reading rate cards: how the AI reader was checked");
   out();
-  out("Four documents, each read once by Cerebras `gpt-oss-120b` (prompt `read_document.v1`), recorded as it came and then scored here with **no further model call**. The model's answer is never used directly: code checks every proposed value against the document (the quote must be in it, exactly one amount must be readable from the quote, it must match the amount the AI wrote, and the quote must not name a second service or contain an instruction).");
+  out("Five documents (four for the evaluation, plus the designed PDF kept for the demo), each read once by Cerebras `gpt-oss-120b` (prompt `read_document.v1`), recorded as it came and then scored here with **no further model call**. The model's answer is never used directly: code checks every proposed value against the document (the quote must be in it, exactly one amount must be readable from the quote, it must match the amount the AI wrote, and the quote must not name a second service or contain an instruction).");
   out();
-  out("Expected values are what a careful person would accept. A value is *wrong* if it was accepted and is not the expected one. These are four documents, so this shows the checks working, not a measured accuracy rate.");
+  out("Expected values are what a careful person would accept. A value is *wrong* if it was accepted and is not the expected one. These are a handful of documents, so this shows the checks working, not a measured accuracy rate.");
   out();
   out("| Document | AI proposed | Passed the code checks | Correct | Missed | Wrong value accepted | Built-in line reader alone |");
   out("| --- | ---: | ---: | ---: | --- | --- | ---: |");
@@ -66,7 +66,7 @@ async function main() {
     const rulesScore = score(byService(rules.proposals), doc.expected, doc.acceptable);
     const bothScore = score(byService(merged.proposals), doc.expected, doc.acceptable);
     out(`| ${doc.role} | ${ai.proposed} | ${ai.proposals.length} | ${aiScore.correct}/${Object.keys(doc.expected).length} | ${aiScore.missed.join(", ") || "none"} | ${aiScore.wrong.join(", ") || "none"} | ${rulesScore.correct}/${Object.keys(doc.expected).length} |`);
-    detail.push(`### ${doc.role} (\`${doc.id}\`)`, "", "```", readFileSync(path.join(process.cwd(), doc.file), "utf8").trimEnd(), "```", "");
+    detail.push(`### ${doc.role} (\`${doc.id}\`)`, "", "```", source.content, "```", "");
     detail.push(`- The AI proposed ${ai.proposed} line${ai.proposed === 1 ? "" : "s"}; ${ai.proposals.length} passed the checks${ai.rejected ? ` and ${ai.rejected} did not` : ""}.`);
     for (const p of ai.proposals) detail.push(`  - kept: ${p.serviceName} ${rupees(p.proposedValue)}${p.matchedAs ? ` (document says “${p.matchedAs}”, matched by the AI)` : ""}`);
     for (const note of ai.notes) detail.push(`  - not used: “${note.line.slice(0, 70)}” · ${note.reason}`);
@@ -74,7 +74,7 @@ async function main() {
     detail.push(`- Both readers together (what the merchant sees): ${bothScore.correct}/${Object.keys(doc.expected).length} correct${bothScore.wrong.length ? `; wrong: ${bothScore.wrong.join(", ")}` : "; nothing wrong accepted"}.`, "");
   }
   out();
-  out(`Recorded tokens across the four requests: ${tokens.toLocaleString("en-IN")}.`);
+  out(`Recorded tokens across the requests: ${tokens.toLocaleString("en-IN")}.`);
   out();
   out("## Document by document");
   out();
@@ -101,11 +101,15 @@ async function main() {
     out(`| ${label} | ${result.proposals.length === 0 ? "dropped: " + (result.notes[0]?.reason ?? "") : "**accepted (a gap)**"} |`);
   }
   out();
+  out("## A false rejection found, and fixed");
+  out();
+  out("The first version of the check dropped all four correct values from the designed PDF: the model had joined each wrapped description into one line, so its quote differed from the document in spaces and line breaks. The check was too strict, not the model wrong. It now lets spaces and line breaks differ (every other character must still match, in order) and shows the document's own text as the quote. A service that leads its entry may also name another in its description. Only the check changed; the recording was not repeated, and the other four documents score as before.");
+  out();
   out("## What the checks cannot do");
   out();
   out("- They cannot tell whether an amount that is really in the document is the *price* of that service (for example a discount example beside a price). The merchant sees the exact quote beside every value before anything is applied.");
   out("- When the document uses another name for a service, the match comes from the AI. It is marked “matched by the AI” in the review and the merchant confirms it.");
-  out("- Four documents are a demonstration of the design, not a measurement of accuracy.");
+  out("- A handful of documents is a demonstration of the design, not a measurement of accuracy.");
   const text = lines.join("\n") + "\n";
   if (process.argv.includes("--write")) { writeFileSync(path.join(process.cwd(), "docs/DOCUMENT_READING_EVAL.md"), text); console.log("written docs/DOCUMENT_READING_EVAL.md"); } else console.log(text);
 }

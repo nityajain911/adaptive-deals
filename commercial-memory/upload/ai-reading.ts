@@ -8,7 +8,7 @@ import { instructionSpans, splitsNumber } from "@/assist/profile/verify";
 import type { EconomicsEvidenceProposal } from "../economics-draft";
 import type { KnowledgeSource } from "../types";
 import type { UploadNote } from "./limits";
-import { moneyMentions, servicesIn } from "./lines";
+import { moneyMentions, namesSeveralServices, serviceAtStart, servicesIn } from "./lines";
 
 const sha = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
 const FORMULA = /^[=+\-@]/;
@@ -34,6 +34,20 @@ export interface AiDocumentReading {
   proposed: number;
 }
 
+/**
+ * Where a quote sits in the document. Exact text first. A model often joins a description that wraps over
+ * several lines into one, so spaces and line breaks are allowed to differ: every other character must still match in order.
+ * The returned range is the document's own text, so what the merchant sees quoted is always exactly what is there.
+ */
+function locate(content: string, quote: string): { start: number; end: number } | null {
+  const exact = content.indexOf(quote);
+  if (exact >= 0) return { start: exact, end: exact + quote.length };
+  const tokens = quote.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return null;
+  const found = new RegExp(tokens.map(esc).join("\\s+")).exec(content);
+  return found ? { start: found.index, end: found.index + found[0].length } : null;
+}
+
 const note = (quote: string, reason: string): UploadNote => ({ line: quote.slice(0, 120), reason });
 
 /**
@@ -56,15 +70,18 @@ export function interpretDocumentReading(active: BusinessEconomics, source: Know
     const reject = (reason: string) => { rejected += 1; notes.push(note(entry.evidence_quote, reason)); };
     const service = active.services.find((item) => item.id === entry.service_id);
     if (!service) { reject("The AI named a service that is not one of yours, so it was ignored"); continue; }
-    const start = source.content.indexOf(entry.evidence_quote);
-    if (start < 0) { reject("The AI's quote was not found in your document, so it was ignored"); continue; }
-    const end = start + entry.evidence_quote.length;
+    const place = locate(source.content, entry.evidence_quote);
+    if (!place) { reject("The AI's quote was not found in your document, so it was ignored"); continue; }
+    const { start, end } = place;
     if (splitsNumber(source.content, start, end)) { reject("The AI's quote cuts through a number, so it was ignored"); continue; }
     const quote = source.content.slice(start, end);
     if (spans.some((span) => start < span.end && end > span.start)) { reject("This line looks like an instruction, so it was ignored"); continue; }
     if (FORMULA.test(quote.trim())) { reject("The line starts with =, +, - or @, so it was ignored"); continue; }
     const named = servicesIn(quote, serviceRefs);
-    if (named.some((other) => other.id !== service.id)) { reject("This line names more than one service, so one amount cannot be given to just one"); continue; }
+    // A service that leads its entry may mention others in its description ("Needs search marketing"); a line that joins two services, or leads with something else, may not.
+    const leading = serviceAtStart(quote, serviceRefs);
+    const ownEntry = leading?.id === service.id && !namesSeveralServices(quote.split("\n")[0]!, leading, serviceRefs);
+    if (!ownEntry && named.some((other) => other.id !== service.id)) { reject("This line names more than one service, so one amount cannot be given to just one"); continue; }
     const withoutName = quote.replace(new RegExp(esc(entry.document_name), "i"), " ").replace(new RegExp(esc(service.name), "i"), " ");
     const amounts = moneyMentions(withoutName).filter((value) => value > 0);
     if (amounts.length !== 1) { reject(amounts.length ? "The quote states more than one amount, so it was not used" : "No amount could be read from the quote, so it was ignored"); continue; }

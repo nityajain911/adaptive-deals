@@ -9,7 +9,7 @@
  *
  * Needs CEREBRAS_API_KEY in the environment. It never prints a key or the document text sent.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
@@ -73,7 +73,13 @@ async function main() {
       if (decision.action === "retry") { if (decision.why === "schema") spent.schemaRetries += 1; else spent.providerRetries += 1; await sleep(decision.waitFor === "provider" ? 8_000 : 2_000); }
     }
   }
-  if (!dry && report.length) writeFileSync(path.join(OUT, "RECORDING_REPORT.json"), JSON.stringify({ recordedAt: new Date().toISOString(), requestsMade: requests, maximumRequests: MAX_REQUESTS, documents: report }, null, 2) + "\n");
+  if (!dry && report.length) {
+    // Each run adds to the report; earlier runs stay as they were.
+    const file = path.join(OUT, "RECORDING_REPORT.json");
+    const earlier = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as { runs?: unknown[] } & Record<string, unknown>) : null;
+    const runs = [...(earlier ? (earlier.runs ?? [{ recordedAt: earlier.recordedAt, requestsMade: earlier.requestsMade, maximumRequests: earlier.maximumRequests, documents: earlier.documents }]) : []), { recordedAt: new Date().toISOString(), requestsMade: requests, maximumRequests: MAX_REQUESTS, documents: report }];
+    writeFileSync(file, JSON.stringify({ runs }, null, 2) + "\n");
+  }
   console.log(dry ? "dry run complete" : `done; ${requests} request(s) made`);
 }
 
