@@ -273,13 +273,14 @@ describe("the system execution pipeline", () => {
 });
 
 describe("evidence for the table", () => {
-  it("gives the quote and value without offsets, and keeps the offsets for Advanced details", () => {
+  it("gives the quote and value without offsets, and keeps only the message for Advanced details", () => {
     const rows = auditSources(state, run, "replay", heroPackages).filter((x) => x.evidence?.length);
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
       expect(row.detail).not.toMatch(/chars \d/);
       expect(row.evidence!.every((e) => e.quote.length > 0)).toBe(true);
-      expect(row.advanced).toMatch(/chars \d+–\d+/);
+      expect(row.advanced).toMatch(/\(message [A-Za-z0-9-]+\)/);
+      expect(row.advanced).not.toMatch(/chars \d/);
     }
   });
 });

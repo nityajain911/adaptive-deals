@@ -489,6 +489,7 @@ test("presenter evidence · raw records are dark JSON blocks with a Copy JSON bu
   await page.goto("/presenter");
   await page.getByRole("tab", { name: "Evidence and integrity" }).click();
   await expect(page.getByTestId("presenter-integrity")).toContainText("Reproduced");
+  await expect(page.getByTestId("freeze-match-extract")).toHaveText("✓ Matches");
   const blocks = page.getByTestId("presenter-evidence").locator("figure");
   await expect(blocks).toHaveCount(4);
   await expect(blocks.first().locator("pre")).toHaveCSS("overflow-x", "auto");

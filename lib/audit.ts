@@ -51,7 +51,7 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
         value: f.display === null ? f.display : named(f.display),
         evidence: f.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId })),
         detail: f.evidence.map((e) => `“${e.quote}”`).join(" "),
-        advanced: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" "),
+        advanced: f.evidence.map((e) => `“${e.quote}” (message ${e.messageId})`).join(" "),
       });
     }
     if (f.confirmedBy) out.push({ item: `${f.label} (confirmation)`, source: "Clarification message", detail: `${f.confirmedBy.questionId}` });

@@ -150,7 +150,7 @@ export default async function PresenterPage() {
                 <tr key={k}>
                   <td>{k}</td>
                   <td>{v}</td>
-                  <td>{f === undefined ? "Not in the frozen evaluation" : h === f ? "Yes" : "No"}</td>
+                  <td>{f === undefined ? <span className="rounded-full bg-surface-muted px-2 py-0.5 font-medium text-ink-2">Not in the frozen evaluation</span> : h === f ? <span className="rounded-full bg-green-weak px-2 py-0.5 font-semibold text-green" data-testid={`freeze-match-${k}`}>✓ Matches</span> : <span className="rounded-full bg-red-weak px-2 py-0.5 font-semibold text-red" data-testid={`freeze-match-${k}`}>Differs</span>}</td>
                 </tr>
               ))}
             </tbody>
