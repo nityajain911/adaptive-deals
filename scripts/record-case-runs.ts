@@ -82,7 +82,9 @@ function supersededStep(dir: string, runId: string, task: AiTask) {
 
 async function record(caseId: CaseId, live: ModelProvider, ledger: Ledger, dir: string, rerun: { runId: string; task: AiTask } | null) {
   const item = demoCase(caseId)!;
-  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${live.name}-${caseId}.json`), rerun ? { [rerun.task]: 1 } : {}, options);
+  // A second attempt (--attempt=2) keeps its own outputs file, so the first attempt is neither reused nor overwritten.
+  const suffix = arg("attempt") ? `-attempt${arg("attempt")}` : "";
+  const provider = new RecordingProvider(live, caseId, ledger, path.join(dir, `first-valid-outputs-${live.name}-${caseId}${suffix}.json`), rerun ? { [rerun.task]: 1 } : {}, options);
   if (rerun) {
     // The earlier attempt is preserved in the report, struck from the reusable outputs, and counted
     // against the rerun budget; every other step of the case is reused unchanged.
@@ -148,7 +150,7 @@ async function main() {
   const report = { recordedAt: new Date().toISOString(), provider: live.name, model: live.model, requestCap: options.requestCap, requests: ledger.requests, retries: ledger.retries, rejectedAttempts: ledger.rejectedAttempts, supersedes: rerun?.runId ?? null, summaries, stopped };
   const reportText = JSON.stringify(report, null, 2);
   if (reportText.includes(apiKey)) throw new Error("Refusing to write a report that contains the API key");
-  writeFileSync(path.join(dir, `final-recording-report-${live.name}${only ? `-${only}` : ""}${rerun ? "-rerun" : ""}.json`), reportText + "\n");
+  writeFileSync(path.join(dir, `final-recording-report-${live.name}${only ? `-${only}` : ""}${rerun ? "-rerun" : ""}${arg("attempt") ? `-attempt${arg("attempt")}` : ""}.json`), reportText + "\n");
   console.log(reportText);
 }
 

@@ -1125,3 +1125,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** all unit and browser tests pass; seven-request cap per case was not approached (one request each).
 
+### 2026-10-12 — [Claude Code] Second attempt at the preserve-scope recording
+
+**Asked by the applicant:** rerun it.
+
+**What was done:** the rule was fixed first (`CASE_RECORDING_FREEZE_BATCH3.json`: the second output is final; both kept; mapped only if it reaches the expected state). One request. The result was the same miss, so nothing changed in the product and the case stays on its labelled sample.
+
+**Checks:** all unit and browser tests pass.
+

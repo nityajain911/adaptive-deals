@@ -32,10 +32,12 @@ describe("the committed case recordings", () => {
       "run-case-no-fit-6fb4027d.json",
       // Recorded and kept as evidence, but not mapped: see the report for why.
       "run-case-preserve-scope-fcc306d2.json",
+      "run-case-preserve-scope-ff0d6acf.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
       "cerebras-no-fit-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
+      "cerebras-preserve-scope-attempt2-recording-report.json",
     ].sort());
   });
 
@@ -96,6 +98,23 @@ describe("the second Cerebras recording batch", () => {
     const report = read("cerebras-no-fit-recording-report.json");
     expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
     expect(report.requests).toHaveLength(1);
+  });
+
+  it("preserve-scope: a second attempt, run on the applicant's instruction, missed in the same way and is also not mapped", () => {
+    const second = read("run-case-preserve-scope-ff0d6acf.json") as RunRecord;
+    expect(second).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(second.runId).not.toBe(preserve().runId);
+    // Same input, same prompt: the model rejected the same evidence phrase and found no required services again.
+    expect(second.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
+    expect(second.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
+    expect(second.engine.initial.state).toBe("insufficient_information");
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    const report = read("cerebras-preserve-scope-attempt2-recording-report.json");
+    expect(report.requests).toHaveLength(1);
+    expect(report.summaries[0]).toMatchObject({ runId: "run-case-preserve-scope-ff0d6acf", caseCard: { agrees: false } });
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH3.json"), "utf8"));
+    expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 2 });
+    expect(freeze.resultRule).toMatch(/final, whatever it is/);
   });
 
   it("preserve-scope: recorded and kept, but not mapped, because the model's first extraction missed the case's story", () => {

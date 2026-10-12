@@ -529,3 +529,5 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Not built:** real mandate registration (the registration-link tool's parameters have not been inspected, and a recurring-enabled test account is needed). It is shown as a planned next step, not as a feature.
 
+**Preserve scope was run a second time, at the applicant's instruction (12 October 2026).** The rule was written before the call: the second output is final whatever it is, both attempts are kept, and the case is mapped only if it reaches its expected engine state. It missed in the same way (the budget period's quoted words did not contain the phrase, and no required services were found), which is what a model at temperature 0 on an identical request would be expected to do. So the case stays on its labelled sample and both recordings remain as evidence. Changing the outcome would need a change to the frozen prompt or the case text, which is a separate decision.
+
