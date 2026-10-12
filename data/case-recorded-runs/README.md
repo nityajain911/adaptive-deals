@@ -29,3 +29,7 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
 
 The three Groq files and `recording-report.json` are historical evidence made from the earlier
 conversation text. They remain immutable and are not loaded for the rewritten cases.
+
+Each case keeps its labelled hand-written sample in `data/synthetic/replay/` as the fallback if a recording ever stops
+matching its conversation byte for byte (the product then says "Sample output written by hand · no model ran").
+
