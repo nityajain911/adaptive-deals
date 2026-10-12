@@ -15,6 +15,8 @@ import type { ReactNode } from "react";
 import { ActionButton } from "../client";
 import { InfoButton } from "../info-button";
 import { MoneySplit } from "./money-split";
+import { EditableBreakdown, type EditorAccount, type UnlockStop } from "./deal-editor";
+import type { InputOverride } from "@/lib/deal-economics";
 import { OfferPaymentSchedule } from "./payment-schedule";
 import { DealTransformationCard } from "./deal-transformation";
 import { ApprovalBadge } from "../structure-card";
@@ -31,7 +33,7 @@ export function contextLine(baseline: DealBaseline, budgetPaise: number | null, 
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null, proof = null }: {
+export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null, proof = null, editor = null }: {
   x: EvaluatedStructure;
   policy: MerchantPolicy;
   baseline: DealBaseline;
@@ -56,6 +58,8 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
   comparison?: ReactNode;
   /** The evidence behind the figures, shown inside the closed explanation. */
   proof?: ReactNode;
+  /** Changing a number for this deal, in place: what can be changed, what is changed, and what the profit limit would unlock. */
+  editor?: { account: EditorAccount; overrides: InputOverride[]; stops: UnlockStop[] } | null;
 }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   void context;
@@ -93,7 +97,11 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
         <div className={`tabular text-[26px] font-semibold ${e.netContributionPaise < 0 ? "text-red" : "text-ink"}`} data-testid="offer-contribution">
           {e.netContributionPaise < 0 ? `a loss of ${approxINR(-e.netContributionPaise)}` : approxINR(e.netContributionPaise)}
         </div>
-        <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
+        {editor ? (
+          <EditableBreakdown split={{ gstPaise: sum(x.structure.payments.map((p) => p.gstPaise)), costsPaise: e.directCostPaise, feesPaise: e.expectedFeesPaise, keepPaise: e.netContributionPaise }} account={editor.account} overrides={editor.overrides} stops={editor.stops} limitsLine={null} />
+        ) : (
+          <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
+        )}
         <details className="mt-3 rounded-xl border border-line px-4 py-2" data-testid="see-economics">
           <summary className="cursor-pointer text-[13px] font-semibold text-blue">How this was worked out</summary>
           <div className="space-y-3 pb-2 pt-2 text-[13px] text-ink-2" data-testid="why-offer">

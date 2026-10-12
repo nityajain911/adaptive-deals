@@ -212,10 +212,9 @@ test("mcp · Track and Audit state that no Razorpay action occurred when the cap
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹19,330");
-  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
-  await page.getByTestId("override-field").selectOption("direct_cost:website-fixes");
-  await expect(page.getByTestId("override-account")).toContainText("₹12,000");
-  await page.getByTestId("override-value").fill("15000");
+  await page.getByTestId("edit-costs").click();
+  await expect(page.getByTestId("delivery-editor")).toContainText("usual ₹12,000");
+  await page.getByTestId("cost-website-fixes").fill("15000");
   // No reason, no override.
   await expect(page.getByTestId("override-apply")).toBeDisabled();
   await page.getByTestId("override-reason").fill("Extra migration work");
@@ -225,7 +224,7 @@ test("overrides · a deal override needs a reason, moves the figures, says which
   const row = page.getByTestId("override-direct_cost-website-fixes");
   await expect(row).toContainText("Website fixes · delivery cost: ₹12,000 → ₹15,000");
   await expect(row).toContainText("Tightens your account rule");
-  await expect(row).toContainText("Reason: Extra migration work");
+  await expect(row).toContainText("Extra migration work");
   await expect(page.getByTestId("offer-contribution")).toHaveText("about ₹16,330");
   await expect(page.getByTestId("offer-rules")).toContainText("1 change you made for this deal");
   await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
@@ -247,20 +246,21 @@ test("overrides · a deal override needs a reason, moves the figures, says which
 test("overrides · loosening a rule is labelled as loosening, and the panel fits a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/deals/hero/offer");
-  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
-  await page.getByTestId("override-field").selectOption("cash_exposure");
+  await page.getByTestId("edit-limits").click();
+  await page.getByTestId("limit-cash_exposure").click();
   await page.getByTestId("override-value").fill("20000");
   await page.getByTestId("override-reason").fill("Client pays a deposit first");
   await page.getByTestId("override-apply").click();
   await expect(page.getByTestId("override-cash_exposure")).toContainText("Most I'll spend before I'm paid: ₹10,000 → ₹20,000");
   await expect(page.getByTestId("override-cash_exposure")).toContainText("Loosens your account rule");
+  await expect(page.getByTestId("customized-tag").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
 test("overrides · once the proposal is sent, overrides can no longer be changed", async ({ page }) => {
   await page.goto("/deals/hero/offer");
-  await page.getByTestId("deal-overrides").locator(":scope > summary").click();
-  await page.getByTestId("override-field").selectOption("cash_exposure");
+  await page.getByTestId("edit-limits").click();
+  await page.getByTestId("limit-cash_exposure").click();
   await page.getByTestId("override-value").fill("20000");
   await page.getByTestId("override-reason").fill("Client pays a deposit first");
   await page.getByTestId("override-apply").click();
@@ -716,3 +716,20 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
   });
 });
 
+
+test("overrides · a deal blocked on profit gets a slider that stops where an offer would work, and the customized values are tagged", async ({ page }) => {
+  // The merchant's own rule is set so high that nothing fits; every offer is ruled out on profit alone.
+  const set = await page.request.post("/api/actions", { data: { action: "add_input_override", field: "contribution_floor", value: { minPercentBps: 6000, minPaise: null, combine: "both" }, reason: "Testing a very high limit" } });
+  expect((await set.json()).ok).toBe(true);
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-no-fit")).toBeVisible();
+  await expect(page.getByTestId("floor-slider")).toBeVisible();
+  const range = page.getByTestId("floor-range");
+  await range.fill(await range.getAttribute("min") as string);
+  await expect(page.getByTestId("floor-unlocks")).toContainText("You could send");
+  await page.getByTestId("override-reason").fill("Long-standing client");
+  await page.getByTestId("override-apply").click();
+  await expect(page.getByTestId("recommendation")).toBeVisible();
+  await expect(page.getByTestId("customized-tag").first()).toBeVisible();
+  expect(state().economics.overrides.filter((o) => o.field === "contribution_floor")).toHaveLength(1);
+});

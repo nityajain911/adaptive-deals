@@ -1,4 +1,5 @@
 import { formatINR } from "@/domain/money";
+import type { ReactNode } from "react";
 import { approxINR } from "@/lib/offer-copy";
 
 interface Part {
@@ -21,7 +22,7 @@ const rupees = (paise: number) => formatINR(Math.round(paise / 100) * 100);
  * costs and fees still exceed it. That excess is the loss: the bar then covers everything the business
  * has to pay out, and the last part of it, equal to the loss, is drawn in red and labelled as a loss.
  */
-export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gstPaise: number; costsPaise: number; feesPaise: number; keepPaise: number }) {
+export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise, costsExtra = null }: { gstPaise: number; costsPaise: number; feesPaise: number; keepPaise: number; costsExtra?: ReactNode }) {
   const loss = Math.max(0, -keepPaise);
   // The loss is taken from the fees first and then the costs, so the red part sits at the end of the bar.
   const lossFromFees = Math.min(loss, feesPaise);
@@ -51,6 +52,7 @@ export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gst
           <span key={p.id} className={`flex items-center gap-1.5 ${p.id === "loss" ? "font-semibold text-red" : ""}`}>
             <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${p.dot}`} />
             <span className="truncate">{p.label}</span>
+            {p.id === "costs" ? costsExtra : null}
             <span className={`tabular ml-auto font-medium ${p.id === "loss" ? "text-red" : "text-ink"}`}>{rupees(p.paise)}</span>
           </span>
         ))}

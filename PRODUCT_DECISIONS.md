@@ -599,3 +599,11 @@ The model's explanation has two parts that code validates separately: a full com
 **One closed explanation.** "How this was worked out" holds why this offer, the figures, the profit limit and the evidence table (it was a separate section). The audit trail keeps everything.
 
 **Alternatives beside the offer, at most two.** "Use this instead" swaps one in. "Offers we ruled out" is no longer on this screen; it is in the audit trail ("Offers ruled out"), because it is the proof that the engine checked every option against the merchant's limits.
+
+## Changing a number for one deal, in place (12 October 2026)
+
+**The levers sit on the numbers.** A pencil on "Delivery costs" in the profit breakdown opens one field per service, each showing the account's usual figure. "Edit limits" opens the three limits for this deal (lowest profit, the most you'd spend before being paid, the discount allowed). The separate accordion at the bottom of the screen is gone. A short reason is still required: it is what makes an exception readable later, and the audit keeps it.
+
+**The profit limit is a slider that stops where an offer would work.** The stops are the offers ruled out for being under the profit limit and nothing else, at each one's real profit; dragging shows which of them become available and what they keep. It is not a free-drag preview. When a deal is blocked entirely on profit, the slider is on the "No offer fits" screen, where the merchant needs it.
+
+**Changed values are tagged.** "Customized" sits beside each changed limit and on delivery costs, and a strip over the breakdown says how many changes the deal carries, with Undo all and Remove on each. The buyer never sees any of this: the buyer proposal carries only the terms.

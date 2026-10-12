@@ -13,7 +13,7 @@ import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
 import { Alternatives, Recommendation } from "@/components/offer/recommendation";
-import { DealOverrides, type OverrideAccount } from "@/components/offer/deal-overrides";
+import { StandaloneLimits, type EditorAccount, type UnlockStop } from "@/components/offer/deal-editor";
 import { StrategyComparison } from "@/components/offer/strategy-comparison";
 import { StrategyControl } from "@/components/offer/strategy-control";
 import { Card, Notice } from "@/components/ui";
@@ -109,6 +109,23 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
     );
   }
 
+  const pinned = await pinnedEconomicsOf(s);
+  const account: EditorAccount = {
+    services: s.baseline.servicePrices.map((price) => ({ id: price.packageId, name: pinned.services.find((x) => x.id === price.packageId)?.name ?? price.packageId, costPaise: pinned.services.find((x) => x.id === price.packageId)?.directCostPaise ?? 0 })),
+    floor: pinned.guardrails.contributionFloor,
+    cashPaise: pinned.guardrails.cashAtRiskLimitPaise,
+    discountBps: pinned.guardrails.discountLimitBps,
+    effective: { floor: policy.contributionFloor, cashPaise: policy.cashAtRiskLimitPaise, discountBps: policy.discountLimitBps },
+  };
+  // Offers ruled out only for being under the profit limit: the limit at which each would work.
+  const stops: UnlockStop[] = (r?.rejected ?? [])
+    .filter((o) => [...o.buyerChecks, ...o.sellerChecks].filter((c) => c.status === "fail").every((c) => c.id === "seller_contribution") && o.economics.netContributionPaise > 0)
+    .map((o) => ({ bps: o.economics.netContributionBps, label: headlineFor(o), keepPaise: o.economics.netContributionPaise }))
+    .sort((m, n) => n.bps - m.bps)
+    .filter((stop, i, all) => all.findIndex((other) => other.bps === stop.bps) === i)
+    .slice(0, 3);
+  const editor = { account, overrides: s.economics.overrides, stops };
+
   if (primaryId === "close_in_adaptive_deals" || primaryId === "mark_handled_outside") {
     const codes = r ? failedChecksBlockingEveryStructure(r.structures) : [];
     return (
@@ -122,6 +139,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           ) : (
             <p className="text-[13px] text-ink-2">The request can&apos;t be represented by your approved offer types. Adaptive Deals drafts no terms for it.</p>
           )}
+          {primaryId === "close_in_adaptive_deals" ? <StandaloneLimits account={account} overrides={s.economics.overrides} stops={stops} /> : null}
           <DontProceed
             variant={primaryId === "close_in_adaptive_deals" ? "no_feasible" : "outside"}
             primary
@@ -163,14 +181,6 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const x = eligible.find((e) => e.structure.id === selectedId);
   const priorityRows = STRATEGY_IDS.map((id) => ({ id, leaderId: strategyView(feasible, id, baseline).leader?.structure.id ?? null }));
   const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} resultNote={selectedId === view.leader?.structure.id ? priorityResultNote(priorityRows, s.economics.strategy) : null} />;
-  const pinned = await pinnedEconomicsOf(s);
-  const account: OverrideAccount = {
-    services: s.baseline.servicePrices.map((price) => ({ id: price.packageId, name: pinned.services.find((x) => x.id === price.packageId)?.name ?? price.packageId, costPaise: pinned.services.find((x) => x.id === price.packageId)?.directCostPaise ?? 0 })),
-    floor: pinned.guardrails.contributionFloor,
-    cashPaise: pinned.guardrails.cashAtRiskLimitPaise,
-    discountBps: pinned.guardrails.discountLimitBps,
-  };
-  const overridesPanel = <DealOverrides account={account} overrides={s.economics.overrides} />;
   if (!x && view.mode === "discount_only" && r) {
     // Nothing fits at the quoted prices. A discount is permitted, never recommended, so none is called recommended.
     return (
@@ -182,7 +192,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             <p className="text-[14px] text-ink-2">You allow discounts, so these offers would work, smallest discount first. Pick one yourself if you want to give a discount.</p>
           </Card>
           <Alternatives options={view.discounted} selectedId="" heading="Offers with a discount" testId="discount-only-offers" />
-          {overridesPanel}
+          <StandaloneLimits account={account} overrides={s.economics.overrides} stops={stops} />
           <DontProceed />
         </div>
       </StageShell>
@@ -259,6 +269,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             evidence={narrative.evidence}
             economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
             counter={activeCounter}
+            editor={editor}
             proof={
               <RecommendationEvidence
                 traces={sourceTraces}
@@ -290,7 +301,6 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
                 <div className="border-t border-line px-1 py-3 sm:px-3"><StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /></div>
               </details>
             ) : null}
-            {overridesPanel}
           </div>
         </div>
       </div>

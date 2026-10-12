@@ -1189,3 +1189,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** visual diff of the offer, the margin as a bar, evidence out of the default view, ruled-out offers gone, two alternatives beside the offer. **Applicant decision:** if there are no alternatives, the main card takes the full width.
 
 **Where I departed from the brief:** a dropped service says what the buyer said ("can wait"), not "removed to fit the budget"; GST is grey, not yellow, because it is not a cost; the bar already existed and was made larger; the evidence table was already closed and now sits inside the one explanation; ruled-out offers moved to the audit trail instead of being deleted.
+
+### 2026-10-12 — [Claude Code] Changing a number for one deal, in place
+
+**Asked by the applicant:** inline edits in the profit breakdown, a slider for the profit limit, a visible "Customized" mark. **Applicant decision:** the Customized tag stays off the buyer-facing preview.
+
+**Where I departed from the brief:** the slider stops at real offers' profit instead of free dragging (the engine runs on the server, so a free drag cannot show what it unlocks); a reason stays required; the same slider is on the "No offer fits" screen, because that is where the merchant is actually blocked.
