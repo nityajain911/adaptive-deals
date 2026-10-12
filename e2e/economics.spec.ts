@@ -108,7 +108,7 @@ test("commercial memory · the merchant reviews exact evidence before it enters 
   await page.goto("/economics");
   const memory = page.getByTestId("commercial-memory");
   // Changed from 9: the ninth source belongs to a second fictional merchant (the isolation test corpus) and must never be listed to this one.
-  await expect(memory).toContainText("Your documents");
+  await expect(memory).toContainText("demo documents");
   await expect(memory).not.toContainText("Saffron");
   await expect(memory).toContainText("Pinecone 2026 rate card");
   await memory.getByTestId("memory-draft").click();
@@ -389,25 +389,93 @@ test("offer · twelve instalments have a compact summary with an exact expandabl
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
-test("services · one compact table with a status per row, and advanced rules stay behind a toggle", async ({ page }) => {
+test("services · a three-column table, with the rules one click away in a side panel", async ({ page }) => {
   await page.goto("/economics");
   const row = page.getByTestId("service-row-website-fixes");
   await expect(row).toBeVisible();
-  await expect(page.getByTestId("status-website-fixes")).toContainText("Ready");
-  await expect(page.getByTestId("keep-website-fixes")).toContainText("%");
-  // A missing cost and a loss are named in words.
+  // Only what most merchants touch is in the table; nothing is flagged when a service is fine.
+  await expect(page.getByTestId("economics-services").getByRole("columnheader")).toHaveText(["Service", "You charge (₹)", "Your cost (₹)", "Rules"]);
+  await expect(page.getByTestId("status-website-fixes")).toHaveCount(0);
+  await expect(page.getByTestId("service-rules-panel")).toBeHidden();
+  // A missing cost and a loss are named in words under the service.
   await row.getByTestId("cost").fill("0");
   await expect(page.getByTestId("status-website-fixes")).toContainText("Add a cost");
   await row.getByTestId("cost").fill("30000");
   await expect(page.getByTestId("status-website-fixes")).toContainText("Costs more than you charge");
-  // The manual dependency fields wait behind "Advanced rules", closed by default, and nothing is inferred.
-  const advanced = page.getByTestId("advanced-rules");
-  await expect(advanced).not.toHaveAttribute("open", "");
-  await expect(advanced.getByTestId("dependsOn").first()).toBeHidden();
-  await expect(advanced.locator("summary")).toContainText("1 service depends on another");
-  await advanced.locator("summary").click();
-  await expect(advanced.getByTestId("dependsOn").first()).toBeVisible();
+  await row.getByTestId("cost").fill("12000");
+  await expect(page.getByTestId("status-website-fixes")).toHaveCount(0);
+  // The gear opens that service's rules; Done and Escape close it.
+  await page.getByTestId("edit-rules-website-fixes").click();
+  const panel = page.getByTestId("service-rules-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByTestId("keep-website-fixes")).toContainText("You keep ₹12,000 (50%)");
+  await expect(panel.getByTestId("removable")).toBeChecked();
+  await panel.getByTestId("removable").uncheck();
+  await panel.getByTestId("rules-done").click();
+  await expect(panel).toBeHidden();
+  await page.getByTestId("edit-rules-website-fixes").click();
+  await expect(panel.getByTestId("removable")).not.toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page.getByTestId("edit-rules-website-fixes")).toBeFocused();
+  // A dependency (here: needs Search marketing or Social media) is shown as the services it needs, set by the merchant and never inferred.
+  await page.getByTestId("edit-rules-monthly-reporting").click();
+  await expect(panel.getByTestId("dependsOn-search-marketing")).toBeChecked();
+  await expect(panel.getByTestId("dependsOn-social-media")).toBeChecked();
+  await expect(panel.getByTestId("dependsOn-website-fixes")).not.toBeChecked();
+  await expect(panel.getByTestId("dependsOn-monthly-reporting")).toHaveCount(0);
+  await page.keyboard.press("Escape");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("limits · two groups, with sliders for the percentages that move the numbers and the preview", async ({ page }) => {
+  await page.goto("/economics");
+  const margin = page.getByTestId("margin-guardrails");
+  const cash = page.getByTestId("cashflow-guardrails");
+  await expect(margin).toContainText("Lowest profit I'll accept");
+  await expect(margin).toContainText("Biggest discount I'll give");
+  await expect(margin).toContainText("Smallest payment I'll take");
+  await expect(cash).toContainText("Most I'll spend before I'm paid");
+  await expect(cash).toContainText("Longest I'll wait to be paid in full");
+  await expect(margin).not.toContainText("Most I'll spend");
+  const slide = (id: string, value: number) => page.getByTestId(id).evaluate((el, v) => { const input = el as HTMLInputElement; const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!; set.call(input, String(v)); input.dispatchEvent(new Event("input", { bubbles: true })); }, value);
+  await expect(page.getByTestId("floor-slider")).toHaveAttribute("min", "10");
+  await expect(page.getByTestId("floor-slider")).toHaveAttribute("max", "50");
+  await slide("floor-slider", 40);
+  await expect(page.getByTestId("floor-percent")).toHaveValue("40");
+  await expect(page.getByTestId("what-if-headline")).toContainText("40%");
+  // The number box takes any valid value; the slider keeps to its range.
+  await page.getByTestId("floor-percent").fill("60");
+  await expect(page.getByTestId("floor-slider")).toHaveValue("50");
+  await expect(page.getByTestId("what-if-headline")).toContainText("60%");
+  await slide("discount-slider", 10);
+  await expect(page.getByTestId("discount-limit")).toHaveValue("10");
+  await expect(page.getByTestId("discount-slider")).toHaveAttribute("max", "25");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("source · the page shows where the prices came from, and uploading lives in a dialog", async ({ page }) => {
+  await rm(path.join(".data-e2e", "knowledge", "uploads"), { recursive: true, force: true });
+  await page.goto("/economics");
+  const strip = page.getByTestId("document-source");
+  await expect(strip).toContainText("demo documents");
+  await expect(page.getByTestId("memory-upload")).toBeHidden();
+  await expect(page.getByTestId("memory-upload-file")).toBeHidden();
+  await page.getByTestId("memory-upload-toggle").click();
+  await expect(page.getByTestId("memory-upload")).toBeVisible();
+  await page.getByTestId("memory-upload-skip").click();
+  await expect(page.getByTestId("memory-upload")).toBeHidden();
+  await page.getByTestId("memory-upload-toggle").click();
+  await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-rate-card-oct-2026.csv");
+  await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
+  await page.getByTestId("memory-upload-replace").check();
+  await page.getByTestId("memory-upload-submit").click();
+  await expect(page.getByTestId("memory-upload")).toBeHidden();
+  await expect(strip).toContainText("Synced with Pinecone rate card, October 2026");
+  await expect(page.getByTestId("memory-upload-toggle")).toHaveText("Update source");
+  await expect(page.getByTestId("memory-upload-result")).toContainText("Found 4 prices");
+  await expect(page.getByTestId("memory-proposals")).toContainText("Review what we found");
+  await rm(path.join(".data-e2e", "knowledge", "uploads"), { recursive: true, force: true });
 });
 
 test("what-if · the preview beside the limits follows what you type, and saves nothing", async ({ page }) => {

@@ -1,99 +1,68 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Check, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "@/components/client";
-import type { CaseId, DemoCase } from "@/data/synthetic/cases";
-import { Badge, Card, cx } from "@/components/ui";
+import type { CaseId } from "@/data/synthetic/cases";
+import { CASE_SWITCH_NOTE, type CasePickerCard } from "@/lib/case-picker-cards";
+import { Badge, cx } from "@/components/ui";
 
-export const CASE_SWITCH_WARNING = "Starting a new deal clears the current one.";
-
-export interface CasePickerCard {
-  id: CaseId;
-  title: string;
-  buyer: string;
-  proposal: string;
-  barrier: string;
-  proofPoint: string;
-  provenance: DemoCase["provenance"];
-  /** Who produced this case's model-task outputs: a recorded model run or a hand-written sample. */
-  modelOutput: string;
-  current: boolean;
-  actionLabel: "Start this deal";
-}
-
-export function casePickerCards(cases: DemoCase[], activeId: CaseId, modelOutput: Record<CaseId, string>): CasePickerCard[] {
-  return cases.map((item) => ({
-    id: item.id,
-    title: item.title,
-    buyer: item.buyer.name,
-    proposal: item.proposalSummary,
-    barrier: item.barrier,
-    proofPoint: item.proofPoint,
-    provenance: item.provenance,
-    modelOutput: modelOutput[item.id],
-    current: item.id === activeId,
-    actionLabel: "Start this deal",
-  }));
-}
-
+/** The three deal stories as one table, each with its own progress. Choose a row, then open or start it. */
 export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; activeCaseId: CaseId }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   const [selected, setSelected] = useState<CaseId>(activeCaseId);
   const selectedCard = cards.find((card) => card.id === selected)!;
+  const opens = selectedCard.started;
 
-  const start = () =>
-    run({ action: "start_case", caseId: selected }, () => {
-      router.push("/deals/hero/understand");
+  const go = () =>
+    run({ action: "open_deal", caseId: selected }, () => {
+      // The deal's home sends the merchant to the stage it is actually at.
+      router.push("/deals/hero");
       router.refresh();
     });
 
   return (
-    <div className="space-y-5" data-walkthrough="case-picker">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" role="radiogroup" aria-label="Deals to start">
-        {cards.map((card) => {
-          const chosen = selected === card.id;
-          return (
-            <Card key={card.id} as="article" className={cx("relative overflow-hidden transition", chosen && "border-[#7d98ff] ring-2 ring-[#dfe6ff]")} data-testid={`case-card-${card.id}`}>
-              <button type="button" role="radio" aria-checked={chosen} className="w-full p-5 text-left" onClick={() => setSelected(card.id)} data-testid={`select-case-${card.id}`}>
-                <div className="flex min-h-7 flex-wrap items-center gap-2">
-                  {card.current ? <Badge tone="blue">In progress</Badge> : null}
-                  {chosen ? <Check aria-hidden className="ml-auto h-4 w-4 text-blue" /> : null}
-                </div>
-                                <h2 className="mt-3 text-[17px] font-semibold leading-6 text-ink">{card.title}</h2>
-                <p className="mt-1 text-[14px] font-medium text-ink-2">{card.buyer}</p>
-                <dl className="mt-4 space-y-3 text-[13px] leading-5">
-                  <div>
-                    <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Your quote</dt>
-                    <dd className="mt-0.5 text-ink-2">{card.proposal}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">What&apos;s in the way</dt>
-                    <dd className="mt-0.5 text-ink">{card.barrier}</dd>
-                  </div>
-                </dl>
-              </button>
-            </Card>
-          );
-        })}
+    <div className="space-y-3" data-walkthrough="case-picker">
+      <div role="radiogroup" aria-label="Deals" className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+        <div aria-hidden className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_24px] gap-4 border-b border-line bg-surface-muted px-4 py-2 text-[12px] font-semibold uppercase tracking-wide text-muted md:grid">
+          <span>Buyer</span><span>What&apos;s in the way</span><span>Status</span><span />
+        </div>
+        <ul className="divide-y divide-line">
+          {cards.map((card) => {
+            const chosen = selected === card.id;
+            return (
+              <li key={card.id} data-testid={`case-card-${card.id}`}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={chosen}
+                  onClick={() => setSelected(card.id)}
+                  data-testid={`select-case-${card.id}`}
+                  className={cx("grid w-full grid-cols-1 items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_24px]", chosen ? "bg-blue-weak/50" : "hover:bg-surface-muted")}
+                >
+                  <span className="min-w-0"><span className="block text-[15px] font-semibold text-ink">{card.buyer}</span><span className="block text-[13px] text-muted">{card.title}</span></span>
+                  <span className="text-[13px] leading-5 text-ink-2">{card.barrier}</span>
+                  <span className="min-w-0" data-testid={`deal-status-${card.id}`}>
+                    <span className="flex flex-wrap items-center gap-2"><Badge tone={card.status.tone}>{card.status.label}</Badge>{card.current ? <span className="text-[12px] text-muted">Open now</span> : null}</span>
+                    {card.status.next ? <span className="mt-1 block text-[12px] leading-4 text-muted" data-testid={`deal-next-${card.id}`}>{card.status.next}</span> : null}
+                  </span>
+                  <span className="hidden justify-end md:flex">{chosen ? <Check aria-hidden className="h-4 w-4 text-blue" /> : null}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      <Card className="p-5" data-testid="case-confirmation">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-              <ShieldCheck aria-hidden className="h-4 w-4 text-blue" /> {selectedCard.buyer}
-            </div>
-            <p className="mt-1 text-[13px] text-amber" data-testid="case-switch-warning">{CASE_SWITCH_WARNING}</p>
-                      </div>
-          <Button variant="primary" onClick={start} disabled={pending} data-testid="start-selected-case" className="shrink-0">
-            {pending ? "Starting…" : selectedCard.actionLabel} <ArrowRight aria-hidden className="h-4 w-4" />
-          </Button>
-        </div>
-        <ErrorText error={error} />
-      </Card>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="case-confirmation">
+        <p className="min-h-5 text-[13px] text-muted" data-testid="case-switch-warning">{selectedCard.current ? "" : CASE_SWITCH_NOTE}</p>
+        <Button variant="primary" onClick={go} disabled={pending} data-testid="start-selected-case" className="shrink-0">
+          {pending ? "Opening…" : opens ? "Open deal" : "Start deal"} <ArrowRight aria-hidden className="h-4 w-4" />
+        </Button>
+      </div>
+      <ErrorText error={error} />
     </div>
   );
 }

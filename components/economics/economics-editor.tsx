@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BusinessEconomics, EconomicsContent } from "@/domain/business-economics";
 import type { EconomicsActivationPreview } from "@/lib/economics-activation";
@@ -33,10 +33,9 @@ type EconomicsEditorProps = {
   initialLabel: string | null;
   illustrativeContent: EconomicsContent;
   memorySources: MemorySourceSummary[];
-  children?: ReactNode;
 };
 
-export function EconomicsEditor({ active, initialLabel, illustrativeContent, memorySources, children }: EconomicsEditorProps) {
+export function EconomicsEditor({ active, initialLabel, illustrativeContent, memorySources }: EconomicsEditorProps) {
   const router = useRouter();
   const [content, setContent] = useState<EconomicsContent>(() => editableContent(active));
   const [version, setVersion] = useState(active.version);
@@ -60,11 +59,7 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
 
   return (
     <div className="space-y-4" data-testid="economics-page">
-      <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Prices &amp; costs</h1>
-        <p className="mt-1 max-w-2xl text-[14px] leading-6 text-ink-2">What you charge, what it costs you to deliver, and the lowest deal you&apos;ll accept.</p>
-      </div>
-      {children}
+      <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Deal settings</h1>
       <CommercialMemoryPanel sources={memorySources} onEditorVisibilityChange={setShowEditor} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
       {showEditor ? <>
       <ServicesTable services={content.services} guardrails={content.guardrails} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
@@ -74,7 +69,7 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Checking…" : "Check my changes"}</Button>
-        <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Nothing changes until you check and save.</span>
+        <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Deals already quoted keep their prices. Nothing changes until you check and save.</span>
       </div>
       </> : <p className="rounded-xl border border-line bg-surface-muted px-4 py-3 text-[14px] text-ink-2" data-testid="economics-editor-hidden">Review the extracted values when you want to edit your prices, costs or rules.</p>}
       <details className="rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="demo-tools">

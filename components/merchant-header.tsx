@@ -7,7 +7,7 @@ const tab = (active: boolean) => cx("relative flex h-full items-center gap-1.5 w
 const underline = <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] rounded-t bg-[#3d6bff] shadow-[0_0_14px_#3d6bff]" />;
 
 /**
- * The merchant's header: two places (Prices & costs, Deals). Everything that exists to explain the prototype rather
+ * The merchant's header: two places (Deal settings, Active deals). Everything that exists to explain the prototype rather
  * than to run a deal (the guided walkthrough, the audit trail, the presenter page, quick resets) lives in the
  * separate presenter frame, so it never competes with the merchant's own work. The SIMULATED pill stays.
  */
@@ -23,12 +23,12 @@ export function MerchantHeader({ current = "deals", dealPage = false }: { curren
         <nav aria-label="Main" className="flex h-full items-center gap-4 sm:gap-6">
           <Link href="/economics" aria-current={current === "economics" ? "page" : undefined} className={tab(current === "economics")} data-testid="nav-prices">
             <Calculator aria-hidden className="hidden h-4 w-4 sm:block" />
-            <span className="hidden lg:inline">Prices &amp; costs</span><span className="lg:hidden">Prices</span>
+            <span className="hidden lg:inline">Deal settings</span><span className="lg:hidden">Settings</span>
             {current === "economics" ? underline : null}
           </Link>
           <Link href="/deals" aria-current={onDeals ? "page" : undefined} className={tab(onDeals)} data-testid="nav-deals">
             <BriefcaseBusiness aria-hidden className="hidden h-4 w-4 sm:block" />
-            Deals
+            <span className="hidden lg:inline">Active deals</span><span className="lg:hidden">Deals</span>
             {onDeals ? underline : null}
           </Link>
         </nav>

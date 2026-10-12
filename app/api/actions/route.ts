@@ -65,6 +65,7 @@ const EconomicsContentSchema: z.ZodType<EconomicsContent> = z.object({
 const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reset") }),
   z.object({ action: z.literal("start_case"), caseId: z.enum(CASE_IDS as unknown as [CaseId, ...CaseId[]]) }),
+  z.object({ action: z.literal("open_deal"), caseId: z.enum(CASE_IDS as unknown as [CaseId, ...CaseId[]]) }),
   z.object({ action: z.literal("demo_system_step"), stepId: z.enum(SYSTEM_STEPS as unknown as [SystemStepId, ...SystemStepId[]]) }),
   z.object({ action: z.literal("run_live") }),
   z.object({ action: z.literal("replay_run"), runId: z.string().max(40) }),
@@ -180,6 +181,9 @@ export async function POST(request: Request) {
         break;
       case "start_case":
         await svc.startCase(a.caseId);
+        break;
+      case "open_deal":
+        await svc.openDeal(a.caseId);
         break;
       case "demo_system_step":
         await svc.runSystemStep(a.stepId);

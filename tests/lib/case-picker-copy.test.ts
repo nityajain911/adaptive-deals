@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { casePickerCards, CASE_SWITCH_WARNING } from "@/components/deal/case-picker";
+import { casePickerCards, CASE_SWITCH_NOTE } from "@/lib/case-picker-cards";
+import { dealStatus } from "@/lib/deal-status";
+import type { DealProgress } from "@/lib/progress";
 import { allDemoCases } from "@/data/synthetic/cases";
 
 const MODEL_OUTPUT = { "reduced-scope": "Recorded Groq output", "preserve-scope": "Sample output written by hand · no model ran", "no-fit": "Sample output written by hand · no model ran" } as const;
@@ -16,7 +18,6 @@ describe("commercial case picker copy", () => {
       expect(card.barrier).toBeTruthy();
       expect(card.proofPoint).toBeTruthy();
       expect(card.provenance).toBe("Synthetic scenario");
-      expect(card.actionLabel).toBe("Start this deal");
     }
   });
 
@@ -25,8 +26,28 @@ describe("commercial case picker copy", () => {
     expect(cards.map((card) => card.modelOutput)).toEqual(["Recorded Groq output", "Sample output written by hand · no model ran", "Sample output written by hand · no model ran"]);
   });
 
-  it("warns that selecting another case replaces unfinished demo progress", () => {
-    expect(CASE_SWITCH_WARNING).toBe("Starting a new deal clears the current one.");
+  it("says the deal you leave keeps its progress, rather than warning that it is cleared", () => {
+    expect(CASE_SWITCH_NOTE).toBe("The deal you leave keeps its progress.");
+  });
+
+  it("gives each deal its own status, and invents none for a deal that was never started", () => {
+    const progress = (kind: DealProgress["kind"], headline: string): DealProgress => ({ stage: "track", stages: { understand: "done", offer: "done", track: "current" }, kind, actor: null, headline, primaryAction: null, blockingReason: null, version: 1, rule: "t" });
+    const cards = casePickerCards(allDemoCases(), "reduced-scope", MODEL_OUTPUT, {
+      "reduced-scope": { started: true, progress: progress("action_required", "The buyer asked for a change.") },
+      "preserve-scope": { started: true, progress: progress("waiting_on_buyer", "Waiting for the buyer.") },
+    });
+    expect(cards.map((card) => card.status.label)).toEqual(["Your move", "Waiting on buyer", "Not started"]);
+    expect(cards[2]!.status.next).toBeNull();
+    expect(cards.map((card) => card.started)).toEqual([true, true, false]);
+  });
+
+  it("maps every kind of progress to a plain status", () => {
+    const base: DealProgress = { stage: "track", stages: { understand: "done", offer: "done", track: "current" }, kind: "informational", actor: null, headline: "Up to date", primaryAction: null, blockingReason: null, version: 1, rule: "t" };
+    expect(dealStatus({ started: true, progress: base }).label).toBe("Up to date");
+    expect(dealStatus({ started: true, progress: { ...base, kind: "waiting_on_system" } }).label).toBe("Waiting on payment");
+    expect(dealStatus({ started: true, progress: { ...base, kind: "terminal", stages: { understand: "done", offer: "done", track: "completed" } } })).toMatchObject({ label: "Completed", tone: "green" });
+    expect(dealStatus({ started: true, progress: { ...base, kind: "terminal", stages: { understand: "done", offer: "done", track: "closed" } } }).label).toBe("Closed");
+    expect(dealStatus({ started: false, progress: null })).toEqual({ label: "Not started", tone: "neutral", next: null });
   });
 
   it("does not claim outcomes or model certainty that the prototype cannot prove", () => {

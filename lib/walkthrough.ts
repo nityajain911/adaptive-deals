@@ -149,7 +149,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "negotiate_price",
     actor: "merchant",
     title: "Answer a buyer's price request",
-    instruction: "Before a fresh deal, open Prices & costs, try the example that allows discounts, then check and save it yourself. When the buyer asks for a lower price, choose how to answer.",
+    instruction: "Before a fresh deal, open Deal settings, try the example that allows discounts, then check and save it yourself. When the buyer asks for a lower price, choose how to answer.",
     notice: "The lowest price and the discounts come from your own limits. The guide never saves your prices or sends an offer for you.",
     href: "/deals/:dealId/track",
     anchorId: "negotiation-corridor",

@@ -1147,3 +1147,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Honesty note:** the case text was reworded after the model missed. The log, the recording README and the product decisions say so.
 
+### 2026-10-12 — [Claude Code] Deal settings and Active deals
+
+**Asked by the applicant:** hide the document ingestion behind a one-time dialog with a synced state; a three-column services table with rules behind a gear; limits in two groups with sliders; settings apart from action; and, after the layout was shown, hold all three deals at once.
+
+**Agreed layout changes made first:** redundant copy was cut (the repeated page subtitle, the "standard price" lines, the repeated "nothing changes" notes, the design commentary). **Where it differs from the brief:** the upload dialog opens on request and not unprompted (so it can not block a recording or a test); the sync is not silent (the merchant still checks and saves); three deals are held by saving and restoring the deal being worked on, not by a rewrite of routes and state, and without a database.
+

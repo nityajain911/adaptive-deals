@@ -1,13 +1,12 @@
 import { connection } from "next/server";
 import { EconomicsEditor } from "@/components/economics/economics-editor";
-import { RulesInAction } from "@/components/economics/rules-in-action";
 import { MerchantHeader } from "@/components/merchant-header";
 import { activeEconomics } from "@/lib/economics-store";
 import { WalkthroughServer } from "@/components/walkthrough/walkthrough-server";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { economicsLabel, illustrativeEconomicsContent } from "@/lib/economics-illustrative";
 
-export const metadata = { title: "Prices & costs · Adaptive Deals" };
+export const metadata = { title: "Deal settings · Adaptive Deals" };
 
 export default async function EconomicsPage() {
   await connection();
@@ -23,9 +22,7 @@ export default async function EconomicsPage() {
           initialLabel={economicsLabel(active.hash, active.version)}
           illustrativeContent={illustrativeEconomicsContent()}
           memorySources={memorySources}
-        >
-          <RulesInAction />
-        </EconomicsEditor>
+        />
       </main>
       <footer className="px-4 py-6 text-center text-[12px] text-muted">Synthetic data · fictional merchant. Prototype for the Razorpay × ISB AI PM Build Challenge; not a Razorpay product.</footer>
     </>

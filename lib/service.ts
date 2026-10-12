@@ -38,6 +38,7 @@ import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay"
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
 import { BUYER_DECLINE_REASONS, isResolvingDisposition, decisionFingerprint, deliveryKey, isDelivered, MERCHANT_CLOSE_REASONS, type BuyerDeclineReason, type CounterOffer, type DeliveryRecord, type MerchantCloseReason, type HandledMessage, type Interpretation, type OutcomeRecord, type SelectedOption, type WorkDisposition, type WorkDispositionKind, type WorkSourceKind } from "./deal-records";
 import { attemptDelivery } from "./delivery";
+import { clearVault, readVaultedDeal, saveVaultedDeal } from "./deal-vault";
 import { dealProgress, type DealProgress, type ProgressFacts } from "./progress";
 import { SYSTEM_STEPS, type SystemStepId } from "./demo-steps";
 import { noticeReplyOutcome, unresolvedWork } from "./views";
@@ -382,6 +383,8 @@ export async function resetToSeed(): Promise<DemoState> {
   const caseId = current ? migrateState(current).caseId : DEFAULT_CASE_ID;
   const s = await seedState(undefined, "replay", caseId);
   return serialised(async () => {
+    // A full reset also forgets the deals that were set aside.
+    await clearVault();
     await writeJsonAtomic(STORE_FILE, s);
     return s;
   });
@@ -397,6 +400,55 @@ export async function startCase(caseId: string): Promise<DemoState> {
     await writeJsonAtomic(STORE_FILE, replacement);
     return replacement;
   });
+}
+
+/**
+ * Open one of the deals. The deal being worked on is set aside with all its progress and the other is loaded, or started
+ * fresh if it has not been started. Nothing is cleared: each deal keeps its own state.
+ */
+export async function openDeal(caseId: string): Promise<DemoState> {
+  const item = demoCase(caseId);
+  if (!item) throw new ActionError("Unknown case", 404);
+  const saved = await readVaultedDeal<DemoState>(item.id);
+  let replacement: DemoState;
+  if (saved) replacement = migrateState(saved);
+  else {
+    replacement = await seedState(undefined, "replay", item.id);
+    event(replacement, "case_started", `Case started: ${item.title}`, "merchant", item.id);
+  }
+  return serialised(async () => {
+    const current = await readJson<DemoState>(STORE_FILE);
+    if (current) {
+      const open = migrateState(current);
+      if (open.caseId === item.id) return open;
+      await saveVaultedDeal(open.caseId, current);
+    }
+    await writeJsonAtomic(STORE_FILE, replacement);
+    return replacement;
+  });
+}
+
+export interface DealListing {
+  caseId: CaseId;
+  /** The deal being worked on now. */
+  open: boolean;
+  started: boolean;
+  progress: DealProgress | null;
+}
+
+/** Every deal story with its own progress, read from its own saved state. Contacts nothing. */
+export async function listDeals(): Promise<DealListing[]> {
+  const current = await getState();
+  const out: DealListing[] = [];
+  for (const item of allDemoCases()) {
+    if (item.id === current.caseId) {
+      out.push({ caseId: item.id, open: true, started: true, progress: await progressOf(current).catch(() => null) });
+      continue;
+    }
+    const saved = await readVaultedDeal<DemoState>(item.id);
+    out.push({ caseId: item.id, open: false, started: !!saved, progress: saved ? await progressOf(migrateState(saved)).catch(() => null) : null });
+  }
+  return out;
 }
 
 // ── Derived engine state (always recomputed from the run record, integrity-checked) ──

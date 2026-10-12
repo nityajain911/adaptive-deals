@@ -1,72 +1,102 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { Settings2 } from "lucide-react";
 import type { EconomicsGuardrails } from "@/domain/business-economics";
 import type { ServicePackage } from "@/domain/types";
-import { InfoButton } from "@/components/info-button";
 import { formatINR } from "@/domain/money";
 import { rupeesInput, toNonNegativePaise, toPaise } from "@/lib/money-input";
 import { serviceStatus } from "@/lib/service-status";
+import { Button } from "@/components/client";
 import { cx } from "@/components/ui";
 
-const cell = "w-full rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-[14px] text-ink sm:text-right";
+const cell = "w-full rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-[14px] text-ink text-right";
 const TONE = { green: "text-green", amber: "text-amber", red: "text-red" } as const;
 const DOT = { green: "bg-green", amber: "bg-amber", red: "bg-red" } as const;
-const COLUMNS = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)]";
 
-/** One compact row per service: what you charge, what it costs, what you keep, and whether it is ready. */
+/** One row per service with only what most merchants touch: what you charge and what it costs. The rules sit one click away. */
 export function ServicesTable({ services, guardrails, onChange }: { services: ServicePackage[]; guardrails: Pick<EconomicsGuardrails, "contributionFloor">; onChange: (services: ServicePackage[]) => void }) {
   const edit = (index: number, patch: Partial<ServicePackage>) => onChange(services.map((service, i) => i === index ? { ...service, ...patch } : service));
-  const advancedSet = services.filter((service) => (service.dependsOnAny?.length ?? 0) > 0 || service.removable || service.deferrable || !service.hasIndependentValue).length;
-  const dependencies = services.filter((service) => (service.dependsOnAny?.length ?? 0) > 0).length;
+  const [editing, setEditing] = useState<string | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    if (editing && !d.open) d.showModal();
+    if (!editing && d.open) d.close();
+  }, [editing]);
+  const index = services.findIndex((service) => service.id === editing);
+  const open = index >= 0 ? services[index]! : null;
+
   return (
     <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="economics-services">
       <h2 className="text-[18px] font-semibold text-ink">Your services</h2>
-      <p className="mt-1 text-[13px] leading-5 text-ink-2">What you charge and what each one costs you to deliver. <InfoButton label="About quoted deals" testId="services-info">Deals you have already quoted keep their prices. “You keep” is before payment fees.</InfoButton></p>
-      <div className="mt-4" role="table" aria-label="Your services">
-        <div role="row" className={cx("hidden gap-3 border-b border-line pb-2 text-[12px] font-semibold uppercase tracking-wide text-muted sm:grid", COLUMNS)}>
-          <span role="columnheader">Service</span><span role="columnheader" className="text-right">You charge (₹)</span><span role="columnheader" className="text-right">It costs you (₹)</span><span role="columnheader" className="text-right">You keep</span><span role="columnheader">Status</span>
+      <div className="mt-3" role="table" aria-label="Your services">
+        <div role="row" className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_40px] gap-3 border-b border-line pb-2 text-[12px] font-semibold uppercase tracking-wide text-muted sm:grid">
+          <span role="columnheader">Service</span><span role="columnheader" className="text-right">You charge (₹)</span><span role="columnheader" className="text-right">Your cost (₹)</span><span role="columnheader" className="sr-only">Rules</span>
         </div>
         <div className="divide-y divide-line">
-          {services.map((service, index) => {
+          {services.map((service, i) => {
             const status = serviceStatus(service, guardrails);
             return (
-              <div key={service.id} role="row" className={cx("grid min-w-0 grid-cols-2 items-center gap-x-3 gap-y-2 py-3 sm:gap-y-0", COLUMNS)} data-testid={`service-row-${service.id}`}>
-                <div role="cell" className="col-span-2 min-w-0 text-[15px] font-semibold text-ink sm:col-span-1">{service.name}<span className="block text-[12px] font-normal text-muted">{service.kind === "monthly" ? "Charged every month" : "Charged once"}</span></div>
+              <div key={service.id} role="row" className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_40px]" data-testid={`service-row-${service.id}`}>
+                <div role="cell" className="col-span-2 min-w-0 sm:col-span-1">
+                  <span className="block text-[15px] font-semibold text-ink">{service.name}</span>
+                  <span className="block text-[12px] text-muted">{service.kind === "monthly" ? "Every month" : "Once"}</span>
+                  {status.tone !== "green" ? <span className={cx("mt-0.5 flex items-center gap-1.5 text-[12px] font-medium", TONE[status.tone])} data-testid={`status-${service.id}`}><span aria-hidden className={cx("h-2 w-2 rounded-full", DOT[status.tone])} />{status.label}</span> : null}
+                </div>
                 <label role="cell" className="text-[12px] font-semibold text-muted sm:text-[0px]"><span className="sm:sr-only">You charge (₹)</span>
-                  <input data-testid="price" inputMode="decimal" aria-label={`${service.name}: you charge`} className={cx(cell, "mt-1 sm:mt-0")} defaultValue={rupeesInput(service.listPricePaise)} onChange={(event) => { const value = toPaise(event.target.value); if (value !== null) edit(index, { listPricePaise: value }); }} />
+                  <input data-testid="price" inputMode="decimal" aria-label={`${service.name}: you charge`} className={cx(cell, "mt-1 sm:mt-0")} defaultValue={rupeesInput(service.listPricePaise)} onChange={(event) => { const value = toPaise(event.target.value); if (value !== null) edit(i, { listPricePaise: value }); }} />
                 </label>
-                <label role="cell" className="text-[12px] font-semibold text-muted sm:text-[0px]"><span className="sm:sr-only">It costs you (₹)</span>
-                  <input data-testid="cost" inputMode="decimal" aria-label={`${service.name}: it costs you`} className={cx(cell, "mt-1 sm:mt-0")} defaultValue={rupeesInput(service.directCostPaise)} onChange={(event) => { const value = toNonNegativePaise(event.target.value); if (value !== null) edit(index, { directCostPaise: value }); }} />
+                <label role="cell" className="text-[12px] font-semibold text-muted sm:text-[0px]"><span className="sm:sr-only">Your cost (₹)</span>
+                  <input data-testid="cost" inputMode="decimal" aria-label={`${service.name}: your cost`} className={cx(cell, "mt-1 sm:mt-0")} defaultValue={rupeesInput(service.directCostPaise)} onChange={(event) => { const value = toNonNegativePaise(event.target.value); if (value !== null) edit(i, { directCostPaise: value }); }} />
                 </label>
-                <div role="cell" className="text-[14px] text-ink sm:text-right" data-testid={`keep-${service.id}`}><span className="text-[12px] text-muted sm:hidden">You keep </span>{formatINR(status.keepPaise)} <span className="text-muted">({status.keepPercent}%)</span></div>
-                <div role="cell" className={cx("flex items-center gap-1.5 text-[13px] font-medium", TONE[status.tone])} data-testid={`status-${service.id}`}><span aria-hidden className={cx("h-2 w-2 shrink-0 rounded-full", DOT[status.tone])} />{status.label}</div>
+                <div role="cell" className="row-span-2 self-center sm:row-span-1">
+                  <button type="button" onClick={() => setEditing(service.id)} aria-label={`Edit rules for ${service.name}`} data-testid={`edit-rules-${service.id}`} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-ink-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue"><Settings2 aria-hidden className="h-4 w-4" /></button>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
-      <details className="mt-3 rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="advanced-rules">
-        <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="service-more">Advanced rules <span className="font-normal text-muted">· {dependencies ? `${dependencies} service${dependencies === 1 ? "" : "s"} depend${dependencies === 1 ? "s" : ""} on another` : "no dependencies set"}{advancedSet ? "" : ""}</span></summary>
-        <p className="mt-2 text-[12px] text-ink-2">These decide which smaller offers are allowed. Nothing here is guessed for you: the app only follows what you set.</p>
-        <div className="mt-2 divide-y divide-line">
-          {services.map((service, index) => (
-            <div key={service.id} className="grid gap-3 py-3 sm:grid-cols-2" data-testid={`advanced-${service.id}`}>
-              <div>
-                <div className="text-[13px] font-semibold text-ink">{service.name}</div>
-                <label className="mt-1 block text-[12px] font-semibold text-muted">Needs another service first
-                  <input data-testid="dependsOn" className="mt-1 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] font-normal text-ink" value={(service.dependsOnAny ?? []).join(", ")} onChange={(event) => edit(index, { dependsOnAny: event.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder="For example: search-marketing" />
-                </label>
-              </div>
-              <div className="space-y-2 text-[13px] text-ink-2">
-                <span data-testid="costTiming" className="block text-[12px] text-muted">You pay this cost at the start of each month of work.</span>
-                <label className="flex items-center gap-2"><input data-testid="removable" type="checkbox" checked={service.removable} onChange={(e) => edit(index, { removable: e.target.checked })} /> Can be left out of a smaller offer</label>
-                <label className="flex items-center gap-2"><input data-testid="deferrable" type="checkbox" checked={service.deferrable} onChange={(e) => edit(index, { deferrable: e.target.checked })} /> Can start later</label>
-                <label className="flex items-center gap-2"><input data-testid="independent" type="checkbox" checked={service.hasIndependentValue} onChange={(e) => edit(index, { hasIndependentValue: e.target.checked })} /> Useful to the buyer on its own</label>
-              </div>
+
+      <dialog
+        ref={dialog}
+        onClose={() => setEditing(null)}
+        data-testid="service-rules-panel"
+        aria-labelledby="service-rules-title"
+        className="m-0 ml-auto h-full max-h-none w-full max-w-[420px] border-l border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/30"
+      >
+        {open ? (
+          <div className="flex h-full flex-col" data-testid={`advanced-${open.id}`}>
+            <div className="border-b border-line px-5 py-4">
+              <h2 id="service-rules-title" className="text-[18px] font-semibold text-ink">{open.name}</h2>
+              <p className="mt-0.5 text-[13px] text-ink-2" data-testid={`keep-${open.id}`}>{`You keep ${formatINR(serviceStatus(open, guardrails).keepPaise)} (${serviceStatus(open, guardrails).keepPercent}%) before payment fees · ${serviceStatus(open, guardrails).label}`}</p>
             </div>
-          ))}
-        </div>
-      </details>
+            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+              <fieldset>
+                <legend className="text-[13px] font-semibold text-ink">Needs at least one of these first</legend>
+                <p className="mt-0.5 text-[12px] text-muted">Set by you; nothing is guessed.</p>
+                <div className="mt-2 space-y-1.5">
+                  {services.filter((other) => other.id !== open.id).map((other) => (
+                    <label key={other.id} className="flex items-center gap-2 text-[14px] text-ink-2">
+                      <input type="checkbox" data-testid={`dependsOn-${other.id}`} checked={(open.dependsOnAny ?? []).includes(other.id)} onChange={(event) => edit(index, { dependsOnAny: event.target.checked ? [...(open.dependsOnAny ?? []), other.id] : (open.dependsOnAny ?? []).filter((id) => id !== other.id) })} /> {other.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="space-y-2 text-[14px] text-ink-2">
+                <legend className="text-[13px] font-semibold text-ink">In a smaller offer</legend>
+                <label className="flex items-center gap-2"><input data-testid="removable" type="checkbox" checked={open.removable} onChange={(e) => edit(index, { removable: e.target.checked })} /> Can be left out</label>
+                <label className="flex items-center gap-2"><input data-testid="deferrable" type="checkbox" checked={open.deferrable} onChange={(e) => edit(index, { deferrable: e.target.checked })} /> Can start later</label>
+                <label className="flex items-center gap-2"><input data-testid="independent" type="checkbox" checked={open.hasIndependentValue} onChange={(e) => edit(index, { hasIndependentValue: e.target.checked })} /> Useful to the buyer on its own</label>
+              </fieldset>
+              <p data-testid="costTiming" className="text-[12px] text-muted">You pay this cost at the start of each month of work.</p>
+            </div>
+            <div className="border-t border-line px-5 py-3"><Button variant="primary" onClick={() => setEditing(null)} data-testid="rules-done">Done</Button></div>
+          </div>
+        ) : null}
+      </dialog>
     </section>
   );
 }

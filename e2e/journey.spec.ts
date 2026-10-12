@@ -695,6 +695,8 @@ test("P0 · current agreement summary keeps phase, annual, deferred and declined
 });
 
 test("commercial case picker starts all three cases and isolates their buyer, run and outcomes", async ({ page }) => {
+  // Deals set aside by earlier tests would be reopened where they were left; this one needs three fresh starts.
+  await api(page, { action: "reset" });
   const cases = [
     {
       id: "reduced-scope",
@@ -720,7 +722,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     await page.goto("/deals");
     await expect(page.getByTestId("case-picker")).toBeVisible();
     await page.getByTestId(`select-case-${item.id}`).click();
-    await expect(page.getByTestId("case-switch-warning")).toHaveText("Starting a new deal clears the current one.");
+    await expect(page.getByTestId("case-switch-warning")).toHaveText(item.id === state().caseId ? "" : "The deal you leave keeps its progress.");
     await page.getByTestId("start-selected-case").click();
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(item.buyer);
@@ -780,10 +782,42 @@ test("step 3 · Track confirms the send, offers a way back, and keeps analytics 
   await expect(page.getByTestId("track-outcome-link")).not.toContainText("₹0");
   await page.getByTestId("return-to-deals").click();
   await expect(page).toHaveURL(/\/deals$/);
-  await expect(page.getByTestId("open-deal-row")).toContainText("Waiting on buyer");
+  await expect(page.getByTestId("deal-status-reduced-scope")).toContainText("Waiting on buyer");
   await page.goto("/deals/hero/track");
   await page.getByTestId("delivery-status").getByRole("button").click();
   await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("WhatsApp (simulated)");
+});
+
+test("active deals · all three deals are held at once, each with its own progress", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  await api(page, { action: "send_questions" });
+  await page.goto("/deals");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Active deals");
+  await expect(page.getByTestId("deal-status-reduced-scope")).toContainText("Waiting on buyer");
+  await expect(page.getByTestId("deal-status-preserve-scope")).toContainText("Not started");
+  await expect(page.getByTestId("deal-status-no-fit")).toContainText("Not started");
+  // Starting another deal sets this one aside; it is not cleared.
+  await page.getByTestId("select-case-no-fit").click();
+  await expect(page.getByTestId("start-selected-case")).toHaveText(/Start deal/);
+  await page.getByTestId("start-selected-case").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  expect(state().caseId).toBe("no-fit");
+  await page.goto("/deals");
+  await expect(page.getByTestId("deal-status-reduced-scope")).toContainText("Waiting on buyer");
+  await expect(page.getByTestId("deal-status-no-fit")).toContainText("Open now");
+  // Coming back finds exactly where it was.
+  await page.getByTestId("select-case-reduced-scope").click();
+  await expect(page.getByTestId("start-selected-case")).toHaveText(/Open deal/);
+  await page.getByTestId("start-selected-case").click();
+  await expect.poll(() => state().caseId).toBe("reduced-scope");
+  expect(state().conversation.some((item) => item.kind === "clarification" && item.sentAt)).toBe(true);
+  // A full reset forgets the deals that were set aside.
+  await api(page, { action: "reset" });
+  await api(page, { action: "open_deal", caseId: "no-fit" });
+  expect(state().agreements).toHaveLength(0);
+  expect(state().conversation.filter((item) => item.kind === "clarification" && item.sentAt)).toHaveLength(0);
 });
 
 test("step 3 · alternatives are visible rows, not hidden behind a disclosure", async ({ page }) => {

@@ -363,26 +363,25 @@ test("prices & costs is the first tab, the guide's first step, and is tied to th
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   const tabs = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-  await expect(tabs.nth(0)).toContainText("Prices");
-  await expect(tabs.nth(1)).toContainText("Deals");
+  await expect(tabs.nth(0)).toContainText(/Deal settings|Settings/);
+  await expect(tabs.nth(1)).toContainText(/Active deals|Deals/);
   await expect(tabs).toHaveCount(2);
-  // Before any case, the page says what the rules will do; after one is ready it shows the recommendation they produce.
-  await expect(page.getByTestId("rules-in-action-empty")).toBeVisible();
-  await expect(page.getByTestId("deals-economics-link")).toHaveCount(0);
+  // Settings stay apart from action: the settings page carries no "start a deal" and no deal results, before or after a deal is ready.
+  await expect(page.getByRole("link", { name: "Start a deal" })).toHaveCount(0);
+  await expect(page.getByTestId("rules-in-action")).toHaveCount(0);
   await startCase(page);
   await api(page, { action: "send_questions" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await api(page, { action: "adopt_replies" });
   await page.goto("/economics");
-  await expect(page.getByTestId("rules-in-action-leader")).toContainText("the suggested offer is");
-  await page.getByTestId("rules-in-action-link").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("rules-in-action")).toHaveCount(0);
+  await page.goto("/deals/hero/offer");
   await page.getByTestId("see-economics").locator(":scope > summary").click();
   await page.getByTestId("offer-economics-link").click();
   await expect(page).toHaveURL(/\/economics$/);
   await page.goto("/deals");
-  await page.getByTestId("deals-economics-link").click();
+  await page.getByTestId("nav-prices").click();
   await expect(page).toHaveURL(/\/economics$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });

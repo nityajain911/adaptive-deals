@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EconomicsContent } from "@/domain/business-economics";
 import type { EconomicsEvidenceDraft, EconomicsEvidenceProposal } from "@/commercial-memory/economics-draft";
@@ -50,7 +50,7 @@ const DEMO_DATE = "2026-10-08";
 const inputClass = "mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink";
 
 /** Add the merchant's own rate card or cost sheet: a CSV, pasted text, or a text-based PDF. A built-in reader and an AI reader propose values; code checks each against the document. */
-function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[]; onUploaded: (result: UploadSummary) => void }) {
+function UploadDocument({ sources, open, onClose, onUploaded }: { sources: MemorySourceSummary[]; open: boolean; onClose: () => void; onUploaded: (result: UploadSummary) => void }) {
   const [kind, setKind] = useState<"rate_card" | "cost_sheet">("rate_card");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(DEMO_DATE);
@@ -59,13 +59,19 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
   const [replace, setReplace] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ message: string; notes: { line: string; reason: string }[] } | null>(null);
-  const [result, setResult] = useState<UploadSummary | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
   // Only this merchant's own active sample can be replaced; another merchant's sources are never offered.
   const sample = sources.find((source) => !source.uploaded && source.merchantId === "merchant-pinecone" && source.kind === kind && source.status === "active") ?? null;
 
   const submit = async () => {
-    setPending(true); setError(null); setResult(null);
+    setPending(true); setError(null);
     try {
       const file = fileRef.current?.files?.[0] ?? null;
       const name = file?.name ?? null;
@@ -77,11 +83,11 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
       const response = await fetch("/api/commercial-memory/actions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(base) });
       const json = await response.json() as { ok: boolean; result?: UploadSummary; error?: string; notes?: { line: string; reason: string }[] };
       if (!json.ok) { setError({ message: json.error ?? "The upload failed", notes: json.notes ?? [] }); return; }
-      setResult(json.result!);
       setPasted("");
       setReplace(false);
       if (fileRef.current) fileRef.current.value = "";
       onUploaded(json.result!);
+      onClose();
     } catch {
       setError({ message: "The upload failed", notes: [] });
     } finally {
@@ -90,19 +96,19 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
   };
 
   return (
-    <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="memory-upload">
-      <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="memory-upload-toggle">Upload your own rate card or cost sheet</summary>
-      <div className="mt-3 space-y-3 pb-2">
-        <p className="text-[13px] text-ink-2">Upload a CSV or a PDF, or paste text. Each line should name one of your services and give one price. A built-in reader checks each line, and an AI reader may propose more (a recorded run for the sample documents; a live call only if it is switched on). Code checks every value against your document, and nothing changes until you confirm. Scanned PDFs and Excel files are not supported.</p>
-        <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Want to try it first? Download a sample:{" "}
+    <dialog ref={dialog} onClose={onClose} aria-labelledby="upload-title" data-testid="memory-upload" className="m-auto max-h-[92vh] w-[min(36rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/40">
+      <div className="space-y-3 p-5">
+        <h2 id="upload-title" className="text-[18px] font-semibold text-ink">Bring in your rate card</h2>
+        <p className="text-[13px] text-ink-2">A CSV or a text-based PDF, or paste text. A built-in reader and an AI reader propose values, and code checks each against your document. Nothing changes until you confirm.</p>
+        <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Try a sample:{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>rate card (PDF)</a>,{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>cost sheet (PDF)</a> or{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.csv" download>rate card (CSV)</a>.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-[13px] font-medium text-ink">This is a
             <select className={inputClass} value={kind} onChange={(e) => { setKind(e.target.value as typeof kind); setReplace(false); }} data-testid="memory-upload-kind">
-              <option value="rate_card">Rate card (what you charge)</option>
-              <option value="cost_sheet">Cost sheet (what it costs you)</option>
+              <option value="rate_card">Rate card</option>
+              <option value="cost_sheet">Cost sheet</option>
             </select>
           </label>
           <label className="text-[13px] font-medium text-ink">Name
@@ -133,7 +139,7 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary" disabled={pending} onClick={() => void submit()} data-testid="memory-upload-submit">{pending ? "Reading…" : "Add document"}</Button>
-          <span className="text-[12px] text-muted">Nothing changes until you check and save.</span>
+          <Button onClick={onClose} data-testid="memory-upload-skip">Skip, use the demo documents</Button>
         </div>
         {error ? (
           <div className="rounded-lg border border-[#f3c8c3] bg-red-weak px-3 py-2 text-[13px] text-red" role="alert" data-testid="memory-upload-error">
@@ -141,16 +147,20 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
             {error.notes.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px]" data-testid="memory-upload-error-notes">{error.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason}</li>)}</ul> : null}
           </div>
         ) : null}
-        {result ? (
-          <div className="rounded-lg border border-[#c9e7d3] bg-green-weak px-3 py-2 text-[13px] text-ink" role="status" data-testid="memory-upload-result">
-            <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}. Review them below.</p>
-            {result.reader ? <p className="mt-1 text-[12px] text-ink-2" data-testid="memory-upload-reader">{result.reader.label ? `AI reading: ${result.reader.label}. It proposed ${result.reader.proposed} line${result.reader.proposed === 1 ? "" : "s"}; ${result.reader.rejected ? `${result.reader.rejected} did not pass the check against your document and ${result.reader.rejected === 1 ? "was" : "were"} dropped.` : "all passed the check against your document."}` : (result.reader.message ?? "")}</p> : null}
-            {result.notes.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px] text-ink-2" data-testid="memory-upload-notes">{result.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason}</li>)}</ul> : null}
-            {result.extractedText ? <details className="mt-2"><summary className="cursor-pointer text-[12px] font-semibold text-blue">What we read from the PDF</summary><pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-surface p-2 text-[12px]" data-testid="memory-upload-read-text">{result.extractedText}</pre></details> : null}
-          </div>
-        ) : null}
       </div>
-    </details>
+    </dialog>
+  );
+}
+
+/** What an upload found, shown on the page once the upload dialog has closed. */
+function UploadResult({ result }: { result: UploadSummary }) {
+  return (
+          <div className="rounded-lg border border-[#c9e7d3] bg-green-weak px-3 py-2 text-[13px] text-ink" role="status" data-testid="memory-upload-result">
+      <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}. Review them below.</p>
+      {result.reader ? <p className="mt-1 text-[12px] text-ink-2" data-testid="memory-upload-reader">{result.reader.label ? `AI reading: ${result.reader.label}. It proposed ${result.reader.proposed} line${result.reader.proposed === 1 ? "" : "s"}; ${result.reader.rejected ? `${result.reader.rejected} did not pass the check against your document and ${result.reader.rejected === 1 ? "was" : "were"} dropped.` : "all passed the check against your document."}` : (result.reader.message ?? "")}</p> : null}
+      {result.notes.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px] text-ink-2" data-testid="memory-upload-notes">{result.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason}</li>)}</ul> : null}
+      {result.extractedText ? <details className="mt-2"><summary className="cursor-pointer text-[12px] font-semibold text-blue">What we read from the PDF</summary><pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-surface p-2 text-[12px]" data-testid="memory-upload-read-text">{result.extractedText}</pre></details> : null}
+    </div>
   );
 }
 
@@ -199,27 +209,31 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
     onEditorVisibilityChange(false);
   });
 
+  const uploads = sources.filter((source) => source.uploaded && source.status === "active");
+  const synced = uploads.length > 0;
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadSummary | null>(null);
+
   return (
-    <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="commercial-memory">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[18px] font-semibold text-ink">Your documents</h2>
-          <p className="mt-1 max-w-2xl text-[14px] leading-5 text-ink-2" data-testid="document-default-message">{review.defaultMessage}</p>
-          
-        </div>
-        <Button variant="primary" data-testid="memory-draft" disabled={pending} onClick={() => void readDocuments()}>{pending ? "Reading…" : "Fill in from my documents"}</Button>
+    <section className="space-y-3" data-testid="commercial-memory">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-4 py-2.5 text-[14px] ${synced ? "bg-green-weak text-green" : "border border-line bg-surface text-ink-2"}`} data-testid="document-source">
+        <span aria-hidden className={`h-2 w-2 rounded-full ${synced ? "bg-green" : "bg-line-strong"}`} />
+        <span className="min-w-0 flex-1 font-medium" data-testid="document-default-message">{synced ? `Synced with ${uploads.map((source) => source.title).join(" and ")}` : `Using the ${review.activeDocuments.length} demo documents`}</span>
+        <button type="button" className="font-semibold text-blue hover:underline" onClick={() => setUploadOpen(true)} data-testid="memory-upload-toggle">{synced ? "Update source" : "Upload your rate card"}</button>
+        <button type="button" className="text-[13px] font-medium text-ink-2 hover:underline disabled:opacity-60" disabled={pending} onClick={() => void readDocuments()} data-testid="memory-draft">{pending ? "Reading…" : "Review values from documents"}</button>
       </div>
 
-      {review.manageableDocuments.length ? <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
+      {review.manageableDocuments.length ? <details className="rounded-xl border border-line bg-surface-muted px-3 py-2">
         <summary className="cursor-pointer text-[13px] font-semibold text-ink">Document history</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {review.manageableDocuments.map((source) => <div key={source.id} className="rounded-lg border border-line bg-surface px-3 py-2"><div className="flex items-start justify-between gap-3"><div><div className="text-[13px] font-medium text-ink">{source.title}</div><div className="mt-0.5 text-[12px] capitalize text-muted">{source.uploaded ? "Uploaded by you" : "Sample document"} · {source.status === "superseded" ? "replaced" : source.status}</div></div>{source.uploaded && source.status === "active" ? <Button className="shrink-0" data-testid={`memory-withdraw-${source.id}`} disabled={pending} onClick={() => void run(async () => { await call({ action: "withdraw_memory_source", sourceId: source.id }); setDraft(null); router.refresh(); })}>Remove</Button> : null}</div></div>)}
         </div>
       </details> : null}
 
-      <UploadDocument sources={sources} onUploaded={() => { setDraft(null); router.refresh(); void readDocuments(); }} />
+      <UploadDocument sources={sources} open={uploadOpen} onClose={() => setUploadOpen(false)} onUploaded={(result) => { setUploadResult(result); setDraft(null); router.refresh(); void readDocuments(); }} />
+      {uploadResult ? <UploadResult result={uploadResult} /> : null}
 
-      {draft ? <div className="mt-4 space-y-3" data-testid="memory-proposals">
+      {draft ? <div className="space-y-3 rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="memory-proposals">
         <div>
           <h3 className="text-[16px] font-semibold text-ink">Review what we found</h3>
           {review.message ? <p className="text-[13px] font-medium text-ink" data-testid="review-summary">{review.message}</p> : null}

@@ -537,3 +537,15 @@ The model's explanation has two parts that code validates separately: a full com
 
 **What this does and does not show.** It shows the product's checks working (a mismatch is rejected, never patched) and that the recorded case text can be tuned. It is also a case where the text was reworded after the model missed, and we say so. All three cases now run on recorded Cerebras output.
 
+## Deal settings and Active deals (12 October 2026)
+
+**The two tabs are now named for what they hold.** **Deal settings** (formerly Prices & costs) holds prices, costs and limits; **Active deals** (formerly Deals) is the workspace. The settings page no longer carries a "start a deal" prompt or any deal result.
+
+**Three deals are held at once.** The deal being worked on stays in the one store file the whole app reads; opening or starting another saves it first and loads the other, so each deal keeps its own progress. Active deals lists all three stories with their own saved status ("Your move", "Waiting on buyer", "Not started"), and a deal that was never started says so. Opening or starting one sets the current one aside; nothing is cleared. A full reset forgets all of them, and "Reset this deal" resets only the open one. Storage stays in local files; a database would add credentials and a network dependency for no gain here.
+
+**Source and upload.** The page shows where the numbers came from in one strip ("Using the 7 demo documents" or "Synced with …"), with **Upload your rate card** or **Update source** opening a dialog. The dialog opens on request, never by itself, so it cannot block a recording. An upload still goes through Review what we found, and nothing changes until the merchant checks and saves.
+
+**Services are a three-column table.** Service, You charge, Your cost, plus a gear per row that opens that service's rules (needs at least one of these first; can be left out; can start later; useful on its own) in a side panel, with "You keep" and its status. A service is flagged under its name only when it needs attention.
+
+**Limits are in two groups with sliders.** Margin guardrails: lowest profit (slider 10–50%), biggest discount (slider 0–25%), smallest payment. Cashflow guardrails: most spent before being paid, longest wait. Each percentage keeps a number box that accepts any valid value; the slider only keeps to its range.
+
