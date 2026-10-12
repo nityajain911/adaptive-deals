@@ -50,3 +50,35 @@ export function whatIf(content: Pick<EconomicsContent, "services" | "guardrails"
   });
   return { rows, unreachable: rows.some((row) => row.lowestPaise === null) };
 }
+
+export interface ExampleDeal {
+  /** Price before GST, direct cost, the expected payment fee and what is left, all in paise. */
+  pricePaise: number;
+  costPaise: number;
+  feePaise: number;
+  keepPaise: number;
+  keepPercent: number;
+  /** Whether the lowest-profit limit would let this deal be suggested. */
+  suggested: boolean;
+  months: number;
+}
+
+/**
+ * A worked example for the limits: every service for three months at the prices and costs on screen, with the same fee
+ * model as above. It is arithmetic on the merchant's own numbers, not a prediction, and it saves nothing.
+ */
+export function exampleDeal(content: Pick<EconomicsContent, "services" | "guardrails"> & { fixed: Pick<EconomicsContent["fixed"], "gstRateBps"> }, months = 3): ExampleDeal | null {
+  if (!content.services.length) return null;
+  const times = (service: (typeof content.services)[number]) => (service.kind === "monthly" ? months : 1);
+  const pricePaise = content.services.reduce((n, s) => n + s.listPricePaise * times(s), 0);
+  const costPaise = content.services.reduce((n, s) => n + s.directCostPaise * times(s), 0);
+  if (pricePaise <= 0) return null;
+  const feePaise = Math.round((pricePaise * content.guardrails.paymentFeeBps * (10_000 + content.fixed.gstRateBps)) / 100_000_000);
+  const keepPaise = pricePaise - costPaise - feePaise;
+  const floor = content.guardrails.contributionFloor;
+  const needs: boolean[] = [];
+  if (floor.minPercentBps !== null) needs.push(keepPaise * 10_000 >= floor.minPercentBps * pricePaise);
+  if (floor.minPaise !== null) needs.push(keepPaise >= floor.minPaise);
+  const suggested = keepPaise > 0 && (needs.length === 0 ? true : floor.combine === "either" ? needs.some(Boolean) : needs.every(Boolean));
+  return { pricePaise, costPaise, feePaise, keepPaise, keepPercent: Math.round((keepPaise * 100) / pricePaise), suggested, months };
+}

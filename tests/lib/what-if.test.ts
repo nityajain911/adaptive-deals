@@ -53,3 +53,28 @@ describe("serviceStatus", () => {
     expect(serviceStatus(service(10_000, 8_000), g).label).toBe("Below your lowest profit");
   });
 });
+
+describe("the example deal", () => {
+  const content = {
+    services: [
+      { id: "a", name: "A", kind: "one_time", listPricePaise: 2_400_000, directCostPaise: 1_200_000 },
+      { id: "b", name: "B", kind: "monthly", listPricePaise: 400_000, directCostPaise: 200_000 },
+    ],
+    guardrails: { contributionFloor: { minPercentBps: 3_500, minPaise: null, combine: "both" }, paymentFeeBps: 200 },
+    fixed: { gstRateBps: 1_800 },
+  } as never;
+  it("prices every service for three months and keeps what is left after cost and fee", async () => {
+    const { exampleDeal } = await import("@/lib/what-if");
+    const e = exampleDeal(content)!;
+    expect(e.pricePaise).toBe(2_400_000 + 3 * 400_000);
+    expect(e.costPaise).toBe(1_200_000 + 3 * 200_000);
+    expect(e.keepPaise).toBe(e.pricePaise - e.costPaise - e.feePaise);
+    expect(e.suggested).toBe(true);
+  });
+  it("is not suggested when the lowest profit is higher than what it keeps, and absent without services", async () => {
+    const { exampleDeal } = await import("@/lib/what-if");
+    const strict = { ...(content as object), guardrails: { contributionFloor: { minPercentBps: 9_000, minPaise: null, combine: "both" }, paymentFeeBps: 200 } } as never;
+    expect(exampleDeal(strict)!.suggested).toBe(false);
+    expect(exampleDeal({ ...(content as object), services: [] } as never)).toBeNull();
+  });
+});

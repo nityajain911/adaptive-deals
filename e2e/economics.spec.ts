@@ -429,7 +429,11 @@ test("services · a three-column table, with the rules one click away in a side 
   const row = page.getByTestId("service-row-website-fixes");
   await expect(row).toBeVisible();
   // Only what most merchants touch is in the table; nothing is flagged when a service is fine.
-  await expect(page.getByTestId("economics-services").getByRole("columnheader")).toHaveText(["Service", "You charge (₹)", "Your cost (₹)", "Rules"]);
+  await expect(page.getByTestId("economics-services").getByRole("columnheader")).toHaveText(["Service", "You charge (₹)", "Your cost (₹)", "You keep", "Status", "Rules"]);
+  // The margin is worked out on every row, and so is the status.
+  await expect(page.getByTestId("keep-cell-website-fixes")).toContainText("₹12,000");
+  await expect(page.getByTestId("keep-cell-website-fixes")).toContainText("50%");
+  await expect(page.getByTestId("status-cell-website-fixes")).toContainText("Within your limit");
   await expect(page.getByTestId("status-website-fixes")).toHaveCount(0);
   await expect(page.getByTestId("service-rules-panel")).toBeHidden();
   // A missing cost and a loss are named in words under the service.
@@ -437,6 +441,7 @@ test("services · a three-column table, with the rules one click away in a side 
   await expect(page.getByTestId("status-website-fixes")).toContainText("Add a cost");
   await row.getByTestId("cost").fill("30000");
   await expect(page.getByTestId("status-website-fixes")).toContainText("Costs more than you charge");
+  await expect(page.getByTestId("status-cell-website-fixes")).toContainText("Costs more than you charge");
   await row.getByTestId("cost").fill("12000");
   await expect(page.getByTestId("status-website-fixes")).toHaveCount(0);
   // The gear opens that service's rules; Done and Escape close it.
@@ -734,4 +739,15 @@ test("overrides · a deal blocked on profit gets a slider that stops where an of
   await expect(page.getByTestId("recommendation")).toBeVisible();
   await expect(page.getByTestId("customized-tag").first()).toBeVisible();
   expect(state().economics.overrides.filter((o) => o.field === "contribution_floor")).toHaveLength(1);
+});
+
+
+test("settings · an example deal moves with the limits and says whether it would be suggested", async ({ page }) => {
+  await page.goto("/economics");
+  const example = page.getByTestId("what-if-example");
+  await expect(example).toContainText("every service for 3 months");
+  await expect(page.getByTestId("what-if-example-verdict")).toHaveText("Would be suggested");
+  // Raise the lowest profit above what the example deal keeps: it is no longer suggested.
+  await page.getByTestId("floor-percent").fill("80");
+  await expect(page.getByTestId("what-if-example-verdict")).toHaveText("Would not be suggested");
 });

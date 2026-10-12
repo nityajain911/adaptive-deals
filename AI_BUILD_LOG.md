@@ -1219,3 +1219,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** fewer, clearer answers; an automatic scope reduction that hits the buyer's number; the chat at the top; analytics out of the way. **Applicant decision:** build the scope change as I recommended.
 
 **Where I departed from the brief:** the three paths and the Performance tab already existed; "remove Monthly Reporting to hit ₹40,000" does not (it reaches ₹42,480), so the card states the gap; the suggestion is worked out by the rules engine, not AI; a service the buyer requires, or one the merchant has not marked removable, is never offered for removal.
+
+### 2026-10-12 — [Claude Code] Deal settings
+
+**Asked by the applicant:** a table with margin and status, a live what-if preview, AI-inferred dependencies, a focused upload review. **Applicant decision:** the editor reopens by itself after the merchant confirms the review (that behaviour was already there).
+
+**Where I departed from the brief:** most of it existed (compact table, preview, folded editor during review); I added the Margin and Status columns and the example deal; service dependencies stay merchant-set, because they decide what can be dropped from a buyer's offer and a model's guess should not set them silently.

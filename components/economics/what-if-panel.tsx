@@ -2,11 +2,12 @@
 
 import type { EconomicsContent } from "@/domain/business-economics";
 import { formatINR } from "@/domain/money";
-import { whatIf } from "@/lib/what-if";
+import { exampleDeal, whatIf } from "@/lib/what-if";
 
 /** Live, read-only preview of what the limits above mean. It updates as you type and saves nothing. */
 export function WhatIfPanel({ content }: { content: Pick<EconomicsContent, "services" | "guardrails" | "fixed"> }) {
   const result = whatIf(content);
+  const example = exampleDeal(content);
   const floor = content.guardrails.contributionFloor;
   const limit = floor.minPercentBps !== null ? `${floor.minPercentBps / 100}% of the price` : floor.minPaise !== null ? formatINR(floor.minPaise) : null;
   return (
@@ -15,6 +16,13 @@ export function WhatIfPanel({ content }: { content: Pick<EconomicsContent, "serv
       <p className="mt-1 text-[13px] leading-5 text-ink-2" data-testid="what-if-headline">
         {limit ? `Offers under ${limit} profit won't be suggested.` : "With no lowest profit, any price above your cost can be suggested."}
       </p>
+      {example ? (
+        <div className="mt-3 rounded-lg border border-line bg-surface px-3 py-2 text-[13px]" data-testid="what-if-example">
+          <div className="text-[12px] text-muted">Example · every service for {example.months} months</div>
+          <div className="mt-0.5 text-ink">You charge {formatINR(example.pricePaise)} and keep {formatINR(Math.round(Math.max(0, example.keepPaise) / 100) * 100)} ({example.keepPercent}%) after fees.</div>
+          <div className={example.suggested ? "mt-0.5 font-medium text-green" : "mt-0.5 font-medium text-amber"} data-testid="what-if-example-verdict">{example.suggested ? "Would be suggested" : "Would not be suggested"}</div>
+        </div>
+      ) : null}
       {result.unreachable ? <p className="mt-3 rounded-lg border border-[#f6cfc9] bg-red-weak px-3 py-2 text-[13px] font-semibold text-red" data-testid="what-if-unreachable">With these numbers no price can reach your lowest profit. Lower it or the payment fee.</p> : null}
       <dl className="mt-3 divide-y divide-line text-[13px]">
         {result.rows.map((row) => (
