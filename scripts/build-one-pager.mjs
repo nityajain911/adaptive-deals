@@ -6,57 +6,58 @@ import { getDocumentProxy } from "unpdf";
 import { readFileSync } from "node:fs";
 
 const TITLE = "Adaptive Deals by Razorpay — one-page product note";
-const BYLINE = "Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2";
+const BYLINE = "AI-native deal desk for B2B and SME commerce · Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2";
 
 // The headline numbers, from the demo deal on the synthetic merchant's own prices and costs.
 const STRIP = [
-  ["₹1,41,600", "annual quote the buyer cannot afford"],
-  ["−₹14,600", "if the owner discounts it to the ₹50,000 budget"],
-  ["+₹19,330", "kept on the restructured ₹46,020 offer (50% of price)"],
-  ["1 tap", "for the buyer to accept, pay and authorise auto-pay"],
+  ["₹1,41,600", "annual quote (incl. GST) the buyer cannot afford now"],
+  ["−₹14,600", "lost if the owner discounts a year of work to the ₹50,000 budget (₹42,373 in, ₹57,000 cost)"],
+  ["+₹19,330", "earned on the 3-month ₹46,020 offer after costs and fees (about 50% of ex-GST price)"],
+  ["1 tap", "for the buyer to accept, pay and authorise"],
 ];
 
 // Inline: **bold** and [text](url). Blocks: { h, p[] } where an item starting "- " is a bullet.
 const SECTIONS = [
   {
-    h: "1. The merchant and the problem",
+    h: "1. The merchant, the problem and the Razorpay opportunity",
     p: [
-      "**Who:** owners of small service businesses (agencies, consultants) who sell modular, retainer-style work. A client says, “I only have ₹50,000 this quarter, and anything above ₹60,000 goes to our MD,” and the quote stalls. Buyers rarely refuse outright; they push back on timing, phased budget or an approval limit, and the quote stalls because nobody restructures it. Today's payment link is binary: pay in full now or walk away.",
-      "**Why services.** I interviewed service-based merchants before building. A product seller facing a hesitant buyer mostly has one lever, price. A service seller has three: scope, timing and payment shape. That ambiguity is where a rules-aware tool helps, and instalments are what Razorpay's Payment Links and mandates exist for. **Why Razorpay:** proposal tools (PandaDoc, Proposify) can draft a quote but cannot collect on it; a gateway collects only after terms are final. Razorpay owns both ends ([mandate docs](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-intent/initiate-mandate-registration/)).",
+      "- **Merchant:** founders of small B2B service firms (marketing agencies, design studios, IT and compliance consultancies) selling modular retainers.",
+      "- **Problem:** checkout is binary: pay in full now or walk away. A buyer says, “I only have ₹50,000 this quarter; anything above ₹60,000 needs our MD,” and the quote stalls. Service deals stall not on willingness to pay but because rebuilding scope, phases and cost by hand takes days.",
+      "- **Razorpay opportunity:** proposal tools (PandaDoc, Proposify) reshape quotes but cannot collect; a gateway collects only after terms are final. An adaptive deal desk upstream of Payment Links and mandates moves Razorpay from settlement rail to revenue recovery ([mandate docs](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-intent/initiate-mandate-registration/)).",
     ],
   },
   {
-    h: "2. Evidence, and today's workaround",
+    h: "2. Evidence, workarounds and merchant discovery",
     p: [
-      "**Workaround:** the owner reshapes the deal by hand in chat, or discounts. That is the expensive option. On my synthetic merchant's numbers, discounting the ₹1,41,600 annual plan to fit a ₹50,000 budget leaves ₹42,373 before GST against ₹57,000 of delivery cost, a loss of about ₹14,600 before fees. The restructured three-month package keeps ₹19,330.",
-      "**Outside evidence (each with its limit):**",
-      "- Delayed payments to Indian MSMEs were about ₹7.34 lakh crore in March 2024 ([GAME–FISME–C2FO](https://fisme.org.in/study/delayed-payments-to-msmes-decline-from-rs-10-lakh-cr-to-rs-7-lakh-cr-but-challenges-persist-game-fisme-report/)); I found no trustworthy services-only split.",
-      "- 51% of B2B buyers say they would switch to a seller offering flexible terms ([TreviPay](https://www.businesswire.com/news/home/20231114210927/en/New-Research-from-TreviPay-Shows-B2B-Buyer-Seller-Loyalty-Hinges-on-a-Better-Payments-Experience); vendor survey).",
-      "- A 1% price cut costs the average large company roughly 9–11% of operating profit (McKinsey and Marn & Rosiello, 1992, [as summarised by Ignition Group](https://www.ignitiongroup.com/propulsion-blog/price-better-by-1-and-earn-10-more-profit); 8.7% in the updated study), so discounting is the costliest lever to reach for by instinct.",
-      "My interviews shaped the segment and the risks below; they are not a demand result. How often this stall happens to Indian service sellers is an assumption I test next.",
+      "**I interviewed 6 B2B SME founders** (3 digital marketing agencies, 2 software or design shops, 1 compliance consultancy; retainers ₹40,000–₹2,50,000 a month):",
+      "- **Panic discounting.** “When a client says budget is tight, I panic and shave 15–20% off without checking my freelance contractor costs. By month three, I'm delivering at a loss.” (founder, 12-person performance agency). **Product change:** delivery cost per service sits at the centre of setup, so every offer is checked against a margin floor.",
+      "- **Restructuring.** “Clients rarely say ‘no’; they say ‘not all at once.’ If I break it into phased milestones, they sign, but doing that math on the fly takes hours of spreadsheet recalculations.” (founder, design studio). **Product change:** the rules engine tries scope reduction and phased schedules before fee cuts.",
+      "- **WhatsApp.** 4 of 6 founders said most of their negotiations happen in WhatsApp groups (client contact, finance head, agency team). An automated bot inside client groups is unacceptable, so the product is an out-of-band co-pilot: the conversation is forwarded or pasted in.",
+      "**Cost of discounting:** on my synthetic merchant, discounting the annual plan to the ₹50,000 budget leaves ₹42,373 before GST against ₹57,000 of delivery cost (−₹14,600 before fees). Outside evidence, each with its limit: McKinsey's analysis of an average S&P 1500 company puts the effect of a 1% price change at about 8% of operating profit, volume held constant ([The power of pricing](https://www.mckinsey.com/Business%20Functions/Marketing%20and%20Sales/Our%20Insights/The%20power%20of%20pricing); large listed firms, 2003, the latest I could verify). 51% of B2B buyers say they would switch for more flexible terms ([TreviPay](https://www.businesswire.com/news/home/20231114210927/en/New-Research-from-TreviPay-Shows-B2B-Buyer-Seller-Loyalty-Hinges-on-a-Better-Payments-Experience); vendor survey). Six interviews show a pattern, not its frequency; I test that next.",
     ],
   },
   {
     h: "3. What I built, for whom, and what I left out",
     p: [
-      "**Built for the owner:** (1) **Understand:** AI reads the chat and extracts constraints, each tied to a verbatim quote. (2) **Review:** a rules engine builds every offer the merchant's templates allow, checks it against the buyer's limits and the merchant's prices, costs and limits, and shows what changed from the quote, what they keep, and at most two alternatives. (3) **Send and track:** the exact terms go as a message; the buyer accepts and pays in one tap; later changes are rechecked before either side agrees. **Why it matters:** the offer that fits the client also protects the owner's margin and cash.",
-      "**Deliberately left out:** an autonomous bot that negotiates with the buyer (the merchant stays in the loop), B2B credit or BNPL (affordability comes from schedules, not lending), live WhatsApp (the chat is simulated); real mandates and debits (simulated; the Payment Link step targets Razorpay test mode); delivery tracking, refunds and reconciliation; any price set by AI; and a learning loop, which is designed but not claimed.",
+      "**An AI deal-restructuring desk for the agency owner.** (1) **Understand (AI):** reads the buyer's chat and extracts constraints (budget ceiling, start date, approval limit), each tied to a verbatim quote. (2) **Review (rules engine):** checks every offer the merchant's templates allow against the buyer's limits and the merchant's rate card and margin floor, and shows what changed, what the owner keeps, and at most two alternatives. (3) **Send and close:** the owner reviews and sends the offer; the buyer accepts, pays and authorises later debits in one tap; later changes are rechecked first.",
+      "**Left out, deliberately:** (1) autonomous negotiating bots: the merchant stays in the loop (legal and brand risk); (2) AI-set prices: all pricing is the merchant's rate card; (3) B2B credit or BNPL: affordability comes from scope and schedules; (4) live WhatsApp and real mandates: chat and recurring debits are simulated, and the upfront payment step targets Razorpay test mode; delivery tracking and refunds.",
     ],
   },
   {
     h: "4. Key product and AI decisions",
     p: [
-      "**AI reads words. Code decides money. The merchant approves.** A model 95% right about a budget is useful; one 95% right about a margin is a liability. Every figure and ranking is deterministic, each offer is bound to a terms hash both sides accept, and when nothing fits the product names the rule.",
-      "**I rejected** an “AI confidence” score (none is calibrated), a claim that approval “triggers the Subscriptions API” (not among the tools Razorpay's MCP server advertises), and a card promising to reach a ₹40,000 ask by dropping one service (it reaches ₹42,480, and says so). **I changed** one buyer message after the recorded model missed it three times, writing the pass rule before the rerun. **I overrode** the coding agent's two-tap accept-and-pay with one tap, with the auto-pay authorisation in plain words above the button.",
-      "**Evidence on the AI:** a frozen test on 20 labelled cases: 42 of 47 fields extracted, 2 unsupported, 4 of 6 required clarifications asked, 0 unnecessary, 14 of 16 failure states caught. An AI agent wrote those cases at my direction, so this is not independent validation.",
+      "- **AI reads words; code decides money.** Models are good at meaning in messy chat and unsafe for unit economics. Cerebras (gpt-oss-120b) extracts text; a deterministic engine computes margins, applies GST and enforces floors, and each offer is bound to a terms hash both sides accept.",
+      "- **Verbatim grounding.** When a rate card is uploaded, AI proposes line items but code accepts a value only if its quote appears in the document and its amount matches. If a budget cannot be met, the product names the broken rule instead of inventing an unviable offer.",
+      "- **Explainable trade-offs.** The owner sees services removed, cost saved and margin kept. I rejected an “AI confidence” score because none is calibrated.",
+      "- **Tested, with limits.** A frozen set of 20 synthetic cases: 42 of 47 constraints extracted, 14 of 16 failure states caught, 4 of 6 ambiguous constraints flagged for clarification.",
     ],
   },
   {
-    h: "5. Primary metric, risks, and what I test next",
+    h: "5. Primary metric, risks and what I test next",
     p: [
-      "**Metric:** realised contribution within 90 days per eligible stalled deal (cash received excluding GST, minus refunds, fees and delivery costs). Deal volume alone misleads: a sale saved at a loss is a business failure, and here it scores as one.",
-      "**Risks I would test first.** (a) **Omnichannel gap (the biggest):** a real deal is spread across calls, meetings, email and WhatsApp, often a group. The product sees only the conversation it is given, so it can act on an incomplete constraint. Mitigation by design: it never assumes, it asks the owner the one or two questions that change the decision, and ties every fact to a quote. Third-party write-ups of Meta's documentation say the Groups API is Cloud API only and capped at 8 participants ([Kapso](https://kapso.ai/blog/whatsapp-groups-api-state-2026); not confirmed on Meta's own pages), so input stays forwarded, pasted or one-to-one, and only the link and payment go out. (b) **Inputs:** if owners guess their delivery costs, the engine is precisely wrong (\"garbage in, margin out\").",
-      "**Next test:** 15 service sellers with ₹50,000–₹5 lakh retainers. An eligible stalled deal is a sent quote where the buyer cites budget, timing or approval and has not accepted in seven days. Four weeks of baseline, then eight weeks on alternating eligible deals. **Gates:** owners load their rate card in under 5 minutes unaided, and realised contribution per eligible deal beats baseline (and a conversion lift of at least 15%). **Kill or pivot** if fewer than half have two eligible deals a month, fewer than half can state a cost per service, or most live deals cannot be brought in by forwarding or one-to-one chats.",
+      "**Metric:** realised contribution per eligible stalled deal within 90 days (cash received excluding GST, minus direct delivery cost, payment fees and refunds). Deal count or GMV misleads: a deal saved at a loss is a net loss.",
+      "**Risks.** (a) **Omnichannel fragmentation:** deals span WhatsApp, calls and email, so a forwarded chat can miss a verbal agreement. The engine never assumes a missing variable; it asks the owner. (b) **Garbage in, margin out:** if founders guess their delivery costs, the margin floors are wrong.",
+      "**Next test:** 8 weeks with 15 B2B service merchants (₹50,000–₹5 lakh retainers) on stalled quotes (inactive for more than 7 days), against a 4-week baseline. **Gates:** (1) merchants set up rate cards and costs in under 5 minutes unaided; (2) realised contribution per stalled quote beats baseline, with at least a 15% conversion lift. **Kill or pivot** if fewer than half of merchants have two eligible stalled deals a month, or founders cannot give a delivery cost per service.",
     ],
   },
 ];
@@ -65,7 +66,7 @@ const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[([^\]]
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${TITLE}</title><style>
 @page { size: A4; margin: 9mm 11mm; }
 * { box-sizing: border-box; }
-body { font: 8.9pt/1.3 -apple-system, "Helvetica Neue", Arial, sans-serif; color: #14171f; margin: 0; }
+body { font: 8.7pt/1.28 -apple-system, "Helvetica Neue", Arial, sans-serif; color: #14171f; margin: 0; }
 h1 { font-size: 13.5pt; margin: 0 0 1px; letter-spacing: -0.01em; }
 .by { color: #5b6270; font-size: 7.8pt; margin-bottom: 4px; border-bottom: 1.5px solid #2d5bff; padding-bottom: 3px; }
 h2 { font-size: 9.8pt; margin: 6px 0 1px; color: #1d47e6; }
