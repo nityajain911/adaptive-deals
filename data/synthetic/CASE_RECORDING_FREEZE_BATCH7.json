@@ -1,0 +1,37 @@
+{
+  "schema": "adaptive-deals.case-recording-freeze.v1",
+  "frozenAt": "2026-10-13T15:00:00+05:30",
+  "authoredBy": "Claude Code (Claude Sonnet 5.5), directed by Nitya Jain",
+  "cases": {
+    "reduced-scope": {
+      "messagesSha256": "d4284dcb6945d2667eb88ca4176aa91791dbe0b0606a5f2e09532344b09ec9b7"
+    }
+  },
+  "prompts": {
+    "extract": {
+      "version": "extract.v2",
+      "sha256": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a"
+    },
+    "clarify": {
+      "version": "clarify.v1",
+      "sha256": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e"
+    },
+    "explain": {
+      "version": "explain.v3",
+      "sha256": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14"
+    }
+  },
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "scope": [
+    "reduced-scope"
+  ],
+  "maximumProviderRequests": 7,
+  "retryRule": "technical failures only",
+  "resultRule": "one Cerebras run of the new Harbour Fresh Foods conversation; its first technically valid output at each step is final, whatever it is; it is kept either way; the product maps it only if it reaches the case's expected engine state and offer family (options_ready, phased_scope); otherwise the hand-written sample stays in use and says so; no further attempt on any provider",
+  "networkCallsMade": 0,
+  "batch": "Seventh recording batch: the hero case is replaced. Kestrel Lane Clinics (reduced-scope) becomes Harbour Fresh Foods, a pilot-first deal told over eight messages. Prompts are unchanged. The earlier reduced-scope recordings (ed5442a3, 8aef9d45) are kept as evidence and no longer map to any case.",
+  "authorisedBy": "Nitya Jain, instruction in chat on 13 October 2026 to build the Harbour Fresh Foods pilot-first case as the hero case (a general go-ahead to build the case; the recording is part of that build)",
+  "maximumProviderRequestsApplies": "per case, as in the first batch",
+  "attempt": "hero-replacement"
+}
