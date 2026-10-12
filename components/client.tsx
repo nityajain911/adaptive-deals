@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { BUYER_DECLINE_REASONS, type BuyerDeclineReason } from "@/lib/reason-codes";
 import { authorityStatement } from "@/lib/proposal-copy";
+import { formatINR } from "@/domain/money";
 import { cx } from "./ui";
 
 type ActionBody = Record<string, unknown> & { action: string };
@@ -152,17 +153,33 @@ export function AnswerForm({ questions }: { questions: QuestionInput[] }) {
   );
 }
 
-export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise, submitLabel }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number; submitLabel?: string }) {
-  const { run, pending, error } = useAction();
+export interface OneTap {
+  payNowPaise: number;
+  /** The automatic payments the same tap authorises, if the offer has them. */
+  autopay: { perDebitLimitPaise: number; endDate: string; noticeDays: number } | null;
+}
+
+/**
+ * Accepts the exact previewed terms. With `oneTap` (simulated payments only) the same tap also pays and sets up the
+ * automatic payments, and the sentence above the button says what is being authorised. Without it, acceptance is its own step.
+ */
+export function AcceptForm({ action, version, termsHash, authorityReason, totalPaise, submitLabel, oneTap = null }: { action: "accept_agreement" | "accept_amendment"; version: number; termsHash: string; authorityReason: "phase_scope" | "required_approval" | null; totalPaise: number; submitLabel?: string; oneTap?: OneTap | null }) {
+  const accept = useAction();
+  const setup = useAction();
+  const pending = accept.pending || setup.pending;
   // There is no checkbox: the attestation is written beside the button, and pressing Accept records it.
   const notice = authorityReason ? authorityStatement(authorityReason, totalPaise) : null;
   const authorityConfirmed = !!authorityReason;
+  const combined = action === "accept_agreement" && oneTap;
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        run(action === "accept_agreement" ? { action, version, termsHash, authorityConfirmed } : { action, termsHash, authorityConfirmed });
+        const body = action === "accept_agreement" ? ({ action, version, termsHash, authorityConfirmed } as const) : ({ action, termsHash, authorityConfirmed } as const);
+        accept.run(body, () => {
+          if (combined) setup.run({ action: "buyer_complete_setup" });
+        });
       }}
     >
       {notice?.label ? (
@@ -171,10 +188,15 @@ export function AcceptForm({ action, version, termsHash, authorityReason, totalP
           {notice.note ? <span className="block text-[13px] text-muted">{notice.note}</span> : null}
         </p>
       ) : null}
+      {combined && oneTap.autopay ? (
+        <p className="text-[14px] leading-5 text-ink-2" data-testid="autopay-notice">
+          By paying, you also allow automatic payments of up to {formatINR(oneTap.autopay.perDebitLimitPaise)} each, until {oneTap.autopay.endDate}. We remind you {oneTap.autopay.noticeDays} days before each one.
+        </p>
+      ) : null}
       <Button variant="primary" type="submit" className="min-h-12 w-full text-[15px]" disabled={pending} data-testid="accept">
-        {pending ? "Accepting…" : submitLabel ?? (action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal")}
+        {pending ? (combined ? "Paying…" : "Accepting…") : combined ? `Accept and pay ${formatINR(oneTap.payNowPaise)}` : submitLabel ?? (action === "accept_amendment" ? "Accept revised proposal" : "Accept proposal")}
       </Button>
-      <ErrorText error={error} />
+      <ErrorText error={accept.error ?? setup.error} />
     </form>
   );
 }

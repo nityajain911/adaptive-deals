@@ -68,3 +68,19 @@ describe("the change-request form", () => {
     expect(closed).not.toContain("Send to Pinecone Media Works");
   });
 });
+
+describe("one tap", () => {
+  it("accepts and pays in one button, and says what the same tap authorises", async () => {
+    const html = await render("accept", { action: "accept_agreement", version: 1, termsHash: "h", authorityReason: "phase_scope", totalPaise: 4_602_000, oneTap: { payNowPaise: 2_301_000, autopay: { perDebitLimitPaise: 2_301_000, endDate: "31 Jan 2027", noticeDays: 3 } } });
+    expect(html).toContain("Accept and pay ₹23,010");
+    expect(html).toContain("automatic payments of up to ₹23,010 each, until 31 Jan 2027");
+    expect(html).toContain("By accepting, you confirm you can approve");
+    expect(html).not.toContain('type="checkbox"');
+  });
+  it("stays a plain acceptance for a revision, and where the payment is a real test link", async () => {
+    const revision = await render("accept", { action: "accept_amendment", version: 2, termsHash: "h", authorityReason: null, totalPaise: 4_602_000, oneTap: { payNowPaise: 2_301_000, autopay: null } });
+    expect(revision).toContain("Accept revised proposal");
+    const plain = await render("accept", { action: "accept_agreement", version: 1, termsHash: "h", authorityReason: null, totalPaise: 4_602_000 });
+    expect(plain).toContain("Accept proposal");
+  });
+});

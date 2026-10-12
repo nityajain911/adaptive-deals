@@ -619,3 +619,9 @@ The model's explanation has two parts that code validates separately: a full com
 **Sending returns the merchant to Active deals.** One line says "Offer sent to …" (and goes on the next click); the deal's row reads "Waiting for buyer". The deal's tracking page opens only when the merchant opens that deal. Retrying a failed send behaves the same.
 
 **A sent offer the buyer has not accepted is a quiet page**: the status, the timeline, the sent message, a compact offer card and one prominent **Back to active deals**. The "Next step" card ("Nothing for you to do right now"), the Agreement-and-payments timeline and the "Deal outcome · nothing collected yet" row are shown only once there is something to act on or collect. Performance stays on its own tab. A "next pending buyer" shortcut was not built: the prototype has three deals and one is open, so there is no queue to point at.
+
+## One tap for the buyer (12 October 2026)
+
+**"Accept and pay ₹23,010" accepts, pays and sets up auto-pay in one tap**, on the same page. Above the button, in plain sentences, sit the two things the tap authorises: that the buyer can approve this package on its own (recorded as before) and that they allow automatic payments of up to the stated amount until the stated date, with the reminder. There is still no checkbox and no card or UPI field; the payment is simulated and the page footer says so.
+
+**Where it does not apply.** A revision keeps its own "Accept" (there is no new payment), and when a real Razorpay test link is configured the tap accepts and the buyer then opens that link, because that payment happens on Razorpay's page. The auto-pay authorisation is kept in the sentence above the button rather than dropped: it is a separate financial consent from accepting the terms.

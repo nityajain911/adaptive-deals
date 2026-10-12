@@ -16,6 +16,7 @@ import { activeCase, AGREEMENT_ID, proposalLink } from "@/lib/service";
 import { isDelivered, isResolvingDisposition } from "@/lib/deal-records";
 import { buyerProposalLifecycle, latestReplacementVersion, parseVersionSegment, proposalView, type BuyerProposalLifecycle } from "@/lib/views";
 import { amendmentDiff } from "@/lib/amendment-diff";
+import { checkRazorpayKey } from "@/integrations/razorpay/keys";
 
 export const metadata = { title: "Proposal · Pinecone Media Works" };
 
@@ -79,6 +80,10 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
   const mandatePending = !amendment && v.status === "active" && s.mandate?.status === "pending";
   const nextRecurring = v.terms.paymentSchedule.find((line) => line.method === "recurring_debit") ?? null;
   const setupNeeded = !!unpaidLink || mandatePending;
+  // With simulated payments the one tap that accepts also pays; a real Razorpay test link is opened separately.
+  const upfrontLine = v.terms.paymentSchedule.find((line) => line.method === "payment_link") ?? null;
+  const simulatedPayments = !(process.env.RAZORPAY_MODE === "test" && checkRazorpayKey(process.env.RAZORPAY_KEY_ID, process.env.RAZORPAY_KEY_SECRET).ok);
+  const oneTap = !amendment && simulatedPayments && upfrontLine ? { payNowPaise: upfrontLine.totalPaise, autopay: view.recurring ? { perDebitLimitPaise: view.recurring.perDebitLimitPaise, endDate: view.recurring.endDate, noticeDays: view.recurring.noticeDays } : null } : null;
   const paidLinkAttempt = versionAttempts.find((a) => a.method === "payment_link" && a.status === "succeeded") ?? null;
   const nextScheduled = [...versionAttempts].filter((a) => a.status === "scheduled").sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
   const setupDone = !amendment && v.status === "active" && !setupNeeded && !!paidLinkAttempt;
@@ -131,7 +136,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         {/* 8. Actions */}
         {lifecycle.showResponseActions ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
-            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} submitLabel={amendment && differences.every((difference) => !difference.changed || difference.category === "payment_date" || difference.category === "planned_invoice_date") ? "Accept new date" : undefined} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} />
+            <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} submitLabel={amendment && differences.every((difference) => !difference.changed || difference.category === "payment_date" || difference.category === "planned_invoice_date") ? "Accept new date" : undefined} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} oneTap={oneTap} />
             <RequestChangeForm version={v.version} merchantName={deal.merchant.name} context={requestContext} label={amendment ? "Request another change" : undefined} kinds={amendment ? ["date", "other"] : undefined} />
             {amendment ? <p className="text-center text-[13px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : null}
           </section>

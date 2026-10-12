@@ -254,9 +254,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expect(page.getByTestId("buyer-view")).toBeVisible();
   await shot(page, "desktop-4-buyer-proposal");
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("You accepted this version");
-  // The buyer pays and sets up auto-pay on this same page.
-  await page.getByTestId("setup-pay").click();
+  // One tap accepted and paid: the buyer is set up on this same page.
   await expect(page.getByTestId("setup-done")).toBeVisible();
   await page.getByTestId("back-to-merchant").click();
 
@@ -306,7 +304,6 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await page.goto("/deals/hero/track");
   await page.getByTestId("open-buyer-proposal").click();
   await page.getByTestId("accept").click();
-  await page.getByTestId("setup-pay").click();
   await expect(page.getByTestId("setup-done")).toBeVisible();
   await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
   await api(page, { action: "demo_system_step", stepId: "send_notice" });
@@ -1183,23 +1180,24 @@ test("a buyer asks for a different scope and a different date with guided inputs
   expect(state().conversation.findLast((m) => m.kind === "change_request")!.refs).toMatchObject({ topic: "scope", request: { kind: "scope", packageIds: ["website-fixes", "search-marketing"] } });
 });
 
-test("after accepting, the buyer pays and sets up auto-pay in one tap on the same page, without a reload", async ({ page }) => {
+test("one tap accepts, pays and sets up auto-pay on the same page, with the authorisation written above the button", async ({ page }) => {
   await page.setViewportSize(MOBILE);
   const sent = await prepareSent(page);
   await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
   await page.evaluate(() => ((window as unknown as { __kept: number }).__kept = 1));
-  await page.getByTestId("accept").click();
-  // The page turns into the payment step in place: same document, no navigation.
-  await expect(page.getByTestId("setup-pay")).toHaveText("Pay ₹23,010 and set up auto-pay");
-  expect(await page.evaluate(() => (window as unknown as { __kept?: number }).__kept)).toBe(1);
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹23,010");
+  await expect(page.getByTestId("autopay-notice")).toContainText("automatic payments of up to ₹23,010");
+  await expect(page.getByTestId("authority-notice")).toContainText("you can approve this");
   await expect(page.locator("body")).not.toContainText(/card number|UPI ID/i);
   await noHorizontalScroll(page);
-  await page.getByTestId("setup-pay").click();
+  await page.getByTestId("accept").click();
+  // Same document, no navigation: the page turns into the confirmation in place.
   await expect(page.getByTestId("setup-done")).toContainText("₹23,010 paid. Next: ₹23,010 on 1 Dec 2026, collected automatically.");
   expect(await page.evaluate(() => (window as unknown as { __kept?: number }).__kept)).toBe(1);
   const final = state();
   expect(final.attempts.find((a) => a.method === "payment_link")!.status).toBe("succeeded");
   expect(final.mandate?.status).toBe("confirmed");
+  expect(final.agreements.find((a) => a.version === sent.version)!.buyerAcceptance?.authorityConfirmed).toBe(true);
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-headline")).not.toContainText("Waiting for the buyer to pay");
 });

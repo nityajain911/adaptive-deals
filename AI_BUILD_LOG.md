@@ -1207,3 +1207,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** no dead end after sending, no zero analytics, a lighter status. **Applicant decision:** the inbox confirmation is one line that clears on the next click.
 
 **Where I departed from the brief:** the timeline and the Performance tab already existed, so the work was removal (the repeated "waiting" text, the empty payment timeline and the outcome row) and the redirect; no "next pending buyer" button, because there is no queue in a three-deal prototype.
+
+### 2026-10-12 — [Claude Code] One tap for the buyer
+
+**Asked by the applicant:** no checkbox, and no holding state after accepting. **Applicant decision:** one tap ("I want one tap"), after I recommended two.
+
+**Where I departed from the brief:** the checkbox was already gone, and the attestation sentence stays (it is a recorded condition of the offer); the automatic-payment authorisation is written directly above the single button instead of being folded into "accept"; one tap applies only to simulated payments.

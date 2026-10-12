@@ -165,7 +165,7 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
 /** Buttons the progress derivation does not name: the buyer's own page and the preview. */
 const PRODUCT_LABEL: Record<string, string> = {
   approve_and_send_draft: "Send offer",
-  buyer_accept: "Accept proposal",
+  buyer_accept: "Accept and pay",
   buyer_setup: "Pay and set up auto-pay",
   buyer_accept_revision: "Accept revised proposal",
 };

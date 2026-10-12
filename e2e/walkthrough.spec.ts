@@ -103,11 +103,7 @@ test("guide completes the core journey while every merchant decision stays in th
   await guide(page).locator("[data-walkthrough-primary]").click();
   await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("You accepted this version");
-  await expect(guide(page)).toContainText("STEP 5 OF 6");
-  // The buyer pays and sets up auto-pay on their own page; the guide points there and never performs it.
-  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Pay and set up auto-pay");
-  await page.getByTestId("setup-pay").click();
+  // One tap on the buyer's own page accepted and paid; the guide pointed there and never performed it.
   await expect(page.getByTestId("setup-done")).toBeVisible();
   await page.goto("/deals/hero/track");
   await guide(page).locator("[data-walkthrough-primary]").click();
@@ -261,12 +257,10 @@ test("simulated buyer and system controls are violet and labelled, and the buyer
   await guide(page).locator("[data-walkthrough-primary]").click();
   await expect(page).toHaveURL(/\/proposal\/agr-hero\/v1$/);
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Play the buyer");
-  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("“Accept proposal”");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("“Accept and pay”");
   await page.getByTestId("accept").click();
-  await expect(page.getByTestId("buyer-status")).toContainText("You accepted this version");
-  expect(state().agreements.find((a) => a.version === sent.version)!.status).toBe("active");
-  await page.getByTestId("setup-pay").click();
   await expect(page.getByTestId("setup-done")).toBeVisible();
+  expect(state().agreements.find((a) => a.version === sent.version)!.status).toBe("active");
   await page.goto("/deals/hero/track");
   await expect(guide(page).locator("[data-walkthrough-primary]")).toHaveClass(/bg-violet-weak/);
   await expect(guide(page).getByTestId("walkthrough-consequence")).toContainText("Simulated system event");

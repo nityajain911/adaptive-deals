@@ -235,7 +235,7 @@ describe("the real button the person must click", () => {
   });
 
   it("names the buyer's button when the person plays the buyer, and no button for simulated events", () => {
-    expect(resolve(started(), progress("track.sent_awaiting_buyer", "track", "buyer", "waiting_on_buyer")).currentAction).toMatchObject({ type: "buyer", productLabel: "Accept proposal" });
+    expect(resolve(started(), progress("track.sent_awaiting_buyer", "track", "buyer", "waiting_on_buyer")).currentAction).toMatchObject({ type: "buyer", productLabel: "Accept and pay" });
     expect(resolve(started(), progress("understand.waiting", "understand", "buyer", "waiting_on_buyer")).currentAction).toMatchObject({ usesReplyControl: true, productLabel: null });
   });
 
