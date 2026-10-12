@@ -71,10 +71,10 @@ export interface ConstraintRow {
   /** A second, quieter line. */
   note: string | null;
   /** The buyer's own words the value was read from; none for the merchant's own quote. */
-  evidence: { quote: string; messageId: string }[];
+  evidence: { quote: string; messageId: string; start: number; end: number }[];
 }
 
-const evidenceOf = (field: { evidence: { quote: string; messageId: string }[] }) => field.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId }));
+const evidenceOf = (field: { evidence: { quote: string; messageId: string; start: number; end: number }[] }) => field.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId, start: e.start, end: e.end }));
 const monthName = (date: { value: string; precision: "day" | "month" }) => (date.precision === "month" ? `${MONTHS[Number(date.value.slice(5, 7)) - 1]} ${date.value.slice(0, 4)}` : formatDate(date.value));
 
 /**

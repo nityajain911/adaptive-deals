@@ -1,46 +1,24 @@
-"use client";
-
-import { useState } from "react";
 import type { ChatHighlight } from "@/lib/chat-highlights";
-import { cx } from "../ui";
+
+/** The key a fact uses to find its sentence in the chat: the message and the exact span of the buyer's words. */
+export const evidenceKey = (messageId: string, start: number, end: number) => `${messageId}:${start}-${end}`;
 
 /**
- * A buyer message with the phrases the constraints came from marked in place. Clicking a phrase
- * opens one short note under the message: what the code understood, and how it normalised it.
+ * A buyer message with the phrases the constraints came from marked in place but not painted. A phrase lights up only
+ * when the merchant points at the fact it supports (see ConstraintList), so the conversation reads as a conversation.
  */
-export function HighlightedText({ text, highlights }: { text: string; highlights: ChatHighlight[] }) {
-  const [open, setOpen] = useState<number | null>(null);
+export function HighlightedText({ messageId, text, highlights }: { messageId: string; text: string; highlights: ChatHighlight[] }) {
   const parts: React.ReactNode[] = [];
   let pos = 0;
   highlights.forEach((h, i) => {
     if (h.start > pos) parts.push(text.slice(pos, h.start));
     parts.push(
-      <button
-        key={i}
-        type="button"
-        data-testid="chat-highlight"
-        data-kind={h.kind}
-        aria-expanded={open === i}
-        onClick={() => setOpen(open === i ? null : i)}
-        className={cx("rounded-[3px] px-0.5 text-left font-medium text-ink shadow-[inset_0_-2px_0] hover:brightness-95", h.kind === "rejected" ? "bg-[#ffe9b8] shadow-[#e0a21b]" : "bg-[#fff1c2] shadow-[#f2c94c]")}
-      >
+      <span key={i} data-testid="chat-highlight" data-kind={h.kind} data-ev-key={h.kind === "rejected" ? `rejected:${messageId}` : evidenceKey(messageId, h.start, h.end)} className="rounded-[3px] transition-colors">
         {text.slice(h.start, h.end)}
-      </button>,
+      </span>,
     );
     pos = h.end;
   });
   parts.push(text.slice(pos));
-  const note = open === null ? null : highlights[open];
-  return (
-    <>
-      <p className="text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{parts}</p>
-      {note ? (
-        <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-[13px] text-ink-2" data-testid="chat-highlight-note" role="status">
-          <span className="font-semibold text-ink">{note.label}</span>
-          {note.detail ? <span>: {note.detail}</span> : null}
-          {note.normalisation && note.normalisation !== note.detail ? <div className="mt-0.5 text-muted">Read as {note.normalisation}</div> : null}
-        </div>
-      ) : null}
-    </>
-  );
+  return <p className="text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{parts}</p>;
 }

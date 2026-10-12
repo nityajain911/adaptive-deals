@@ -114,7 +114,7 @@ test("scope · the scope confirmation card fits a phone", async ({ page }) => {
 });
 
 
-test("scope · the chat marks the buyer's own words, and the rejected phrase stands out until you confirm it", async ({ page }) => {
+test("scope · the chat is not painted; the phrase that matched no service lights up when you point at the question about it", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await start(page, "preserve-scope");
   await page.goto("/deals/hero/understand");
@@ -122,12 +122,16 @@ test("scope · the chat marks the buyer's own words, and the rejected phrase sta
   await expect(thread.getByText("WhatsApp (simulated)")).toHaveCount(1);
   const rejected = thread.locator('[data-testid="chat-highlight"][data-kind="rejected"]');
   await expect(rejected).toHaveText("complete annual package");
-  await expect(thread.locator('[data-testid="chat-highlight"][data-kind="evidence"]').first()).toBeVisible();
-  await rejected.click();
-  await expect(thread.getByTestId("chat-highlight-note")).toContainText("Not matched to a service");
+  // Nothing is highlighted by default.
+  await expect(rejected).not.toHaveAttribute("data-lit", "true");
+  expect(await rejected.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+  // Pointing at the services slot lights the words behind it, and leaving clears them.
+  await page.getByTestId("slot-needs").hover();
+  await expect(rejected).toHaveAttribute("data-lit", "true");
+  await expect.poll(() => rejected.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)");
+  await page.getByTestId("value-budget").hover();
+  await expect(rejected).not.toHaveAttribute("data-lit", "true");
   await shot(page, "recorded-1-understand-preserve-scope");
-  await rejected.click();
-  await expect(thread.getByTestId("chat-highlight-note")).toHaveCount(0);
 });
 
 test("scope · on a phone the chat is a fixed panel that scrolls inside itself, starting at the latest message", async ({ page }) => {

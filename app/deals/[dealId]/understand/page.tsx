@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ConversationThread } from "@/components/conversation-thread";
 import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/components/client";
 import { ClarificationDrafts } from "@/components/understand/clarification-drafts";
-import { ConstraintList, type ConstraintFlag, type ConstraintItem } from "@/components/understand/constraint-list";
+import { AutoRefresh } from "@/components/understand/auto-refresh";
+import { ConstraintList, type ConstraintItem, type ConstraintSlot } from "@/components/understand/constraint-list";
 import { StageShell } from "@/components/deal/stage-shell";
 import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
 import { Card } from "@/components/ui";
@@ -95,18 +96,26 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
 
   const names = Object.fromEntries(packages.map((p) => [p.id, p.name]));
   const byQuestion = Object.fromEntries(questions.map((x) => [x.q.id, x]));
-  // What still needs asking is flagged on the fact it affects; once the buyer has answered it says so.
-  const flagFor = (questionId: string, ask: string): ConstraintFlag | null => {
+  // What is still unknown is an empty slot beside its fact. It fills when the buyer's reply is read.
+  const ANSWER_TEXT: Record<string, Record<string, string>> = {
+    "clar-gst": { yes: "Includes GST", no: "Excludes GST" },
+    "clar-approval": { per_contract: "Whole deal", per_payment: "Per payment" },
+  };
+  const slotFor = (questionId: string, label: string): ConstraintSlot | null => {
     const x = byQuestion[questionId];
     if (!x) return null;
-    if (x.answer) return { tone: "ok", text: "Confirmed by the buyer", target: null };
-    if (x.reply) return x.reply.refs.answerValue ? { tone: "ok", text: "Buyer replied", target: `thread-${x.reply.id}` } : { tone: "warn", text: "Replied: needs your reading", target: `thread-${x.reply.id}` };
-    if (x.draft?.sentAt) return { tone: "wait", text: "Waiting for the buyer", target: x.draft.id ? `thread-${x.draft.id}` : null };
-    return { tone: "warn", text: ask, target: "clarification-drafts" };
+    const value = x.answer?.value ?? x.reply?.refs.answerValue ?? null;
+    if (value && ANSWER_TEXT[questionId]?.[value]) return { state: "filled", label, filled: ANSWER_TEXT[questionId]![value]!, target: x.reply ? `thread-${x.reply.id}` : null };
+    if (x.reply) return { state: "reading", label, target: `thread-${x.reply.id}` };
+    if (x.draft?.sentAt) return { state: "asked", label, target: `thread-${x.draft.id}` };
+    return { state: "empty", label, target: "clarification-drafts" };
   };
-  const items: ConstraintItem[] = constraintRows(out.profile, originalProposalOf(baseline), names).map((row) => ({
+  const rows = constraintRows(out.profile, originalProposalOf(baseline), names);
+  // Services the buyer asked for without naming them still get a row, so the question about them has a place.
+  if (unmapped.length && !rows.some((row) => row.id === "needs")) rows.push({ id: "needs", label: "Needs", value: unmapped.map((u) => `“${u.rawText}”`).join(", "), note: null, evidence: [] });
+  const items: ConstraintItem[] = rows.map((row) => ({
     ...row,
-    flag: row.id === "budget" ? flagFor("clar-gst", "Confirm if GST is included") : row.id === "approval" ? flagFor("clar-approval", "Confirm: per payment or whole deal") : row.id === "needs" && unmapped.length ? { tone: "warn", text: "Confirm which services", target: "scope-confirmation" } : null,
+    slot: row.id === "budget" ? slotFor("clar-gst", "GST included?") : row.id === "approval" ? slotFor("clar-approval", "Per payment or whole deal?") : row.id === "needs" && unmapped.length ? { state: "action", label: "Which services?", target: "scope-confirmation" } : null,
   }));
 
   const unsent = questions.filter((x) => x.draft && !x.draft.sentAt);
@@ -123,6 +132,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
 
   return (
     <StageShell dealId={dealId} viewing="understand">
+      {progress.kind === "waiting_on_buyer" ? <AutoRefresh /> : null}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="space-y-5">
           <Card className="p-5" data-testid="blocking-card" data-walkthrough="constraint-evidence">

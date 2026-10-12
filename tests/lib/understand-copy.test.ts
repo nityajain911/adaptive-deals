@@ -87,6 +87,6 @@ describe("constraint rows", () => {
     const profile = { ...base, requiredPackages: { ...base.requiredPackages, status: "stated" as const, value: ["website-fixes", "search-marketing"], evidence }, optionalPackages: { ...base.optionalPackages, status: "stated" as const, value: ["social-media"], evidence } };
     const needs = constraintRows(profile, proposal(), names).find((row) => row.id === "needs");
     expect(needs).toMatchObject({ label: "Needs", value: "Website fixes, Search marketing", note: "Social media can wait" });
-    expect(needs!.evidence).toEqual([{ quote: "we need the website fixes and search marketing", messageId: "m1" }]);
+    expect(needs!.evidence).toEqual([{ quote: "we need the website fixes and search marketing", messageId: "m1", start: 0, end: 46 }]);
   });
 });

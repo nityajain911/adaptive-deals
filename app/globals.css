@@ -251,3 +251,22 @@ dialog.audit-drawer[open] {
 @media (prefers-reduced-motion: reduce) {
   [data-flash="true"] { animation: none; outline: 3px solid rgba(61, 107, 255, 0.55); }
 }
+
+/* A phrase of the buyer's own words, lit only while the merchant points at the fact it supports. */
+[data-ev-key][data-lit="true"] {
+  background: #fde9a8;
+  box-shadow: 0 0 0 2px #fde9a8;
+}
+
+/* A slot that has just been filled by the buyer's reply. */
+@keyframes slot-fill {
+  0% { transform: scale(0.85); opacity: 0.4; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+[data-slot-pop="true"] {
+  animation: slot-fill 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot-pop="true"] { animation: none; }
+}

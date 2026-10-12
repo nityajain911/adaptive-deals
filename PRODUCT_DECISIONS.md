@@ -571,3 +571,13 @@ The model's explanation has two parts that code validates separately: a full com
 
 **The questions are drafts in the chat, and the send button is in it.** They appear under the buyer's last message as "Suggested questions · not sent", with the wording label ("Suggested by AI", "Drafted by code" or a hand-written sample). Each can be reworded in place. A reworded question still answers the same question and must still be safe for the buyer (no internal wording, 5 to 300 characters); it is sent as the merchant's own words, shown as "Edited by you", and recorded in the audit ("Reworded N of them before sending"). After sending, **Use these answers** (or the reading of an unclear reply) is in the chat too.
 
+
+## Waiting for the buyer (12 October 2026)
+
+**Unknowns are empty slots that fill.** Under a fact the buyer has not settled, a dashed slot shows what is missing; after sending it shows "waiting for the reply", and when the buyer answers it turns into a green check with the answer ("Includes GST", "Whole deal"). The fact's own row text is updated only after **Use these answers**, so the screen never states something the merchant has not accepted.
+
+**The chat is not painted.** No permanent highlights. The matching sentence lights up only while you hover, focus or tap a fact (or its slot); a click pins it, Escape or a click elsewhere clears it.
+
+**The page refreshes by itself every 3 seconds while the buyer has not replied** (only while the tab is visible). The banner says just "Questions sent."
+
+**Not built, by decision:** a "Next deal" button and re-ordering the inbox while waiting. The prototype's replies are instant, so the merchant stays on the same deal. In real use the merchant would move to another deal; that is a deployment concern, not shown here. The buyer's reply is read by fixed rules (yes/no, per contract/per payment), not by AI.

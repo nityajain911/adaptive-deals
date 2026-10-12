@@ -61,7 +61,7 @@ describe("Understand and Offer rows", () => {
     expect(U({ questionCountUnsent: 2 }).headline).toBe("Confirm two details before we can recommend an offer.");
     expect(U({ questionCountUnsent: 1 }).primaryAction?.label).toBe("Send question to buyer");
     const waiting = U({ unansweredQuestions: 1 });
-    expect([waiting.kind, waiting.primaryAction, waiting.headline]).toEqual(["waiting_on_buyer", null, "Their reply will appear here. Nothing else is needed from you."]);
+    expect([waiting.kind, waiting.primaryAction, waiting.headline]).toEqual(["waiting_on_buyer", null, "Questions sent."]);
     expect(U({ repliesNeedInterpretation: 1 }).primaryAction?.id).toBe("interpret_reply");
     expect(U({}).primaryAction?.id).toBe("use_answers");
     expect(dealProgress(mk({ status: "needs_information" }), facts({ engineState: "insufficient_information" })).primaryAction?.id).toBe("send_missing_question");

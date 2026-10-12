@@ -1171,3 +1171,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Where I departed from the brief:** no "AI confidence" indicator (no calibrated score exists); the drafted questions can be reworded, and a reworded question is marked as the merchant's, checked for buyer-safe wording, and recorded in the audit. Also in this round: redundant copy was cut from Deal settings and Active deals.
 
+
+### 2026-10-12 — [Claude Code] Waiting for the buyer
+
+**Asked by the applicant:** unknowns as slots that fill when the reply arrives, highlights only on pointing at a fact, auto-refresh while waiting, no redundant text. **Applicant decisions:** no "Next deal" button and no inbox re-ordering (prototype replies are instant).
+
+**Where I departed from the brief:** none beyond those decisions. Reply reading stays rules-based (not AI), so the slot answer is not described as AI output. A first test failure (the lit sentence read before its colour transition finished) was a test timing issue, fixed by polling the computed colour; a layout overlap of the filled slot on long values was fixed from a screenshot.

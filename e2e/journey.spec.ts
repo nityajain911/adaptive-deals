@@ -189,7 +189,7 @@ test("P0 · mixed and unsure clarification replies stay unresolved until the mer
     await page.goto("/deals/hero/understand");
     await expect(page.getByTestId("status-headline")).toContainText("needs your interpretation");
     await page.locator('[data-testid^="ask-again-"]').click();
-    await expect(page.getByTestId("status-headline")).toContainText("Their reply will appear here. Nothing else is needed from you.");
+    await expect(page.getByTestId("status-headline")).toContainText("Questions sent.");
     const after = state();
     expect(after.conversation.filter((message) => message.kind === "clarification" && message.refs.questionId === uncertain.questionId)).toHaveLength(2);
     expect(JSON.stringify({ agreements: after.agreements, attempts: after.attempts, paymentLinks: after.paymentLinks, mandate: after.mandate, amendments: after.amendments })).toBe(commercial);
@@ -211,12 +211,12 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expectStage(page, "understand", "Confirm two details", "Send 2 questions to buyer");
   await shot(page, "desktop-1-understand");
   await clickPrimary(page);
-  await expectStage(page, "understand", "Their reply will appear here. Nothing else is needed from you.", undefined);
+  await expectStage(page, "understand", "Questions sent.", undefined);
   await expect(page.getByText("Waiting for buyer", { exact: true })).toHaveCount(1);
-  // The questions have left the drafts; what is pending is flagged on the facts they concern.
+  // The questions have left the drafts; what is pending sits in slots on the facts they concern.
   await expect(page.getByTestId("clarification-drafts")).toHaveCount(0);
-  await expect(page.getByTestId("flag-budget")).toHaveText("Waiting for the buyer");
-  await expect(page.getByTestId("flag-approval")).toHaveText("Waiting for the buyer");
+  await expect(page.getByTestId("slot-budget")).toHaveAttribute("data-state", "asked");
+  await expect(page.getByTestId("slot-approval")).toHaveAttribute("data-state", "asked");
 
   // The simulated buyer's replies are choices, including honest uncertainty.
   await expect(page.getByTestId("walkthrough-reply-clar-gst-unclear")).toBeVisible();
@@ -852,23 +852,27 @@ test("active deals · all three deals are held at once, each with its own progre
   expect(state().conversation.filter((item) => item.kind === "clarification" && item.sentAt)).toHaveLength(0);
 });
 
-test("understand · the facts carry their sources, the questions are drafts in the chat, and one button sends them", async ({ page }) => {
+test("understand · pointing at a fact lights its sentence, unknowns are slots that fill, and the questions are drafts in the chat", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await api(page, { action: "reset" });
   await api(page, { action: "start_case", caseId: "reduced-scope" });
   await page.goto("/deals/hero/understand");
   const list = page.getByTestId("constraint-list");
   await expect(list).toContainText("Budget this quarter");
-  // Unknowns sit on the fact they affect.
-  await expect(page.getByTestId("flag-budget")).toHaveText("Confirm if GST is included");
-  await expect(page.getByTestId("flag-approval")).toHaveText("Confirm: per payment or whole deal");
-  // A value shows where it came from on demand, and leads to the message.
+  // The conversation is not painted; a value lights the sentence it came from, and leaving clears it.
+  const sentence = page.locator('[data-testid="chat-highlight"]', { hasText: "I only have ₹50,000 left in this quarter" });
+  await expect(sentence).toBeVisible();
+  await expect(sentence).not.toHaveAttribute("data-lit", "true");
+  expect(await sentence.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+  await page.getByTestId("value-budget").hover();
+  await expect(sentence).toHaveAttribute("data-lit", "true");
+  await page.getByTestId("value-approval").hover();
+  await expect(sentence).not.toHaveAttribute("data-lit", "true");
   await expect(page.getByTestId("source-budget")).toHaveCount(0);
-  await page.getByTestId("value-budget").click();
-  await expect(page.getByTestId("source-budget")).toContainText("I only have ₹50,000 left in this quarter");
-  await page.getByTestId("show-in-chat-budget").click();
-  await expect(page.locator("#source-reduced-4")).toHaveAttribute("data-flash", "true");
-  // The proof table is gone from this screen.
+  // The unknowns are empty slots, not appended sentences.
+  await expect(page.getByTestId("slot-budget")).toHaveAttribute("data-state", "empty");
+  await expect(page.getByTestId("slot-budget")).toHaveText("GST included?");
+  await expect(page.getByTestId("slot-approval")).toHaveText("Per payment or whole deal?");
   await expect(page.getByText("How this decision is grounded")).toHaveCount(0);
   // The questions are drafts at the foot of the chat, with the send button in it.
   const chat = page.getByTestId("thread-understand");
@@ -881,18 +885,20 @@ test("understand · the facts carry their sources, the questions are drafts in t
   await first.fill("Just to be sure: do the ₹50,000 and ₹60,000 both include GST?");
   await expect(page.getByTestId("draft-wording")).toHaveText("Edited by you");
   await drafts.getByTestId("primary-action").click();
-  await expect(page.getByTestId("flag-budget")).toHaveText("Waiting for the buyer");
+  await expect(page.getByTestId("slot-budget")).toHaveAttribute("data-state", "asked");
+  await expect(page.getByTestId("slot-approval")).toHaveAttribute("data-state", "asked");
   await expect(chat).toContainText("Just to be sure: do the ₹50,000 and ₹60,000 both include GST?");
   await expect(chat).toContainText("Edited by you");
   const sent = state().conversation.filter((item) => item.kind === "clarification" && item.sentAt);
   expect(sent).toHaveLength(2);
   expect(sent.find((item) => item.refs.edited)).toMatchObject({ author: "merchant", state: "approved_and_sent_by_merchant", text: "Just to be sure: do the ₹50,000 and ₹60,000 both include GST?" });
   expect(sent.filter((item) => item.refs.edited)).toHaveLength(1);
-  // Once the buyer answers, the flags turn into confirmations and the next step is inside the chat.
+  // The buyer replies in another place; the page picks it up by itself, and the slots fill.
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
-  await page.reload();
-  await expect(page.getByTestId("flag-budget")).toHaveText("Buyer replied");
+  await expect(page.getByTestId("slot-budget")).toHaveAttribute("data-state", "filled", { timeout: 12000 });
+  await expect(page.getByTestId("slot-budget")).toHaveText("Includes GST");
+  await expect(page.getByTestId("slot-approval")).toHaveText("Whole deal");
   await expect(page.getByTestId("thread-understand").getByTestId("primary-action")).toContainText("Use these answers");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });

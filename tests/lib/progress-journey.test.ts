@@ -35,7 +35,7 @@ async function walk(svc: Svc, path: HeroPath) {
 
 const START = [
   "Confirm two details before we can recommend an offer.",
-  "Their reply will appear here. Nothing else is needed from you.",
+  "Questions sent.",
   "The buyer answered. Use these answers to build an offer.",
   "Review this offer before sending it.",
   "Waiting for the buyer to review offer version 1.",
