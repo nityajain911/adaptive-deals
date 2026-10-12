@@ -41,6 +41,13 @@ describe("commercial case picker copy", () => {
     expect(cards.map((card) => card.started)).toEqual([true, true, false]);
   });
 
+  it("carries each deal's conversation as written, and its situation when the run is given", () => {
+    const [first] = casePickerCards(allDemoCases(), "reduced-scope", MODEL_OUTPUT);
+    expect(first!.messages.length).toBeGreaterThan(3);
+    expect(first!.messages.some((message) => message.author === "buyer")).toBe(true);
+    expect(first!.situation).toEqual([]);
+  });
+
   it("maps every kind of progress to a plain status", () => {
     const base: DealProgress = { stage: "track", stages: { understand: "done", offer: "done", track: "current" }, kind: "informational", actor: null, headline: "Up to date", primaryAction: null, blockingReason: null, version: 1, rule: "t" };
     expect(dealStatus({ started: true, progress: base }).label).toBe("Up to date");

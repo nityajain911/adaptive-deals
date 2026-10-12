@@ -1159,3 +1159,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Where the brief was already met or changed:** the stranded top-of-page "Start a deal" was removed in the previous round, so the work here was the bottom: a sticky bar with one primary action per state, and "Save & start a deal" in place of the lone save button, plus "Save only" for a merchant who does not want to start yet. The bar replaces the inline check and save buttons rather than adding to them.
 
+### 2026-10-12 — [Claude Code] Active deals as an inbox
+
+**Asked by the applicant:** a split-screen inbox, structured constraint tags parsed from the buyer's words, the action inside the selected deal, and no "Jump to" tiles.
+
+**Already done earlier:** the "clears the current one" constraint and the "Jump to" tiles. **Where I departed from the brief:** the tags are derived by code from the verified, quote-backed profile (not parsed by a model on the page, and not inferred from tone), so Kestrel's timeline reads "No start date stated" rather than "Needs immediate start".
+

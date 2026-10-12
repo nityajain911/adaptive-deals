@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "@/components/client";
 import type { CaseId } from "@/data/synthetic/cases";
 import { CASE_SWITCH_NOTE, type CasePickerCard } from "@/lib/case-picker-cards";
+import type { SituationTone } from "@/lib/deal-situation";
 import { Badge, cx } from "@/components/ui";
 
-/** The three deal stories as one table, each with its own progress. Choose a row, then open or start it. */
+const DOT: Record<SituationTone, string> = { red: "bg-red", amber: "bg-amber", green: "bg-green", neutral: "bg-line-strong" };
+const TEXT: Record<SituationTone, string> = { red: "text-red", amber: "text-amber", green: "text-green", neutral: "text-ink" };
+
+/** The deals as an inbox: who is waiting on the left, and what is in the way, in their own words, on the right. */
 export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; activeCaseId: CaseId }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   const [selected, setSelected] = useState<CaseId>(activeCaseId);
-  const selectedCard = cards.find((card) => card.id === selected)!;
-  const opens = selectedCard.started;
+  const card = cards.find((item) => item.id === selected)!;
 
   const go = () =>
     run({ action: "open_deal", caseId: selected }, () => {
@@ -24,31 +27,30 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
     });
 
   return (
-    <div className="space-y-3" data-walkthrough="case-picker">
-      <div role="radiogroup" aria-label="Deals" className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
-        <div aria-hidden className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_24px] gap-4 border-b border-line bg-surface-muted px-4 py-2 text-[12px] font-semibold uppercase tracking-wide text-muted md:grid">
-          <span>Buyer</span><span>What&apos;s in the way</span><span>Status</span><span />
-        </div>
+    <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]" data-walkthrough="case-picker">
+      <div role="radiogroup" aria-label="Deals" className="h-fit overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
         <ul className="divide-y divide-line">
-          {cards.map((card) => {
-            const chosen = selected === card.id;
+          {cards.map((item) => {
+            const chosen = selected === item.id;
             return (
-              <li key={card.id} data-testid={`case-card-${card.id}`}>
+              <li key={item.id} data-testid={`case-card-${item.id}`}>
                 <button
                   type="button"
                   role="radio"
                   aria-checked={chosen}
-                  onClick={() => setSelected(card.id)}
-                  data-testid={`select-case-${card.id}`}
-                  className={cx("grid w-full grid-cols-1 items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_24px]", chosen ? "bg-blue-weak/50" : "hover:bg-surface-muted")}
+                  onClick={() => setSelected(item.id)}
+                  data-testid={`select-case-${item.id}`}
+                  className={cx("flex w-full flex-col gap-1 border-l-4 px-4 py-3.5 text-left", chosen ? "border-l-blue bg-blue-weak/50" : "border-l-transparent hover:bg-surface-muted")}
                 >
-                  <span className="min-w-0"><span className="block text-[15px] font-semibold text-ink">{card.buyer}</span><span className="block text-[13px] text-muted">{card.title}</span></span>
-                  <span className="text-[13px] leading-5 text-ink-2">{card.barrier}</span>
-                  <span className="min-w-0" data-testid={`deal-status-${card.id}`}>
-                    <span className="flex flex-wrap items-center gap-2"><Badge tone={card.status.tone}>{card.status.label}</Badge>{card.current ? <span className="text-[12px] text-muted">Open now</span> : null}</span>
-                    {card.status.next ? <span className="mt-1 block text-[12px] leading-4 text-muted" data-testid={`deal-next-${card.id}`}>{card.status.next}</span> : null}
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="text-[15px] font-semibold text-ink">{item.buyer}</span>
+                    <span data-testid={`deal-status-${item.id}`} className="flex shrink-0 flex-col items-end gap-0.5">
+                      <Badge tone={item.status.tone}>{item.status.label}</Badge>
+                      {item.current ? <span className="text-[11px] text-muted">Open now</span> : null}
+                    </span>
                   </span>
-                  <span className="hidden justify-end md:flex">{chosen ? <Check aria-hidden className="h-4 w-4 text-blue" /> : null}</span>
+                  <span className="text-[13px] text-muted">{item.title}</span>
+                  {item.status.next ? <span className="line-clamp-2 text-[12px] leading-4 text-muted" data-testid={`deal-next-${item.id}`}>{item.status.next}</span> : null}
                 </button>
               </li>
             );
@@ -56,13 +58,50 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
         </ul>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="case-confirmation">
-        <p className="min-h-5 text-[13px] text-muted" data-testid="case-switch-warning">{selectedCard.current ? "" : CASE_SWITCH_NOTE}</p>
-        <Button variant="primary" onClick={go} disabled={pending} data-testid="start-selected-case" className="shrink-0">
-          {pending ? "Opening…" : opens ? "Open deal" : "Start deal"} <ArrowRight aria-hidden className="h-4 w-4" />
-        </Button>
-      </div>
-      <ErrorText error={error} />
+      <section className="min-w-0 rounded-[var(--radius-card)] border border-line bg-surface p-4 sm:p-5" aria-label={`${card.buyer}: what is in the way`} data-testid="deal-panel">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-ink" data-testid="deal-panel-buyer">{card.buyer}</h2>
+            <p className="mt-0.5 text-[13px] text-ink-2">{card.proposal}</p>
+          </div>
+          <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end" data-testid="case-confirmation">
+            <Button variant="primary" onClick={go} disabled={pending} data-testid="start-selected-case" className="min-h-11 px-5 text-[15px]">
+              {pending ? "Opening…" : card.started ? "Open deal" : "Start deal"} <ArrowRight aria-hidden className="h-4 w-4" />
+            </Button>
+            <p className="min-h-4 text-[12px] text-muted" data-testid="case-switch-warning">{card.current ? "" : CASE_SWITCH_NOTE}</p>
+          </div>
+        </div>
+        <ErrorText error={error} />
+
+        {card.situation.length ? (
+          <div className="mt-4" data-testid="deal-situation">
+            <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted">What is in the way</h3>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {card.situation.map((tile) => (
+                <li key={tile.id} className="rounded-xl border border-line px-3 py-2.5" data-testid={`tile-${tile.id}`} data-tone={tile.tone}>
+                  <div className="text-[12px] font-semibold text-muted">{tile.heading}</div>
+                  <div className={cx("mt-0.5 flex items-center gap-1.5 text-[15px] font-semibold", TEXT[tile.tone])}><span aria-hidden className={cx("h-2.5 w-2.5 shrink-0 rounded-full", DOT[tile.tone])} />{tile.value}</div>
+                  {tile.detail ? <div className="mt-0.5 text-[13px] text-ink-2">{tile.detail}</div> : null}
+                  {tile.quote ? <div className="mt-1 text-[12px] italic text-muted">“{tile.quote.replace(/\.$/, "")}”</div> : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[12px] text-muted" data-testid="situation-source">Read from their messages ({card.modelOutput.toLowerCase().startsWith("recorded") ? card.modelOutput : "hand-written sample"}). Each fact is a quote that was found in the conversation; the verdicts are worked out by code.</p>
+          </div>
+        ) : null}
+
+        <div className="mt-4">
+          <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted">What they said</h3>
+          <ol className="mt-2 max-h-[300px] space-y-2 overflow-y-auto rounded-xl bg-[#efeae2] p-3" aria-label={`Messages with ${card.buyer} (simulated WhatsApp)`} data-testid="deal-conversation" tabIndex={0}>
+            {card.messages.map((message) => (
+              <li key={message.id} className={cx("max-w-[88%] rounded-lg px-3 py-2 text-[14px] leading-5 text-ink shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]", message.author === "merchant" ? "ml-auto rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white")}>
+                <span className="block text-[12px] font-semibold text-ink-2">{message.author === "merchant" ? "You" : card.buyer}</span>
+                {message.text}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
     </div>
   );
 }

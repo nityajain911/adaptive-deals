@@ -788,6 +788,36 @@ test("step 3 · Track confirms the send, offers a way back, and keeps analytics 
   await expect(page.getByTestId("delivery-status").getByRole("note")).toContainText("WhatsApp (simulated)");
 });
 
+test("active deals · an inbox: the deals on the left, and what is in the way, in their own words, on the right", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await api(page, { action: "reset" });
+  await page.goto("/deals");
+  await expect(page.getByText("Jump to")).toHaveCount(0);
+  await expect(page.getByTestId("case-switch-warning")).not.toContainText("clears");
+  const panel = page.getByTestId("deal-panel");
+  // The open deal is selected, and its situation is a few facts, each from the buyer's own words.
+  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Kestrel Lane Clinics");
+  await expect(panel.getByTestId("tile-budget")).toContainText("Short of your quote");
+  await expect(panel.getByTestId("tile-budget")).toContainText("₹50,000 available now");
+  await expect(panel.getByTestId("tile-budget")).toContainText("I only have ₹50,000 left in this quarter");
+  await expect(panel.getByTestId("tile-timeline")).toContainText("No start date stated");
+  await expect(panel.getByTestId("situation-source")).toContainText("Each fact is a quote that was found in the conversation");
+  await expect(panel.getByTestId("deal-conversation")).toContainText("The broken booking page is costing us patient enquiries");
+  // The action sits inside the selected deal's panel.
+  await expect(panel.getByTestId("start-selected-case")).toBeVisible();
+  // Choosing another deal changes the panel, not the page.
+  await page.getByTestId("select-case-no-fit").click();
+  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Blue Harbor Foods");
+  await expect(panel.getByTestId("tile-timeline")).toContainText("Needs a fast start");
+  await expect(panel.getByTestId("tile-budget")).toContainText("Covers your quote");
+  await expect(panel.getByTestId("deal-conversation")).toContainText("The issue is timing");
+  await page.getByTestId("select-case-preserve-scope").click();
+  await expect(panel.getByTestId("tile-scope")).toContainText("Services to confirm");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test("active deals · all three deals are held at once, each with its own progress", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await api(page, { action: "reset" });

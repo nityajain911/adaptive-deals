@@ -420,7 +420,14 @@ export async function openDeal(caseId: string): Promise<DemoState> {
     const current = await readJson<DemoState>(STORE_FILE);
     if (current) {
       const open = migrateState(current);
-      if (open.caseId === item.id) return open;
+      if (open.caseId === item.id) {
+        // The deal on screen from the start counts as started only once the merchant starts it.
+        if (!open.events.some((e) => e.kind === "case_started")) {
+          event(open, "case_started", `Case started: ${item.title}`, "merchant", item.id);
+          await writeJsonAtomic(STORE_FILE, open);
+        }
+        return open;
+      }
       await saveVaultedDeal(open.caseId, current);
     }
     await writeJsonAtomic(STORE_FILE, replacement);
@@ -442,7 +449,8 @@ export async function listDeals(): Promise<DealListing[]> {
   const out: DealListing[] = [];
   for (const item of allDemoCases()) {
     if (item.id === current.caseId) {
-      out.push({ caseId: item.id, open: true, started: true, progress: await progressOf(current).catch(() => null) });
+      const started = current.events.some((e) => e.kind === "case_started");
+      out.push({ caseId: item.id, open: true, started, progress: started ? await progressOf(current).catch(() => null) : null });
       continue;
     }
     const saved = await readVaultedDeal<DemoState>(item.id);

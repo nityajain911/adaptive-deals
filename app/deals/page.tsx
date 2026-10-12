@@ -17,13 +17,15 @@ export default async function DealsPage() {
   const listings = await listDeals();
   const byCase = Object.fromEntries(listings.map((item) => [item.caseId, { started: item.started, progress: item.progress }]));
   const modelOutput = Object.fromEntries(allDemoCases().map((item) => [item.id, modelProvenance(demoCaseRunRecord(item.id)).label])) as Record<CaseId, string>;
-  const cards = casePickerCards(allDemoCases(), s.caseId, modelOutput, byCase);
+  const runs = Object.fromEntries(allDemoCases().map((item) => [item.id, demoCaseRunRecord(item.id)])) as Record<CaseId, ReturnType<typeof demoCaseRunRecord>>;
+  const packageNames = Object.fromEntries(allDemoCases().flatMap((item) => item.deal.packages).map((pkg) => [pkg.id, pkg.name]));
+  const cards = casePickerCards(allDemoCases(), s.caseId, modelOutput, byCase, runs, packageNames);
 
   return (
     <>
       <WalkthroughServer dealId="hero" />
       <MerchantHeader current="deals" />
-      <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-7 sm:px-6" data-testid="case-picker" data-walkthrough="case-picker">
+      <main id="main" className="mx-auto w-full max-w-[1320px] flex-1 px-4 py-7 sm:px-6" data-testid="case-picker" data-walkthrough="case-picker">
         <WalkthroughWelcome />
         <h1 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Active deals</h1>
         <div className="mt-5"><CasePicker cards={cards} activeCaseId={s.caseId} /></div>

@@ -555,3 +555,11 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Competing directions are down to one.** The top-of-page "Start a deal" and the result card were removed earlier; the tabs, the bar and the guide's "Continue" all lead to the same place. The sticky bar steps above the guide's bottom sheet on a phone, and the Presenter button steps above the bar.
 
+## Active deals as an inbox (12 October 2026)
+
+**The deals are a list on the left and the selected deal on the right.** The list holds who is waiting and each deal's own status. The panel opens on what is in the way: a few scannable facts (Budget, Timeline, Scope, Approval), each with the buyer's own words under it, then the conversation as written, and the **Start deal** / **Open deal** button inside the panel next to the thing it acts on. The "Jump to" tiles are gone; the two tabs already do that job.
+
+**The facts are not model output at click time.** Each comes from the verified profile of the run: a value only appears if its quote was found in the buyer's messages, and the verdicts are plain code ("Short of your quote" is the available amount against the quote; "Needs a fast start" is a start date within a month of the demo date). What the buyer did not say shows as "Not stated" or "No start date stated". The brief's example (Kestrel "needs an immediate start") would have been inferred from tone, so it is not claimed: the product shows what was stated. The panel says which kind of run it was read from.
+
+**Several deals at once**, with no "clears the current one" warning, was already in place; the panel says only that the deal you leave keeps its progress. A deal that is on screen but was never started counts as not started until you press Start.
+
