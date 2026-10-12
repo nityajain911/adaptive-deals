@@ -4,6 +4,7 @@ import type { CorridorView } from "@/lib/service";
 
 const corridor = (check: CorridorView["check"]): CorridorView => ({
   currentTotalPaise: 4_602_000,
+  scopeChange: null,
   requestedTotalPaise: check?.totalPaise ?? null,
   gstBasis: check ? "including" : null,
   check,

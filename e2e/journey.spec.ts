@@ -474,6 +474,7 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await noHorizontalScroll(page);
   await shot(page, "mobile-3-buyer-proposal");
   await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-banner")).toBeVisible();
   await expect(page.getByTestId("payment-timeline")).toBeVisible();
@@ -1033,19 +1034,25 @@ test("step 5 · plain terms and rounded forecasts on the offer", async ({ page }
   await expect(page.locator("main")).not.toContainText(/permitted structures|merchant-approved template/i);
 });
 
-test("counter-offer · a price request shows three paths under the chat, and says plainly when nothing lower fits the rules", async ({ page }) => {
+test("counter-offer · a price request shows its answers under the chat, and a smaller scope that the rules pass is offered with how far it still is from the ask", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   const sent = await prepareSent(page);
   await api(page, { action: "request_change", version: sent.version, text: "Could you do a lower total: 40000?", topic: "price", detail: { kind: "price", targetPaise: 4_000_000, gstBasis: "including" } });
   await page.goto("/deals/hero/track");
   const corridor = page.getByTestId("negotiation-corridor");
   await expect(corridor.getByTestId("path-hold-firm")).toBeVisible();
-  await expect(corridor.getByTestId("path-suggested")).toContainText("Suggested counter-offer");
   await expect(corridor.getByTestId("path-own-amount")).toBeVisible();
   await expect(page.getByText(/AI counter-offer/i)).toHaveCount(0);
-  // The engine has nothing at or below the ask, so the suggestion says so instead of inventing one.
-  await expect(corridor.getByTestId("suggested-unavailable")).toContainText("cannot be offered");
+  // No total at or below the ask passes the rules, so there is no discount suggestion; the closest smaller scope is offered instead, honestly.
   await expect(corridor.getByTestId("offer-safe-minimum")).toHaveCount(0);
+  await expect(corridor.getByTestId("path-suggested")).toHaveCount(0);
+  const scope = corridor.getByTestId("path-scope-change");
+  await expect(scope).toContainText("Remove Monthly reporting");
+  await expect(scope).toContainText("₹42,480");
+  await expect(scope).toContainText("still ₹2,480 above their ask");
+  await expect(scope).toContainText("Checked against your limits");
+  // The buyer's request is shown once, in the chat.
+  await expect(page.getByTestId("buyer-work-card")).toHaveCount(0);
   // The buyer's message sits above the three paths, and the rarer answers wait behind "More options".
   const chat = await page.getByTestId("thread-track").boundingBox();
   const decision = await corridor.boundingBox();
@@ -1063,9 +1070,8 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   const sent = await prepareSent(page);
   await api(page, { action: "request_change", version: sent.version, text: "Could you do ₹40,000 instead?", topic: "price" });
   await page.goto("/deals/hero/track");
-  // A pending buyer request opens its card by itself.
-  await expect(page.getByTestId("buyer-work-card")).toHaveAttribute("open", "");
-  await expect(page.getByTestId("negotiation-corridor")).toContainText("How do you want to answer?");
+  // A pending price request is answered under the buyer's message, in the chat.
+  await expect(page.getByTestId("chat-footer").getByTestId("negotiation-corridor")).toContainText("Hold firm");
   await page.getByTestId("check-buyer-amount").click();
   const form = page.getByTestId("counter-form");
 
@@ -1425,4 +1431,27 @@ test("send · a short summary and the drafted message come first, and the buyer'
   await page.goto("/deals/hero/offer/preview");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await shot(page, "send-mobile");
+});
+
+
+test("counter-offer · sending the smaller scope withdraws the sent offer, prepares it for approval and records that every rule passed", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do a lower total: 40000?", topic: "price", detail: { kind: "price", targetPaise: 4_000_000, gstBasis: "including" } });
+  await page.goto("/deals/hero/track");
+  await shot(page, "counter-0-answers");
+  await page.getByTestId("offer-scope-change").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  const offer = state().counterOffers.at(-1)!;
+  expect(offer.source).toBe("scope_change");
+  expect(offer.override).toBeNull();
+  expect(offer.evaluated.structure.excludedPackageIds).toContain("monthly-reporting");
+  expect(offer.evaluated.approvable).toBe(true);
+  await expect(page.getByTestId("offer-headline")).toContainText("without Monthly reporting");
+  await expect(page.getByTestId("offer-total")).toContainText("₹42,480");
+  await expect(page.getByTestId("recommendation")).not.toContainText("Your counter-offer");
+  expect(state().agreements.find((a) => a.version === sent.version)!.status).toBe("superseded");
+  // It is previewed and sent like any proposal; the engine, not the page, refuses a change that does not pass.
+  const refused = await api(page, { action: "answer_with_scope_change", packageId: "website-fixes" }, false);
+  expect(refused.error).toBeTruthy();
 });

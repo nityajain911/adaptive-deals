@@ -107,6 +107,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("remove_input_override"), id: z.string().max(60) }).strict(),
   z.object({ action: z.literal("corridor_view"), requestedPaise: z.number().int().positive().max(100_000_000_00).optional(), gstBasis: z.enum(["including", "excluding"]).optional() }).strict(),
   z.object({ action: z.literal("answer_with_offer"), structureId: z.string().max(200) }).strict(),
+  z.object({ action: z.literal("answer_with_scope_change"), packageId: z.string().max(80) }).strict(),
   z.object({ action: z.literal("check_counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00) }),
   z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20), reason: z.string().max(300).optional() }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
@@ -240,6 +241,9 @@ export async function POST(request: Request) {
         break;
       case "answer_with_offer":
         await svc.answerWithOffer(a.structureId);
+        break;
+      case "answer_with_scope_change":
+        await svc.answerWithScopeChange(a.packageId);
         break;
       case "check_counter_offer":
         result = await svc.checkCounterOffer(a.totalPaise);

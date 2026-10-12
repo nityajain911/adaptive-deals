@@ -1213,3 +1213,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** no checkbox, and no holding state after accepting. **Applicant decision:** one tap ("I want one tap"), after I recommended two.
 
 **Where I departed from the brief:** the checkbox was already gone, and the attestation sentence stays (it is a recorded condition of the offer); the automatic-payment authorisation is written directly above the single button instead of being folded into "accept"; one tap applies only to simulated payments.
+
+### 2026-10-12 — [Claude Code] Answering a lower-price request
+
+**Asked by the applicant:** fewer, clearer answers; an automatic scope reduction that hits the buyer's number; the chat at the top; analytics out of the way. **Applicant decision:** build the scope change as I recommended.
+
+**Where I departed from the brief:** the three paths and the Performance tab already existed; "remove Monthly Reporting to hit ₹40,000" does not (it reaches ₹42,480), so the card states the gap; the suggestion is worked out by the rules engine, not AI; a service the buyer requires, or one the merchant has not marked removable, is never offered for removal.

@@ -75,7 +75,7 @@ export interface CounterOffer {
   /** The merchant's decision to send an amount the engine reported as failing a rule, or as below direct costs. */
   override: { by: string; at: string; checks: string[]; reason: string; negativeContribution: boolean } | null;
   /** A total the merchant typed, or an offer the engine had already listed and approved. */
-  source?: "custom_total" | "listed_offer";
+  source?: "custom_total" | "listed_offer" | "scope_change";
   requestMessageId: string;
   createdAt: string;
   economics?: EconomicsRef;

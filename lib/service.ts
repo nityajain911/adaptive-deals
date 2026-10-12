@@ -12,7 +12,7 @@ import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
-import { CounterError, counterStructure, failingCounterChecks, isCounterStructureId } from "@/domain/counter";
+import { CounterError, counterStructure, failingCounterChecks, isCounterStructureId, scopeReducedStructure } from "@/domain/counter";
 import { lowestCompliantTotal } from "@/domain/corridor";
 import { listValueOf } from "@/domain/deal-baseline";
 import { canonicalJson } from "@/domain/agreement";
@@ -1793,6 +1793,13 @@ export interface CorridorView {
   ladder: CorridorLadderRow[];
   scopeAlternatives: CorridorOffer[];
   timingAlternatives: CorridorOffer[];
+  /** The offer with one service taken out that passes every rule, nearest the buyer's ask first; null when none does. */
+  scopeChange: CorridorScopeChange | null;
+}
+
+export interface CorridorScopeChange extends CorridorOffer {
+  packageId: string;
+  packageName: string;
 }
 
 const withoutDiscount = (x: EvaluatedStructure) => canonicalJson({ template: x.structure.template, params: Object.fromEntries(Object.entries(x.structure.params).filter(([key]) => key !== "discount_bps" && key !== "counter_total_paise")) });
@@ -1833,7 +1840,56 @@ export async function corridorFor(args: { requestedPaise?: number; gstBasis?: "i
   const scopeAlternatives = others.filter((x) => listValueOf(s.baseline.servicePrices, x.structure.scope) < currentScope).map(asCorridorOffer);
   const timingAlternatives = others.filter((x) => listValueOf(s.baseline.servicePrices, x.structure.scope) === currentScope && datesOf(x) !== datesOf(ctx.current)).map(asCorridorOffer);
 
-  return { currentTotalPaise, requestedTotalPaise, gstBasis: args.requestedPaise !== undefined ? (args.gstBasis ?? null) : null, check, lowestCompliantPaise: lowest.lowestCompliantPaise, lowestUnavailable: lowest.unavailableReason, ladder, scopeAlternatives, timingAlternatives };
+  const scopeChange = scopeChangeOptions(ctx.current.structure, ctx).sort((a, b) => totalOf(a.evaluated) - totalOf(b.evaluated))[0];
+  return { currentTotalPaise, requestedTotalPaise, gstBasis: args.requestedPaise !== undefined ? (args.gstBasis ?? null) : null, check, lowestCompliantPaise: lowest.lowestCompliantPaise, lowestUnavailable: lowest.unavailableReason, ladder, scopeAlternatives, timingAlternatives, scopeChange: scopeChange ? { ...asCorridorOffer(scopeChange.evaluated), packageId: scopeChange.packageId, packageName: scopeChange.packageName } : null };
+}
+
+/** Every way to take one service out of the sent offer that the engine passes on every rule, with the engine's own evaluation. */
+function scopeChangeOptions(base: Structure, ctx: { constraints: ReturnType<typeof interpretations>[0]["constraints"]; deal: ReturnType<typeof dealContextFor> }): { packageId: string; packageName: string; evaluated: EvaluatedStructure }[] {
+  if (base.scope.length < 2) return [];
+  return base.scope.flatMap((item) => {
+    const name = ctx.deal.packages.find((p) => p.id === item.packageId)?.name ?? item.packageId;
+    try {
+      const evaluated = evaluateStructure(scopeReducedStructure(base, item.packageId, name, ctx.deal.merchant.policy.gstRateBps), ctx.constraints, ctx.deal);
+      return failingCounterChecks(evaluated).length === 0 ? [{ packageId: item.packageId, packageName: name, evaluated }] : [];
+    } catch (e) {
+      if (e instanceof CounterError) return [];
+      throw e;
+    }
+  });
+}
+
+/**
+ * Answer the buyer's request by taking one service out of the sent offer. The engine rechecks the smaller offer on every rule;
+ * there is no override path. The sent version is withdrawn and the smaller offer becomes the selected option, to be
+ * previewed, approved and sent like any proposal.
+ */
+export async function answerWithScopeChange(packageId: string): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate(async (s) => {
+    const ctx = await priceRequestContext(s, deal);
+    const option = scopeChangeOptions(ctx.current.structure, ctx).find((o) => o.packageId === packageId);
+    if (!option) throw new ActionError("That change does not meet every one of your rules, so it cannot be offered");
+    const at = clockOf(s).now();
+    s.counterOffers.push({
+      id: `counter-${s.counterOffers.length + 1}`,
+      fromVersion: ctx.v.version,
+      baseStructureId: ctx.v.structureId,
+      targetTotalPaise: totalOf(option.evaluated),
+      evaluated: option.evaluated,
+      override: null,
+      source: "scope_change",
+      requestMessageId: ctx.request.sourceId,
+      createdAt: at,
+      economics: economicsRef(s),
+    });
+    s.agreements = s.agreements.map((x) => (x.version === ctx.v.version ? { ...x, status: "superseded" as const } : x));
+    setStatus(s, "options_ready", `Version ${ctx.v.version} withdrawn to answer the buyer's request`);
+    s.selectedOption = null;
+    await applySelection(s, option.evaluated.structure.id, { explicit: true }, ctx.deal);
+    event(s, "scope_change_prepared", `Offer without ${option.packageName} prepared for the buyer's request: ${formatINR(totalOf(option.evaluated))}`, "merchant", "The engine rechecked the smaller offer: every rule passes.");
+  });
 }
 
 /**

@@ -1,6 +1,6 @@
 import type { CheckResult } from "./checks";
 import type { EvaluatedStructure } from "./engine";
-import { derivePreGstFromInclusive, lineWithGst, sum, type Paise } from "./money";
+import { derivePreGstFromInclusive, divRoundHalfUp, lineWithGst, sum, type Paise } from "./money";
 import type { Structure } from "./structures";
 
 export class CounterError extends Error {}
@@ -66,6 +66,44 @@ export function counterStructure(base: Structure, targetTotalPaise: Paise, gstRa
     params: { ...base.params, counter_total_paise: targetTotalPaise },
     discountBps,
     pricePaise,
+    payments,
+    invoices,
+    deliveries,
+  };
+}
+
+/**
+ * The same offer with one service taken out: the dates, payment methods and discount rate are kept, the price falls by that
+ * service's agreed value, and every payment line is scaled in proportion with GST recomputed per line by the engine's own rule.
+ * A candidate only: the engine must recheck it (buyer's required services, dependencies, which services may be removed, the
+ * merchant's limits), and nothing here makes it eligible.
+ */
+export function scopeReducedStructure(base: Structure, removePackageId: string, removeName: string, gstRateBps: number): Structure {
+  if (!base.scope.some((item) => item.packageId === removePackageId)) throw new CounterError("That service is not in the offer");
+  const scope = base.scope.filter((item) => item.packageId !== removePackageId);
+  if (!scope.length) throw new CounterError("An offer needs at least one service");
+  const removed = base.deliveries.filter((d) => d.packageId === removePackageId);
+  const deliveries = base.deliveries.filter((d) => d.packageId !== removePackageId);
+  const removedValue = sum(removed.map((d) => d.valuePaise));
+  const pricePaise = base.pricePaise - removedValue;
+  if (pricePaise <= 0) throw new CounterError("The offer has no value left");
+  const removedList = base.discountBps >= 10_000 ? removedValue : divRoundHalfUp(removedValue * 10_000, 10_000 - base.discountBps);
+  const parts = proportional(pricePaise, base.payments.map((p) => p.prePaise), "first");
+  const payments = base.payments.map((p, i) => ({ ...p, ...lineWithGst(parts[i], gstRateBps) }));
+  const invoices = base.invoices.map((inv) => {
+    const line = payments.find((p) => p.id === inv.paymentLineId);
+    return line ? { ...inv, prePaise: line.prePaise, gstPaise: line.gstPaise, totalPaise: line.totalPaise } : inv;
+  });
+  return {
+    ...base,
+    id: `${base.id}#counter@scope-${removePackageId}`,
+    label: `${base.label} · without ${removeName}`,
+    params: { ...base.params, counter_scope_removed: removePackageId, counter_scope_removed_name: removeName },
+    scope,
+    excludedPackageIds: [...base.excludedPackageIds, removePackageId],
+    listPricePaise: base.listPricePaise - removedList,
+    pricePaise,
+    directCostPaise: sum(deliveries.map((d) => d.costPaise)),
     payments,
     invoices,
     deliveries,

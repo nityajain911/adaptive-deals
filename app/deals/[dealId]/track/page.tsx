@@ -88,10 +88,15 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const priceRequestId = priceRequest?.sourceId ?? null;
   const corridor = priceRequest ? await corridorFor({}).catch(() => null) : null;
   const mcpView = await mcpCollectionView();
+  // The decision for a price request sits under the buyer's message, in the chat, and is not repeated in the work list.
+  const chat = <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} compact={4} footer={corridor && priceRequest ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={priceRequest.sourceId} buyerRequest={priceRequest.text} requested={structuredPrice(s.conversation.find((m) => m.id === priceRequest.sourceId)?.refs.request)} /> : null} />;
+  const decisionInChat = !!(corridor && priceRequest);
+  const otherWork = decisionInChat ? workItems.filter((item) => item !== priceRequest) : workItems;
 
   return (
     <StageShell dealId={dealId} viewing="track">
       <div className="space-y-5">
+        {decisionInChat ? chat : null}
         <div data-walkthrough="collection-setup">
         <Card className="space-y-3 p-5" data-testid="now-card">
           {quiet ? null : <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Next step</div>}
@@ -99,7 +104,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
-            {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId="buyer-work-card">{primary.label}</RevealButton> : null}
+            {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId={decisionInChat ? "negotiation-corridor" : "buyer-work-card"}>{primary.label}</RevealButton> : null}
             {!hasAction && !quiet ? <p className="text-[15px] text-ink-2" data-testid="no-action">Nothing for you to do right now.</p> : null}
             {shown && progress.kind !== "action_required" && progress.kind !== "terminal" ? (
               // While the buyer is asked to act, link the version they must act on (e.g. the revision).
@@ -123,13 +128,13 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
         </Card>
         </div>
 
-        <ConversationThread s={s} scope="track" buyerName={activeCase.buyer.name} compact={4} />
+        {decisionInChat ? null : chat}
 
-        {workItems.length ? (
+        {otherWork.length ? (
           <details id="buyer-work-card" open={primary ? ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) : false} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="buyer-work-card">
-            <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">The buyer needs an answer ({workItems.length})</summary>
+            <summary className="cursor-pointer px-5 py-3 text-[15px] font-semibold text-ink">The buyer needs an answer ({otherWork.length})</summary>
             <ul className="divide-y divide-line border-t border-line">
-              {workItems.map((item) => (
+              {otherWork.map((item) => (
                 <li key={`${item.sourceKind}-${item.sourceId}`} className="px-5 py-4 text-[13px]" data-testid={`work-${item.sourceId}`}>
                   <div className="font-medium text-ink">Buyer: “{item.text}”</div>
                   <div className="mt-1 text-ink-2">{item.detail}</div>
@@ -177,15 +182,15 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             <CurrentAgreement summary={agreementSummary} />
           </details>
         ) : null}
-        {shown && !quiet ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
+        {shown && !quiet && !decisionInChat ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
 
         {shown?.buyerAcceptance && (mcpView.connection.connected || mcpView.intent || mcpView.receipt) ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
 
 
-        {quiet ? null : <Link href={`/deals/${dealId}/performance`} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-5 py-3 text-[15px] hover:border-[#c7d3ff]" data-testid="track-outcome-link">
+        {shown?.buyerAcceptance || progress.kind === "terminal" ? <Link href={`/deals/${dealId}/performance`} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-5 py-3 text-[15px] hover:border-[#c7d3ff]" data-testid="track-outcome-link">
           <span><span className="font-semibold text-ink">Deal outcome</span> <span className="text-ink-2">· {outcomeLine}</span></span>
           <span className="font-semibold text-blue">See performance →</span>
-        </Link>}
+        </Link> : null}
       </div>
     </StageShell>
   );

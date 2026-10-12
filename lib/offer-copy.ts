@@ -26,7 +26,11 @@ const HEADLINES: Record<TemplateType, (x: EvaluatedStructure) => string> = {
   shorter_commitment: () => "Offer a shorter commitment",
 };
 
-export const headlineFor = (x: EvaluatedStructure): string => HEADLINES[x.structure.template](x);
+export const headlineFor = (x: EvaluatedStructure): string => {
+  const base = HEADLINES[x.structure.template](x);
+  const without = x.structure.params.counter_scope_removed_name;
+  return typeof without === "string" ? `${base} · without ${without}` : base;
+};
 
 /** Accurate code fallback when validated AI wording is unavailable for this exact option. */
 export function whyOffer(x: EvaluatedStructure): string {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { interpretations } from "@/domain/constraints";
 import { enumerateAndEvaluate, evaluateStructure } from "@/domain/engine";
 import { sum } from "@/domain/money";
-import { counterStructure, CounterError, failingCounterChecks } from "@/domain/counter";
+import { counterStructure, CounterError, failingCounterChecks, isCounterStructureId } from "@/domain/counter";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
 
 const input = heroInput();
@@ -82,5 +82,30 @@ describe("a counter-offer at a different total", () => {
     ["not lower than the current offer", 99_999_999],
   ])("refuses a total that is %s", (_n, value) => {
     expect(() => counterStructure(base(), value, GST)).toThrow(CounterError);
+  });
+});
+
+describe("a scope change", () => {
+  it("takes one service out, keeps the dates and the discount rate, and scales the payments to the lower price", async () => {
+    const { scopeReducedStructure } = await import("@/domain/counter");
+    const start = base();
+    const reduced = scopeReducedStructure(start, start.scope[start.scope.length - 1].packageId, "That service", 1800);
+    expect(reduced.scope).toHaveLength(start.scope.length - 1);
+    expect(reduced.excludedPackageIds).toContain(start.scope[start.scope.length - 1].packageId);
+    expect(reduced.pricePaise).toBeLessThan(start.pricePaise);
+    expect(reduced.payments.map((p) => p.dueDate)).toEqual(start.payments.map((p) => p.dueDate));
+    expect(reduced.payments.reduce((n, p) => n + p.prePaise, 0)).toBe(reduced.pricePaise);
+    expect(reduced.deliveries.reduce((n, d) => n + d.valuePaise, 0)).toBe(reduced.pricePaise);
+    expect(reduced.directCostPaise).toBeLessThan(start.directCostPaise);
+    expect(reduced.discountBps).toBe(start.discountBps);
+    expect(isCounterStructureId(reduced.id)).toBe(true);
+    expect(reduced.params).toMatchObject({ counter_scope_removed_name: "That service" });
+  });
+  it("refuses a service that is not in the offer, and an offer left with nothing", async () => {
+    const { scopeReducedStructure } = await import("@/domain/counter");
+    const start = base();
+    expect(() => scopeReducedStructure(start, "nope", "Nope", 1800)).toThrow(/not in the offer/);
+    const single = { ...start, scope: [start.scope[0]] };
+    expect(() => scopeReducedStructure(single, start.scope[0].packageId, "Only", 1800)).toThrow(/at least one service/);
   });
 });

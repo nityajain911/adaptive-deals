@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "../client";
 import { CounterForm } from "./counter-form";
 import { formatINR } from "@/domain/money";
+import { approxINR } from "@/lib/offer-copy";
 import { negotiationView } from "@/lib/negotiation-view";
 import type { CorridorOffer, CorridorView } from "@/lib/service";
 
@@ -12,6 +13,12 @@ function OfferThis({ offer, onDone }: { offer: CorridorOffer; onDone: string }) 
   const router = useRouter();
   const { run, pending, error } = useAction();
   return <div className="shrink-0"><Button disabled={pending} data-testid={`offer-this-${offer.structureId}`} onClick={() => run({ action: "answer_with_offer", structureId: offer.structureId }, () => router.push(onDone))}>{pending ? "Preparing…" : "Choose this offer"}</Button><ErrorText error={error} /></div>;
+}
+
+function ScopeChangeButton({ option, onDone }: { option: NonNullable<CorridorView["scopeChange"]>; onDone: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  return <div><Button variant="primary" className="w-full sm:w-auto" disabled={pending} data-testid="offer-scope-change" onClick={() => run({ action: "answer_with_scope_change", packageId: option.packageId }, () => router.push(onDone))}>{pending ? "Preparing…" : `Offer ${formatINR(option.totalPaise)}`}</Button><ErrorText error={error} /></div>;
 }
 
 function DecisionAction({ body, children, testId, onDone }: { body: Record<string, unknown> & { action: string }; children: ReactNode; testId: string; onDone?: () => void }) {
@@ -39,7 +46,9 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest, req
   const [step, setStep] = useState<"choose" | "check">("choose");
   const [leftOpen, setLeftOpen] = useState(false);
   const safeMinimum = view.lowestCompliantPaise;
+  const scopeChange = view.scopeChange;
   const discountRows = view.ladder;
+  const cheaperAlternatives = [...view.scopeAlternatives, ...view.timingAlternatives].filter((offer) => offer.totalPaise < view.currentTotalPaise);
   // A "suggested" counter-offer must actually be lower than what the buyer already has.
   const suggested = safeMinimum !== null && safeMinimum < view.currentTotalPaise ? safeMinimum : null;
   const askedPaise = view.requestedTotalPaise ?? (requested ? Math.round(Number(requested.amountText) * 100) : null);
@@ -53,24 +62,36 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest, req
     run({ action: "counter_offer", totalPaise: suggested, overrideConfirmed: false, acknowledgedChecks: [], reason: "" }, () => router.push(onDone));
   };
   return (
-    <section className="mt-3 space-y-4 rounded-xl border border-[#d6defe] bg-blue-weak/30 p-4" data-testid="negotiation-corridor" aria-label="Negotiation decision">
-      <div><h3 className="text-[15px] font-semibold text-ink">How do you want to answer?</h3></div>
+    <section id="negotiation-corridor" tabIndex={-1} className="space-y-4" data-testid="negotiation-corridor" aria-label="Negotiation decision">
       <CorridorAnchors view={view} buyerRequest={buyerRequest} askedPaise={requested?.basis === "including" ? askedPaise : null} />
       {suggested !== null ? <p className="text-[14px] text-muted" data-testid="corridor-lowest">{view.lowestUnavailable === "evaluation_limit" ? "We could not verify a lowest total. Check an amount instead." : safeMinimum === null ? "No lower total is currently verified within your rules." : `The lowest verified total is ${formatINR(safeMinimum)} including GST.`}</p> : null}
       {step === "choose" ? <>
-        <ol className="grid gap-3 sm:grid-cols-3" data-testid="corridor-actions" aria-label="Three ways to answer">
+        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]" data-testid="corridor-actions" aria-label="Ways to answer">
           <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3" data-testid="path-hold-firm">
             <h4 className="text-[14px] font-semibold text-ink">Hold firm</h4>
             <p className="flex-1 text-[13px] leading-5 text-ink-2">Your offer stays at {formatINR(view.currentTotalPaise)}. Nothing new is sent.</p>
             <DecisionAction testId="keep-current-offer" body={{ action: "review_work", sourceKind: "message", sourceId: requestId, disposition: "keep_current_terms" }} onDone={() => router.refresh()}>Keep {formatINR(view.currentTotalPaise)}</DecisionAction>
           </li>
-          <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3" data-testid="path-suggested">
-            <h4 className="text-[14px] font-semibold text-ink">Suggested counter-offer</h4>
-            {suggested !== null ? <>
+          {suggested !== null ? (
+            <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3" data-testid="path-suggested">
+              <h4 className="text-[14px] font-semibold text-ink">Suggested counter-offer</h4>
               <p className="flex-1 text-[13px] leading-5 text-ink-2">The lowest total that meets every one of your rules, worked out by the rules engine.</p>
               <Button variant="primary" className="w-full sm:w-auto" disabled={pending} data-testid="offer-safe-minimum" onClick={offerSafeMinimum}>Offer {formatINR(suggested)}</Button>
-            </> : <p className="flex-1 text-[13px] leading-5 text-ink-2" data-testid="suggested-unavailable">{noLowerMessage}</p>}
-          </li>
+            </li>
+          ) : null}
+          {scopeChange ? (
+            <li className="flex flex-col gap-2 rounded-xl border-2 border-[#c7d3ff] bg-surface p-3" data-testid="path-scope-change">
+              <h4 className="text-[14px] font-semibold text-ink">Smaller scope</h4>
+              <p className="flex-1 text-[13px] leading-5 text-ink-2">Remove {scopeChange.packageName}: {formatINR(scopeChange.totalPaise)} incl. GST{askedPaise ? (scopeChange.totalPaise <= askedPaise ? ", within their ask" : `, still ${formatINR(scopeChange.totalPaise - askedPaise)} above their ask`) : ""}. You keep {approxINR(scopeChange.contributionPaise)}.</p>
+              <span className="text-[12px] text-muted">Checked against your limits</span>
+              <ScopeChangeButton option={scopeChange} onDone={onDone} />
+            </li>
+          ) : suggested === null ? (
+            <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3" data-testid="path-suggested">
+              <h4 className="text-[14px] font-semibold text-ink">Nothing lower fits</h4>
+              <p className="flex-1 text-[13px] leading-5 text-ink-2" data-testid="suggested-unavailable">{noLowerMessage}</p>
+            </li>
+          ) : null}
           <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3" data-testid="path-own-amount">
             <h4 className="text-[14px] font-semibold text-ink">Choose your own amount</h4>
             <p className="flex-1 text-[13px] leading-5 text-ink-2">Type a total and see what you would keep. You only give a reason if it breaks one of your rules.</p>
@@ -87,8 +108,8 @@ export function NegotiationCorridor({ view, onDone, requestId, buyerRequest, req
         {leftOpen ? <p className="rounded-lg bg-surface px-3 py-2 text-[14px] text-ink-2" data-testid="request-left-open">No message or offer will be sent. This request stays open for you to return to.</p> : null}
         <ErrorText error={error} />
       </> : <CounterForm onDone={onDone} onBack={() => setStep("choose")} initial={requested} />}
-      <details open className="text-[14px]" data-testid="corridor-ladder"><summary className="cursor-pointer font-semibold text-ink">Approved discount stops</summary>{discountRows.length > 1 ? <ul className="mt-2 space-y-2">{discountRows.map((row) => <li key={row.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid={`ladder-${row.discountBps}`}><span>{row.discountBps / 100}% discount · {formatINR(row.totalPaise)} incl. GST</span>{row.isCurrent ? <span className="text-muted">Current offer</span> : row.passes ? <OfferThis offer={row} onDone={onDone} /> : <span className="text-muted">Outside your rules</span>}</li>)}</ul> : <p className="mt-1 text-ink-2">Your prices and costs allow no discount.</p>}</details>
-      {view.scopeAlternatives.length || view.timingAlternatives.length ? <details className="text-[13px]" data-testid="corridor-alternatives"><summary className="cursor-pointer font-semibold text-ink">Other ways to respond</summary><ul className="mt-2 space-y-2">{[...view.scopeAlternatives, ...view.timingAlternatives].map((offer) => <li key={offer.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2"><span>{offer.headline} · {formatINR(offer.totalPaise)} incl. GST</span><OfferThis offer={offer} onDone={onDone} /></li>)}</ul></details> : null}
+      {discountRows.length > 1 ? <details open className="text-[14px]" data-testid="corridor-ladder"><summary className="cursor-pointer font-semibold text-ink">Approved discount stops</summary><ul className="mt-2 space-y-2">{discountRows.map((row) => <li key={row.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2" data-testid={`ladder-${row.discountBps}`}><span>{row.discountBps / 100}% discount · {formatINR(row.totalPaise)} incl. GST</span>{row.isCurrent ? <span className="text-muted">Current offer</span> : row.passes ? <OfferThis offer={row} onDone={onDone} /> : <span className="text-muted">Outside your rules</span>}</li>)}</ul></details> : null}
+      {cheaperAlternatives.length ? <details className="text-[13px]" data-testid="corridor-alternatives"><summary className="cursor-pointer font-semibold text-ink">Other ways to respond</summary><ul className="mt-2 space-y-2">{cheaperAlternatives.map((offer) => <li key={offer.structureId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2"><span>{offer.headline} · {formatINR(offer.totalPaise)} incl. GST</span><OfferThis offer={offer} onDone={onDone} /></li>)}</ul></details> : null}
       <p className="text-[14px] text-muted" data-testid="corridor-private">They only see the offer you approve and send, never your costs or rules.</p>
     </section>
   );

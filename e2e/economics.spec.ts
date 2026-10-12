@@ -348,7 +348,9 @@ test("corridor · with no discount permitted the ladder says so", async ({ page 
   })();
   await api(page, { action: "request_change", version: sent.version, text: "Could you do a little better on price?", topic: "price" });
   await page.goto("/deals/hero/track");
-  await expect(page.getByTestId("corridor-ladder")).toContainText("allow no discount");
+  // With no discount permitted there is no ladder to show, and the screen says plainly that nothing lower fits.
+  await expect(page.getByTestId("negotiation-corridor")).toContainText("Hold firm");
+  await expect(page.getByTestId("corridor-ladder")).toHaveCount(0);
 });
 
 test("preset · the illustrative example fills the draft, activates as an Illustrative version, and leaves the open deal's recommendation alone", async ({ page }) => {
