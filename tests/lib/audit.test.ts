@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { RunRecord } from "@/ai/run-record";
 import { heroMerchant, heroPackages, heroTemplates } from "@/data/synthetic/hero";
-import { appliedRules, auditSources, branchAudit, whoDidWhat } from "@/lib/audit";
+import { appliedRules, auditSources, branchAudit, executionPipeline, modelHeader, whoDidWhat } from "@/lib/audit";
 import type { DecisionBranch } from "@/lib/decision-branch";
 import { modelProvenance } from "@/lib/model-provenance";
 import { scopeAttribution } from "@/lib/scope-confirmation";
@@ -173,8 +173,11 @@ describe("audit drawer content is read-only", () => {
     const out = await svc.currentOutcome(s);
     const { AuditSections } = await import("@/components/audit/sections");
     const html = renderToStaticMarkup(AuditSections({ s, out, deal: { dealId: s.dealId, messages: s.run.record.inputs.messages, merchant: heroMerchant, packages: heroPackages, templates: heroTemplates } }));
-    expect(html).not.toMatch(/<form|<button|\/api\/actions|data-action=/);
-    for (const h of ["Evidence", "Applied merchant rules", "Approval and acceptance history", "Calculation provenance", "Who did what", "Schedules"]) expect(html).toContain(h);
+    // Read-only: no forms or action endpoints. The only buttons are the quiet copy-to-clipboard controls.
+    expect(html).not.toMatch(/<form|\/api\/actions|data-action=/);
+    const buttons = html.match(/<button[^>]*>/g) ?? [];
+    expect(buttons.every((tag) => tag.includes('data-testid="copy-button"'))).toBe(true);
+    for (const h of ["Evidence", "Applied merchant rules", "Approval and acceptance history", "Calculation provenance", "System execution pipeline", "Schedules"]) expect(html).toContain(h);
     expect(html).toContain("Simulated WhatsApp conversation");
     // The default case runs on a hand-written sample: the drawer must say so and credit no model.
     expect(modelProvenance(s.run.record).modelMade).toBe(false);
@@ -236,5 +239,47 @@ describe("an unmapped required scope and the merchant's confirmation", () => {
     expect(scopeAttribution(groq)).toBe("Groq extracted the phrase · merchant confirmed the services · engine recalculated the options.");
     expect(scopeAttribution(sample)).toBe("Phrase from the hand-written sample extraction · merchant confirmed the services · engine recalculated the options.");
     expect(scopeAttribution(modelProvenance({ ...run, steps: [] }))).not.toMatch(/Groq/);
+  });
+});
+
+
+describe("the system execution pipeline", () => {
+  it("states the model once, from the run's own steps", () => {
+    expect(modelHeader(run)).toMatchObject({ kind: "single", label: "Recorded Groq output" });
+    expect(modelHeader(run).detail).toMatch(/^groq \/ /);
+    expect(modelHeader(run, "fresh").label).toBe("Live Groq output");
+    expect(modelHeader(sampleRun)).toEqual({ kind: "sample", label: "Sample output written by hand · no model ran", detail: null });
+    const mixed = { ...run, steps: run.steps.map((step) => (step.task === "explain" ? { ...step, provider: "synthetic_replay" } : step)) } as RunRecord;
+    expect(modelHeader(mixed).kind).toBe("mixed");
+    expect(modelHeader({ ...run, steps: [] } as RunRecord).kind).toBe("none");
+  });
+
+  it("lists the work in the order it happens, in the AI lane, the rules engine's lane or the people's", () => {
+    const steps = executionPipeline(whoDidWhat(run, { ranking: "ai", text: "ai" }, state));
+    expect(steps[0]).toMatchObject({ lane: "ai", actor: "ai", text: "Extracted the opening constraints (extract.v2)" });
+    expect(steps[1]).toMatchObject({ lane: "code", actor: "code" });
+    expect(steps[1]!.text).toMatch(/verified every evidence quote/);
+    const firstPerson = steps.findIndex((step) => step.lane === "people");
+    expect(steps.slice(firstPerson).every((step) => step.lane === "people")).toBe(true);
+    expect(steps.some((step) => step.actor === "merchant")).toBe(true);
+    expect(steps.some((step) => step.actor === "buyer")).toBe(true);
+  });
+
+  it("never puts a hand-written sample in the AI's name", () => {
+    const steps = executionPipeline(whoDidWhat(sampleRun, { ranking: "ai", text: "ai" }, state));
+    expect(steps.some((step) => step.actor === "ai")).toBe(false);
+    expect(steps.filter((step) => step.actor === "sample").length).toBeGreaterThan(0);
+  });
+});
+
+describe("evidence for the table", () => {
+  it("gives the quote and value without offsets, and keeps the offsets for Advanced details", () => {
+    const rows = auditSources(state, run, "replay", heroPackages).filter((x) => x.evidence?.length);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.detail).not.toMatch(/chars \d/);
+      expect(row.evidence!.every((e) => e.quote.length > 0)).toBe(true);
+      expect(row.advanced).toMatch(/chars \d+–\d+/);
+    }
   });
 });

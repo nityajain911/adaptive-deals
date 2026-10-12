@@ -501,3 +501,19 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Ask the rate card · judge Q&A** returns exact retrieved quotes with their source line and a "Code retrieval" label, or "Insufficient evidence". It never writes an answer.
 
+## Audit trails and evidence, Phase 5 (12 October 2026)
+
+**Evidence is a two-column table.** Extracted value on the left, its verbatim quote on the right, the source named once above it. Character offsets and message ids move to "Advanced details" and are never printed beside a quote.
+
+**Identifiers sit behind copy buttons.** Run ids, branch ids, terms hashes, idempotency keys and Commercial Memory chunk ids are not printed. A quiet copy button holds each one (the first characters are in its tooltip), and says "Copied" when used. The audit is still read-only: the only buttons in it copy to the clipboard.
+
+**One System execution pipeline** replaces "AI run" and "Who did what". Steps are in the order the work happens, in three lanes: the AI (or a hand-written sample) on the left, the rules engine (margins, schedules, checks) on the right, and the merchant's and the buyer's decisions across the full width. The model is named once, in the header, **derived from the run's stored steps**: a single provider is named once, a mixed run says so, a hand-written sample says "no model ran". When the other cases are re-recorded on Cerebras, their headers change without any edit.
+
+**Reproduced, not "Verified".** A green badge shows only when the stored run replays to exactly the same engine result and displayed text with no model call. If it does not, it is red and gives the reason.
+
+**Commercial Memory is grouped by service**, each with its exact quotes and sources, retrieved by code; nothing is written by a model.
+
+**Raw records are dark JSON blocks** with a Copy JSON button, coloured by a small in-house tokenizer (no new dependency; the text copied is exactly the JSON).
+
+**Not changed:** the Razorpay MCP section of the audit. It still says the capability is unavailable and no tool was called; a capability map is a separate piece of work.
+

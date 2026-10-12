@@ -467,6 +467,39 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await shot(page, "mobile-4-track");
 });
 
+test("audit · evidence is a two-column table, identifiers sit behind copy buttons, and the pipeline names its model once", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await clickReviewer(page, "audit-details");
+  const drawer = page.getByTestId("audit-drawer");
+  const table = drawer.getByTestId("audit-evidence-table");
+  await expect(table).toContainText("Extracted value");
+  await expect(table).toContainText("Source quote");
+  // The source is named once, not on every row, and no offsets or message ids are shown beside a quote.
+  await expect(drawer.getByText("Source: Simulated WhatsApp conversation")).toHaveCount(1);
+  await expect(table).not.toContainText(/chars \d/);
+  await expect(table).not.toContainText(/conv-\d|msg-\d/);
+  await expect(table.locator("blockquote").first()).toContainText("₹");
+  // One pipeline: the model is stated once, the lanes are labelled, and a sample is never called an AI run.
+  const pipeline = drawer.getByTestId("audit-pipeline");
+  await expect(drawer.getByTestId("audit-model-header")).toHaveText("Sample output written by hand · no model ran");
+  await expect(pipeline.locator('[data-lane="code"]').first()).toContainText("Rules engine");
+  await expect(pipeline.locator('[data-lane="ai"]').first()).toContainText("Hand-written sample");
+  await expect(pipeline).not.toContainText(/AI run|gpt-oss/);
+  await expect(drawer.getByTestId("reproduced-badge")).toContainText("Reproduced");
+  await expect(drawer.getByText("Who did what")).toHaveCount(0);
+  // Identifiers are one click from the clipboard, and say so.
+  await pipeline.locator("summary", { hasText: "Advanced details" }).click();
+  const copy = pipeline.getByTestId("copy-button").first();
+  await copy.click();
+  await expect(copy.getByRole("status")).toHaveText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(state().run.record.runId);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await drawer.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+});
+
 test("stage links, audit drawer and disclosures work from the keyboard", async ({ page }) => {
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");

@@ -159,6 +159,9 @@ export function activeCase(s: Pick<DemoState, "caseId">): DemoCase {
 }
 
 /** Historical hero runs remain replayable for audit; active product work always uses the case. */
+/** The fixture context of the stored run, for checks that replay it. */
+export const dealForStateExport = (s: Pick<DemoState, "caseId" | "run">) => dealForState(s);
+
 function dealForState(s: Pick<DemoState, "caseId" | "run">) {
   return s.run.record.inputs.dealId === HERO_DEAL_ID ? heroDeal() : activeCase(s).deal;
 }

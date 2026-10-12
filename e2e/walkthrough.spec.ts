@@ -486,3 +486,21 @@ test("presenter page · scenario cards, an honest cached-runs notice, and the ra
   await page.setViewportSize(MOBILE);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
+
+test("presenter evidence · raw records are dark JSON blocks with a Copy JSON button, and the run is marked Reproduced", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await startCase(page);
+  await page.goto("/presenter");
+  await page.getByRole("tab", { name: "Evidence and integrity" }).click();
+  await expect(page.getByTestId("presenter-integrity")).toContainText("Reproduced");
+  const blocks = page.getByTestId("presenter-evidence").locator("figure");
+  await expect(blocks).toHaveCount(4);
+  await expect(blocks.first().locator("pre")).toHaveCSS("overflow-x", "auto");
+  expect(await blocks.first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(30, 30, 30)");
+  const first = blocks.first();
+  await first.getByTestId("copy-json").click();
+  await expect(first.getByTestId("copy-json")).toContainText("Copied");
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(() => JSON.parse(copied)).not.toThrow();
+});

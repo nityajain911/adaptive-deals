@@ -94,8 +94,9 @@ describe("hand-written sample cases never appear as model output", () => {
     const recorded = JSON.parse(readFileSync("data/live-runs/run-live-3f518779.json", "utf8")) as RunRecord;
     const rendered = await surfaces(await svc.seedState(recorded, "replay"));
     expect(rendered["question badges"]).toContain("Suggested by AI");
-    expect(rendered["audit drawer"]).toContain("AI · Recorded Groq output");
-    expect(rendered["audit drawer"]).toContain(`Recorded Groq output · run ${recorded.runId} · extract.v2`);
+    // The model is named once, in the pipeline header, from the run's own steps.
+    expect(rendered["audit drawer"]).toContain("Recorded Groq output · groq / openai/gpt-oss-120b");
+    expect(rendered["audit drawer"]).toContain("Extracted the opening constraints (extract.v2)");
     expect(rendered["audit drawer"]).not.toContain("Sample output written by hand");
     expect(rendered["walkthrough · understand_buyer"]).toContain("Groq read the buyer&#x27;s messages");
     expect(rendered["walkthrough · understand_buyer"]).toContain("AI analysis");

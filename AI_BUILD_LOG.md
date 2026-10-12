@@ -1107,3 +1107,13 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** all unit and browser tests pass; no model or Razorpay call made.
 
+### 2026-10-12 — [Claude Code] Phase 5 of the UX list: audit trails and evidence
+
+**Asked by the applicant:** hide hashes and ids, a two-column evidence table, Commercial Memory grouped by service, one execution pipeline with the model stated once, a brain-versus-math split, dark JSON blocks with a copy button, and a Reproduced badge.
+
+**What changed:** the audit's evidence, pipeline, Commercial Memory and advanced sections; copy buttons for every id and hash; the presenter page's raw records and integrity line.
+
+**Where I corrected the brief:** "Pinecone vector hits" (retrieval is lexical code; Pinecone is the fictional merchant); "Verified" became "Reproduced" (it is exactly what is checked); the model label is derived from the run's steps instead of being written in; the Razorpay MCP mapping was deferred because Subscriptions is not among the 42 tools Razorpay's server advertises.
+
+**Checks:** unit and browser tests pass; no model or Razorpay call made.
+

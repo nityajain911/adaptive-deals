@@ -132,7 +132,7 @@ test("commercial memory · the offer connects buyer words, merchant evidence and
   await expect(evidence).toContainText("The engine checked");
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
-  await expect(page.getByTestId("audit-commercial-memory")).toContainText("exact chunk");
+  await expect(page.getByTestId("audit-commercial-memory")).toContainText("exact quote, retrieved by code");
 });
 
 test("commercial memory · presenter proves unseen retrieval and an unsupported-query abstention", async ({ page }) => {

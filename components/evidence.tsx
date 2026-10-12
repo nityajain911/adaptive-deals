@@ -51,9 +51,8 @@ export function Quote({ e, messages }: { e: Evidence; messages: Message[] }) {
   return (
     <div className="mt-1 rounded-lg bg-surface-muted px-3 py-2 text-[12px] text-ink-2">
       <span className="font-medium text-ink">“{e.quote}”</span>
-      <span className="ml-1 text-muted">
-        · {e.messageId}
-        {m ? ` · ${fmtTime(m.timestamp)}` : ""} · chars {e.start}–{e.end}
+      <span className="ml-1 text-muted" title={`Message ${e.messageId}, characters ${e.start}–${e.end}`}>
+        {m ? `· ${fmtTime(m.timestamp)}` : ""}
       </span>
     </div>
   );

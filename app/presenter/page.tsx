@@ -15,6 +15,10 @@ import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
 import { dealContextFor, pinnedEconomicsOf } from "@/lib/deal-context";
 import { liveProviderDiagnostics } from "@/lib/page-data";
+import { JsonBlock } from "@/components/json-block";
+import { CopyButton } from "@/components/copy-button";
+import { ReproducedBadge } from "@/components/audit/sections";
+import { checkReproduced } from "@/lib/reproducibility";
 
 export const metadata = { title: "Presenter · Adaptive Deals prototype" };
 
@@ -30,19 +34,12 @@ export default async function PresenterPage() {
   const live = liveProviderDiagnostics();
   let committed: string[] = [];
   try { committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")); } catch { /* no saved runs: the page still works */ }
-  let integrity: string;
   const outcome = await currentOutcome(s).catch(() => null);
-  try {
-    if (!outcome) throw new Error("the stored run could not be replayed");
-    integrity = "Replay reproduces the stored run exactly.";
-  } catch (e) {
-    integrity = `Replay integrity failed: ${(e as Error).message}`;
-  }
+  const reproduced = await checkReproduced(s);
   let frozen: { promptHashes: Record<string, string> } = { promptHashes: {} };
   try { frozen = JSON.parse(readFileSync(path.join(process.cwd(), "evaluation/datasets/frozen/FREEZE.json"), "utf8")) as { promptHashes: Record<string, string> }; } catch { /* the table below then says the frozen record is unavailable */ }
   const hashes = Object.entries(PROMPTS).map(([k, p]) => [k, p.version, promptHash(p), frozen.promptHashes[k]] as const);
   const r = s.run.record;
-  const json = (v: unknown) => <pre className="max-h-[320px] overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] leading-4 text-ink-2">{JSON.stringify(v, null, 2)}</pre>;
 
   return (
     <main id="main" className="mx-auto w-full max-w-[1100px] flex-1 space-y-5 px-4 py-6" data-testid="presenter">
@@ -108,7 +105,7 @@ export default async function PresenterPage() {
         <CardHeader title="Run record and integrity" />
         <div className="space-y-3 p-5 text-[13px]">
           <div>
-            Run <code className="font-mono">{r.runId}</code> · {r.kind} · model {r.model}
+            Run <CopyButton value={r.runId} label="run id" text /> · {r.kind} · model {r.model}
           </div>
           <ul className="space-y-0.5 text-ink-2">
             {r.steps.map((st) => (
@@ -117,7 +114,7 @@ export default async function PresenterPage() {
               </li>
             ))}
           </ul>
-          <p data-testid="presenter-integrity">{integrity}</p>
+          <p className="flex flex-wrap items-center gap-2" data-testid="presenter-integrity"><ReproducedBadge result={reproduced} /> <span>{reproduced.ok ? "The stored run replays to exactly the same engine result and displayed text, with no model call." : "The stored run could not be reproduced."}</span></p>
           <table className="w-full text-[12px]">
             <thead>
               <tr className="text-left text-muted">
@@ -131,7 +128,7 @@ export default async function PresenterPage() {
                 <tr key={k}>
                   <td>{k}</td>
                   <td>{v}</td>
-                  <td>{f === undefined ? "Frozen record unavailable" : h === f ? "Yes" : "No"}</td>
+                  <td>{f === undefined ? "Not in the frozen evaluation" : h === f ? "Yes" : "No"}</td>
                 </tr>
               ))}
             </tbody>
@@ -142,7 +139,7 @@ export default async function PresenterPage() {
       <Card>
         <CardHeader title="Merchant audit (read-only, as the merchant sees it)" />
         <div className="p-5">
-          {outcome ? <AuditSections s={s} out={outcome} deal={deal} /> : <p className="text-[13px] text-red">Unavailable: the stored run could not be replayed.</p>}
+          {outcome ? <AuditSections s={s} out={outcome} deal={deal} reproduced={reproduced} /> : <p className="text-[13px] text-red">Unavailable: the stored run could not be replayed.</p>}
         </div>
       </Card>
 
@@ -161,22 +158,10 @@ export default async function PresenterPage() {
       <Card>
         <CardHeader title="Raw records" meta={<span>Outcomes, deliveries, handled messages and interpretations, as stored</span>} />
         <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
-          <div>
-            <div className="mb-1 text-[12px] font-semibold text-ink">Outcome records</div>
-            {json(s.outcomes)}
-          </div>
-          <div>
-            <div className="mb-1 text-[12px] font-semibold text-ink">Deliveries</div>
-            {json(s.deliveries)}
-          </div>
-          <div>
-            <div className="mb-1 text-[12px] font-semibold text-ink">Handled messages</div>
-            {json(s.handledMessages)}
-          </div>
-          <div>
-            <div className="mb-1 text-[12px] font-semibold text-ink">Merchant interpretations</div>
-            {json(s.interpretations)}
-          </div>
+          <JsonBlock title="Outcome records" value={s.outcomes} />
+          <JsonBlock title="Deliveries" value={s.deliveries} />
+          <JsonBlock title="Handled messages" value={s.handledMessages} />
+          <JsonBlock title="Merchant interpretations" value={s.interpretations} />
         </div>
       </Card>
       </div>} />

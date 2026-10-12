@@ -26,6 +26,12 @@ export interface AuditSource {
   item: string;
   source: string;
   detail?: string;
+  /** The value read from the conversation, for the two-column evidence table. */
+  value?: string | null;
+  /** Verbatim quotes, without the offsets that only matter to the code. */
+  evidence?: { quote: string; messageId: string }[];
+  /** The offsets and ids behind `evidence`, for "Advanced details". */
+  advanced?: string;
 }
 
 const TASK_LABEL: Record<string, string> = { extract: "Constraint extraction", clarify: "Clarification wording", explain: "Recorded option order and reasons (not used for the recommendation)" };
@@ -36,7 +42,16 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
     { item: "Merchant costs and rules", source: s.economics ? `Your prices & costs, version ${s.economics.pinned.version}${isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}${s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""} · synthetic demo data` : "Synthetic deal fixture" },
   ];
   for (const f of run.engine.profile) {
-    if (f.evidence.length) out.push({ item: f.label, source: "Simulated WhatsApp conversation", detail: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" ") });
+    if (f.evidence.length) {
+      out.push({
+        item: f.label,
+        source: "Simulated WhatsApp conversation",
+        value: f.display,
+        evidence: f.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId })),
+        detail: f.evidence.map((e) => `“${e.quote}”`).join(" "),
+        advanced: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" "),
+      });
+    }
     if (f.confirmedBy) out.push({ item: `${f.label} (confirmation)`, source: "Clarification message", detail: `${f.confirmedBy.questionId}` });
   }
   // A required-services phrase the model returned but code could not map, and the merchant's answer to it.
@@ -90,7 +105,7 @@ export function whoDidWhat(
   viewing: "replay" | "fresh" = "replay",
   /** Per-offer reasons that passed validation on their own, even if the full comparison failed. */
   validatedNotes = 0,
-): { ai: string[]; aiLabel: string | null; sample: string[]; code: string[]; merchant: string[]; buyer: string[] } {
+): { ai: string[]; aiLabel: string | null; sample: string[]; code: string[]; merchant: string[]; buyer: string[]; credits: { task: "extract" | "clarify" | "explain"; actor: "ai" | "sample"; text: string }[] } {
   const step = (task: string) => run.steps.find((x) => x.task === task && x.outcome !== "failed" && x.outcome !== "rejected");
   const extract = step("extract");
   const clarify = step("clarify");
@@ -104,13 +119,18 @@ export function whoDidWhat(
   const ai: string[] = [];
   const sample: string[] = [];
   const labels = new Set<string>();
+  const credits: { task: "extract" | "clarify" | "explain"; actor: "ai" | "sample"; text: string }[] = [];
   const credit = (task: "extract" | "clarify" | "explain", done: unknown, byModel: string, bySample: string) => {
     if (!done) return;
     const provenance = taskProvenance(run, task, viewing);
     if (provenance?.modelMade) {
       ai.push(byModel);
+      credits.push({ task, actor: "ai", text: byModel });
       labels.add(provenance.label);
-    } else sample.push(bySample);
+    } else {
+      sample.push(bySample);
+      credits.push({ task, actor: "sample", text: bySample });
+    }
   };
   credit("extract", extract, `Extracted the opening constraints (${extract?.promptVersion})`, "Constraint extraction");
   credit("clarify", drafted, `Drafted the clarification questions (${clarify?.promptVersion})`, "Clarification question wording");
@@ -154,7 +174,55 @@ export function whoDidWhat(
     if (v.buyerAcceptance) buyer.push(`Accepted terms version ${v.version} (simulated buyer action)`);
     if (v.status === "buyer_rejected") buyer.push(`Declined terms version ${v.version} (simulated buyer action)`);
   }
-  return { ai, aiLabel, sample, code, merchant, buyer };
+  return { ai, aiLabel, sample, code, merchant, buyer, credits };
+}
+
+export interface PipelineStep {
+  /** Which lane the step sits in: the AI, the rules engine (code), or a person. */
+  lane: "ai" | "code" | "people";
+  actor: "ai" | "sample" | "code" | "merchant" | "buyer";
+  text: string;
+}
+
+export interface ModelHeader {
+  kind: "single" | "sample" | "mixed" | "none";
+  /** What produced the model-task outputs, stated once for the whole run. */
+  label: string;
+  /** For a single provider, the provider and model as recorded on the steps. */
+  detail: string | null;
+}
+
+/** The run's model attribution, derived from the stored steps; never written by hand. */
+export function modelHeader(run: RunRecord, viewing: "replay" | "fresh" = "replay"): ModelHeader {
+  const produced = run.steps.filter((step) => step.failure === null);
+  if (!produced.length) return { kind: "none", label: "No model task ran for this case.", detail: null };
+  const provenance = produced.map((step) => taskProvenance(run, step.task, viewing)!);
+  const made = provenance.filter((item) => item.modelMade);
+  if (!made.length) return { kind: "sample", label: SAMPLE_OUTPUT_LABEL, detail: null };
+  if (made.length !== provenance.length) return { kind: "mixed", label: "Mixed sources · model output and hand-written samples", detail: null };
+  const pairs = [...new Set(produced.map((step) => `${step.provider} / ${step.model}`))];
+  return { kind: "single", label: made[0]!.label, detail: pairs.join(" · ") };
+}
+
+/**
+ * One ordered pipeline of who did what, in the order the work happens: read the conversation, check it, work out the
+ * offers, word them, then the merchant's and the buyer's decisions. Each step says whether an AI, a hand-written
+ * sample, the rules engine or a person did it. The model is named once, in `modelHeader`, not on every step.
+ */
+export function executionPipeline(w: ReturnType<typeof whoDidWhat>): PipelineStep[] {
+  const credit = (task: "extract" | "clarify" | "explain"): PipelineStep[] => w.credits.filter((c) => c.task === task).map((c) => ({ lane: "ai", actor: c.actor, text: c.text }));
+  const code = (text: string | undefined): PipelineStep[] => (text ? [{ lane: "code", actor: "code", text }] : []);
+  return [
+    ...credit("extract"),
+    ...code(w.code[0]),
+    ...code(w.code[1]),
+    ...credit("clarify"),
+    ...code(w.code[2]),
+    ...credit("explain"),
+    ...w.code.slice(3).map((text): PipelineStep => ({ lane: "code", actor: "code", text })),
+    ...w.merchant.map((text): PipelineStep => ({ lane: "people", actor: "merchant", text })),
+    ...w.buyer.map((text): PipelineStep => ({ lane: "people", actor: "buyer", text })),
+  ];
 }
 
 export interface BranchAudit {

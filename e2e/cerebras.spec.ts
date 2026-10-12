@@ -38,7 +38,7 @@ test("Cerebras is configured in the presenter and a live run stores Cerebras ste
   expect(state().run.record.steps.length).toBeGreaterThan(0);
   expect(state().run.record.steps.every((step) => step.provider === "cerebras")).toBe(true);
   await page.goto("/deals/hero/understand");
-  await expect(page.getByText("AI · Live Cerebras output", { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId("audit-model-header")).toContainText("Live Cerebras output");
   await expectNoProviderSelector(page);
 });
 
