@@ -9,11 +9,10 @@ const TITLE = "Adaptive Deals by Razorpay — one-page product note";
 const BYLINE = "AI-native deal desk for B2B and SME commerce · Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2";
 
 // The headline numbers, from the demo deal on the synthetic merchant's own prices and costs.
+const INTRO = "**The same stalled deal.** Client budget: ₹50,000 this quarter. Our annual quote: ₹1,41,600 (incl. GST).";
 const STRIP = [
-  ["₹1,41,600", "annual quote (incl. GST) the buyer cannot afford now"],
-  ["−₹14,600", "lost if the owner discounts a year of work to the ₹50,000 budget (₹42,373 in, ₹57,000 cost)"],
-  ["+₹19,330", "earned on the 3-month ₹46,020 offer after costs and fees (about 50% of ex-GST price)"],
-  ["1 tap", "for the buyer to accept, pay and authorise"],
+  ["Today: the owner discounts", ["Delivers 12 months of work for ₹42,373 (before GST)", "Costs ₹57,000 to deliver"], "Result: loses ₹14,600"],
+  ["With Adaptive Deals: the owner restructures", ["Sells a 3-month package for ₹39,000 (before GST)", "Fits the ₹50,000 budget; costs and fees paid"], "Result: earns ₹19,330"],
 ];
 
 // Inline: **bold** and [text](url). Blocks: { h, p[] } where an item starting "- " is a bullet.
@@ -72,11 +71,14 @@ h1 { font-size: 13.5pt; margin: 0 0 1px; letter-spacing: -0.01em; }
 h2 { font-size: 9.8pt; margin: 6px 0 1px; color: #1d47e6; }
 .strip { display: flex; gap: 6px; margin: 2px 0 2px; }
 .strip div { flex: 1; border: 1px solid #d6defe; background: #f4f6ff; border-radius: 4px; padding: 3px 6px; }
-.strip b { display: block; font-size: 12pt; color: #14171f; }
+.intro { font-size: 8.7pt; margin: 2px 0; }
+.strip em { display: block; font-style: normal; font-weight: 700; font-size: 8.3pt; color: #14171f; }
+.strip b { display: block; font-size: 10.5pt; margin-top: 1px; color: #b3261e; }
+.strip .c1 b { color: #12794a; }
 .strip span { font-size: 7.4pt; color: #5b6270; line-height: 1.15; display: block; }
 p { margin: 0 0 2px; } ul { margin: 0 0 2px; padding-left: 12px; } li { margin: 0 0 1px; }
 a { color: #1d47e6; text-decoration: none; }
-</style></head><body><h1>${TITLE}</h1><div class="by">${BYLINE}</div><div class="strip">${STRIP.map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join("")}</div>${SECTIONS.map((s) => {
+</style></head><body><h1>${TITLE}</h1><div class="by">${BYLINE}</div><div class="intro">${inline(INTRO)}</div><div class="strip">${STRIP.map(([h, l, r], i) => `<div class="c${i}"><em>${h}</em><span>${l.join("<br>")}</span><b>${r}</b></div>`).join("")}</div>${SECTIONS.map((s) => {
   const out = []; let list = [];
   const flush = () => { if (list.length) { out.push(`<ul>${list.map((x) => `<li>${inline(x)}</li>`).join("")}</ul>`); list = []; } };
   for (const para of s.p) { if (para.startsWith("- ")) list.push(para.slice(2)); else { flush(); out.push(`<p>${inline(para)}</p>`); } }
@@ -84,7 +86,7 @@ a { color: #1d47e6; text-decoration: none; }
   return `<h2>${s.h}</h2>${out.join("")}`;
 }).join("")}</body></html>`;
 
-const md = [`# ${TITLE}`, "", BYLINE, "", STRIP.map(([n, l]) => `**${n}** ${l}`).join(" · "), "", ...SECTIONS.flatMap((s) => [`## ${s.h}`, "", ...s.p.map((x) => (x.startsWith("- ") ? x : x + "\n")), ""])].join("\n").replace(/\n{3,}/g, "\n\n") + "\n";
+const md = [`# ${TITLE}`, "", BYLINE, "", INTRO, "", STRIP.map(([h, l, r]) => `**${h}:** ${l.join("; ")}. **${r}.**`).join("\n\n"), "", ...SECTIONS.flatMap((s) => [`## ${s.h}`, "", ...s.p.map((x) => (x.startsWith("- ") ? x : x + "\n")), ""])].join("\n").replace(/\n{3,}/g, "\n\n") + "\n";
 writeFileSync("ONE_PAGE_PRODUCT_NOTE.md", md);
 
 const browser = await chromium.launch();

@@ -2,7 +2,11 @@
 
 AI-native deal desk for B2B and SME commerce · Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2
 
-**₹1,41,600** annual quote (incl. GST) the buyer cannot afford now · **−₹14,600** lost if the owner discounts a year of work to the ₹50,000 budget (₹42,373 in, ₹57,000 cost) · **+₹19,330** earned on the 3-month ₹46,020 offer after costs and fees (about 50% of ex-GST price) · **1 tap** for the buyer to accept, pay and authorise
+**The same stalled deal.** Client budget: ₹50,000 this quarter. Our annual quote: ₹1,41,600 (incl. GST).
+
+**Today: the owner discounts:** Delivers 12 months of work for ₹42,373 (before GST); Costs ₹57,000 to deliver. **Result: loses ₹14,600.**
+
+**With Adaptive Deals: the owner restructures:** Sells a 3-month package for ₹39,000 (before GST); Fits the ₹50,000 budget; costs and fees paid. **Result: earns ₹19,330.**
 
 ## 1. The merchant, the problem and the Razorpay opportunity
 
