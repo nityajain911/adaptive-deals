@@ -45,4 +45,13 @@ describe("deal transformation", () => {
     expect(view.rows?.find((r) => r.id === "search")).toMatchObject({ was: "3 months", now: null, note: "They said it can wait" });
     expect(view.rows?.find((r) => r.id === "approval")).toMatchObject({ was: "Needs buyer approval", now: "Buyer can approve" });
   });
+  it("shows the rest of the year, held, as one more line and leaves the offer's own changes alone", () => {
+    const plain = dealTransformation({ baseline, offer: offer(), packages, originalApprovalLabel: "Buyer can approve", originalStartDate: "2026-10-01" });
+    const held = dealTransformation({ baseline, offer: offer(), packages, originalApprovalLabel: "Buyer can approve", originalStartDate: "2026-10-01", followOn: { totalPaise: 8_496_000, heldUntil: "2027-03-18" } });
+    expect(plain.rows!.some((row) => row.id === "follow_on")).toBe(false);
+    const row = held.rows!.find((r) => r.id === "follow_on");
+    expect(row).toMatchObject({ label: "Rest of the year", was: null, now: "₹84,960 held until 18 Mar 2027" });
+    expect(held.changes).toEqual(plain.changes);
+    expect(held.adaptive.totalPaise).toBe(plain.adaptive.totalPaise);
+  });
 });

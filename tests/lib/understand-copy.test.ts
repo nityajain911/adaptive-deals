@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { interpretExtraction } from "@/ai/extract";
 import { recordedDeal } from "@/data/synthetic/recorded-conversations";
 import { evaluateDeal } from "@/domain/engine";
+import { demoCase } from "@/data/synthetic/cases";
 import { heroBaseline } from "../helpers";
 
 /** Spec §4: "What's blocking this deal", with GST basis and precision preserved. */
@@ -88,5 +89,20 @@ describe("constraint rows", () => {
     const needs = constraintRows(profile, proposal(), names).find((row) => row.id === "needs");
     expect(needs).toMatchObject({ label: "Needs", value: "Website fixes, Search marketing", note: "Social media can wait" });
     expect(needs!.evidence).toEqual([{ quote: "we need the website fixes and search marketing", messageId: "m1", start: 0, end: 46 }]);
+  });
+});
+
+describe("the buyer's own condition", () => {
+  it("is one row in the buyer's words, with its source, when the buyer set one", () => {
+    const item = demoCase("reduced-scope")!;
+    const { profile } = interpretExtraction(item.expected.extraction, { dealId: item.deal.dealId, messages: item.deal.messages, packages: item.deal.packages, timeZone: item.deal.merchant.timeZone });
+    const rows = constraintRows(profile, originalProposalOf(heroBaseline()), {});
+    const condition = rows.find((r) => r.id === "condition");
+    expect(condition).toMatchObject({ label: "Condition", value: "enquiries are up by about 20 a month by month three" });
+    expect(condition!.evidence[0]).toMatchObject({ messageId: "reduced-7" });
+    expect(rows.at(-1)).toBe(condition);
+  });
+  it("is absent when the buyer set none", () => {
+    expect(constraintRows(clarifiedHeroProfile(), originalProposalOf(heroBaseline()), {}).some((r) => r.id === "condition")).toBe(false);
   });
 });

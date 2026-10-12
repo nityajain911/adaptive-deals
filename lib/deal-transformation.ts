@@ -2,6 +2,8 @@ import type { DealBaseline } from "@/domain/deal-baseline";
 import type { EvaluatedStructure } from "@/domain/engine";
 import type { ServicePackage } from "@/domain/types";
 import { formatDate } from "@/domain/dates";
+import { formatINR } from "@/domain/money";
+import type { FollowOn } from "@/domain/follow-on";
 
 export type TransformationChange = "scope" | "timing" | "payment_split" | "approval";
 
@@ -36,6 +38,8 @@ export function dealTransformation(args: {
   economicsChanged?: DealTransformation["economicsChanged"];
   /** Services the buyer said can wait; a service dropped from the offer that is among them says so. */
   canWaitIds?: string[];
+  /** The rest of the year held after a first-phase offer; shown as one more line of the comparison. */
+  followOn?: Pick<FollowOn, "totalPaise" | "heldUntil"> | null;
 }): DealTransformation {
   const originalMonths = duration(args.baseline.quotedScope);
   const adaptiveMonths = duration(args.offer.structure.scope);
@@ -69,6 +73,7 @@ export function dealTransformation(args: {
   }
   if (args.originalStartDate && args.originalStartDate !== args.offer.structure.startDate) rows.push({ id: "start", label: "Starts", was: formatDate(args.originalStartDate), now: formatDate(args.offer.structure.startDate), note: null });
   rows.push({ id: "payments", label: "Payments", was: `${originalPayments} payment${originalPayments === 1 ? "" : "s"}`, now: `${adaptivePayments} payment${adaptivePayments === 1 ? "" : "s"}`, note: null });
+  if (args.followOn) rows.push({ id: "follow_on", label: "Rest of the year", was: null, now: `${formatINR(args.followOn.totalPaise)} held until ${formatDate(args.followOn.heldUntil)}`, note: null });
   rows.push({ id: "approval", label: "Approval", was: original.approvalLabel, now: adaptive.approvalLabel, note: null });
   return { rows, original, adaptive, changes, ...(args.economicsChanged ? { economicsChanged: args.economicsChanged } : {}) };
 }

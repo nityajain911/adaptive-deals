@@ -234,11 +234,14 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
 
   await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
   await expect(page.getByTestId("recommendation")).toContainText("Suggested offer");
+  // The first phase is the sale; the rest of the year is held at today's rates, as one more line of the same comparison.
+  await expect(page.getByTestId("transformation-rows")).toContainText("Rest of the year₹84,960 held until 18 Mar 2027");
   await shot(page, "desktop-2-offer");
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
   await expect(page.getByTestId("preview-frame")).toContainText("Not sent");
   await expect(page.getByTestId("buyer-message-preview")).toContainText("Here is our proposal");
+  await expect(page.getByTestId("buyer-message-preview")).toContainText("The rest of the year (₹84,960 including GST) stays open at today's rates until 18 Mar 2027.");
   await expect(page.getByTestId("buyer-message-preview")).toContainText("Review and respond here");
   await expect(page.getByTestId("primary-action")).toHaveText("Send offer");
   await shot(page, "desktop-3-preview");
@@ -252,6 +255,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await shot(page, "desktop-5-track-waiting");
   await page.getByTestId("open-buyer-proposal").click();
   await expect(page.getByTestId("buyer-view")).toBeVisible();
+  await expect(page.getByTestId("held-offer")).toHaveText("The rest of the year (₹84,960 including GST) stays open at today's rates until 18 Mar 2027.");
   await shot(page, "desktop-4-buyer-proposal");
   await page.getByTestId("accept").click();
   // One tap accepted and paid: the buyer is set up on this same page.

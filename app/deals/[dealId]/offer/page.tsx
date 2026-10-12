@@ -30,6 +30,8 @@ import { RecommendationEvidence } from "@/components/commercial-memory/deal-evid
 import { buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
 import { sourceTracesForDeal } from "@/lib/source-trace";
 import { dealTransformation } from "@/lib/deal-transformation";
+import { deriveFollowOn } from "@/domain/follow-on";
+import { interpretations } from "@/domain/constraints";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
@@ -205,7 +207,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const options = standard ? view.ranked : view.discounted;
   const p = out.profile;
   const originalApprovalLabel = p.approvalLimit.value && baseline.quotedTotalPaise > p.approvalLimit.value.amountPaise ? "Needs buyer approval" : "Buyer can approve";
-  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [] });
+  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [], followOn: deriveFollowOn(x, interpretations(p)[0].constraints, deal) });
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   // When the suggested offer starts later than usual, say why in the buyer's own terms: what an earlier start would ask of them now.
   const startsLater = !!deal.templates.defaultStartDate && x.structure.startDate > deal.templates.defaultStartDate;

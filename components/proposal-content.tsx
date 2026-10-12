@@ -78,7 +78,7 @@ export function ProposalContent({ view, merchantName, nextHeading, nextSteps, ch
           <p className="mt-1 text-[14px] text-ink" data-testid="excluded">
             {view.excluded.map((e) => e.name).join(", ")}
           </p>
-          <p className="mt-1 text-[12px] text-muted">You can buy this separately later.</p>
+          <p className="mt-1 text-[12px] text-muted" data-testid="held-offer">{view.heldOffer ?? "You can buy this separately later."}</p>
         </section>
       ) : null}
 

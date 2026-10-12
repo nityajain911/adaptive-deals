@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Clock } from "./clock";
 import { addMonthsToMonth, endOfMonth, monthOf, type CalendarDate } from "./dates";
 import type { EvaluatedStructure } from "./engine";
+import type { CanonicalFollowOn } from "./follow-on";
 import { CURRENCY, sum, type Paise } from "./money";
 import type { Structure } from "./structures";
 import type { MerchantPolicy } from "./types";
@@ -30,6 +31,8 @@ export interface CanonicalTerms {
   paymentSchedule: { id: string; seq: number; dueDate: { value: CalendarDate; precision: "day" }; method: string; prePaise: Paise; gstPaise: Paise; totalPaise: Paise }[];
   mandate: MandateTerms | null;
   conditions: string[];
+  /** A first-phase offer only: the rest of the year held at today's rates until a date. An option both sides approve, never a sale. */
+  followOn?: CanonicalFollowOn;
 }
 
 /** Per-debit limit = the largest recurring debit shown to the buyer; end date = end of month after a buffer. */
@@ -43,7 +46,7 @@ export function deriveMandateTerms(s: Structure, policy: MerchantPolicy): Mandat
   };
 }
 
-export function buildCanonicalTerms(args: { dealId: string; merchantId: string; buyerId: string; structure: Structure; gstRateBps: number; mandate: MandateTerms | null }): CanonicalTerms {
+export function buildCanonicalTerms(args: { dealId: string; merchantId: string; buyerId: string; structure: Structure; gstRateBps: number; mandate: MandateTerms | null; followOn?: CanonicalFollowOn | null }): CanonicalTerms {
   const s = args.structure;
   return {
     schemaVersion: TERMS_SCHEMA_VERSION,
@@ -67,6 +70,7 @@ export function buildCanonicalTerms(args: { dealId: string; merchantId: string; 
     paymentSchedule: s.payments.map((p) => ({ id: p.id, seq: p.seq, dueDate: { value: p.dueDate, precision: "day" as const }, method: p.method, prePaise: p.prePaise, gstPaise: p.gstPaise, totalPaise: p.totalPaise })),
     mandate: args.mandate,
     conditions: [...s.requirements],
+    ...(args.followOn ? { followOn: structuredClone(args.followOn) } : {}),
   };
 }
 
@@ -135,6 +139,8 @@ export function createAgreementVersion(args: {
   /** The merchant's explicit, recorded decision to send a structure the engine rejected. The engine's result is never changed. */
   merchantOverride?: { by: string } | null;
   economics?: EconomicsRef;
+  /** The rest of the year held for a first-phase offer. A revision carries the earlier version's own, unchanged. */
+  followOn?: CanonicalFollowOn | null;
 }): AgreementVersion {
   if (!args.evaluated.approvable && !args.merchantOverride) {
     throw new AgreementError(`Structure ${args.evaluated.structure.id} is ${args.evaluated.verdict}; only feasible structures can become agreements`);
@@ -146,6 +152,7 @@ export function createAgreementVersion(args: {
     structure: args.evaluated.structure,
     gstRateBps: args.policy.gstRateBps,
     mandate: deriveMandateTerms(args.evaluated.structure, args.policy),
+    followOn: args.followOn,
   });
   const conditions = new Set(baseTerms.conditions);
   if (args.evaluated.approval === "requires_approval") conditions.add("buyer_attests_required_approval");

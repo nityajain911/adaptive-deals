@@ -65,7 +65,7 @@ export function uncapturedLines(evaluation: Pick<DealEvaluation, "state" | "ambi
 }
 
 export interface ConstraintRow {
-  id: "quote" | "budget" | "nextBudget" | "approval" | "needs" | "start";
+  id: "quote" | "budget" | "nextBudget" | "approval" | "needs" | "start" | "condition";
   label: string;
   value: string;
   /** A second, quieter line. */
@@ -109,5 +109,8 @@ export function constraintRows(p: ConstraintProfile, original: ReturnType<typeof
   }
   const start = p.latestStart.value;
   if (start) rows.push({ id: "start", label: "Start by", value: monthName(start), note: null, evidence: evidenceOf(p.latestStart) });
+  // The buyer's own condition, in their words, so it is not left only in the chat. One row; any further condition stays in the chat.
+  const condition = p.otherConstraints.find((field) => field.status === "stated" && field.rawText);
+  if (condition) rows.push({ id: "condition", label: "Condition", value: condition.rawText!, note: null, evidence: evidenceOf(condition) });
   return rows;
 }

@@ -1,6 +1,7 @@
 import type { CanonicalTerms } from "./agreement";
 import type { ChangeRequestDetail } from "./change-request";
 import { formatDate } from "./dates";
+import { heldOfferSentence } from "./follow-on";
 import { formatINR } from "./money";
 import type { AdvanceNotice } from "./notices";
 import { classifyBuyerReply, type ReplyClassification } from "./replies";
@@ -175,7 +176,8 @@ export function assertBuyerSafe(text: string): void {
 
 export function proposalMessageText(terms: CanonicalTerms, version: number, link: string): string {
   const payments = terms.paymentSchedule.map((p) => `${formatINR(p.totalPaise)} on ${formatDate(p.dueDate.value)}`).join(", ");
-  return `Here is our proposal (version ${version}): ${formatINR(terms.pricing.totalPaise)} including GST, paid as ${payments}. Review and respond here: ${link}`;
+  const held = terms.followOn ? ` ${heldOfferSentence(terms.followOn)}` : "";
+  return `Here is our proposal (version ${version}): ${formatINR(terms.pricing.totalPaise)} including GST, paid as ${payments}.${held} Review and respond here: ${link}`;
 }
 
 export function noticeMessageText(n: AdvanceNotice): string {

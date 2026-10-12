@@ -10,6 +10,7 @@ import { interpretations } from "@/domain/constraints";
 import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
 import { compareDates, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
+import { canonicalFollowOn, deriveFollowOn } from "@/domain/follow-on";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
 import { createLiveChain, generateWithFallback } from "@/ai/live";
@@ -23,7 +24,7 @@ import { createMandate, transitionMandate, type Mandate } from "@/domain/mandate
 import { planAdvanceNotice, sendAdvanceNotice, type AdvanceNotice } from "@/domain/notices";
 import { assertDealTransition, statusForEvaluation, type DealStatus } from "@/domain/state";
 import type { Structure } from "@/domain/structures";
-import type { ContributionFloor, Merchant, Message } from "@/domain/types";
+import type { BuyerConstraints, ContributionFloor, Merchant, Message } from "@/domain/types";
 import { formatINR, lineWithGst, sum } from "@/domain/money";
 import { liveAvailability } from "@/ai/config";
 import { createLiveProvider } from "@/ai/live";
@@ -796,23 +797,32 @@ async function eligibleOf(s: DemoState, deal?: ReturnType<typeof dealContextFor>
   return { out, eligible: r ? eligibleStructures(s, r.structures) : [] };
 }
 
-function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof dealContextFor>): AgreementVersion {
+function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof dealContextFor>, constraints: BuyerConstraints): AgreementVersion {
   const item = activeCase(s);
   // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
   const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
   const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null, economics: economicsRef(s) });
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null, economics: economicsRef(s), followOn: heldFollowOn(x, constraints, deal) });
 }
+
+/** The rest of the year held for a first-phase offer, from the same engine; null for every other offer. */
+function heldFollowOn(x: EvaluatedStructure, constraints: BuyerConstraints, deal: ReturnType<typeof dealContextFor>) {
+  const held = deriveFollowOn(x, constraints, deal);
+  return held ? canonicalFollowOn(held) : null;
+}
+
+/** The one resolved reading of the buyer's constraints an offer is drafted against. */
+const constraintsOf = (out: Pick<RunOutcome, "profile">): BuyerConstraints => interpretations(out.profile)[0].constraints;
 
 const economicsRef = (s: DemoState) => ({ version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash, strategy: s.economics.strategy });
 
 /** The fingerprint the selected option would have now, from the unchanged engine. */
 export async function currentFingerprint(s: DemoState, knownDeal?: ReturnType<typeof dealContextFor>): Promise<{ fingerprint: string | null; eligibleIds: string[] }> {
   const deal = knownDeal ?? dealContextFor(s, await pinnedEconomicsOf(s));
-  const { eligible } = await eligibleOf(s, deal);
+  const { out, eligible } = await eligibleOf(s, deal);
   const ids = eligible.map((x) => x.structure.id);
   const sel = eligible.find((x) => x.structure.id === s.selectedOption?.structureId);
-  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal).terms, s.economics.effectiveHash) : null };
+  return { eligibleIds: ids, fingerprint: sel ? decisionFingerprint(ids, draftFor(s, sel, deal, constraintsOf(out)).terms, s.economics.effectiveHash) : null };
 }
 
 /** Stale: the decision changed since selection, or the selected option is no longer eligible. */
@@ -861,7 +871,7 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
   assertScopeConfirmed(s, out);
   const x = eligible.find((e) => e.structure.id === structureId);
   if (!x) throw new ActionError("That option cannot be selected: only engine-eligible options can be prepared");
-  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal).terms, s.economics.effectiveHash);
+  const fingerprint = decisionFingerprint(eligible.map((e) => e.structure.id), draftFor(s, x, deal, constraintsOf(out)).terms, s.economics.effectiveHash);
   const evidenceMessageIds = decisionEvidenceSnapshot(s);
   if (s.selectedOption?.structureId === structureId && s.selectedOption.fingerprint === fingerprint && JSON.stringify(s.selectedOption.evidenceMessageIds) === JSON.stringify(evidenceMessageIds)) {
     // Same and still valid. Choosing the option that was only following the recommendation makes it the merchant's own choice.
@@ -1064,10 +1074,10 @@ export async function reviewBuyerProposal(): Promise<AgreementVersion> {
       draft = existing;
       return;
     }
-    const { eligible } = await eligibleOf(s, deal);
+    const { out, eligible } = await eligibleOf(s, deal);
     const x = eligible.find((e) => e.structure.id === s.selectedOption!.structureId)!;
     s.agreements = s.agreements.filter((v) => v.status !== "draft");
-    draft = draftFor(s, x, deal);
+    draft = draftFor(s, x, deal, constraintsOf(out));
     s.agreements.push(draft);
     s.selectedOption = { ...s.selectedOption!, draftVersion: draft.version };
   });
@@ -2121,7 +2131,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
       return;
     }
-    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version, economics: economicsRef(s) }));
+    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version, economics: economicsRef(s), followOn: v.terms.followOn ?? null }));
     s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
     event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
     setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");

@@ -1,6 +1,7 @@
 import type { AgreementVersion, CanonicalTerms } from "@/domain/agreement";
 import type { ConversationItem } from "@/domain/conversation";
 import { formatDate } from "@/domain/dates";
+import { heldOfferSentence } from "@/domain/follow-on";
 import type { ExplanationResult } from "@/ai/explain";
 import { formatINR } from "@/domain/money";
 import { explainCheck } from "@/domain/copy";
@@ -283,6 +284,8 @@ export interface ProposalView {
   recurring: { perDebitLimitPaise: number; endDate: string; debitCount: number; noticeDays: number } | null;
   delivery: { from: string; to: string; lines: number };
   nextSteps: string[];
+  /** The rest of the year held at today's rates, for a first-phase proposal; null otherwise. */
+  heldOffer: string | null;
   authorityRequired: boolean;
   authorityReason: "phase_scope" | "required_approval" | null;
 }
@@ -394,6 +397,7 @@ export function proposalView(v: Pick<AgreementVersion, "version" | "terms">, pac
     recurring: t.mandate && recurringLines.length ? { perDebitLimitPaise: t.mandate.perDebitLimitPaise, endDate: formatDate(t.mandate.endDate.value), debitCount: recurringLines.length, noticeDays: policy.advanceNoticeDays } : null,
     delivery: { from: monthLabel(t.deliverySchedule[0].month.value), to: monthLabel(t.deliverySchedule.at(-1)!.month.value), lines: t.deliverySchedule.length },
     nextSteps,
+    heldOffer: t.followOn ? heldOfferSentence(t.followOn) : null,
     authorityRequired: t.conditions.includes("buyer_confirms_authority_for_phase_scope") || t.conditions.includes("buyer_attests_required_approval"),
     authorityReason: t.conditions.includes("buyer_attests_required_approval") ? "required_approval" : t.conditions.includes("buyer_confirms_authority_for_phase_scope") ? "phase_scope" : null,
   };
