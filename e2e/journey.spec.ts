@@ -1152,7 +1152,10 @@ test("counter-offer · choosing 'A lower price' makes the counter available", as
   await expect(page.getByTestId("send-change-request")).toBeDisabled();
   await page.getByTestId("change-amount").fill("40000");
   await expect(page.getByTestId("change-preview")).toHaveText("Could you do ₹40,000 including GST?");
-  await expect(page.getByTestId("send-change-request")).toHaveText("Send to Pinecone Media Works");
+  await expect(page.getByTestId("send-change-request")).toHaveText("Reply to Pinecone Media Works");
+  await expect(page.getByTestId("change-request-form")).toContainText("will see this and may send an updated version");
+  await expect(page.getByTestId("cancel-change-request")).toBeVisible();
+  expect(await page.getByTestId("cancel-change-request").evaluate((el) => el.tagName)).toBe("BUTTON");
   await page.getByTestId("send-change-request").click();
   await expect(page.getByTestId("buyer-change-requests")).toContainText("Sent. Pinecone Media Works will review your request. This current offer remains valid until a new one is agreed upon.");
   const request = state().conversation.findLast((m) => m.kind === "change_request")!;

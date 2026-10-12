@@ -174,14 +174,14 @@ export function RequestChangeForm({
         </div>
       ) : null}
 
-      <p className="text-[13px] leading-5 text-ink-2">This sends your request to {merchantName}. They may reply with an updated version. Nothing changes unless you both agree.</p>
-      <div className="flex gap-2">
+      <p className="text-[13px] leading-5 text-ink-2">{merchantName} will see this and may send an updated version.</p>
+      <div className="flex items-center gap-4">
         <Button type="submit" variant="primary" className="min-h-11 flex-1 text-[14px]" disabled={pending || !ready} data-testid="send-change-request">
-          {pending ? "Sending…" : `Send to ${merchantName}`}
+          {pending ? "Sending…" : `Reply to ${merchantName}`}
         </Button>
-        <Button type="button" className="min-h-11 text-[14px]" onClick={() => setOpen(false)} disabled={pending}>
+        <button type="button" className="text-[14px] font-medium text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-50" onClick={() => setOpen(false)} disabled={pending} data-testid="cancel-change-request">
           Cancel
-        </Button>
+        </button>
       </div>
       <ErrorText error={error} />
     </form>

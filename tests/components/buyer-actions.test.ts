@@ -65,7 +65,7 @@ describe("the change-request form", () => {
   it("starts closed, and opens to the guided kinds of request", async () => {
     const closed = await render("request", { version: 1, merchantName: "Pinecone Media Works", context });
     expect(closed).toContain("Request a change");
-    expect(closed).not.toContain("Send to Pinecone Media Works");
+    expect(closed).not.toContain("Reply to Pinecone Media Works");
   });
 });
 

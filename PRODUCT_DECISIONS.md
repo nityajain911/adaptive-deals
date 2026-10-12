@@ -625,3 +625,7 @@ The model's explanation has two parts that code validates separately: a full com
 **"Accept and pay ₹23,010" accepts, pays and sets up auto-pay in one tap**, on the same page. Above the button, in plain sentences, sit the two things the tap authorises: that the buyer can approve this package on its own (recorded as before) and that they allow automatic payments of up to the stated amount until the stated date, with the reminder. There is still no checkbox and no card or UPI field; the payment is simulated and the page footer says so.
 
 **Where it does not apply.** A revision keeps its own "Accept" (there is no new payment), and when a real Razorpay test link is configured the tap accepts and the buyer then opens that link, because that payment happens on Razorpay's page. The auto-pay authorisation is kept in the sentence above the button rather than dropped: it is a separate financial consent from accepting the terms.
+
+## The buyer's "Request a change" (12 October 2026)
+
+The guided inputs (an amount with its GST basis, the services as checkboxes, a payment and a date), the buyer's own chat bubble preview and the quiet "I'm no longer interested" link were already in place. Three small changes: the button reads "Reply to Pinecone Media Works", Cancel is a text link beside it rather than a second button, and the note under the form says "Pinecone Media Works will see this and may send an updated version." It does not promise a "Version 2": the merchant may hold firm, counter with a different amount, or decline.
