@@ -10,6 +10,7 @@ import { OtherOutcomes } from "@/components/presenter/other-outcomes";
 import { CommercialMemoryProof } from "@/components/presenter/commercial-memory-proof";
 import { PresenterTabs } from "@/components/presenter/presenter-tabs";
 import { ScenarioCards } from "@/components/presenter/scenario-cards";
+import { SituationButtons } from "@/components/presenter/situation-buttons";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
@@ -34,6 +35,14 @@ export default async function PresenterPage() {
   const live = liveProviderDiagnostics();
   let committed: string[] = [];
   try { committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")); } catch { /* no saved runs: the page still works */ }
+  const earlierRuns = committed.map((id) => {
+    try {
+      const record = JSON.parse(readFileSync(path.join(process.cwd(), "data/live-runs", `${id}.json`), "utf8")) as { createdAt?: string };
+      return { id, label: `earlier run ${id.slice(-8)}${record.createdAt ? ` · ${fmtTime(record.createdAt)}` : ""}` };
+    } catch {
+      return { id, label: `earlier run ${id.slice(-8)}` };
+    }
+  });
   const outcome = await currentOutcome(s).catch(() => null);
   const reproduced = await checkReproduced(s);
   let frozen: { promptHashes: Record<string, string> } = { promptHashes: {} };
@@ -52,6 +61,11 @@ export default async function PresenterPage() {
 
       <PresenterTabs controls={<div className="space-y-5">
       <Card>
+        <CardHeader title="Open a buyer situation" meta={<span>Each replays its own recorded model run. If anything fails mid-demo, start here.</span>} />
+        <div className="p-5"><SituationButtons /></div>
+      </Card>
+
+      <Card>
         <CardHeader title="Ask the rate card · judge Q&A" meta={<span>Exact quotes with sources, and an honest “insufficient evidence”. Private to the merchant.</span>} />
         <CommercialMemoryProof liveAvailable={live.available} />
       </Card>
@@ -67,12 +81,20 @@ export default async function PresenterPage() {
             Run live (new external model call)
           </ActionButton>
 
-          {committed.map((id) => (
-            <ActionButton key={id} body={{ action: "replay_run", runId: id }} variant="ghost">
-              Replay {id} (no model call)
-            </ActionButton>
-          ))}
         </div>
+        {earlierRuns.length ? (
+          <details className="border-t border-line px-5 py-3" data-testid="earlier-runs">
+            <summary className="cursor-pointer text-[13px] font-semibold text-ink">Earlier model runs · historical evidence, not the demo</summary>
+            <p className="mt-1 text-[12px] text-muted">{earlierRuns.length} earlier run{earlierRuns.length === 1 ? "" : "s"} on the same buyer conversation. Replaying one loads it without a model call.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {earlierRuns.map((run) => (
+                <ActionButton key={run.id} body={{ action: "replay_run", runId: run.id }} variant="secondary">
+                  Replay {run.label}
+                </ActionButton>
+              ))}
+            </div>
+          </details>
+        ) : null}
       </Card>
 
       <Card>

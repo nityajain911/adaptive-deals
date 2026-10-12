@@ -35,7 +35,7 @@ export function OtherOutcomes({ scenario }: { scenario: { id: string; record: Ru
               <li key={o.state} className={`rounded-2xl border border-line border-t-4 bg-surface p-4 ${o.band}`} data-testid={`outcome-card-${o.state}`}>
                 <div className="text-[15px] font-semibold text-ink">{o.title}</div>
                 <div className="mt-0.5 text-[12px] text-muted">Next action: {o.action}</div>
-                <div className="mt-2">
+                <div className="mt-3 [&_button]:min-h-11 [&_button]:w-full [&_span]:w-full">
                   {o.state === "ambiguous" ? (
                     <span className="text-[12px] text-ink-2">The hero deal above. Its two drafted questions are in the buyer conversation.</span>
                   ) : sc ? (

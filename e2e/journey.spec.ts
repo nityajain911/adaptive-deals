@@ -1490,3 +1490,22 @@ test("audit · services are named in words, and Commercial Memory is one row per
   await expect(memory.getByTestId("memory-service-website-fixes")).toContainText("Website fixes,12000,start of delivery month");
   await expect(memory).toContainText("exact quote, retrieved by code");
 });
+
+test("presenter · any buyer situation opens in one tap, and the earlier model runs are kept apart as historical evidence", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto("/presenter");
+  await expect(page.getByTestId("situation-buttons")).toBeVisible();
+  await expect(page.getByTestId("presenter-using-cached")).toBeVisible();
+  const earlier = page.getByTestId("earlier-runs");
+  await expect(earlier).toContainText("historical evidence");
+  await expect(earlier.getByRole("button", { name: /Replay earlier run/ }).first()).toBeHidden();
+  await earlier.locator("summary").click();
+  await expect(earlier.getByRole("button", { name: /Replay earlier run/ }).first()).toBeVisible();
+  await page.getByTestId("situation-no-fit").click();
+  await expect(page).toHaveURL(/\/deals\/hero\//);
+  expect(state().caseId).toBe("no-fit");
+  await page.goto("/presenter");
+  await page.getByTestId("situation-reduced-scope").click();
+  await expect(page).toHaveURL(/\/deals\/hero\//);
+  expect(state().caseId).toBe("reduced-scope");
+});
