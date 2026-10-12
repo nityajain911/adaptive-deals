@@ -17,7 +17,7 @@
  * the chain itself asked. Records are written to the git-ignored data directory; copying an
  * accepted record into `data/case-recorded-runs/` is a separate, deliberate step.
  *
- *   npx tsx --conditions=react-server --env-file=<path to .env.local> scripts/record-case-runs.ts [--dry] [--only=<case id>]
+ *   npx tsx --conditions=react-server --env-file=<path to .env.local> scripts/record-case-runs.ts [--dry] [--only=<case id>] [--freeze=<freeze file>]
  *   ... --only=<case id> --supersede=<run id> --rerun-step=<task> --max-model-outputs=1
  *       Rebuilds one case. The named step of the earlier run, which failed its schema, is moved to
  *       the report as a rejected attempt and requested once more. Every other step of that case
@@ -42,7 +42,8 @@ type CaseRecordingFreeze = RecordingProviderFreeze & {
   networkCallsMade: number;
 };
 
-const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE.json"), "utf8")) as CaseRecordingFreeze;
+// The first batch (the hero) is the default; a later batch names its own freeze file with --freeze=.
+const freeze = JSON.parse(readFileSync(path.join(process.cwd(), arg("freeze") ?? "data/synthetic/CASE_RECORDING_FREEZE.json"), "utf8")) as CaseRecordingFreeze;
 const options = defaultOptions(Number(arg("max-model-outputs") ?? 6), freeze.maximumProviderRequests);
 
 function summarise(caseId: CaseId, out: RunOutcome, answered: string[]) {

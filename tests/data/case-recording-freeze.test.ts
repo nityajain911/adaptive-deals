@@ -16,7 +16,7 @@ type CaseRecordingFreeze = {
   prompts: Record<"extract" | "clarify" | "explain", { version: string; sha256: string }>;
   provider: "cerebras";
   model: "gpt-oss-120b";
-  scope: ["reduced-scope"];
+  scope: string[];
   maximumProviderRequests: 7;
   retryRule: "technical failures only";
   resultRule: "keep the first technically valid output, misses included";
@@ -55,14 +55,21 @@ describe("the pre-call case recording freeze", () => {
     });
   });
 
-  it("keeps historical Groq inputs separate and maps only the exact frozen Cerebras hero", () => {
+  it("keeps historical Groq inputs separate and maps only exact frozen Cerebras recordings", () => {
+    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-ed5442a3", "no-fit": "run-case-no-fit-6fb4027d" };
     for (const id of CASE_IDS) {
       expect(RECORDED_CASE_MESSAGES[id]).not.toEqual(demoCase(id)!.deal.messages);
-      if (id === "reduced-scope") {
-        expect(mappedCaseRun(id)).toMatchObject({ runId: "run-case-reduced-scope-ed5442a3", provider: "cerebras", model: "gpt-oss-120b" });
-      } else {
-        expect(mappedCaseRun(id)).toBeNull();
-      }
+      const runId = mapped[id];
+      if (runId) expect(mappedCaseRun(id)).toMatchObject({ runId, provider: "cerebras", model: "gpt-oss-120b" });
+      else expect(mappedCaseRun(id)).toBeNull();
     }
+  });
+
+  it("the second batch authorises only the two remaining cases, with the same prompts and conversations", () => {
+    const second = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH2.json"), "utf8")) as CaseRecordingFreeze & { authorisedBy: string };
+    expect(second).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", scope: ["preserve-scope", "no-fit"], maximumProviderRequests: 7, retryRule: "technical failures only", resultRule: "keep the first technically valid output, misses included" });
+    expect(second.authorisedBy).toMatch(/Nitya Jain/);
+    expect(second.cases).toEqual(freeze.cases);
+    expect(second.prompts).toEqual(freeze.prompts);
   });
 });

@@ -1117,3 +1117,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** unit and browser tests pass; no model or Razorpay call made.
 
+### 2026-10-12 — [Claude Code] Cerebras recordings for the other two cases
+
+**Asked by the applicant:** record the remaining two cases on Cerebras (explicit go).
+
+**What was done:** a second freeze file naming only those two cases (same prompts and conversations), one request each. No fit: clean, mapped. Preserve scope: the extraction missed, kept as evidence and not mapped; no re-run, because the policy keeps the first valid output.
+
+**Checks:** all unit and browser tests pass; seven-request cap per case was not approached (one request each).
+

@@ -23,14 +23,19 @@ const cerebrasReport = read("cerebras-reduced-scope-recording-report.json");
 const currentHero = () => read("run-case-reduced-scope-ed5442a3.json") as RunRecord;
 
 describe("the committed case recordings", () => {
-  it("maps only the exact-match hero recording and keeps historical evidence separately", () => {
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3" });
+  it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3", "no-fit": "run-case-no-fit-6fb4027d" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
       "run-case-reduced-scope-ed5442a3.json",
+      "run-case-no-fit-6fb4027d.json",
+      // Recorded and kept as evidence, but not mapped: see the report for why.
+      "run-case-preserve-scope-fcc306d2.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
+      "cerebras-no-fit-recording-report.json",
+      "cerebras-preserve-scope-recording-report.json",
     ].sort());
   });
 
@@ -41,7 +46,7 @@ describe("the committed case recordings", () => {
     expect(modelProvenance(loaded).label).toBe("Recorded Groq output");
     expect(loaded.steps.every((step) => step.provider === "groq" && step.failure === null)).toBe(true);
     // The cases were rewritten as real-sounding chats, so the product must not present these as the case's own output.
-    if (id !== "reduced-scope") expect(mappedCaseRun(id)).toBeNull();
+    if (id === "preserve-scope") expect(mappedCaseRun(id)).toBeNull();
   });
 
   it("loads the frozen Cerebras hero and attributes every model task to Cerebras", () => {
@@ -73,6 +78,37 @@ describe("the committed case recordings", () => {
     files.push(readFileSync(path.join(process.cwd(), CASE_RUN_MAP_FILE), "utf8"));
     const pattern = /gsk_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9_-]{16,}|rzp_(live|test)_[A-Za-z0-9]+|Bearer\s+[A-Za-z0-9._-]{16,}|api[_-]?key"\s*:\s*"[^"]{8,}/i;
     for (const text of files) expect(text).not.toMatch(pattern);
+  });
+});
+
+describe("the second Cerebras recording batch", () => {
+  const noFit = () => read("run-case-no-fit-6fb4027d.json") as RunRecord;
+  const preserve = () => read("run-case-preserve-scope-fcc306d2.json") as RunRecord;
+
+  it("no-fit: one request, kept as it came, and the engine reaches the case's expected outcome", () => {
+    const loaded = mappedCaseRun("no-fit");
+    expect(loaded).toEqual(noFit());
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded!.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
+    expect(loaded!.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([["extract", "cerebras", "accepted"]]);
+    expect(modelProvenance(loaded!).label).toBe("Recorded Cerebras output");
+    expect(loaded!.engine.initial.state).toBe("no_feasible_deal");
+    const report = read("cerebras-no-fit-recording-report.json");
+    expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
+    expect(report.requests).toHaveLength(1);
+  });
+
+  it("preserve-scope: recorded and kept, but not mapped, because the model's first extraction missed the case's story", () => {
+    const loaded = preserve();
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded.inputs.messages).toEqual(demoCase("preserve-scope")!.deal.messages);
+    // The engine could not reach the offer family this case demonstrates, so the product keeps the labelled sample for it.
+    expect(loaded.engine.initial.state).toBe("insufficient_information");
+    expect(demoCase("preserve-scope")!.expected.engineState).toBe("options_ready");
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    const report = read("cerebras-preserve-scope-recording-report.json");
+    expect(report.requests).toHaveLength(1);
+    expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", caseCard: { agrees: false } });
   });
 });
 

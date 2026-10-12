@@ -1,0 +1,151 @@
+{
+  "recordedAt": "2026-10-12T07:06:17.321Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "no-fit",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    }
+  ],
+  "retries": [],
+  "rejectedAttempts": [],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "no-fit",
+      "runId": "run-case-no-fit-6fb4027d",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "c6e79cbddc11304a",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹2,00,000",
+          "evidence_quote": "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
+          "message_id": "no-fit-4",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
+          "message_id": "no-fit-4",
+          "confidence": "high"
+        },
+        {
+          "key": "latest_start",
+          "raw_text": "15 October",
+          "evidence_quote": "The issue is timing. We need your team to start no later than 15 October.",
+          "message_id": "no-fit-2",
+          "confidence": "high"
+        },
+        {
+          "key": "required_package",
+          "raw_text": "website fixes, search, social and monthly reporting",
+          "evidence_quote": "We need the full scope: website fixes, search, social and monthly reporting.",
+          "message_id": "no-fit-3",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "We can’t move the date or reduce the scope.",
+          "evidence_quote": "We can’t move the date or reduce the scope. If you can’t start by then, please tell us clearly.",
+          "message_id": "no-fit-5",
+          "confidence": "high"
+        },
+        {
+          "key": "amounts_include_gst",
+          "raw_text": "₹2,00,000",
+          "evidence_quote": "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
+          "message_id": "no-fit-4",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹2,00,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "no-fit-4: “Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "ambiguous",
+          "value": null,
+          "evidence": [
+            "no-fit-4: “Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Latest start date",
+          "status": "stated",
+          "value": "Start by 15 Oct 2026",
+          "evidence": [
+            "no-fit-2: “The issue is timing. We need your team to start no later than 15 October.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Required packages",
+          "status": "stated",
+          "value": "website-fixes, monthly-reporting",
+          "evidence": [
+            "no-fit-3: “We need the full scope: website fixes, search, social and monthly reporting.”",
+            "no-fit-3: “We need the full scope: website fixes, search, social and monthly reporting.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "We can’t move the date or reduce the scope.",
+          "evidence": [
+            "no-fit-5: “We can’t move the date or reduce the scope. If you can’t start by then, please tell us clearly.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [],
+      "engine": {
+        "initial": "no_feasible_deal",
+        "final": "no_feasible_deal",
+        "feasible": []
+      },
+      "questions": [],
+      "answeredWithScriptedBuyerReply": [],
+      "explanation": null,
+      "caseCard": {
+        "expectedState": "no_feasible_deal",
+        "expectedTemplate": null,
+        "actualState": "no_feasible_deal",
+        "actualTemplate": null,
+        "agrees": true
+      }
+    }
+  ],
+  "stopped": null
+}

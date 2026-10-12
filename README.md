@@ -99,6 +99,13 @@ On 9 October 2026, the final **Repair bookings now, defer social** conversation 
 
 The product loads this recording only when its deal ID and complete conversation match the current hero case byte for byte. A mismatch falls back to the labelled hand-written sample. Replaying it makes no provider call.
 
+### Second recording batch (12 October 2026)
+
+On the applicant's explicit go, the remaining two cases were each run once on Cerebras `gpt-oss-120b` under the same frozen prompts and the same policy (`data/synthetic/CASE_RECORDING_FREEZE_BATCH2.json`; first valid outputs kept, technical retries only). Each used one provider request, no retry.
+
+- **No fit** (`run-case-no-fit-6fb4027d`): a clean extraction. The engine reaches the case's expected outcome, no approved offer fits, so the case now replays **Recorded Cerebras output**.
+- **Keep the annual scope, move the start** (`run-case-preserve-scope-fcc306d2`): the model's first extraction rejected the budget period (its quoted words did not contain the phrase) and returned no required services, so the engine stopped at *insufficient information* and never reached the offer this case exists to show. The recording is kept as evidence, not mapped, and not re-run (the policy keeps the first valid output); the case continues on its labelled hand-written sample. This is a model miss reported as it happened, not an evaluation.
+
 ### Earlier Groq recordings (historical)
 
 > **Status, 8 October 2026.** These recordings were made on the first version of the three case conversations. The conversations were later rewritten as realistic chats, so these Groq recordings no longer match a case the merchant can start. They remain unchanged as historical evidence (`data/synthetic/recorded-conversations.ts` holds their exact inputs, and `tests/data/case-recordings.test.ts` verifies them).
@@ -174,5 +181,5 @@ app/, components/       three-stage merchant product, buyer proposal, walkthroug
 - Buyer MD approval is an attestation, not identity verification.
 - Service dates are contractual plans; actual delivery completion is not tracked.
 - Refunds, external payments and accounting reconciliation are not modelled.
-- The evidence consists of one synthetic merchant segment, three fictional cases (one current recorded model run and two hand-written samples), earlier historical model runs, and agent-conducted role inspections. It does not establish market frequency.
+- The evidence consists of one synthetic merchant segment, three fictional cases (two current recorded Cerebras runs, the hero and no-fit, and one hand-written sample), earlier historical model runs, and agent-conducted role inspections. It does not establish market frequency.
 - How often Indian service sellers negotiate commercial structure over WhatsApp remains an assumption to validate.
