@@ -13,7 +13,7 @@ import { EconomicsError, type EconomicsContent } from "@/domain/business-economi
 import { STRATEGY_IDS } from "@/domain/strategy-id";
 import { activateEconomicsDraft, discardEconomicsDraft, resetEconomicsStore, restoreDefaultEconomics, saveEconomicsDraft } from "@/lib/economics-store";
 import { previewEconomicsActivation } from "@/lib/economics-activation";
-import { approveMcpCollectionIntent, executeMcpCollectionIntent, McpActionError, prepareMcpCollectionIntent } from "@/lib/mcp-service";
+import { approveMcpCollectionIntent, executeMcpCollectionIntent, McpActionError, prepareMcpCollectionIntent, refreshMcpCollectionStatus } from "@/lib/mcp-service";
 import { economicsLabel } from "@/lib/economics-illustrative";
 
 /**
@@ -117,6 +117,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("prepare_mcp_collection") }).strict(),
   z.object({ action: z.literal("approve_mcp_collection"), intentId: z.string().max(80) }).strict(),
   z.object({ action: z.literal("execute_mcp_collection"), intentId: z.string().max(80) }).strict(),
+  z.object({ action: z.literal("refresh_mcp_collection"), intentId: z.string().max(80) }).strict(),
   z.object({ action: z.literal("propose_amendment") }),
   z.object({ action: z.literal("approve_amendment"), termsHash: Hash }),
   z.object({ action: z.literal("accept_amendment"), termsHash: Hash, authorityConfirmed: z.boolean() }),
@@ -286,6 +287,9 @@ export async function POST(request: Request) {
         break;
       case "execute_mcp_collection":
         result = await executeMcpCollectionIntent(a.intentId);
+        break;
+      case "refresh_mcp_collection":
+        result = await refreshMcpCollectionStatus(a.intentId);
         break;
       case "propose_amendment":
         await svc.proposeAmendment();

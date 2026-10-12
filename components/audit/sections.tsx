@@ -6,6 +6,7 @@ import type { DealContext } from "@/ai/orchestrator";
 import { appliedRules, auditSources, branchAudit, executionPipeline, merchantExceptions, modelHeader, whoDidWhat, type PipelineStep } from "@/lib/audit";
 import type { Reproduction } from "@/lib/reproducibility";
 import { CopyButton } from "../copy-button";
+import { McpCapabilityMap } from "../mcp/capability-map";
 import { taskOrRunProvenance } from "@/lib/model-provenance";
 import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
@@ -358,6 +359,7 @@ export function AuditSections({ s, out, deal, memory = null, reproduced = null }
         <H id="audit-mcp">Razorpay MCP action</H>
         <p className="mt-1">Capability unavailable in this environment · no Razorpay MCP tool was called.</p>
         <p>The collection records above are separately labelled simulated events. A future test-mode action must bind the exact agreement, terms hash, arguments hash and advertised tool catalog before merchant approval.</p>
+        <div className="mt-3"><h4 className="font-semibold text-ink">What Razorpay offers for each part of a deal</h4><div className="mt-1"><McpCapabilityMap /></div></div>
       </section>
     </div>
   );

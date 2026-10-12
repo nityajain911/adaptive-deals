@@ -38,3 +38,17 @@ export function ApproveAndCreateButton({ intentId, approved }: { intentId: strin
     </div>
   );
 }
+
+/** Read-only: asks Razorpay for the current status of the link that was created. It never creates or changes anything. */
+export function RefreshMcpStatusButton({ intentId }: { intentId: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useAction();
+  return (
+    <div>
+      <Button disabled={pending} data-testid="mcp-refresh-status" onClick={() => run({ action: "refresh_mcp_collection", intentId }, () => router.refresh())}>
+        {pending ? "Checking…" : "Check payment status"}
+      </Button>
+      <ErrorText error={error} />
+    </div>
+  );
+}

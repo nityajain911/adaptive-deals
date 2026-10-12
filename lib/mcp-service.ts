@@ -2,7 +2,7 @@ import { canonicalJson } from "@/domain/agreement";
 import { DEMO_ANCHOR } from "@/domain/clock";
 import { bindRazorpayCapabilities } from "@/mcp/capabilities";
 import { approveMcpIntent, createPaymentLinkIntent, type McpActionIntent, type McpActionReceipt } from "@/mcp/intents";
-import { executeMcpIntent } from "@/mcp/executor";
+import { executeMcpIntent, refreshMcpReceipt } from "@/mcp/executor";
 import { archiveFailedAttempt, getMcpIntent, recordMcpIntent, saveMcpIntent } from "@/mcp/store";
 import { mcpTransportFromEnv } from "@/mcp/config";
 import type { McpTransport } from "@/mcp/transport";
@@ -69,3 +69,8 @@ export async function executeMcpCollectionIntent(intentId: string, transport: Mc
   return executeMcpIntent(intentId, transport, nowOf(await getState()));
 }
 
+
+/** Read-only: the current status of a link that was already created. Never creates or changes a link. */
+export async function refreshMcpCollectionStatus(intentId: string, transport: McpTransport = mcpTransportFromEnv()): Promise<{ receipt: McpActionReceipt; refreshed: boolean }> {
+  return refreshMcpReceipt(intentId, transport, nowOf(await getState()));
+}

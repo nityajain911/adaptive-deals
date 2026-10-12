@@ -83,3 +83,25 @@ export async function executeMcpIntent(intentId: string, transport: McpTransport
   }
 }
 
+
+/**
+ * Read the current status of a link that was already created, with the advertised read tool, and store the new receipt.
+ * It cannot create anything. If the read fails, the receipt on file is returned unchanged.
+ */
+export async function refreshMcpReceipt(intentId: string, transport: McpTransport, now: string): Promise<{ receipt: McpActionReceipt; refreshed: boolean }> {
+  const intent = await getMcpIntent(intentId);
+  if (!intent) throw new Error("MCP intent not found");
+  const existing = await getMcpReceipt(intentId);
+  if (existing?.outcome !== "succeeded") throw new Error("There is no created link to check");
+  const discovery = bindRazorpayCapabilities(await transport.listTools(), now);
+  const fetch = discovery.status === "compatible" ? discovery.bindings.fetchPaymentLink : undefined;
+  if (!fetch || fetch.catalogHash !== intent.catalogHash) return { receipt: existing, refreshed: false };
+  try {
+    const result = await transport.callTool({ name: fetch.toolName, arguments: { reference: intent.canonicalArguments.reference } });
+    const receipt = reducePaymentLinkReceipt(intent, responseBody(result), now, existing.requestedAt);
+    await saveMcpReceipt(receipt);
+    return { receipt, refreshed: true };
+  } catch {
+    return { receipt: existing, refreshed: false };
+  }
+}

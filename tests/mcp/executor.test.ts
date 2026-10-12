@@ -9,7 +9,7 @@ import type { McpToolCatalog } from "@/mcp/types";
 const dataDir = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-mcp-executor-"));
 process.env.ADAPTIVE_DEALS_DATA_DIR = dataDir;
 const store = await import("@/mcp/store");
-const { executeMcpIntent } = await import("@/mcp/executor");
+const { executeMcpIntent, refreshMcpReceipt } = await import("@/mcp/executor");
 
 const createTool = { name: "create_link", metadata: { provider: "razorpay", environment: "test", capability: "create_payment_link" }, inputSchema: { type: "object", properties: Object.fromEntries(["amount", "currency", "description", "reference", "idempotency_key"].map((key) => [key, { type: key === "amount" ? "integer" : "string" }])), required: ["amount", "currency", "description", "reference", "idempotency_key"], additionalProperties: false }, outputSchema: { type: "object", properties: { id: { type: "string" }, short_url: { type: "string" }, status: { type: "string" } }, required: ["id", "short_url", "status"] } };
 const fetchTool = { name: "fetch_link", metadata: { provider: "razorpay", environment: "test", capability: "fetch_payment_link" }, inputSchema: { type: "object", properties: { reference: { type: "string" } }, required: ["reference"], additionalProperties: false }, outputSchema: createTool.outputSchema };
@@ -22,6 +22,32 @@ const approved = () => {
 
 beforeEach(() => rmSync(path.join(dataDir, "mcp"), { recursive: true, force: true }));
 afterAll(() => rmSync(dataDir, { recursive: true, force: true }));
+
+describe("checking the status of a created link", () => {
+  it("reads the link by reference with the read tool only, and stores the new status", async () => {
+    const intent = approved(); await store.recordMcpIntent(intent);
+    const calls: string[] = [];
+    let status = "created";
+    const transport = { listTools: async () => catalog, callTool: async ({ name }: { name: string }) => { calls.push(name); return { structuredContent: { id: "plink_test_1", short_url: "https://rzp.io/i/test1", status } }; } };
+    await executeMcpIntent(intent.id, transport, "2026-10-08T12:00:01+05:30");
+    status = "paid";
+    const result = await refreshMcpReceipt(intent.id, transport, "2026-10-08T12:05:00+05:30");
+    expect(result.refreshed).toBe(true);
+    expect(result.receipt).toMatchObject({ outcome: "succeeded", externalStatus: "paid", externalId: "plink_test_1" });
+    expect(calls).toEqual(["create_link", "fetch_link"]);
+    expect(await store.getMcpReceipt(intent.id)).toMatchObject({ externalStatus: "paid" });
+  });
+
+  it("keeps the receipt on file when the read fails, and refuses to run before a link exists", async () => {
+    const intent = approved(); await store.recordMcpIntent(intent);
+    const ok = { listTools: async () => catalog, callTool: async () => ({ structuredContent: { id: "plink_test_1", short_url: "https://rzp.io/i/test1", status: "created" } }) };
+    await expect(refreshMcpReceipt(intent.id, ok, "2026-10-08T12:00:01+05:30")).rejects.toThrow(/no created link/i);
+    await executeMcpIntent(intent.id, ok, "2026-10-08T12:00:02+05:30");
+    const broken = { listTools: async () => catalog, callTool: async () => { throw new Error("provider unavailable"); } };
+    const result = await refreshMcpReceipt(intent.id, broken, "2026-10-08T12:05:00+05:30");
+    expect(result).toMatchObject({ refreshed: false, receipt: { externalStatus: "created" } });
+  });
+});
 
 describe("idempotent MCP execution", () => {
   it("requires exact approval and stores one successful reduced receipt", async () => {

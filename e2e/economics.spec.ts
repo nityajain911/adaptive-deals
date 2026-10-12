@@ -165,6 +165,15 @@ test("mcp · Track and Audit state that no Razorpay action occurred when the cap
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-mcp")).toContainText("Capability unavailable");
+  // The map says what Razorpay offers and what is implemented, simulated or not used, with no claim beyond what was observed.
+  const map = page.getByTestId("audit-mcp").getByTestId("mcp-capability-map");
+  await expect(map.getByTestId("mcp-map-collection")).toHaveAttribute("data-status", "implemented");
+  await expect(map.getByTestId("mcp-map-mandate")).toHaveAttribute("data-status", "simulated");
+  await expect(map.getByTestId("mcp-map-debits")).toHaveAttribute("data-status", "simulated");
+  await expect(map.getByTestId("mcp-map-reporting")).toHaveAttribute("data-status", "not_used");
+  await expect(map).toContainText("create_payment_link");
+  await expect(map).toContainText("Razorpay's Subscriptions API is not among them either");
+  await expect(map).not.toContainText(/Subscriptions API for reporting/i);
 });
 
 test("overrides · a deal override needs a reason, moves the figures, says which way it moves your rule, and leaves your business economics alone", async ({ page }) => {

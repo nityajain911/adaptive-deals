@@ -521,3 +521,11 @@ The model's explanation has two parts that code validates separately: a full com
 
 **The applicant authorised recording the other two cases on Cerebras.** One request each, frozen prompts, first valid output kept. **No fit** recorded cleanly and is now mapped, so the audit shows "Recorded Cerebras output" for it. **Preserve scope** recorded, but the model's first extraction missed (an evidence phrase failed its check and no required services were found), so the engine stopped at "insufficient information" and could not show the offer this case demonstrates. We did not re-run it or loosen a check to make it work; the recording is kept as evidence and the case stays on its labelled sample until the applicant decides otherwise.
 
+## The Razorpay MCP map (12 October 2026)
+
+**The audit says what Razorpay offers for each part of a deal, and what this prototype does.** Built from the saved read-only discovery (42 tools advertised on 9 October 2026), and a test checks every tool name against that file. Upfront collection: implemented in test mode, with merchant approval. Auto-pay mandate and later debits: simulated. Reporting: only a Payment Link's status is read. The Subscriptions API is not among the advertised tools, so it is not claimed.
+
+**A pre-flight note, and a read-only status check.** Razorpay's test account refused links of ₹20,000 and above, so the review card warns when a link is at or above that, and the hero's ₹23,010 payment stays simulated. Once a test link exists, **Check payment status** reads it by reference with the advertised read tool; it can create or change nothing.
+
+**Not built:** real mandate registration (the registration-link tool's parameters have not been inspected, and a recurring-enabled test account is needed). It is shown as a planned next step, not as a feature.
+
