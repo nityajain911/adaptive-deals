@@ -157,6 +157,7 @@ test("commercial memory · the merchant reviews exact evidence before it enters 
 
 test("commercial memory · the offer connects buyer words, merchant evidence and engine checks without leaking them to the buyer", async ({ page }) => {
   await page.goto("/deals/hero/offer");
+  await page.getByTestId("see-economics").locator(":scope > summary").click();
   const evidence = page.getByTestId("recommendation-evidence");
   await evidence.locator("summary").click();
   await expect(evidence).toContainText("Buyer message");
@@ -410,7 +411,7 @@ test("offer · twelve instalments have a compact summary with an exact expandabl
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-payments")).toContainText("12 monthly payments of ₹11,800");
-  await expect(page.getByTestId("deal-transformation")).toContainText("Starts 1 May 2027");
+  await expect(page.getByTestId("deal-transformation")).toContainText("1 May 2027");
   const schedule = page.getByTestId("offer-payment-schedule");
   await expect(schedule).not.toHaveAttribute("open", "");
   await expect(schedule.locator("ol")).toBeHidden();

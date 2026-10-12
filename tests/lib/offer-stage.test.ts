@@ -60,8 +60,7 @@ describe("recommendation card", () => {
     const selected = renderToStaticMarkup(Recommendation({ ...CARD, x: annual, reason: whyOffer(annual), context: "Confirmed context", presentation: "merchant_selected" }));
     expect(selected).toContain("You chose this");
     expect(selected).not.toContain("Suggested offer");
-    expect(selected).toContain("Needs their MD&#x27;s approval");
-    expect(selected).not.toContain("Within their approval limit");
+    expect(selected).toContain("Needs buyer approval");
   });
   it("success measure names the target metric", () => {
     expect(renderToStaticMarkup(SuccessMeasure())).toContain("Success measure: realised contribution from this deal within 90 days.");

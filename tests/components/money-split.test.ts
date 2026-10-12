@@ -10,7 +10,7 @@ describe("the money split", () => {
   it("a profitable deal splits the buyer's money into what you keep, costs, fees and GST, and shows no loss", () => {
     const html = render({ gstPaise: 702_000, costsPaise: 1_875_000, feesPaise: 92_040, keepPaise: 1_932_960 });
     const parts = widths(html);
-    expect(parts.map(([c]) => c)).toEqual(["green", "blue", "amber", "line-strong"]);
+    expect(parts.map(([c]) => c)).toEqual(["green", "coral", "amber", "line-strong"]);
     expect(parts.reduce((n, [, w]) => n + w, 0)).toBeCloseTo(100, 5);
     expect(html).not.toContain("You lose");
     expect(html).not.toContain("bg-red");
@@ -21,7 +21,7 @@ describe("the money split", () => {
     // Price ₹10,000 + GST ₹1,800 against ₹14,000 of costs and ₹500 of fees: a ₹4,500 loss.
     const html = render({ gstPaise: 180_000, costsPaise: 1_400_000, feesPaise: 50_000, keepPaise: -450_000 });
     const parts = widths(html);
-    expect(parts.map(([c]) => c)).toEqual(["line-strong", "blue", "amber", "red"]);
+    expect(parts.map(([c]) => c)).toEqual(["line-strong", "coral", "amber", "red"]);
     expect(parts.reduce((n, [, w]) => n + w, 0)).toBeCloseTo(100, 5);
     // The red part is the loss's share of everything the business pays out.
     const red = parts.find(([c]) => c === "red")![1];

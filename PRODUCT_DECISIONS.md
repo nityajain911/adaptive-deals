@@ -589,3 +589,13 @@ The model's explanation has two parts that code validates separately: a full com
 **Change, until an offer is chosen.** The chip's **Change** swaps it for the other answer (the buyer's words stay as they were) and the offer is worked out again; the change is recorded in the audit. After an offer is chosen or sent it cannot be changed this way.
 
 **Unclear replies are not guessed.** The reply is read by fixed rules, not by AI, so there is no confidence figure: it matches exactly one answer or it does not. An unclear one keeps the existing form under the chat, which needs the buyer's exact words as support and records the choice as the merchant's judgement. Once every question is answered, the rest applies by itself.
+
+## Review the offer, bottom line first (12 October 2026)
+
+**The quote and the offer are one list.** The two cards ("Original quote", "Adaptive offer") are replaced by the price (the old one struck through) over one row per service: what stayed is shown once, what changed shows the old value struck through, a dropped service is marked as removed. The reason shown is the buyer's own ("They said it can wait"), not an invented one such as "to fit the budget".
+
+**The margin is a bar.** What the buyer pays is one stacked bar: what you keep, delivery costs, payment fees, GST. GST is grey because it passes to the government and is not a cost to the merchant.
+
+**One closed explanation.** "How this was worked out" holds why this offer, the figures, the profit limit and the evidence table (it was a separate section). The audit trail keeps everything.
+
+**Alternatives beside the offer, at most two.** "Use this instead" swaps one in. "Offers we ruled out" is no longer on this screen; it is in the audit trail ("Offers ruled out"), because it is the proof that the engine checked every option against the merchant's limits.

@@ -12,6 +12,7 @@ import { strategyViewOf, type DemoState } from "@/lib/service";
 import { activeVersionOf } from "@/lib/views";
 import { fmtTime } from "../evidence";
 import { isIllustrativeHash } from "@/lib/economics-illustrative";
+import { Rejections } from "../offer/recommendation";
 import type { CommercialMemoryDealView } from "@/lib/commercial-memory-view";
 
 /**
@@ -22,6 +23,7 @@ const NAV: [string, string][] = [
   ["audit-evidence", "Evidence"],
   ["audit-memory", "Commercial Memory"],
   ["audit-rules", "Applied merchant rules"],
+  ["audit-ruled-out", "Offers ruled out"],
   ["audit-exceptions", "Exceptions and overrides"],
   ["audit-history", "Approval and acceptance history"],
   ["audit-economics", "Calculation provenance"],
@@ -173,6 +175,13 @@ export function AuditSections({ s, out, deal, memory = null, reproduced = null }
           ))}
         </ul>
       </section>
+
+      {out.evaluation.result ? (
+        <section aria-labelledby="audit-ruled-out" data-testid="audit-ruled-out">
+          <H id="audit-ruled-out">Offers ruled out</H>
+          <Rejections r={out.evaluation.result} />
+        </section>
+      ) : null}
 
       <section aria-labelledby="audit-exceptions" data-testid="audit-exceptions">
         <H id="audit-exceptions">Exceptions and overrides</H>

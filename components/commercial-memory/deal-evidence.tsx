@@ -15,8 +15,8 @@ export function RelevantHistory({ memory }: { memory: CommercialMemoryDealView }
 
 export function RecommendationEvidence({ engineFacts, traces }: { engineFacts: string[]; traces: SourceTrace[] }) {
   return (
-    <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)]" data-testid="recommendation-evidence">
-      <summary className="cursor-pointer text-[15px] font-semibold text-ink">Evidence behind this recommendation</summary>
+    <details className="rounded-xl border border-line px-4 py-2" data-testid="recommendation-evidence">
+      <summary className="cursor-pointer text-[13px] font-semibold text-ink">Evidence behind this recommendation</summary>
       <div className="mt-4"><SourceDecisionTrace traces={traces} title="From source to offer" /></div>
       <section className="mt-4"><h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted">The engine checked</h3><ul className="mt-1 list-disc space-y-1 pl-4 text-[14px] text-ink-2">{engineFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></section>
       <p className="mt-3 text-[12px] text-muted">Evidence retrieved and ranked by code. All commercial figures and pass/fail decisions are calculated by the engine.</p>

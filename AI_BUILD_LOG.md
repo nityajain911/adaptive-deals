@@ -1183,3 +1183,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** no manual "Use these answers" click, confirmation chips in the chat, the action at the end of the chat. **Applicant decision:** if a reply is unclear, the offer waits for the merchant.
 
 **Where I departed from the brief:** no "AI confidence" gate (replies are read by rules, not a model, so there is no score); the unclear-reply path keeps its form because it needs the buyer's exact words rather than a one-tap guess; the answer can be changed only before an offer is chosen. The "demo sidebar" was already separate from the product, and the action was already under the last bubble.
+
+### 2026-10-12 — [Claude Code] Review the offer, bottom line first
+
+**Asked by the applicant:** visual diff of the offer, the margin as a bar, evidence out of the default view, ruled-out offers gone, two alternatives beside the offer. **Applicant decision:** if there are no alternatives, the main card takes the full width.
+
+**Where I departed from the brief:** a dropped service says what the buyer said ("can wait"), not "removed to fit the budget"; GST is grey, not yellow, because it is not a cost; the bar already existed and was made larger; the evidence table was already closed and now sits inside the one explanation; ruled-out offers moved to the audit trail instead of being deleted.

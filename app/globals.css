@@ -19,6 +19,7 @@
   --amber-weak: #fff6e5;
   --red: #b42318;
   --red-weak: #fdf0ee;
+  --coral: #d9694a;
   --violet: #5b3fd1;
   --violet-weak: #f2efff;
   --header: #050505;
@@ -42,6 +43,7 @@
   --color-amber-weak: var(--amber-weak);
   --color-red: var(--red);
   --color-red-weak: var(--red-weak);
+  --color-coral: var(--coral);
   --color-violet: var(--violet);
   --color-violet-weak: var(--violet-weak);
   --color-header: var(--header);

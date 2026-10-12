@@ -30,7 +30,7 @@ export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gst
     ...(loss > 0
       ? []
       : [{ id: "keep", label: "You keep", paise: Math.max(0, keepPaise), barPaise: Math.max(0, keepPaise), bar: "bg-green", dot: "bg-green" } as Part]),
-    { id: "costs", label: "Delivery costs", paise: costsPaise, barPaise: costsPaise - lossFromCosts, bar: "bg-blue", dot: "bg-blue" },
+    { id: "costs", label: "Delivery costs", paise: costsPaise, barPaise: costsPaise - lossFromCosts, bar: "bg-coral", dot: "bg-coral" },
     { id: "fees", label: "Payment fees", paise: feesPaise, barPaise: feesPaise - lossFromFees, bar: "bg-amber", dot: "bg-amber" },
     { id: "gst", label: "GST", paise: gstPaise, barPaise: gstPaise, bar: "bg-line-strong", dot: "bg-line-strong" },
     ...(loss > 0 ? [{ id: "loss", label: "You lose", paise: loss, barPaise: loss, bar: "bg-red", dot: "bg-red" } as Part] : []),
@@ -41,7 +41,7 @@ export function MoneySplit({ gstPaise, costsPaise, feesPaise, keepPaise }: { gst
   const bar = order.map((id) => parts.find((p) => p.id === id)!);
   return (
     <figure className="mt-3" data-testid="money-split" data-loss={loss > 0 ? "true" : undefined} aria-label="Where the buyer's money goes">
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-muted" role="img" aria-label={bar.map((p) => `${p.label} ${approxINR(p.paise)}`).join(", ")}>
+      <div className="flex h-5 w-full overflow-hidden rounded-full bg-surface-muted" role="img" aria-label={bar.map((p) => `${p.label} ${approxINR(p.paise)}`).join(", ")}>
         {bar.map((p, i) => (
           <span key={p.id} className={`money-split-segment ${p.bar}`} style={{ width: `${(p.barPaise / total) * 100}%`, animationDelay: `${i * 120}ms` }} />
         ))}

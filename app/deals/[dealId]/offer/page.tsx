@@ -12,7 +12,7 @@ import { DontProceed } from "@/components/offer/dont-proceed";
 import { EvidenceReview } from "@/components/offer/evidence-review";
 import { buyerBudgetQuote } from "@/lib/chat-highlights";
 import { eligibleStructures } from "@/lib/counter-eligibility";
-import { Alternatives, OtherOptions, Recommendation, Rejections } from "@/components/offer/recommendation";
+import { Alternatives, Recommendation } from "@/components/offer/recommendation";
 import { DealOverrides, type OverrideAccount } from "@/components/offer/deal-overrides";
 import { StrategyComparison } from "@/components/offer/strategy-comparison";
 import { StrategyControl } from "@/components/offer/strategy-control";
@@ -195,7 +195,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const options = standard ? view.ranked : view.discounted;
   const p = out.profile;
   const originalApprovalLabel = p.approvalLimit.value && baseline.quotedTotalPaise > p.approvalLimit.value.amountPaise ? "Needs buyer approval" : "Buyer can approve";
-  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate });
+  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [] });
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
   const knowledgeSources = await loadKnowledgeSources();
@@ -246,44 +246,53 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             <ActionButton body={{ action: "select_option", structureId: view.leader.structure.id }} variant="ghost" testId="use-recommended">Use the suggested offer</ActionButton>
           </Notice>
         ) : null}
-        <Recommendation
-          x={x}
-          policy={policy}
-          baseline={baseline}
-          packages={deal.packages}
-          transformation={transformation}
-          presentation={selectedByMerchant ? "merchant_selected" : "recommended"}
-          reason={narrative.reason}
-          attribution={narrative.attribution}
-          evidence={narrative.evidence}
-          economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
-          counter={activeCounter}
-          leaderNote={leaderNote}
-          primary={
-            <>
-              {primaryId === "review_new_evidence" ? null : (
-                <PrimaryActionButton body={{ action: "review_buyer_proposal" }} onDone={preview}>
-                  {label}
-                </PrimaryActionButton>
-              )}
-              <DontProceed />
-            </>
-          }
-        />
-        <RecommendationEvidence
-          traces={sourceTraces}
-          engineFacts={[
-            `${x.sellerChecks.filter((check) => check.status === "pass").length} merchant checks passed`,
-            `${x.buyerChecks.filter((check) => check.status === "pass").length} buyer checks passed`,
-            x.approval === "within_limit" ? "Within the buyer's stated approval limit" : "Buyer approval is still required",
-          ]}
-        />
-                <OtherOptions>
-          {standard ? <StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /> : null}
-          <Alternatives options={options} selectedId={x.structure.id} />
-        </OtherOptions>
-        {overridesPanel}
-        <Rejections r={r} />
+        <div className={`grid grid-cols-1 items-start gap-4 ${options.filter((o) => o.structure.id !== x.structure.id).length ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
+  <Recommendation
+            x={x}
+            policy={policy}
+            baseline={baseline}
+            packages={deal.packages}
+            transformation={transformation}
+            presentation={selectedByMerchant ? "merchant_selected" : "recommended"}
+            reason={narrative.reason}
+            attribution={narrative.attribution}
+            evidence={narrative.evidence}
+            economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
+            counter={activeCounter}
+            proof={
+              <RecommendationEvidence
+                traces={sourceTraces}
+                engineFacts={[
+                  `${x.sellerChecks.filter((check) => check.status === "pass").length} merchant checks passed`,
+                  `${x.buyerChecks.filter((check) => check.status === "pass").length} buyer checks passed`,
+                  x.approval === "within_limit" ? "Within the buyer's stated approval limit" : "Buyer approval is still required",
+                ]}
+              />
+            }
+            leaderNote={leaderNote}
+            primary={
+              <>
+                {primaryId === "review_new_evidence" ? null : (
+                  <PrimaryActionButton body={{ action: "review_buyer_proposal" }} onDone={preview}>
+                    {label}
+                  </PrimaryActionButton>
+                )}
+                <DontProceed />
+              </>
+            }
+          />
+  
+          <div className="space-y-4">
+            <Alternatives options={options} selectedId={x.structure.id} />
+            {standard ? (
+              <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="other-options">
+                <summary className="cursor-pointer px-4 py-3 text-[13px] font-semibold text-ink">What each priority would suggest</summary>
+                <div className="border-t border-line px-1 py-3 sm:px-3"><StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /></div>
+              </details>
+            ) : null}
+            {overridesPanel}
+          </div>
+        </div>
       </div>
     </StageShell>
   );

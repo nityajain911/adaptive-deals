@@ -534,7 +534,7 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await expect(drawer).toBeHidden();
   await expect(opener).toBeFocused();
 
-  await toggleDetails(page, ["see-economics", "why-not-others"]);
+  await toggleDetails(page, ["see-economics"]);
   await page.getByTestId("primary-action").click();
   await toggleDetails(page, ["preview-agreement-details"]);
   await page.getByTestId("primary-action").click();
@@ -1222,7 +1222,7 @@ test("step 5 · a strategy that leads with an offer needing MD approval says so 
   await page.goto("/deals/hero/offer");
   await page.getByTestId("strategy-minimise_cash_exposure").check();
   await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "minimise_cash_exposure");
-  await expect(page.getByTestId("offer-approval")).toContainText("MD");
+  await expect(page.getByTestId("offer-approval")).toContainText("Needs buyer approval");
   await expect(page.getByTestId("within-approval-alternative")).toContainText("two monthly payments");
   await page.getByTestId("select-within-approval").click();
   // The merchant's own choice is credited to them, and the strategy now recommends something else.
@@ -1356,4 +1356,28 @@ test("understand · an applied answer can be changed before an offer is chosen, 
   // Asking for the answers again changes nothing.
   expect((await page.request.post("/api/actions", { data: { action: "adopt_replies" } })).ok()).toBe(true);
   await expect(page.getByTestId("answer-clar-approval")).toContainText("Per payment");
+});
+
+test("offer · the quote and the offer are one list, the alternatives are at most two cards, and ruled-out offers live in the audit", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  const rows = page.getByTestId("transformation-rows");
+  await expect(page.getByTestId("deal-transformation")).toBeVisible();
+  await expect(rows.locator('[data-change="removed"]')).toContainText("Social media");
+  await expect(rows.locator('[data-change="removed"]')).toContainText("They said it can wait");
+  await expect(rows.locator('[data-change="changed"]').first()).toContainText("3 months");
+  await expect(page.getByTestId("offer-was")).toContainText("₹1,41,600");
+  await expect(page.getByTestId("money-split")).toBeVisible();
+  expect(await page.locator('[data-testid^="alternative-"]').count()).toBeLessThanOrEqual(2);
+  await expect(page.getByTestId("recommendation-evidence")).toBeHidden();
+  await page.waitForTimeout(1500);
+  await shot(page, "offer-redesign-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/deals/hero/offer");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await shot(page, "offer-redesign-mobile");
+  await page.getByTestId("presenter-frame-toggle").click();
+  await page.getByTestId("audit-details").click();
+  await expect(page.getByTestId("audit-ruled-out")).toBeAttached();
 });

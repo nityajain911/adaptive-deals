@@ -31,7 +31,7 @@ export function contextLine(baseline: DealBaseline, budgetPaise: number | null, 
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null }: {
+export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null, proof = null }: {
   x: EvaluatedStructure;
   policy: MerchantPolicy;
   baseline: DealBaseline;
@@ -54,6 +54,8 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
   leaderNote?: ReactNode;
   /** Shown in place of a second explanatory panel: what each strategy would recommend. */
   comparison?: ReactNode;
+  /** The evidence behind the figures, shown inside the closed explanation. */
+  proof?: ReactNode;
 }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
   void context;
@@ -72,49 +74,31 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
         </h2>
       </div>
       <DealTransformationCard value={transformation} />
+      <div className="space-y-1 border-b border-line px-5 py-3 text-[14px] text-ink-2">
+        <OfferPaymentSchedule payments={x.structure.payments} />
+      </div>
       {leaderNote ? <div className="border-b border-line bg-amber-weak/50 px-5 py-3 text-[14px]" data-testid="leader-note">{leaderNote}</div> : null}
-      <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
-        <div className="space-y-3">
-          <div>
-            <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">What the buyer pays</div>
-            <div className="tabular text-[30px] font-bold tracking-tight text-ink" data-testid="offer-total">
-              {formatINR(total)} <span className="text-[14px] font-medium text-muted">including GST</span>
-            </div>
-            <OfferPaymentSchedule payments={x.structure.payments} />
-            <div className="mt-1" data-testid="offer-approval">
-              <ApprovalBadge approval={x.approval} />
-            </div>
-          </div>
-          <dl className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-2">
-            <div>
-              <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Included</dt>
-              <dd className="text-ink">{x.structure.scope.map((i) => `${packageName(packages, i.packageId)}${i.months > 1 ? ` (${i.months} months)` : ""}`).join(", ")}</dd>
-            </div>
-            <div>
-              <dt className="text-[13px] font-semibold uppercase tracking-wide text-muted">Not included</dt>
-              <dd className="text-ink">{x.structure.excludedPackageIds.length ? x.structure.excludedPackageIds.map((id) => packageName(packages, id)).join(", ") : "Nothing"}</dd>
-            </div>
-          </dl>
-        </div>
-        <div className="space-y-2">
-          <div className="rounded-xl border border-line px-4 py-3">
-            <div className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-muted">
-              {e.netContributionPaise < 0 ? "You'd lose" : "You'd keep"}
-              <InfoButton label="About this estimate" testId="offer-keeps-info">
-                After your delivery costs and payment fees. An estimate, not a promise.
-              </InfoButton>
-            </div>
-            <div className={`tabular text-[24px] font-semibold ${e.netContributionPaise < 0 ? "text-red" : "text-ink"}`} data-testid="offer-contribution">
-              {e.netContributionPaise < 0 ? `a loss of ${approxINR(-e.netContributionPaise)}` : approxINR(e.netContributionPaise)}
-            </div>
-            <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
+      <div className="px-5 py-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wide text-muted">
+            {e.netContributionPaise < 0 ? "You'd lose" : "You'd keep"}
+            <InfoButton label="About this estimate" testId="offer-keeps-info">
+              After your delivery costs and payment fees. An estimate, not a promise.
+            </InfoButton>
           </div>
           <p className={passesRules ? "text-[13px] font-medium text-green" : "text-[13px] font-medium text-amber"} data-testid="rules-result">
             {passesRules ? "✓ Within your limits" : "Check your limits before sending this."}
           </p>
-          <details className="rounded-xl border border-line px-4 py-2" data-testid="see-economics">
-            <summary className="cursor-pointer text-[13px] font-semibold text-blue">How we worked this out</summary>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pb-2 text-[13px] text-ink-2">
+        </div>
+        <div className={`tabular text-[26px] font-semibold ${e.netContributionPaise < 0 ? "text-red" : "text-ink"}`} data-testid="offer-contribution">
+          {e.netContributionPaise < 0 ? `a loss of ${approxINR(-e.netContributionPaise)}` : approxINR(e.netContributionPaise)}
+        </div>
+        <MoneySplit gstPaise={sum(x.structure.payments.map((p) => p.gstPaise))} costsPaise={e.directCostPaise} feesPaise={e.expectedFeesPaise} keepPaise={e.netContributionPaise} />
+        <details className="mt-3 rounded-xl border border-line px-4 py-2" data-testid="see-economics">
+          <summary className="cursor-pointer text-[13px] font-semibold text-blue">How this was worked out</summary>
+          <div className="space-y-3 pb-2 pt-2 text-[13px] text-ink-2" data-testid="why-offer">
+            <p><span className="font-semibold text-ink">Why this one: </span>{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
               <dt>Price before GST</dt>
               <dd className="tabular">{formatINR(x.structure.pricePaise)}</dd>
               <dt>GST</dt>
@@ -135,22 +119,17 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
                 <Link href="/economics" className="font-medium text-blue hover:underline" data-testid="offer-economics-link">your prices &amp; costs</Link>{economics.overrides ? ` and ${economics.overrides} change${economics.overrides === 1 ? "" : "s"} you made for this deal` : ""}
               </dd>
             </dl>
-          </details>
-        </div>
-      </div>
-      {comparison ? <div className="border-t border-line px-5 py-4">{comparison}</div> : null}
-      <div className="border-t border-line bg-surface-muted px-5 py-3 text-[13px]" data-testid="why-offer">
-        <span className="font-semibold text-ink">Why this one: </span>
-        <span className="text-ink-2">{counter ? counterReason(failingCounterChecks(x).map((c) => explainCheck(c))) : reason}</span>
-        <div className="mt-1 flex flex-wrap items-center gap-1 text-[13px] text-muted">
-          <span data-testid="attribution">{counter ? counterAttribution(counter) : attribution}</span>
-        </div>
+            {proof}
+            <p className="text-[12px] text-muted" data-testid="attribution">{counter ? counterAttribution(counter) : attribution}</p>
+          </div>
+        </details>
         {counter?.override ? (
-          <div className="mt-2 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
+          <div className="mt-3 rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-ink-2" data-testid="counter-override-note">
             <span className="font-semibold text-amber">Limits you chose to go past:</span> {joinRules(failingCounterChecks(x).map((c) => explainCheck(c)))}
           </div>
         ) : null}
       </div>
+      {comparison ? <div className="border-t border-line px-5 py-4">{comparison}</div> : null}
       <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">{primary}</div>
     </article>
   );
@@ -166,32 +145,27 @@ export function OtherOptions({ children }: { children: ReactNode }) {
   );
 }
 
-/** Other eligible options, shown as compact rows so the merchant can see and choose them (not hidden). */
-export function Alternatives({ options, selectedId, heading = "Other offers you could send", testId = "compare-alternatives" }: { options: EvaluatedStructure[]; selectedId: string; heading?: string; testId?: string }) {
-  const others = options.filter((x) => x.structure.id !== selectedId);
+/** At most two other offers, as cards beside the suggested one, so the merchant can swap without reading a list. */
+export function Alternatives({ options, selectedId, heading = "Other offers", testId = "compare-alternatives" }: { options: EvaluatedStructure[]; selectedId: string; heading?: string; testId?: string }) {
+  const others = options.filter((x) => x.structure.id !== selectedId).slice(0, 2);
   if (!others.length) return null;
   return (
-    <section className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid={testId} aria-labelledby={`${testId}-heading`}>
-      <h2 id={`${testId}-heading`} className="px-5 py-3 text-[15px] font-semibold text-ink">
-        {heading} ({others.length})
-      </h2>
-      <ul className="divide-y divide-line border-t border-line">
+    <section className="space-y-3" data-testid={testId} aria-labelledby={`${testId}-heading`}>
+      <h2 id={`${testId}-heading`} className="text-[13px] font-semibold text-ink-2">{heading}</h2>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
         {others.map((x, i) => (
-          <li key={x.structure.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-[14px]" data-testid={`alternative-${i + 1}`}>
-            <div className="min-w-0 basis-full sm:flex-1 sm:basis-0">
-              <div className="font-semibold text-ink">{headlineFor(x)}</div>
-              <div className="text-ink-2">{x.structure.label}</div>
-              <div className="mt-0.5">
-                <ApprovalBadge approval={x.approval} />
-              </div>
+          <li key={x.structure.id} className="rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[14px]" data-testid={`alternative-${i + 1}`}>
+            <div className="font-semibold text-ink">{headlineFor(x)}</div>
+            <div className="mt-0.5 text-ink-2">{formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))} · {x.structure.payments.length === 1 ? "1 payment" : `${x.structure.payments.length} payments`}</div>
+            <div className="mt-1">
+              <ApprovalBadge approval={x.approval} />
             </div>
-            <div className="tabular text-right text-ink-2">
-              <div>{formatINR(sum(x.structure.payments.map((p) => p.totalPaise)))}</div>
-              <div className="text-[13px]">{alternativeContributionLine(x)}</div>
+            <div className="mt-1 text-[13px] text-ink-2">{alternativeContributionLine(x)}</div>
+            <div className="mt-2">
+              <ActionButton body={{ action: "select_option", structureId: x.structure.id }} variant="ghost" testId={`select-${i + 1}`}>
+                Use this instead
+              </ActionButton>
             </div>
-            <ActionButton body={{ action: "select_option", structureId: x.structure.id }} variant="ghost" testId={`select-${i + 1}`}>
-              Select this offer
-            </ActionButton>
           </li>
         ))}
       </ul>
@@ -205,7 +179,7 @@ export function Rejections({ r }: { r: EnumerationResult }) {
   const pair = [featured.buyer, featured.seller].filter((x): x is EvaluatedStructure => !!x);
   return (
     <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="why-not-others">
-      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">Offers we ruled out</summary>
+      <summary className="cursor-pointer px-5 py-3 text-[14px] font-semibold text-ink">Why each was ruled out</summary>
       <div className="space-y-3 border-t border-line px-5 py-4">
         {pair.map((x) => (
           <div key={x.structure.id} className="rounded-xl border border-[#f6cfc9] p-3" data-testid={x === featured.buyer ? "featured-buyer-rejection" : "featured-seller-rejection"}>

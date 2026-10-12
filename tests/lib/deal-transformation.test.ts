@@ -38,4 +38,11 @@ describe("deal transformation", () => {
     expect(view.adaptive.durationLabel).toContain("1 May 2027");
     expect(view.changes).toContain("timing");
   });
+
+  it("builds one row per service, marking a dropped one and why", () => {
+    const view = dealTransformation({ baseline, offer: offer([{ packageId: "website", months: 1 }]), packages, originalApprovalLabel: "Needs buyer approval", canWaitIds: ["search"] });
+    expect(view.rows?.find((r) => r.id === "website")).toMatchObject({ was: "1 month", now: "1 month" });
+    expect(view.rows?.find((r) => r.id === "search")).toMatchObject({ was: "3 months", now: null, note: "They said it can wait" });
+    expect(view.rows?.find((r) => r.id === "approval")).toMatchObject({ was: "Needs buyer approval", now: "Buyer can approve" });
+  });
 });

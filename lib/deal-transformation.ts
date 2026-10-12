@@ -5,7 +5,11 @@ import { formatDate } from "@/domain/dates";
 
 export type TransformationChange = "scope" | "timing" | "payment_split" | "approval";
 
+/** One line of the quote-to-offer comparison: what the original quote said and what the offer says. */
+export type TransformationRow = { id: string; label: string; was: string | null; now: string | null; note: string | null };
+
 export type DealTransformation = {
+  rows?: TransformationRow[];
   original: { totalPaise: number; scopeLabel: string; durationLabel: string; approvalLabel: string };
   adaptive: { totalPaise: number; scopeLabel: string; durationLabel: string; approvalLabel: string };
   changes: TransformationChange[];
@@ -30,6 +34,8 @@ export function dealTransformation(args: {
   originalStartDate?: string;
   originalPaymentCount?: number;
   economicsChanged?: DealTransformation["economicsChanged"];
+  /** Services the buyer said can wait; a service dropped from the offer that is among them says so. */
+  canWaitIds?: string[];
 }): DealTransformation {
   const originalMonths = duration(args.baseline.quotedScope);
   const adaptiveMonths = duration(args.offer.structure.scope);
@@ -52,5 +58,17 @@ export function dealTransformation(args: {
   if (args.originalStartDate && args.originalStartDate !== args.offer.structure.startDate) changes.push("timing");
   if (originalPayments !== adaptivePayments) changes.push("payment_split");
   if (original.approvalLabel !== adaptive.approvalLabel) changes.push("approval");
-  return { original, adaptive, changes, ...(args.economicsChanged ? { economicsChanged: args.economicsChanged } : {}) };
+  const name = (id: string) => args.packages.find((service) => service.id === id)?.name ?? id;
+  const rows: TransformationRow[] = [];
+  for (const item of args.baseline.quotedScope) {
+    const kept = args.offer.structure.scope.find((x) => x.packageId === item.packageId);
+    rows.push({ id: item.packageId, label: name(item.packageId), was: monthLabel(item.months), now: kept ? monthLabel(kept.months) : null, note: kept ? null : args.canWaitIds?.includes(item.packageId) ? "They said it can wait" : "Not included" });
+  }
+  for (const item of args.offer.structure.scope) {
+    if (!args.baseline.quotedScope.some((x) => x.packageId === item.packageId)) rows.push({ id: item.packageId, label: name(item.packageId), was: null, now: monthLabel(item.months), note: "Added" });
+  }
+  if (args.originalStartDate && args.originalStartDate !== args.offer.structure.startDate) rows.push({ id: "start", label: "Starts", was: formatDate(args.originalStartDate), now: formatDate(args.offer.structure.startDate), note: null });
+  rows.push({ id: "payments", label: "Payments", was: `${originalPayments} payment${originalPayments === 1 ? "" : "s"}`, now: `${adaptivePayments} payment${adaptivePayments === 1 ? "" : "s"}`, note: null });
+  rows.push({ id: "approval", label: "Approval", was: original.approvalLabel, now: adaptive.approvalLabel, note: null });
+  return { rows, original, adaptive, changes, ...(args.economicsChanged ? { economicsChanged: args.economicsChanged } : {}) };
 }
