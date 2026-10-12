@@ -272,3 +272,19 @@ dialog.audit-drawer[open] {
 @media (prefers-reduced-motion: reduce) {
   [data-slot-pop="true"] { animation: none; }
 }
+
+/*
+ * On a desktop the presenter tools are a slim bar along the bottom edge. The page keeps room for it, so it never sits over
+ * the product, and it stops short of the guide pane. On a phone it stays a floating button above the bottom bars.
+ */
+@media (min-width: 768px) {
+  body { padding-bottom: 36px; }
+  .presenter-bar { inset: auto 0 0 0; height: 36px; background: #0b1b3f; border-top: 1px solid rgba(255, 255, 255, 0.15); }
+  body:has(.walkthrough-shell) .presenter-bar { right: 320px; }
+  .presenter-toggle { min-height: 36px; height: 36px; border: 0; border-radius: 0; box-shadow: none; padding: 0 16px; background: transparent; font-size: 13px; }
+  .presenter-panel { bottom: 36px; left: 12px; }
+  .settings-action-bar { bottom: 36px; }
+}
+@media (min-width: 1280px) {
+  body:has(.walkthrough-shell) .presenter-bar { right: 360px; }
+}

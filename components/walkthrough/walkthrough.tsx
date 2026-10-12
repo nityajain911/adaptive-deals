@@ -116,7 +116,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   if (!preferences.open) return preferences.dismissedWelcome ? (
     <button
       type="button"
-      className="fixed bottom-20 right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#3d6bff] bg-[#0b1b3f] px-4 text-[14px] font-semibold text-white shadow-lg hover:bg-[#12285a] md:bottom-5 md:right-5"
+      className="fixed bottom-20 right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#3d6bff] bg-[#0b1b3f] px-4 text-[14px] font-semibold text-white shadow-lg hover:bg-[#12285a] md:bottom-12 md:right-5"
       data-testid="walkthrough-resume"
       aria-label="Resume demo walkthrough"
       onClick={() => {

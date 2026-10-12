@@ -537,6 +537,9 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
   await expect(opener).toBeFocused();
+  // A second Escape closes the presenter panel itself, so it is not left over the product.
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("presenter-hub")).toBeHidden();
 
   await toggleDetails(page, ["see-economics"]);
   await page.getByTestId("primary-action").click();
@@ -1454,4 +1457,19 @@ test("counter-offer · sending the smaller scope withdraws the sent offer, prepa
   // It is previewed and sent like any proposal; the engine, not the page, refuses a change that does not pass.
   const refused = await api(page, { action: "answer_with_scope_change", packageId: "website-fixes" }, false);
   expect(refused.error).toBeTruthy();
+});
+
+test("presenter · on a desktop the tools are a bar along the bottom edge that the page makes room for, and never cover the product", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  const bar = page.getByTestId("presenter-frame");
+  const box = await bar.boundingBox();
+  expect(box!.y + box!.height).toBeGreaterThanOrEqual(DESKTOP.height - 1);
+  expect(box!.height).toBeLessThanOrEqual(40);
+  expect(await page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingBottom))).toBeGreaterThanOrEqual(36);
+  // The last thing on the page can be scrolled clear of the bar.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const footer = await page.locator("footer").last().boundingBox();
+  expect(footer!.y + footer!.height).toBeLessThanOrEqual(box!.y + 1);
 });
