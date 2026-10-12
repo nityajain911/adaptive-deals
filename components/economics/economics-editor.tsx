@@ -8,6 +8,7 @@ import { Button } from "@/components/client";
 import { ServicesTable } from "./services-table";
 import { GuardrailsForm } from "./guardrails-form";
 import { ReviewPanel } from "./review-panel";
+import { WhatIfPanel } from "./what-if-panel";
 import { CommercialMemoryPanel, type MemorySourceSummary } from "@/components/commercial-memory/commercial-memory-panel";
 
 type Json = { ok: boolean; result?: unknown; error?: string };
@@ -66,8 +67,11 @@ export function EconomicsEditor({ active, initialLabel, illustrativeContent, mem
       {children}
       <CommercialMemoryPanel sources={memorySources} onEditorVisibilityChange={setShowEditor} onApply={(next) => { setContent(next); setLadderText(next.discountLadderBps.map((x) => x / 100).join(", ")); setPreview(null); setError(null); }} />
       {showEditor ? <>
-      <ServicesTable services={content.services} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
-      <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
+      <ServicesTable services={content.services} guardrails={content.guardrails} onChange={(services) => { setContent((old) => ({ ...old, services })); setPreview(null); }} />
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+        <GuardrailsForm guardrails={content.guardrails} ladderText={ladderText} onGuardrails={(guardrails) => { setContent((old) => ({ ...old, guardrails })); setPreview(null); }} onLadder={(value) => { setLadderText(value); setPreview(null); }} />
+        <WhatIfPanel content={content} />
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="primary" data-testid="economics-review-button" disabled={pending} onClick={() => void run(async () => { const draft = contentForReview(); await action({ action: "save_economics_draft", content: draft }); const result = await action({ action: "preview_economics_activation" }) as EconomicsActivationPreview; setPreview(result); })}>{pending ? "Checking…" : "Check my changes"}</Button>
         <span className="text-[13px] text-muted" data-testid="economics-current">Saved as version {version}. Nothing changes until you check and save.</span>
