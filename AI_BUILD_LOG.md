@@ -1201,3 +1201,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** a merchant summary instead of the buyer's checkout page, the message as the main object framed as WhatsApp, a simple Send offer. **Applicant decision:** the buyer view opens as a sheet.
 
 **Where I departed from the brief:** the margin is about 50% of the price (the engine's measure), not 42% (which counts GST); the buyer-side disclosure is kept on the buyer's page and in the sheet; the draft message is read-only so it cannot drift from the approved terms.
+
+### 2026-10-12 — [Claude Code] After the offer is sent
+
+**Asked by the applicant:** no dead end after sending, no zero analytics, a lighter status. **Applicant decision:** the inbox confirmation is one line that clears on the next click.
+
+**Where I departed from the brief:** the timeline and the Performance tab already existed, so the work was removal (the repeated "waiting" text, the empty payment timeline and the outcome row) and the redirect; no "next pending buyer" button, because there is no queue in a three-deal prototype.

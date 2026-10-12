@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "@/components/client";
@@ -13,11 +13,17 @@ const DOT: Record<SituationTone, string> = { red: "bg-red", amber: "bg-amber", g
 const TEXT: Record<SituationTone, string> = { red: "text-red", amber: "text-amber", green: "text-green", neutral: "text-ink" };
 
 /** The deals as an inbox: who is waiting on the left, and what is in the way, in their own words, on the right. */
-export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; activeCaseId: CaseId }) {
+export function CasePicker({ cards, activeCaseId, sentTo = null }: { cards: CasePickerCard[]; activeCaseId: CaseId; sentTo?: string | null }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
   const [selected, setSelected] = useState<CaseId>(activeCaseId);
   const card = cards.find((item) => item.id === selected)!;
+  const [confirmed, setConfirmed] = useState(sentTo);
+
+  // The confirmation belongs to the moment after sending: take it out of the address so a reload does not repeat it.
+  useEffect(() => {
+    if (sentTo) window.history.replaceState(null, "", "/deals");
+  }, [sentTo]);
 
   const go = () =>
     run({ action: "open_deal", caseId: selected }, () => {
@@ -27,7 +33,9 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
     });
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]" data-walkthrough="case-picker">
+    <div className="space-y-3" data-walkthrough="case-picker">
+    {confirmed ? <p className="rounded-lg bg-green-weak px-4 py-2 text-[14px] font-medium text-green" role="status" data-testid="offer-sent-confirmation">Offer sent to {confirmed}</p> : null}
+    <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
       <div role="radiogroup" aria-label="Deals" className="h-fit overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
         <ul className="divide-y divide-line">
           {cards.map((item) => {
@@ -38,7 +46,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                   type="button"
                   role="radio"
                   aria-checked={chosen}
-                  onClick={() => setSelected(item.id)}
+                  onClick={() => { setSelected(item.id); setConfirmed(null); }}
                   data-testid={`select-case-${item.id}`}
                   className={cx("flex w-full flex-col gap-1 border-l-4 px-4 py-3.5 text-left", chosen ? "border-l-blue bg-blue-weak/50" : "border-l-transparent hover:bg-surface-muted")}
                 >
@@ -101,6 +109,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
           </ol>
         </div>
       </section>
+    </div>
     </div>
   );
 }

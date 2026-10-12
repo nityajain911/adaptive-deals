@@ -5,7 +5,7 @@ import { Send } from "lucide-react";
 import { Button, ErrorText, useAction } from "../client";
 
 /**
- * Send the exact previewed terms (spec §5.3). One click runs approval then delivery; a failed delivery returns to the Offer
+ * Send the exact previewed terms (spec §5.3). One click runs approval then delivery; a sent offer returns the merchant to the inbox, and a failed delivery returns to the Offer
  * stage with Retry sending, never reported as sent. It sits beside the drafted message, as the send button of a chat.
  */
 export function PreviewActions({ dealId, version, termsHash }: { dealId: string; version: number; termsHash: string }) {
@@ -21,7 +21,7 @@ export function PreviewActions({ dealId, version, termsHash }: { dealId: string;
         onClick={() =>
           run({ action: "approve_and_send_draft", version, termsHash }, (r) => {
             const delivered = (r as { delivered?: boolean } | null)?.delivered;
-            router.push(delivered ? `/deals/${dealId}/track` : `/deals/${dealId}/offer`);
+            router.push(delivered ? "/deals?sent=1" : `/deals/${dealId}/offer`);
           })
         }
       >

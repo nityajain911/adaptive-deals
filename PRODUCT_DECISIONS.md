@@ -613,3 +613,9 @@ The model's explanation has two parts that code validates separately: a full com
 **The send screen is the merchant's, not the buyer's.** It opens with four facts (included, buyer pays, you keep, approval), then the drafted WhatsApp message as a not-yet-sent draft with a small proposal card and **Send offer** beside it, like a chat. The buyer's page is in a sheet behind **Preview buyer view**: the same component the buyer sees, one click away, closed with Escape. The margin is shown as the engine measures it (about 50% of the price before GST), not against the GST-inclusive total.
 
 **The buyer's disclosure stays.** "How automatic payments work", the approval confirmation and "After you accept" were taken out of the merchant's path but not out of the product: they are the buyer's consent for the auto-pay authorisation and remain on the buyer's page and in the preview sheet. The message is not editable, because it carries the link to the exact terms being approved; sending is still the approval, bound to the same terms hash.
+
+## After the offer is sent (12 October 2026)
+
+**Sending returns the merchant to Active deals.** One line says "Offer sent to …" (and goes on the next click); the deal's row reads "Waiting for buyer". The deal's tracking page opens only when the merchant opens that deal. Retrying a failed send behaves the same.
+
+**A sent offer the buyer has not accepted is a quiet page**: the status, the timeline, the sent message, a compact offer card and one prominent **Back to active deals**. The "Next step" card ("Nothing for you to do right now"), the Agreement-and-payments timeline and the "Deal outcome · nothing collected yet" row are shown only once there is something to act on or collect. Performance stays on its own tab. A "next pending buyer" shortcut was not built: the prototype has three deals and one is open, so there is no queue to point at.

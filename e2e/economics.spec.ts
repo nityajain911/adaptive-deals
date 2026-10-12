@@ -267,7 +267,7 @@ test("overrides · once the proposal is sent, overrides can no longer be changed
   await expect(page.getByTestId("override-cash_exposure")).toBeVisible();
   await page.getByTestId("primary-action").click();
   await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
   const refused = await page.request.post("/api/actions", { data: { action: "add_input_override", field: "cash_exposure", value: 0, reason: "Too late to change" } });
   expect((await refused.json()).ok).toBe(false);
   expect(state().agreements.find((a) => a.status === "sent")!.economics?.effectiveHash).toBe(state().economics.effectiveHash);

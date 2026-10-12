@@ -159,7 +159,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
           {progress.blockingReason ? <p className="text-[13px] text-red">Last attempt: {progress.blockingReason}</p> : null}
           {v ? <p className="text-[13px] text-ink-2">Version {v.version} · {formatINR(v.terms.pricing.totalPaise)} including GST. The buyer has no access until it is delivered.</p> : null}
           <div className="flex flex-wrap items-center gap-3">
-            <PrimaryActionButton body={{ action: "retry_send", version: progress.version }} onDone={stageHref(dealId, "track")}>
+            <PrimaryActionButton body={{ action: "retry_send", version: progress.version }} onDone="/deals?sent=1">
               Retry sending
             </PrimaryActionButton>
             <DontProceed />

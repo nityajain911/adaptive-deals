@@ -28,7 +28,7 @@ export function CurrentAgreement({ summary }: { summary: CurrentAgreementSummary
           </ul>
           {summary.excluded.length ? <p className="mt-2 text-[13px] text-muted">Not included: {summary.excluded.join(", ")}.</p> : null}
           {summary.laterWorkStatement ? <p className="mt-1 text-[13px] font-medium text-ink-2">{summary.laterWorkStatement}</p> : null}
-          <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-[13px] text-ink-2" data-testid="agreement-readiness">{summary.readiness}</p>
+          {summary.readiness ? <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-[13px] text-ink-2" data-testid="agreement-readiness">{summary.readiness}</p> : null}
         </div>
         <div>
           <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted">{summary.kind === "accepted" ? "Still to collect" : "The buyer would pay"}</h3>

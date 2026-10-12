@@ -48,6 +48,8 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const primary = progress.primaryAction;
   const workItems = unresolvedWork(s);
   const hasAction = !!primary && ["draft_revised_terms", "review_revised_terms", "review_buyer_message", "review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id);
+  // A sent offer the buyer has not accepted: nothing to do, nothing collected, so the page is only the offer and the way back.
+  const quiet = progress.kind === "waiting_on_buyer" && !shown?.buyerAcceptance;
   const buyerVersion = progress.kind === "waiting_on_buyer" && progress.version ? progress.version : (shown?.version ?? 1);
 
   // Change request or amendment for the active version (stale earlier-version requests excluded).
@@ -92,13 +94,13 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
       <div className="space-y-5">
         <div data-walkthrough="collection-setup">
         <Card className="space-y-3 p-5" data-testid="now-card">
-          <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Next step</div>
+          {quiet ? null : <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Next step</div>}
           <div className="flex flex-wrap items-center gap-3">
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
             {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId="buyer-work-card">{primary.label}</RevealButton> : null}
-            {!hasAction ? <p className="text-[15px] text-ink-2" data-testid="no-action">Nothing for you to do right now.</p> : null}
+            {!hasAction && !quiet ? <p className="text-[15px] text-ink-2" data-testid="no-action">Nothing for you to do right now.</p> : null}
             {shown && progress.kind !== "action_required" && progress.kind !== "terminal" ? (
               // While the buyer is asked to act, link the version they must act on (e.g. the revision).
               <Link href={proposalLinkOf({ agreementId: shown.agreementId, version: buyerVersion })} className="text-[14px] font-semibold text-blue hover:underline" data-testid="open-buyer-proposal">
@@ -114,8 +116,8 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                 </InfoButton>
               </span>
             ) : null}
-            <Link href="/deals" className="ml-auto inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-surface-muted" data-testid="return-to-deals">
-              Return to deals
+            <Link href="/deals" className={quiet ? "ml-auto inline-flex min-h-10 items-center rounded-lg bg-blue px-4 text-[14px] font-semibold text-white hover:bg-blue-ink" : "ml-auto inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-surface-muted"} data-testid="return-to-deals">
+              {quiet ? "Back to active deals" : "Return to deals"}
             </Link>
           </div>
         </Card>
@@ -175,15 +177,15 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
             <CurrentAgreement summary={agreementSummary} />
           </details>
         ) : null}
-        {shown ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
+        {shown && !quiet ? <PaymentTimeline items={timeline} currentSentence={progress.headline} expectation={progress.primaryAction ? `Next: ${progress.primaryAction.label}.` : progress.kind === "waiting_on_buyer" ? "Their response will appear here. Nothing else is needed from you." : "We will keep this timeline updated as the payment state changes."} /> : null}
 
         {shown?.buyerAcceptance && (mcpView.connection.connected || mcpView.intent || mcpView.receipt) ? <McpCollectionActionCard simulatedCollection={s.paymentLinks.some((link) => link.mode === "simulated")} {...mcpView} /> : null}
 
 
-        <Link href={`/deals/${dealId}/performance`} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-5 py-3 text-[15px] hover:border-[#c7d3ff]" data-testid="track-outcome-link">
+        {quiet ? null : <Link href={`/deals/${dealId}/performance`} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-5 py-3 text-[15px] hover:border-[#c7d3ff]" data-testid="track-outcome-link">
           <span><span className="font-semibold text-ink">Deal outcome</span> <span className="text-ink-2">· {outcomeLine}</span></span>
           <span className="font-semibold text-blue">See performance →</span>
-        </Link>
+        </Link>}
       </div>
     </StageShell>
   );

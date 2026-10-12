@@ -246,7 +246,8 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await shot(page, "desktop-3b-preview-message");
 
   await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   await expectStage(page, "track", "Waiting for the buyer to review offer version 1", undefined);
   await shot(page, "desktop-5-track-waiting");
   await page.getByTestId("open-buyer-proposal").click();
@@ -301,7 +302,8 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await expect(page).toHaveURL(/\/offer$/);
   await clickPrimary(page);
   await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   await page.getByTestId("open-buyer-proposal").click();
   await page.getByTestId("accept").click();
   await page.getByTestId("setup-pay").click();
@@ -367,7 +369,8 @@ test("stale preview is blocked and a failed send remains retryable", async ({ pa
   const hidden = await page.request.get(`/proposal/agr-hero/v${fresh.version}`);
   expect(hidden.status()).toBe(404);
   await clickPrimary(page);
-  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   await expectStage(page, "track", "Waiting for the buyer to review", undefined);
 });
 
@@ -467,6 +470,9 @@ test("390px layouts remain focused and free of horizontal overflow", async ({ pa
   await page.getByTestId("primary-action").click();
   await noHorizontalScroll(page);
   await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await noHorizontalScroll(page);
+  await page.goto("/deals/hero/track");
   await page.getByTestId("open-buyer-proposal").click();
   await noHorizontalScroll(page);
   await shot(page, "mobile-3-buyer-proposal");
@@ -538,6 +544,8 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await page.getByTestId("primary-action").click();
   await toggleDetails(page, ["preview-agreement-details"]);
   await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   await page.getByTestId("open-buyer-proposal").click();
   await toggleDetails(page, ["agreement-details"]);
 });
@@ -784,13 +792,14 @@ test("step 3 · Track confirms the send, offers a way back, and keeps analytics 
   await page.goto("/deals/hero/track");
   const headline = (await page.getByTestId("status-headline").innerText()).trim();
   await expect(page.getByTestId("now-card")).not.toContainText(headline);
-  await expect(page.getByTestId("now-card")).toContainText("Next step");
+  await expect(page.getByTestId("no-action")).toHaveCount(0);
   await expect(page.getByTestId("delivery-status")).toContainText(/Sent to .+ at /);
-  await expect(page.getByTestId("return-to-deals")).toBeVisible();
+  await expect(page.getByTestId("return-to-deals")).toHaveText("Back to active deals");
   await expect(page.getByTestId("thread-track")).toBeVisible();
   await expect(page.getByTestId("outcome-card")).toHaveCount(0);
-  await expect(page.getByTestId("track-outcome-link")).toContainText("Nothing collected yet");
-  await expect(page.getByTestId("track-outcome-link")).not.toContainText("₹0");
+  // Nothing is collected before the buyer accepts, so no outcome and no payment timeline are shown.
+  await expect(page.getByTestId("track-outcome-link")).toHaveCount(0);
+  await expect(page.getByText("Agreement and payments")).toHaveCount(0);
   await page.getByTestId("return-to-deals").click();
   await expect(page).toHaveURL(/\/deals$/);
   await expect(page.getByTestId("deal-status-reduced-scope")).toContainText("Waiting on buyer");
@@ -1096,7 +1105,8 @@ test("counter-offer · the merchant answers a buyer's request for a lower amount
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
   await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   await expectStage(page, "track", "Waiting for the buyer to review offer version 2", undefined);
   await page.goto(`/proposal/${sent.agreementId}/v1`);
   await expect(page.getByTestId("buyer-status")).toContainText("replaced");
@@ -1249,7 +1259,8 @@ test("step 5 · the strategy control works from the keyboard, and a sent version
   await clickPrimary(page);
   await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$/);
   await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/track$/);
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
   expect(state().agreements.find((a) => a.status === "sent")!.economics?.strategy).toBe("protect_contribution");
   const refused = await page.request.post("/api/actions", { data: { action: "set_strategy", strategy: "preserve_scope" } });
   expect((await refused.json()).ok).toBe(false);

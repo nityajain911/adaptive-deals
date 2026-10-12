@@ -69,7 +69,7 @@ function scopeLines(v: AgreementVersion, packages: ServicePackage[]): { included
 }
 
 function readinessFor(kind: CurrentAgreementSummary["kind"], setup: PaymentSetupSummary): string {
-  if (kind === "proposed") return "Waiting for the buyer to accept. Nothing is set up until they do.";
+  if (kind === "proposed") return "";
   if (kind === "declined") return "The buyer declined. Nothing was set up.";
   const parts: string[] = [];
   if (setup.upfront === "pending") parts.push("First payment not paid yet");
