@@ -1473,3 +1473,20 @@ test("presenter · on a desktop the tools are a bar along the bottom edge that t
   const footer = await page.locator("footer").last().boundingBox();
   expect(footer!.y + footer!.height).toBeLessThanOrEqual(box!.y + 1);
 });
+
+test("audit · services are named in words, and Commercial Memory is one row per service with a summary", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await clickReviewer(page, "audit-details");
+  const drawer = page.getByTestId("audit-drawer");
+  const table = drawer.getByTestId("audit-evidence-table");
+  await expect(table).toContainText("Website fixes, Search marketing");
+  await expect(table).not.toContainText("website-fixes");
+  const memory = drawer.getByTestId("audit-commercial-memory");
+  await expect(memory.getByTestId("memory-summary")).toContainText("Prices and delivery costs retrieved for 4 services");
+  await expect(memory.locator('[data-testid^="memory-service-"]')).toHaveCount(4);
+  await expect(memory.getByTestId("memory-service-website-fixes")).toContainText("Website fixes,24000,one time");
+  await expect(memory.getByTestId("memory-service-website-fixes")).toContainText("Website fixes,12000,start of delivery month");
+  await expect(memory).toContainText("exact quote, retrieved by code");
+});

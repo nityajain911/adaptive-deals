@@ -112,24 +112,27 @@ export function AuditSections({ s, out, deal, memory = null, reproduced = null }
 
       {memory ? <section aria-labelledby="audit-memory" data-testid="audit-commercial-memory">
         <H id="audit-memory">Commercial Memory</H>
-        <p className="text-[12px] text-muted">Exact quotes retrieved by code from the merchant&apos;s documents, grouped by service. Source access rules were applied before ranking. Nothing here was written by a model.</p>
-        {memory.history ? <p className="mt-1"><span className="font-medium text-ink">Buyer history</span> · {memory.history.sourceTitle} · {memory.history.effectiveFrom} <CopyButton value={memory.history.chunkId} label="chunk id" /></p> : <p className="mt-1 text-muted">No eligible buyer history was used.</p>}
-        <ul className="mt-2 space-y-2">
-          {memoryByService.map((group) => (
-            <li key={group.serviceId} className="rounded-lg border border-line px-3 py-2" data-testid={`memory-service-${group.serviceId}`}>
-              <div className="font-semibold text-ink">{group.serviceName} <span className="font-normal text-muted">· {group.items.length} quote{group.items.length === 1 ? "" : "s"} from {new Set(group.items.map((item) => item.sourceId)).size} document{new Set(group.items.map((item) => item.sourceId)).size === 1 ? "" : "s"}</span></div>
-              <ul className="mt-1 space-y-1">
-                {group.items.map((item) => (
-                  <li key={`${item.serviceId}-${item.kind}`}>
-                    <span className="font-medium text-ink">{item.kind === "price" ? "Price" : "Cost"}</span> · {item.sourceTitle} · from {item.effectiveFrom}
-                    <blockquote className="mt-0.5 border-l-2 border-blue pl-2 text-ink">“{item.quote}”</blockquote>
-                    <span className="text-[12px] text-muted">exact quote, retrieved by code </span><CopyButton value={item.chunkId} label="chunk id" />
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+        <p className="text-[13px] text-ink" data-testid="memory-summary">
+          Prices and delivery costs retrieved for {memoryByService.length} service{memoryByService.length === 1 ? "" : "s"} from {new Set(memoryByService.flatMap((group) => group.items.map((item) => item.sourceId))).size} documents. Each value is an exact quote, retrieved by code after the source access rules were applied. Nothing here was written by a model.
+        </p>
+        {memory.history ? <p className="mt-1 text-[12px] text-muted">Buyer history used: {memory.history.sourceTitle}, {memory.history.effectiveFrom} <CopyButton value={memory.history.chunkId} label="chunk id" /></p> : <p className="mt-1 text-[12px] text-muted">No eligible buyer history was used.</p>}
+        <div className="mt-2 overflow-hidden rounded-xl border border-line" role="table" aria-label="Retrieved prices and costs by service">
+          <div role="row" className="hidden grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1.2fr)] gap-3 border-b border-line bg-surface-muted px-3 py-2 text-[12px] font-semibold uppercase tracking-wide text-muted sm:grid"><span role="columnheader">Service</span><span role="columnheader">Price quote</span><span role="columnheader">Cost quote</span></div>
+          <div className="divide-y divide-line">
+            {memoryByService.map((group) => {
+              const price = group.items.find((item) => item.kind === "price");
+              const cost = group.items.find((item) => item.kind === "cost");
+              const quote = (item: typeof price) => item ? <div><blockquote className="border-l-2 border-blue pl-2 text-ink">“{item.quote}”</blockquote><span className="text-[12px] text-muted">{item.sourceTitle}, from {item.effectiveFrom} </span><CopyButton value={item.chunkId} label="chunk id" /></div> : <span className="text-muted">Not retrieved</span>;
+              return (
+                <div key={group.serviceId} role="row" className="grid gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1.2fr)]" data-testid={`memory-service-${group.serviceId}`}>
+                  <div role="cell" className="font-medium text-ink">{group.serviceName}</div>
+                  <div role="cell">{quote(price)}</div>
+                  <div role="cell">{quote(cost)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section> : null}
 
       {branch ? (

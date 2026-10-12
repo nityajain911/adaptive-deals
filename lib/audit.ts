@@ -41,12 +41,14 @@ export function auditSources(s: AuditState, run: RunRecord, viewing: "replay" | 
     { item: "Original annual proposal", source: "Synthetic deal fixture", detail: "₹1,20,000 pre-GST annual scope at list price + 18% GST = ₹1,41,600" },
     { item: "Merchant costs and rules", source: s.economics ? `Your prices & costs, version ${s.economics.pinned.version}${isIllustrativeHash(s.economics.pinned.hash) ? " (illustrative example)" : ""}${s.economics.overrides.length ? `, with ${s.economics.overrides.length} deal override${s.economics.overrides.length === 1 ? "" : "s"}` : ""} · synthetic demo data` : "Synthetic deal fixture" },
   ];
+  // A service is named in words, never by its identifier.
+  const named = (text: string) => packages.reduce((acc, p) => acc.split(p.id).join(p.name), text);
   for (const f of run.engine.profile) {
     if (f.evidence.length) {
       out.push({
         item: f.label,
         source: "Simulated WhatsApp conversation",
-        value: f.display,
+        value: f.display === null ? f.display : named(f.display),
         evidence: f.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId })),
         detail: f.evidence.map((e) => `“${e.quote}”`).join(" "),
         advanced: f.evidence.map((e) => `“${e.quote}” (${e.messageId}, chars ${e.start}–${e.end})`).join(" "),
