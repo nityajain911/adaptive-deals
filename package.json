@@ -18,7 +18,8 @@
     "eval:memory": "tsx --env-file-if-exists=.env.local scripts/run-commercial-memory-eval.ts",
     "hero:report": "tsx scripts/hero-report.ts",
     "replay:build": "tsx scripts/build-synthetic-replay.ts",
-    "mcp:discover": "tsx --env-file-if-exists=.env.local --conditions=react-server scripts/mcp-discover.ts"
+    "mcp:discover": "tsx --env-file-if-exists=.env.local --conditions=react-server scripts/mcp-discover.ts",
+    "one-pager": "node scripts/build-one-pager.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
