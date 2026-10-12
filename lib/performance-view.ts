@@ -7,6 +7,7 @@ import { outcomeSummary, type OutcomeSummary } from "./outcome";
 import type { DealContext } from "@/ai/orchestrator";
 import type { DemoState } from "./service";
 import { activeVersionOf } from "./views";
+import { evaluatedForVersion } from "./version-structure";
 
 type Outcome = Awaited<ReturnType<typeof import("./service").currentOutcome>>;
 
@@ -24,10 +25,16 @@ export function performanceView(args: { s: DemoState; out: Outcome; deal: DealCo
   const shown = s.agreements.find((v) => v.version === (active?.version ?? latestDelivered?.version));
   let shownStructure: Structure | null = null;
   if (shown) {
-    const x = s.amendments.find((a) => a.toVersion === shown.version)?.revised ?? out.evaluation.result?.structures.find((e) => e.structure.id === shown.structureId);
+    const x = evaluatedForVersion(s, shown, out);
     if (x) shownStructure = x.structure;
   }
-  const summary = outcomeSummary({ s, acceptedStructure: shown?.buyerAcceptance ? shownStructure : null, policy: deal.merchant.policy, now, timeZone: deal.merchant.timeZone });
+  // The rest of the year carries on from the first phase: both phases' costs and forecast belong to the one deal.
+  const earlierStructures: Structure[] = [];
+  for (let v = shown?.continuesFrom ? s.agreements.find((x) => x.version === shown.continuesFrom) : undefined; v; v = v.continuesFrom ? s.agreements.find((x) => x.version === v!.continuesFrom) : undefined) {
+    const earlier = evaluatedForVersion(s, v, out);
+    if (earlier) earlierStructures.push(earlier.structure);
+  }
+  const summary = outcomeSummary({ s, acceptedStructure: shown?.buyerAcceptance ? shownStructure : null, earlierStructures, policy: deal.merchant.policy, now, timeZone: deal.merchant.timeZone });
 
   const signals: OutcomeSignal[] = s.outcomes.map((o) => {
     let label: string;
@@ -48,5 +55,6 @@ export function performanceView(args: { s: DemoState; out: Outcome; deal: DealCo
 /** One honest line for the deal screen. A ₹0 figure is never shown: nothing collected reads as nothing collected. */
 export function performanceLine(summary: OutcomeSummary): string {
   if (summary.collected.totalPaise <= 0) return summary.acceptedTotalPaise === null ? "Nothing collected yet. The buyer has not accepted." : "Nothing collected yet.";
-  return `${formatINR(summary.collected.totalPaise)} collected so far`;
+  // After the 90 days the figure is the window's, not everything collected since: the rest of the year is collected after it.
+  return summary.window === "ended" ? `${formatINR(summary.collected.totalPaise)} collected in the first 90 days` : `${formatINR(summary.collected.totalPaise)} collected so far`;
 }

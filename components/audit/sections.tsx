@@ -1,6 +1,7 @@
 import type { RunOutcome } from "@/ai/orchestrator";
 import { formatDate } from "@/domain/dates";
 import type { EvaluatedStructure } from "@/domain/engine";
+import { evaluatedForVersion } from "@/lib/version-structure";
 import { formatINR, sum } from "@/domain/money";
 import type { DealContext } from "@/ai/orchestrator";
 import { appliedRules, auditSources, branchAudit, executionPipeline, merchantExceptions, modelHeader, whoDidWhat, type PipelineStep } from "@/lib/audit";
@@ -42,7 +43,7 @@ function H({ id, children }: { id: string; children: React.ReactNode }) {
 
 function offerStructure(s: DemoState, out: RunOutcome): EvaluatedStructure | null {
   const v = activeVersionOf(s.agreements) ?? [...s.agreements].reverse().find((a) => a.status !== "draft") ?? null;
-  if (v) return s.amendments.find((a) => a.toVersion === v.version)?.revised ?? out.evaluation.result?.structures.find((x) => x.structure.id === v.structureId) ?? null;
+  if (v) return evaluatedForVersion(s, v, out);
   const id = s.selectedOption?.structureId ?? strategyViewOf(s, out).leader?.structure.id;
   return out.evaluation.result?.structures.find((x) => x.structure.id === id) ?? null;
 }

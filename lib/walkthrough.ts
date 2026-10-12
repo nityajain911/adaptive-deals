@@ -8,7 +8,7 @@ import type { DemoState } from "./service";
 import { WALKTHROUGH_VERSION } from "./walkthrough-version";
 export { WALKTHROUGH_VERSION } from "./walkthrough-version";
 
-export type WalkthroughCapability = "business_economics" | "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice";
+export type WalkthroughCapability = "business_economics" | "case_picker" | "current_offer" | "preventive_depth" | "live_customisation" | "negotiation" | "test_invoice" | "follow_on";
 export type WalkthroughActor = "merchant" | "buyer" | "system" | "ai" | "sample" | "engine";
 export type WalkthroughProvenance = "live_model" | "recorded_model" | "synthetic_replay" | "saved_groq_exact_match" | "deterministic_engine" | "merchant" | "simulated_buyer" | "razorpay_test_mode";
 
@@ -71,7 +71,7 @@ export interface WalkthroughView {
   finish: WalkthroughFinish | null;
 }
 
-const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation"]);
+const SHIPPED_CAPABILITIES: ReadonlySet<WalkthroughCapability> = new Set(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation", "follow_on"]);
 
 const REGISTRY: readonly WalkthroughObjective[] = [
   {
@@ -157,6 +157,20 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     anchorId: "collection-setup",
     optional: false,
     capability: "preventive_depth",
+  },
+  {
+    id: "month_three_review",
+    actor: "merchant",
+    title: "The month-three review",
+    pitch: "Two phases, and the deal closes in the second",
+    watch: "The rest of the year was held in the terms both sides approved. It is sent only after the first phase is paid, and only while the held price is open.",
+    architecture: "The held offer is part of the terms hash. At the review the same engine checks it again, and it goes out as its own version with its own payment setup.",
+    instruction: "Collect the first phase's last payment, move to the review date, then send the rest of the year and let the buyer accept it.",
+    notice: "Nothing is collected for the rest of the year until the buyer accepts it. There is no third phase.",
+    href: "/deals/:dealId/track",
+    anchorId: "collection-setup",
+    optional: true,
+    capability: "follow_on",
   },
   {
     id: "no_fit",
@@ -251,10 +265,13 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
   if (terminal) lines.push(terminal);
   else if (amended?.state === "active") lines.push(`A payment was moved to a later date after both sides approved version ${amended.toVersion}.`);
   else lines.push("Every scheduled payment was collected.");
+  if (state.followOnSale) lines.push(`After the review, the rest of the year went out as version ${state.followOnSale.version} and the buyer accepted it. It is the second and last phase.`);
   return { title: terminal ? "Walkthrough ended" : "Walkthrough complete", lines };
 }
 
 function objectiveFor(progress: DealProgress, state: DemoState): string {
+  if (progress.rule.startsWith("track.follow_on") || (state.followOnSale && progress.rule.startsWith("track."))) return "month_three_review";
+  if (progress.rule === "track.next_payment" && state.amendments.at(-1)?.state === "active" && nextDemoStep(state, progress, "x")?.id === "collect_payment") return "month_three_review";
   if (progress.rule === "track.buyer_request" && state.conversation.some((m) => m.kind === "change_request" && m.refs?.topic === "price")) return "negotiate_price";
   if (progress.rule === "offer.no_feasible") return "no_fit";
   if (progress.rule === "review.required") return progress.stage === "understand" ? "understand_buyer" : "review_decision";
@@ -323,6 +340,7 @@ function provenanceFor(objectiveId: string, state: DemoState): WalkthroughProven
   if (objectiveId === "preventive_restructure") return "simulated_buyer";
   if (objectiveId === "no_fit") return "deterministic_engine";
   if (objectiveId === "negotiate_price") return "merchant";
+  if (objectiveId === "month_three_review") return "merchant";
   return null;
 }
 

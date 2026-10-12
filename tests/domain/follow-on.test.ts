@@ -5,7 +5,7 @@ import { FixedClock } from "@/domain/clock";
 import { interpretations } from "@/domain/constraints";
 import { proposalMessageText } from "@/domain/conversation";
 import { enumerateAndEvaluate, type EngineInput } from "@/domain/engine";
-import { canonicalFollowOn, deriveFollowOn, heldOfferSentence } from "@/domain/follow-on";
+import { canonicalFollowOn, deriveFollowOn, followOnStandingOn, heldOfferSentence } from "@/domain/follow-on";
 import { demoCase } from "@/data/synthetic/cases";
 import { proposalView } from "@/lib/views";
 import { clarifiedHeroProfile, heroInput } from "../helpers";
@@ -103,5 +103,13 @@ describe("the rest of the year, held after a first phase", () => {
     const plain = createAgreementVersion({ agreementId: "agr-test", version: 1, evaluated: phase, dealId: item.deal.dealId, merchantId: item.deal.merchant.id, buyerId: item.buyer.id, policy: item.deal.merchant.policy, clock: new FixedClock() });
     expect(proposalMessageText(plain.terms, 1, "https://example.test/p")).not.toContain("rest of the year");
     expect(proposalView(plain, input.packages, input.merchant.policy).heldOffer).toBeNull();
+  });
+
+  it("waits for the review, is open from the review day to the held date inclusive, then lapses", () => {
+    const held = { reviewDate: "2027-02-01", heldUntil: "2027-03-18" };
+    expect(followOnStandingOn(held, "2027-01-31")).toBe("waiting_review");
+    expect(followOnStandingOn(held, "2027-02-01")).toBe("due");
+    expect(followOnStandingOn(held, "2027-03-18")).toBe("due");
+    expect(followOnStandingOn(held, "2027-03-19")).toBe("lapsed");
   });
 });

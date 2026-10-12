@@ -122,6 +122,8 @@ export interface AgreementVersion {
   buyerDecline?: { by: string; at: string };
   supersedes: number | null;
   economics?: EconomicsRef;
+  /** Set on the rest of the year: the first-phase version it carries on from. Not part of the terms, and not a revision of them. */
+  continuesFrom?: number | null;
 }
 
 export class AgreementError extends Error {}
@@ -141,6 +143,8 @@ export function createAgreementVersion(args: {
   economics?: EconomicsRef;
   /** The rest of the year held for a first-phase offer. A revision carries the earlier version's own, unchanged. */
   followOn?: CanonicalFollowOn | null;
+  /** The first-phase version the rest of the year carries on from. */
+  continuesFrom?: number | null;
 }): AgreementVersion {
   if (!args.evaluated.approvable && !args.merchantOverride) {
     throw new AgreementError(`Structure ${args.evaluated.structure.id} is ${args.evaluated.verdict}; only feasible structures can become agreements`);
@@ -169,6 +173,7 @@ export function createAgreementVersion(args: {
     buyerAcceptance: null,
     supersedes: args.supersedes ?? null,
     economics: args.economics ? structuredClone(args.economics) : undefined,
+    ...(args.continuesFrom ? { continuesFrom: args.continuesFrom } : {}),
   };
 }
 

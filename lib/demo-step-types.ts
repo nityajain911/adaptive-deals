@@ -1,6 +1,6 @@
 export type DemoStepType = "merchant" | "buyer" | "system";
-export type SystemStepId = "pay_upfront_link" | "confirm_mandate" | "advance_to_notice" | "send_notice";
-export const SYSTEM_STEPS: readonly SystemStepId[] = ["pay_upfront_link", "confirm_mandate", "advance_to_notice", "send_notice"];
+export type SystemStepId = "pay_upfront_link" | "confirm_mandate" | "advance_to_notice" | "send_notice" | "collect_payment" | "advance_to_review";
+export const SYSTEM_STEPS: readonly SystemStepId[] = ["pay_upfront_link", "confirm_mandate", "advance_to_notice", "send_notice", "collect_payment", "advance_to_review"];
 
 export interface DemoStepShape {
   id: string;

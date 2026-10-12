@@ -25,4 +25,9 @@ describe("performanceLine", () => {
   it("states what has been collected once something has", () => {
     expect(performanceLine(summary({ collected: { totalPaise: 2301000, prePaise: 1950000 } }))).toContain("23,010");
   });
+
+  it("says the figure is the first 90 days' once the window has ended, because the rest of the year is collected after it", () => {
+    expect(performanceLine(summary({ window: "ended", collected: { totalPaise: 4602000, prePaise: 3900000 } }))).toBe("₹46,020 collected in the first 90 days");
+    expect(performanceLine(summary({ collected: { totalPaise: 4602000, prePaise: 3900000 } }))).toBe("₹46,020 collected so far");
+  });
 });

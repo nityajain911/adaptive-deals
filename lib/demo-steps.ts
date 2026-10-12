@@ -62,7 +62,7 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       // The buyer pays and sets up automatic payment in one step on their proposal page.
       return nav("buyer_setup", "buyer", "Next: the buyer pays on the proposal page", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", progress.version ?? 1));
     case "track.next_payment": {
-      if (s.amendments.at(-1)?.state === "active") return null; // storyboard complete
+      if (s.amendments.at(-1)?.state === "active") return afterStoryboard(s, at("track"));
       // Complete the current notice exchange before jumping to a later instalment.
       if (replyContext(s)) return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the notice", at("track"), true);
       const n = pendingNotice(s);
@@ -83,10 +83,28 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
     }
     case "track.attention":
       return nav("review_buyer_message", "merchant", "Next: review the buyer's message", at("track"));
+    case "track.follow_on_waiting": {
+      const held = heldOf(s);
+      return held ? sys("advance_to_review", `Advance simulated date to ${formatDate(held.reviewDate)}`, at("track")) : null;
+    }
+    case "track.follow_on_due":
+      return nav("send_follow_on", "merchant", "Next: send the rest of the year", at("track"));
     default:
       // Terminal states, debit outcomes (secondary presenter scenario) and fully paid: nothing to guide.
       return null;
   }
+}
+
+const heldOf = (s: DemoState) => [...s.agreements].reverse().find((v) => v.status === "active")?.terms.followOn ?? null;
+
+/**
+ * Where the hero storyboard used to end: a payment moved and agreed. When the first phase holds the rest of the year, the
+ * guide goes on, one labelled step at a time, to the last payment of the first phase and the month-three review.
+ */
+function afterStoryboard(s: DemoState, href: string): DemoStep | null {
+  if (s.followOnSale || !heldOf(s)) return null;
+  const due = s.attempts.filter((a) => a.status === "scheduled" && a.method === "recurring_debit" && a.origin !== "internal_retry").sort((p, q) => compareDates(p.dueDate, q.dueDate))[0];
+  return due ? sys("collect_payment", `Collect the payment due ${formatDate(due.dueDate)}`, href) : null;
 }
 
 /** The message a simulated buyer reply is expected for, with its pre-scripted replies; null if none. */

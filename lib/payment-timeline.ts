@@ -31,10 +31,12 @@ function lineage(agreements: AgreementVersion[], version: number) {
   const selected = agreements.find((agreement) => agreement.version === version);
   if (!selected) return new Set<number>();
   const versions = new Set<number>([selected.version]);
-  let parent = selected.supersedes ?? null;
+  // The rest of the year carries on from the first phase, so one timeline tells both.
+  let parent = selected.supersedes ?? selected.continuesFrom ?? null;
   while (parent !== null) {
     versions.add(parent);
-    parent = agreements.find((agreement) => agreement.version === parent)?.supersedes ?? null;
+    const earlier = agreements.find((agreement) => agreement.version === parent);
+    parent = earlier?.supersedes ?? earlier?.continuesFrom ?? null;
   }
   return versions;
 }
@@ -53,7 +55,7 @@ export function paymentTimeline(s: TimelineState, version: number): TimelineItem
     items.push({
       id: `delivered-v${delivery.version}`,
       at: delivery.deliveredAt!,
-      label: delivery.kind === "amendment" ? "Revised proposal sent to buyer" : "Proposal sent to buyer",
+      label: delivery.kind === "amendment" ? "Revised proposal sent to buyer" : s.agreements.find((a) => a.version === delivery.version)?.continuesFrom ? "The rest of the year sent to buyer" : "Proposal sent to buyer",
       detail: `Version ${delivery.version}.`,
       state: "completed",
       sourceIds: [`delivery-v${delivery.version}`, ...(delivery.reference ? [delivery.reference] : [])],
@@ -65,7 +67,7 @@ export function paymentTimeline(s: TimelineState, version: number): TimelineItem
       items.push({
         id: `accepted-v${agreement.version}`,
         at: agreement.buyerAcceptance.at,
-        label: agreement.supersedes ? "Buyer accepted revised payment date" : "Buyer accepted the deal",
+        label: agreement.continuesFrom ? "Buyer accepted the rest of the year" : agreement.supersedes ? "Buyer accepted revised payment date" : "Buyer accepted the deal",
         detail: `Version ${agreement.version} confirmed.`,
         state: "completed",
         sourceIds: [`agreement-v${agreement.version}`],

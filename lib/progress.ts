@@ -29,7 +29,8 @@ export type PrimaryActionId =
   | "review_conflicting_evidence"
   | "review_follow_up"
   | "review_buyer_message"
-  | "inspect_records";
+  | "inspect_records"
+  | "send_follow_on";
 
 export interface DealProgress {
   stage: StageId;
@@ -48,6 +49,8 @@ export interface ProgressFacts {
   engineState: "ambiguous" | "insufficient_information" | "outside_templates" | "no_feasible_deal" | "options_ready";
   draftStale: boolean;
   fullyPaid: boolean;
+  /** The rest of the year held after the first phase, once the first phase is paid in full. */
+  followOn?: { state: "waiting_review" | "due" | "lapsed"; reviewDate: string; heldUntil: string; totalPaise: number } | null;
   questionCountUnsent: number;
   unansweredQuestions: number;
   repliesNeedInterpretation: number;
@@ -147,7 +150,10 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     if (f.pendingDebit === "submitted") return info("track", "track.debit_pending", "waiting_on_system", "system", "Awaiting payment outcome.", activeV);
     if (f.pendingDebit) return info("track", "track.debit_pending", "waiting_on_system", "system", `Debit failed · retry scheduled for ${formatDate(f.pendingDebit.retryOn)}.`, activeV);
     if (f.nextPayment) return info("track", "track.next_payment", "informational", null, `Up to date · next payment ${formatINR(f.nextPayment.amountPaise)} on ${formatDate(f.nextPayment.dueDate)}.`, activeV);
-    if (f.fullyPaid) return info("track", "track.fully_paid", "informational", null, "All scheduled payments collected.", activeV);
+    if (f.followOn?.state === "due") return act("track", "track.follow_on_due", `The first phase is paid. Send the rest of the year (${formatINR(f.followOn.totalPaise)}), held until ${formatDate(f.followOn.heldUntil)}.`, "send_follow_on", "Send the rest of the year", activeV);
+    if (f.followOn?.state === "waiting_review") return info("track", "track.follow_on_waiting", "informational", null, `First phase paid. The review is on ${formatDate(f.followOn.reviewDate)}.`, activeV);
+    if (f.followOn?.state === "lapsed") return info("track", "track.follow_on_lapsed", "informational", null, `First phase paid. The held price for the rest of the year ran out on ${formatDate(f.followOn.heldUntil)}.`, activeV);
+    if (f.fullyPaid) return info("track", "track.fully_paid", "informational", null, s.agreements.find((v) => v.version === activeV)?.continuesFrom ? "Both phases collected. This deal is complete." : "All scheduled payments collected.", activeV);
     throw new Error("dealProgress: unmapped Track state");
   }
 

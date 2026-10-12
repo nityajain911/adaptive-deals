@@ -136,6 +136,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("change_answer"), questionId: z.string().max(40), value: z.string().max(20) }),
   z.object({ action: z.literal("understand_reviewed") }),
   z.object({ action: z.literal("buyer_complete_setup") }),
+  z.object({ action: z.literal("send_follow_on") }),
   // Buyer proposal page (demo buyer view).
   z.object({
     action: z.literal("request_change"),
@@ -339,6 +340,9 @@ export async function POST(request: Request) {
         break;
       case "buyer_complete_setup":
         await svc.buyerCompleteSetup();
+        break;
+      case "send_follow_on":
+        await svc.sendFollowOn();
         break;
       case "understand_reviewed":
         await svc.markUnderstandReviewed();

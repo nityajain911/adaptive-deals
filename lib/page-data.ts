@@ -44,10 +44,9 @@ export function liveProviderDiagnostics(env: Record<string, string | undefined> 
 
 import type { AgreementVersion } from "@/domain/agreement";
 import type { EvaluatedStructure } from "@/domain/engine";
+import { evaluatedForVersion } from "./version-structure";
 
 /** The evaluated structure behind an agreement version (original or amended). */
 export function structureFor(page: Awaited<ReturnType<typeof loadPage>>, v: AgreementVersion): EvaluatedStructure | null {
-  const a = page.s.amendments.find((x) => x.toVersion === v.version);
-  if (a) return a.revised;
-  return page.out.evaluation.result?.structures.find((x) => x.structure.id === v.structureId) ?? null;
+  return evaluatedForVersion(page.s, v, page.out);
 }

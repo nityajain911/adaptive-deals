@@ -110,7 +110,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
           </div>
         </div>
         <h1 id="proposal-title" className="mt-4 text-[22px] font-bold leading-7 tracking-tight text-ink">
-          {amendment ? "Revised payment date" : "Your proposal"}
+          {amendment ? "Revised payment date" : v.continuesFrom ? "The rest of the year" : "Your proposal"}
         </h1>
         {amendment && changedLine && previousLine ? (
           <p className="mt-1 text-[14px] leading-6 text-ink-2" data-testid="revision-summary">

@@ -1,8 +1,8 @@
-import { addDays, addMonths, formatDate, type CalendarDate } from "./dates";
+import { addDays, addMonths, compareDates, formatDate, type CalendarDate } from "./dates";
 import { evaluateStructure, type ApprovalLabel, type EngineInput, type EvaluatedStructure } from "./engine";
 import { isCounterStructureId } from "./counter";
 import { formatINR, sum, type Paise } from "./money";
-import { buildStructure } from "./structures";
+import { buildStructure, type Structure } from "./structures";
 import type { BuyerConstraints, PaymentPlan, ScopeItem } from "./types";
 
 /**
@@ -28,6 +28,8 @@ export interface FollowOn {
   /** Today's rates stay available to the buyer until this day. */
   heldUntil: CalendarDate;
   instalments: number;
+  /** Months after the start of the rest of the year at which each payment falls, so it can be rebuilt exactly. */
+  paymentOffsetsMonths: number[];
   prePaise: Paise;
   gstPaise: Paise;
   totalPaise: Paise;
@@ -47,6 +49,7 @@ export const canonicalFollowOn = (f: FollowOn): CanonicalFollowOn => ({
   reviewDate: f.reviewDate,
   heldUntil: f.heldUntil,
   instalments: f.instalments,
+  paymentOffsetsMonths: [...f.paymentOffsetsMonths],
   approval: f.approval,
   pricing: { prePaise: f.prePaise, gstPaise: f.gstPaise, totalPaise: f.totalPaise },
 });
@@ -54,6 +57,10 @@ export const canonicalFollowOn = (f: FollowOn): CanonicalFollowOn => ({
 /** The one sentence the buyer reads about the held offer, in the message and on the proposal. */
 export const heldOfferSentence = (f: Pick<CanonicalFollowOn, "pricing" | "heldUntil">): string =>
   `The rest of the year (${formatINR(f.pricing.totalPaise)} including GST) stays open at today's rates until ${formatDate(f.heldUntil)}.`;
+
+/** Where a held offer stands on a given day: before its review, open, or ran out unused. */
+export const followOnStandingOn = (held: Pick<CanonicalFollowOn, "reviewDate" | "heldUntil">, today: CalendarDate): "waiting_review" | "due" | "lapsed" =>
+  compareDates(today, held.heldUntil) > 0 ? "lapsed" : compareDates(today, held.reviewDate) < 0 ? "waiting_review" : "due";
 
 const equalMonths = (count: number, every: number) => Array.from({ length: count }, (_, i) => i * every);
 
@@ -112,6 +119,7 @@ export function deriveFollowOn(x: EvaluatedStructure, constraints: BuyerConstrai
       reviewDate: startDate,
       heldUntil: addDays(startDate, FOLLOW_ON_POLICY.holdDays),
       instalments: structure.payments.length,
+      paymentOffsetsMonths: plan.offsetsMonths,
       prePaise: structure.pricePaise,
       gstPaise: sum(structure.payments.map((p) => p.gstPaise)),
       totalPaise: sum(structure.payments.map((p) => p.totalPaise)),
@@ -120,4 +128,39 @@ export function deriveFollowOn(x: EvaluatedStructure, constraints: BuyerConstrai
     };
   }
   return null;
+}
+
+/**
+ * The rest of the year as a structure the engine can check and the buyer can accept, rebuilt exactly from what was held.
+ * Its payment lines carry their own ids, so they never collide with the first phase's.
+ */
+export function followOnStructure(held: CanonicalFollowOn, input: EngineInput): Structure {
+  const built = buildStructure({
+    template: "phased_scope",
+    params: { follow_on: 1, plan: "follow_on_rest" },
+    label: "The rest of the year",
+    scopeKind: "full",
+    scope: held.scope,
+    fullScope: input.templates.fullScope,
+    startDate: held.startDate,
+    plan: { id: "follow_on_rest", label: `${held.paymentOffsetsMonths.length} payments`, offsetsMonths: held.paymentOffsetsMonths },
+    discountBps: 0,
+    packages: input.packages,
+    gstRateBps: input.merchant.policy.gstRateBps,
+  });
+  const pay = (id: string) => `p2-${id}`;
+  return {
+    ...built,
+    // The first phase already delivered what this leaves out, so nothing is "not included".
+    excludedPackageIds: [],
+    payments: built.payments.map((p) => ({ ...p, id: pay(p.id) })),
+    invoices: built.invoices.map((i) => ({ ...i, id: `p2-${i.id}`, paymentLineId: pay(i.paymentLineId) })),
+  };
+}
+
+/** What the engine says about the held rest of the year now, against the buyer's constraints as they stand. */
+export function evaluateFollowOn(held: CanonicalFollowOn, constraints: BuyerConstraints, input: EngineInput): EvaluatedStructure {
+  const covered = new Set(held.scope.map((item) => item.packageId));
+  const remaining: BuyerConstraints = { ...constraints, requiredPackages: constraints.requiredPackages.filter((id) => covered.has(id)) };
+  return evaluateStructure(followOnStructure(held, input), remaining, input);
 }

@@ -115,6 +115,8 @@ describe("canonical preventive storyboard", () => {
     for (let i = 0; i < 40; i++) {
       const st = await step();
       if (!st) break;
+      // The first phase's story ends with the payment moved and agreed; the review that follows has its own test below.
+      if (st.id === "collect_payment") break;
       expect(st.label).not.toMatch(/fail/i);
       if (ids.at(-1) !== st.id) ids.push(st.id);
       if (st.systemAction) await svc.runSystemStep(st.systemAction);
@@ -166,4 +168,32 @@ describe("simulated buyer reply control", () => {
     expect(n.scripts[0].id).toBe("notice-cash-tight");
   });
   it("made no network or model call", () => expect(fetchSpy).not.toHaveBeenCalled());
+
+  it("goes on past the moved payment to the month-three review, one labelled step at a time, and ends with the rest of the year accepted", async () => {
+    await svc.resetToSeed();
+    const ids: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      const st = await step();
+      if (!st) break;
+      expect(st.label).not.toMatch(/fail/i);
+      if (ids.at(-1) !== st.id) ids.push(st.id);
+      if (st.systemAction) await svc.runSystemStep(st.systemAction);
+      else {
+        const before = (await svc.getState()).events.length;
+        const state = await svc.getState();
+        if (st.id === "send_follow_on") await svc.sendFollowOn();
+        else if (st.id === "buyer_accept" && state.status === "sent" && state.agreements.at(-1)!.continuesFrom) {
+          const v = state.agreements.at(-1)!;
+          await svc.acceptAgreement(v.version, v.termsHash, true);
+          await svc.buyerCompleteSetup();
+        } else await driveTo(svc, (x) => x.events.length !== before, 2, "preventive");
+      }
+    }
+    expect(ids.slice(-4)).toEqual(["collect_payment", "advance_to_review", "send_follow_on", "buyer_accept"]);
+    const s = await svc.getState();
+    expect(s.agreements.at(-1)).toMatchObject({ version: 3, status: "active", continuesFrom: 2 });
+    expect(s.mandate).toMatchObject({ agreementVersion: 3, status: "confirmed" });
+    expect((await svc.progressOf(s)).headline).toBe("Up to date · next payment ₹28,320 on 1 May 2027.");
+    expect(await step()).toBeNull();
+  });
 });

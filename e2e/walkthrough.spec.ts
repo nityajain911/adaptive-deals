@@ -316,7 +316,7 @@ test("Show me collapses the phone guide and reveals the product action", async (
   }).toBe(true);
 });
 
-test("the walkthrough ends with a summary and a way to try another case", async ({ page }) => {
+test("the walkthrough goes on past the moved payment to the month-three review and ends with a summary and a way to try another case", async ({ page }) => {
   await reset(page);
   const v1 = await prepareSent(page);
   await api(page, { action: "accept_agreement", version: v1.version, termsHash: v1.termsHash, authorityConfirmed: true });
@@ -329,11 +329,30 @@ test("the walkthrough ends with a summary and a way to try another case", async 
   await api(page, { action: "accept_amendment", termsHash: v2.termsHash, authorityConfirmed: true });
   await page.goto("/deals/hero/track");
   await openGuide(page);
+  // The first phase's story is not the end: its last payment, then the review, are the guide's next steps.
+  await expect(guide(page)).toContainText("Collect the payment due 21 Dec 2026");
+  await expect(guide(page).getByTestId("walkthrough-finish")).toHaveCount(0);
+  await api(page, { action: "demo_system_step", stepId: "collect_payment" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("First phase paid. The review is on 1 Feb 2027.");
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("Send the rest of the year (₹84,960), held until 18 Mar 2027.");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 3.");
+  await page.goto("/proposal/agr-hero/v3");
+  await expect(page.getByTestId("buyer-view")).toContainText("The rest of the year");
+  await expect(page.getByTestId("buyer-total")).toHaveText("₹84,960");
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
   const finish = guide(page).getByTestId("walkthrough-finish");
   await expect(finish).toContainText("Walkthrough complete");
   await expect(finish).toContainText("You walked through: They want to start small and see results first.");
-  await expect(finish).toContainText("Your decisions: approved version 1, approved version 2.");
+  await expect(finish).toContainText("Your decisions: approved version 1, approved version 2, approved version 3.");
   await expect(finish).toContainText("A payment was moved to a later date after both sides approved version 2.");
+  await expect(finish).toContainText("After the review, the rest of the year went out as version 3 and the buyer accepted it. It is the second and last phase.");
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toHaveCount(0);
   await finish.getByTestId("walkthrough-try-another").click();
   await expect(page).toHaveURL(/\/deals$/);

@@ -25,14 +25,23 @@ function succeededAt(a: DemoState["attempts"][number]): string | null {
   return a.history.find((h) => h.status === "succeeded")?.at ?? null;
 }
 
+/** What the buyer has accepted in all: the latest accepted version, plus the first phase when it is the rest of the year. */
+function acceptedTotalOf(s: DemoState, v: DemoState["agreements"][number]): number {
+  const before = v.continuesFrom ? s.agreements.find((x) => x.version === v.continuesFrom) : undefined;
+  return v.terms.pricing.totalPaise + (before ? acceptedTotalOf(s, before) : 0);
+}
+
 export function outcomeSummary(args: {
   s: DemoState;
   acceptedStructure: Structure | null;
+  /** The earlier phases this one carries on from, whose costs and forecast belong to the same deal. */
+  earlierStructures?: Structure[];
   policy: MerchantPolicy;
   now: string;
   timeZone: string;
 }): OutcomeSummary {
   const { s, acceptedStructure, policy, now, timeZone } = args;
+  const phases = acceptedStructure ? [acceptedStructure, ...(args.earlierStructures ?? [])] : [];
   const { cutoff, windowEnded } = measurementCutoff(s.eligibleAt, now);
   const cutoffMs = Date.parse(cutoff);
   const cutoffDate = localDateOf(cutoff, timeZone);
@@ -48,9 +57,9 @@ export function outcomeSummary(args: {
   const estimatedFeesPaise = sum(paid.map((a) => expectedFee(a.amountPaise, policy.paymentFeeBps)));
 
   let costsIncurredPaise = 0;
-  if (acceptedStructure) {
-    const point = computeEconomics(acceptedStructure, policy).series.filter((p) => compareDates(p.date, cutoffDate) <= 0).at(-1);
-    costsIncurredPaise = point?.costsIncurredPaise ?? 0;
+  for (const phase of phases) {
+    const point = computeEconomics(phase, policy).series.filter((p) => compareDates(p.date, cutoffDate) <= 0).at(-1);
+    costsIncurredPaise += point?.costsIncurredPaise ?? 0;
   }
 
   const initialDelivery = s.deliveries
@@ -63,10 +72,10 @@ export function outcomeSummary(args: {
 
   return {
     proposedTotalPaise: initialAgreement?.terms.pricing.totalPaise ?? null,
-    acceptedTotalPaise: acceptedAgreement?.terms.pricing.totalPaise ?? null,
+    acceptedTotalPaise: acceptedAgreement ? acceptedTotalOf(s, acceptedAgreement) : null,
     collected,
     provisionalContributionPaise: collected.prePaise - estimatedFeesPaise - costsIncurredPaise,
-    fullContractForecastContributionPaise: acceptedStructure ? computeEconomics(acceptedStructure, policy).netContributionPaise : null,
+    fullContractForecastContributionPaise: phases.length ? sum(phases.map((phase) => computeEconomics(phase, policy).netContributionPaise)) : null,
     window: windowEnded ? "ended" : "in_progress",
     data: "incomplete",
     label: `${windowEnded ? "Window ended" : "Window in progress"} · incomplete inputs`,

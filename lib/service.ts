@@ -8,9 +8,10 @@ import { DEMO_ANCHOR, FixedClock, SimulatedClock, type ClockAdvance } from "@/do
 import { scheduleAttempt, scheduleInternalRetry, submitAttempt, transitionAttempt, type CollectionAttempt } from "@/domain/collections";
 import { interpretations } from "@/domain/constraints";
 import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
-import { compareDates, localDateOf } from "@/domain/dates";
+import { compareDates, formatDate, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
-import { canonicalFollowOn, deriveFollowOn } from "@/domain/follow-on";
+import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnStandingOn } from "@/domain/follow-on";
+import { evaluatedForVersion } from "./version-structure";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
 import { createLiveChain, generateWithFallback } from "@/ai/live";
@@ -137,6 +138,8 @@ export interface DemoState {
   counterOffers: CounterOffer[];
   /** Suggested readings of buyer replies the rules could not read; each waits for the merchant. Absent on older stores. */
   replySuggestions?: ReplySuggestion[];
+  /** The rest of the year, once the merchant has sent it after the review: the version and the structure the engine checked. */
+  followOnSale?: { version: number; evaluated: EvaluatedStructure; sentAt: string };
   interpretations: Interpretation[];
   /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
   decisionBranch: DecisionBranch | null;
@@ -636,10 +639,10 @@ function activeVersion(s: DemoState): AgreementVersion | null {
 }
 
 async function structureForVersion(s: DemoState, v: AgreementVersion, deal?: ReturnType<typeof dealContextFor>): Promise<EvaluatedStructure> {
-  const amendment = s.amendments.find((a) => a.toVersion === v.version && a.state !== "rejected");
-  if (amendment) return amendment.revised;
+  const own = s.amendments.find((a) => a.toVersion === v.version && a.state !== "rejected")?.revised ?? (s.followOnSale?.version === v.version ? s.followOnSale.evaluated : null);
+  if (own) return own;
   const out = await currentOutcome(s, deal);
-  const x = out.evaluation.result?.structures.find((e) => e.structure.id === v.structureId);
+  const x = evaluatedForVersion(s, v, out);
   if (!x) throw new ActionError("Agreement structure is no longer in the evaluation");
   return x;
 }
@@ -813,6 +816,12 @@ function heldFollowOn(x: EvaluatedStructure, constraints: BuyerConstraints, deal
 
 /** The one resolved reading of the buyer's constraints an offer is drafted against. */
 const constraintsOf = (out: Pick<RunOutcome, "profile">): BuyerConstraints => interpretations(out.profile)[0].constraints;
+
+/** The constraints a version is checked against. The rest of the year is checked against what it sells; the services the first phase delivered are not asked of it again. */
+function constraintsForVersion(out: Pick<RunOutcome, "profile">, v: Pick<AgreementVersion, "continuesFrom" | "terms">): BuyerConstraints {
+  const base = constraintsOf(out);
+  return v.continuesFrom ? { ...base, requiredPackages: base.requiredPackages.filter((id) => v.terms.scope.some((item) => item.packageId === id)) } : base;
+}
 
 const economicsRef = (s: DemoState) => ({ version: s.economics.pinned.version, effectiveHash: s.economics.effectiveHash, strategy: s.economics.strategy });
 
@@ -1168,6 +1177,65 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
   return { state, delivered, failureReason };
 }
 
+/** Every scheduled payment of this version has been collected. */
+async function fullyPaidOf(s: DemoState, v: AgreementVersion, deal: ReturnType<typeof dealContextFor>): Promise<boolean> {
+  const x = await structureForVersion(s, v, deal);
+  return computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), deal.merchant.timeZone), timeZone: deal.merchant.timeZone }).fullyPaid;
+}
+
+/**
+ * Where the rest of the year stands: not yet due (the review has not come), due (the review has come and the held price is open),
+ * or lapsed (the held price ran out unused). Null when nothing is held, or the first phase is not yet paid in full.
+ */
+export type FollowOnStanding = { state: "waiting_review" | "due" | "lapsed"; reviewDate: string; heldUntil: string; totalPaise: number };
+
+async function followOnStandingOf(s: DemoState, active: AgreementVersion | null, deal: ReturnType<typeof dealContextFor>, paid: boolean): Promise<FollowOnStanding | null> {
+  const held = active?.terms.followOn;
+  if (!active || !held || s.followOnSale || s.status !== "active" || !paid) return null;
+  const today = localDateOf(clockOf(s).now(), deal.merchant.timeZone);
+  return { state: followOnStandingOn(held, today), reviewDate: held.reviewDate, heldUntil: held.heldUntil, totalPaise: held.pricing.totalPaise };
+}
+
+/**
+ * The review: the first phase is paid in full and the buyer has gone ahead, so the merchant sends the rest of the year, exactly
+ * as it was held. It is checked by the same engine again, against today's rate card; if the held price no longer matches, it is
+ * not sent. The buyer then accepts and pays on their own page, with a payment setup of its own.
+ */
+export async function sendFollowOn(): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate(async (s) => {
+    assertNoReview(s);
+    const active = activeVersion(s);
+    const held = active?.terms.followOn;
+    if (!active || !held) throw new ActionError("There is no held offer to send");
+    if (s.followOnSale) throw new ActionError("The rest of the year has already been sent");
+    if (s.status !== "active") throw new ActionError(`The deal is not open for this (deal is ${s.status})`);
+    const standing = await followOnStandingOf(s, active, deal, await fullyPaidOf(s, active, deal));
+    if (!standing) throw new ActionError("The first phase must be paid in full before the review");
+    if (standing.state === "waiting_review") throw new ActionError(`The review is on ${formatDate(standing.reviewDate)}`);
+    if (standing.state === "lapsed") throw new ActionError(`The held price ran out on ${formatDate(standing.heldUntil)}`);
+
+    const out = await currentOutcome(s, deal);
+    const evaluated = evaluateFollowOn(held, constraintsOf(out), deal);
+    if (!evaluated.approvable) throw new ActionError("The rest of the year no longer passes your rules at today's prices");
+    if (evaluated.structure.pricePaise !== held.pricing.prePaise) throw new ActionError("Your prices changed since this was held, so it no longer matches what you offered");
+    const r = await attemptDelivery("proposal");
+    if (!r.ok) throw new ActionError(r.reason);
+
+    const version = Math.max(...s.agreements.map((v) => v.version)) + 1;
+    let v = createAgreementVersion({ agreementId: AGREEMENT_ID, version, evaluated, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), economics: economicsRef(s), continuesFrom: active.version });
+    v = markSent(merchantApprove(v, v.termsHash, "Merchant (Pinecone Media Works)", clockOf(s)));
+    s.agreements.push(v);
+    s.followOnSale = { version, evaluated, sentAt: clockOf(s).now() };
+    const key = deliveryKey(v.agreementId, version);
+    const msg = sendCode(s, "proposal", proposalMessageText(v.terms, version, proposalLink(v)), { agreementVersion: version });
+    s.deliveries.push({ version, idempotencyKey: key, kind: "proposal", attempts: [{ attemptId: `${key}_a1`, at: clockOf(s).now(), status: "sent", failureReason: null }], deliveredAt: clockOf(s).now(), reference: msg.id });
+    setStatus(s, "sent", "The rest of the year was sent after the review");
+    event(s, "follow_on_sent", `The rest of the year sent as version ${version}`, "merchant", `Held until ${held.heldUntil} · ${formatINR(held.pricing.totalPaise)} including GST · terms hash ${v.termsHash}`);
+  });
+}
+
 /** The merchant sends every unsent clarification draft as one atomic batch. */
 export async function sendQuestions(edits: Record<string, string> = {}): Promise<DemoState> {
   return mutate((s) => {
@@ -1212,11 +1280,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
   const scheduled = s.attempts.filter((a) => a.status === "scheduled").sort((p, q) => compareDates(p.dueDate, q.dueDate));
   const submitted = s.attempts.some((a) => a.status === "submitted");
   const retry = s.attempts.find((a) => a.status === "scheduled" && a.origin === "internal_retry");
-  let fullyPaid = false;
-  if (active) {
-    const x = await structureForVersion(s, active, deal);
-    fullyPaid = computeLedger({ structure: x.structure as Structure, attempts: s.attempts, asOf: localDateOf(clockOf(s).now(), deal.merchant.timeZone), timeZone: deal.merchant.timeZone }).fullyPaid;
-  }
+  const fullyPaid = active ? await fullyPaidOf(s, active, deal) : false;
   const cr = active ? s.changeRequests.find((c) => c.state === "change_requested" && c.agreementVersion === active.version) : undefined;
   const crAttempt = cr ? s.attempts.find((a) => a.id === cr.attemptId) : undefined;
   const lastAttempt = s.deliveries.find((d) => d.version === s.selectedOption?.draftVersion)?.attempts.at(-1);
@@ -1225,6 +1289,7 @@ export async function progressFacts(s: DemoState): Promise<ProgressFacts> {
     engineState: out.evaluation.state,
     draftStale: s.status === "options_ready" ? await isDraftStale(s, deal) : false,
     fullyPaid,
+    followOn: await followOnStandingOf(s, active, deal, fullyPaid),
     questionCountUnsent: s.status === "clarifying" ? clar.filter((d) => !d.sentAt).length : 0,
     unansweredQuestions: s.status === "clarifying" ? clar.filter((d) => d.sentAt && !replyTo(d.id)).length : 0,
     repliesNeedInterpretation: s.status === "clarifying" ? clar.filter((d) => replyTo(d.id) && !replyTo(d.id)!.refs.answerValue).length : 0,
@@ -1407,8 +1472,18 @@ export async function askClarificationAgain(messageId: string): Promise<DemoStat
   });
 }
 
+/**
+ * What the buyer owes under this contract to date: this version's total, plus the first phase's when this is the rest of the year.
+ * The collection rules compare every payment ever collected with this figure, so it must cover both phases.
+ */
+function contractTotalOf(s: DemoState, v: AgreementVersion): number {
+  const own = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
+  const before = v.continuesFrom ? s.agreements.find((x) => x.version === v.continuesFrom) : null;
+  return own + (before ? contractTotalOf(s, before) : 0);
+}
+
 function schedulePayments(s: DemoState, v: AgreementVersion) {
-  const total = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
+  const total = contractTotalOf(s, v);
   for (const p of v.terms.paymentSchedule) {
     if (s.attempts.some((a) => a.scheduleLineId === p.id && (a.status === "succeeded" || a.status === "scheduled" || a.status === "submitted"))) continue;
     s.attempts.push(scheduleAttempt(s.attempts, { agreementId: v.agreementId, agreementVersion: v.version, scheduleLineId: p.id, dueDate: p.dueDate.value, amountPaise: p.totalPaise, prePaise: p.prePaise, gstPaise: p.gstPaise, origin: "agreement", method: p.method as CollectionAttempt["method"] }, total, clockOf(s).now()));
@@ -1467,7 +1542,7 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
   return mutate(async (s) => {
     const v = activeVersion(s);
     if (!v) throw new ActionError("No active agreement");
-    const total = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
+    const total = contractTotalOf(s, v);
     const now = () => clockOf(s).now();
 
     if (kind === "payment_link_paid") {
@@ -1805,7 +1880,7 @@ async function priceRequestContext(s: DemoState, knownDeal?: ReturnType<typeof d
   if (topic !== "price") throw new ActionError("This request is not about the price, so it cannot be answered with a different total. Record your decision on it instead");
   const current = await structureForVersion(s, v, deal);
   const out = await currentOutcome(s, deal);
-  const constraints = interpretations(out.profile)[0].constraints;
+  const constraints = constraintsForVersion(out, v);
   return { v, request, current, out, constraints, deal };
 }
 
@@ -2074,7 +2149,7 @@ export async function checkPaymentLinkStatus(): Promise<DemoState> {
     const latest = await paymentAdapters(process.env).links.fetchPaymentLink(link.id);
     s.paymentLinks = s.paymentLinks.map((l) => (l.id === link.id ? latest : l));
     if (latest.status === "paid") {
-      const total = sum(v.terms.paymentSchedule.map((p) => p.totalPaise));
+      const total = contractTotalOf(s, v);
       s.attempts = submitAttempt(s.attempts, a.id, total, clockOf(s).now()).map((x) => (x.id === a.id ? transitionAttempt(x, "succeeded", clockOf(s).now(), "Razorpay test mode: link paid", link.id) : x));
       event(s, "payment_succeeded", "Upfront payment received", "real_test", `Razorpay test mode · ${link.id}`);
     } else event(s, "payment_link_checked", `Payment link status: ${latest.status}`, "real_test", link.id);
@@ -2107,7 +2182,7 @@ export async function proposeAmendment(): Promise<DemoState> {
     if (s.attempts.some((a) => a.status === "submitted")) throw new ActionError("Awaiting payment outcome; rescheduling is blocked until it is known");
 
     const out = await currentOutcome(s, deal);
-    const constraints = interpretations(out.profile)[0].constraints;
+    const constraints = constraintsForVersion(out, v);
     const current = await structureForVersion(s, v, deal);
     const amendment = proposeReschedule({
       id: `amd-${s.amendments.length + 1}`,
@@ -2131,7 +2206,7 @@ export async function proposeAmendment(): Promise<DemoState> {
       event(s, "amendment_not_possible", `Revision ${from} → ${cr.earliestDebit} does not pass the checks`, "engine", failing.join(", "));
       return;
     }
-    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version, economics: economicsRef(s), followOn: v.terms.followOn ?? null }));
+    s.agreements.push(createAgreementVersion({ agreementId: v.agreementId, version: v.version + 1, evaluated: amendment.revised, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: activeCase(s).buyer.id, policy: deal.merchant.policy, clock: clockOf(s), supersedes: v.version, economics: economicsRef(s), followOn: v.terms.followOn ?? null, continuesFrom: v.continuesFrom ?? null }));
     s.changeRequests[ci] = transitionChangeRequest(cr, "draft_amendment", clockOf(s).now(), `Draft amendment: ${from} → ${cr.earliestDebit}`, amendment.id);
     event(s, "amendment_proposed", `Draft amendment: ${from} → ${cr.earliestDebit}`, "engine", `${cr.transformation}. Rechecked buyer constraints, seller economics and mandate fit (${amendment.mandateFit.fits ? "fits the existing mandate" : "fresh authorisation required"}).`);
     setStatus(s, "amending", cr.timing === "preventive" ? "Draft amendment after the buyer's change request" : "Draft amendment after a failed debit");
@@ -2245,6 +2320,18 @@ export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
   if (!(SYSTEM_STEPS as readonly string[]).includes(id)) throw new ActionError("Not a system step");
   if (id === "pay_upfront_link") return simulate("payment_link_paid");
   if (id === "confirm_mandate") return simulate("mandate_confirmed");
+  if (id === "collect_payment") return simulate("debit_succeeded");
+  if (id === "advance_to_review") {
+    const before = await getState();
+    const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+    return mutate(async (s) => {
+      const active = activeVersion(s);
+      const held = active?.terms.followOn;
+      if (!active || !held || s.followOnSale) throw new ActionError("There is no review to move to");
+      if (!(await fullyPaidOf(s, active, deal))) throw new ActionError("Collect every payment of the first phase before the review");
+      advanceTo(s, at10(held.reviewDate), "Simulated: the month-three review date");
+    });
+  }
   return mutate((s) => {
     const setupIncomplete = s.attempts.some((a) => a.method === "payment_link" && a.status === "scheduled") || s.mandate?.status !== "confirmed";
     if (setupIncomplete) throw new ActionError("Buyer setup is not complete: the upfront link must be paid and the mandate confirmed first");

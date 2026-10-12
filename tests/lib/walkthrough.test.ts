@@ -113,7 +113,7 @@ describe("walkthrough state comes from the deal", () => {
   it("keeps only optional explorations outside the six-step core", () => {
     const view = resolve(started(), progress("track.next_payment", "track", null, "informational"));
     expect(view.currentObjectiveId).toBe("preventive_restructure");
-    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["no_fit", "negotiate_price"]);
+    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["month_three_review", "no_fit", "negotiate_price"]);
     expect(view.stepLabel).toBe("Step 6 of 6");
   });
 
@@ -145,7 +145,7 @@ describe("capability and outcome honesty", () => {
 
   it("ships only capabilities that exist and omits their future steps from the count", async () => {
     // Negotiation (the corridor) and business economics now exist; the other future capabilities do not.
-    expect([...walkthroughCapabilities()]).toEqual(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation"]);
+    expect([...walkthroughCapabilities()]).toEqual(["business_economics", "case_picker", "current_offer", "preventive_depth", "negotiation", "follow_on"]);
     const view = resolve(started(), await svc.progressOf(fresh));
     expect(view.objectives.map((x) => x.capability)).not.toEqual(expect.arrayContaining(["live_customisation", "test_invoice"]));
     expect(view.stepLabel).toBe("Step 3 of 6");

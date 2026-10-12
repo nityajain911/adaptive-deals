@@ -29,7 +29,7 @@ export const DEAL_TRANSITIONS: Record<DealStatus, DealStatus[]> = {
   approved: ["sent", "merchant_rejected", ...EXITS],
   sent: ["accepted", "buyer_rejected", "options_ready", ...EXITS],
   accepted: ["active", ...EXITS],
-  active: ["amending", "completed", ...EXITS],
+  active: ["amending", "completed", "sent", ...EXITS],
   amending: ["active", ...EXITS],
   completed: [],
   merchant_rejected: ["options_ready", ...EXITS],
