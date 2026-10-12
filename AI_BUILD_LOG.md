@@ -1133,3 +1133,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** all unit and browser tests pass.
 
+### 2026-10-12 — [Claude Code] Third preserve-scope attempt
+
+**Asked by the applicant:** retry again, and try Groq if Cerebras does not work.
+
+**What was done:** the rules were written first (batches 4 and 5). Cerebras attempt 3: the same miss. Groq: not run, because no Groq key is set in this environment.
+

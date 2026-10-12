@@ -24,7 +24,9 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
   On the applicant's instruction it was run a second time (`run-case-preserve-scope-ff0d6acf`, under
   `CASE_RECORDING_FREEZE_BATCH3.json`, whose rule was written before the call: the second output is final, both are
   kept, and the case is mapped only if it reaches its expected engine state). It missed in exactly the same way, so
-  both recordings are kept as evidence and the case uses the labelled hand-written sample.
+  both recordings are kept as evidence and the case uses the labelled hand-written sample. A third attempt, again on the
+  applicant's instruction (`run-case-preserve-scope-9a841334`, `CASE_RECORDING_FREEZE_BATCH4.json`), missed identically.
+  The same model on the same request returned the same answer each time.
 
 The three Groq files and `recording-report.json` are historical evidence made from the earlier
 conversation text. They remain immutable and are not loaded for the rewritten cases.

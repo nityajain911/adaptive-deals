@@ -33,11 +33,13 @@ describe("the committed case recordings", () => {
       // Recorded and kept as evidence, but not mapped: see the report for why.
       "run-case-preserve-scope-fcc306d2.json",
       "run-case-preserve-scope-ff0d6acf.json",
+      "run-case-preserve-scope-9a841334.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
       "cerebras-no-fit-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
       "cerebras-preserve-scope-attempt2-recording-report.json",
+      "cerebras-preserve-scope-attempt3-recording-report.json",
     ].sort());
   });
 
@@ -115,6 +117,18 @@ describe("the second Cerebras recording batch", () => {
     const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH3.json"), "utf8"));
     expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 2 });
     expect(freeze.resultRule).toMatch(/final, whatever it is/);
+  });
+
+  it("preserve-scope: a third attempt, again on the applicant's instruction, missed identically; no attempt was mapped", () => {
+    const third = read("run-case-preserve-scope-9a841334.json") as RunRecord;
+    expect(third).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(third.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
+    expect(third.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
+    expect(third.engine.initial.state).toBe("insufficient_information");
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH4.json"), "utf8"));
+    expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 3 });
+    expect(freeze.resultRule).toMatch(/exactly one Groq attempt follows/);
   });
 
   it("preserve-scope: recorded and kept, but not mapped, because the model's first extraction missed the case's story", () => {
