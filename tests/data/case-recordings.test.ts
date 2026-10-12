@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { replayRun } from "@/ai/orchestrator";
 import { promptHash, promptFor } from "@/ai/prompts";
 import type { RunRecord } from "@/ai/run-record";
+import { canonicalJson } from "@/domain/agreement";
 import { FixedClock } from "@/domain/clock";
 import { CASE_IDS, demoCase, type CaseId } from "@/data/synthetic/cases";
 import { RECORDED_CASE_MESSAGES, recordedDeal } from "@/data/synthetic/recorded-conversations";
@@ -24,7 +26,7 @@ const currentHero = () => read("run-case-reduced-scope-ed5442a3.json") as RunRec
 
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3", "no-fit": "run-case-no-fit-6fb4027d" });
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
@@ -34,12 +36,14 @@ describe("the committed case recordings", () => {
       "run-case-preserve-scope-fcc306d2.json",
       "run-case-preserve-scope-ff0d6acf.json",
       "run-case-preserve-scope-9a841334.json",
+      "run-case-preserve-scope-1ec088fa.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
       "cerebras-no-fit-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
       "cerebras-preserve-scope-attempt2-recording-report.json",
       "cerebras-preserve-scope-attempt3-recording-report.json",
+      "cerebras-preserve-scope-text2-recording-report.json",
     ].sort());
   });
 
@@ -50,7 +54,6 @@ describe("the committed case recordings", () => {
     expect(modelProvenance(loaded).label).toBe("Recorded Groq output");
     expect(loaded.steps.every((step) => step.provider === "groq" && step.failure === null)).toBe(true);
     // The cases were rewritten as real-sounding chats, so the product must not present these as the case's own output.
-    if (id === "preserve-scope") expect(mappedCaseRun(id)).toBeNull();
   });
 
   it("loads the frozen Cerebras hero and attributes every model task to Cerebras", () => {
@@ -110,7 +113,8 @@ describe("the second Cerebras recording batch", () => {
     expect(second.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
     expect(second.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(second.engine.initial.state).toBe("insufficient_information");
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
     const report = read("cerebras-preserve-scope-attempt2-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ runId: "run-case-preserve-scope-ff0d6acf", caseCard: { agrees: false } });
@@ -125,20 +129,43 @@ describe("the second Cerebras recording batch", () => {
     expect(third.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
     expect(third.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(third.engine.initial.state).toBe("insufficient_information");
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
     const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH4.json"), "utf8"));
     expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 3 });
     expect(freeze.resultRule).toMatch(/exactly one Groq attempt follows/);
   });
 
-  it("preserve-scope: recorded and kept, but not mapped, because the model's first extraction missed the case's story", () => {
+  it("preserve-scope on the revised text: one valid Cerebras run that reaches the case's expected offer, mapped", () => {
+    const loaded = mappedCaseRun("preserve-scope");
+    expect(loaded).toEqual(read("run-case-preserve-scope-1ec088fa.json"));
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded!.inputs.messages).toEqual(demoCase("preserve-scope")!.deal.messages);
+    expect(loaded!.inputs.messages.find((m) => m.id === "preserve-3")!.text).toBe("I can release only ₹10,000 right now, as this quarter is tight.");
+    expect(modelProvenance(loaded!).label).toBe("Recorded Cerebras output");
+    const expected = demoCase("preserve-scope")!.expected;
+    expect(loaded!.engine.initial.state).toBe(expected.engineState);
+    expect(loaded!.engine.initial.structures.find((s) => s.id === loaded!.engine.initial.feasibleOrder[0])!.template).toBe(expected.recommendedTemplate);
+    // The model's misses are kept: the required-services phrase matches no package (the merchant confirms it) and the GST statement was rejected as conflicting.
+    expect(loaded!.engine.rejectedFields.map((f) => f.key).sort()).toEqual(["amounts_include_gst", "required_package"]);
+    const report = read("cerebras-preserve-scope-text2-recording-report.json");
+    expect(report.requests.map((r: { task: string }) => r.task)).toEqual(["extract", "explain"]);
+    expect(report).toMatchObject({ retries: [], rejectedAttempts: [], stopped: null });
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH6.json"), "utf8"));
+    expect(freeze.resultRule).toMatch(/first technically valid output is final, whatever it is/);
+  });
+
+  it("preserve-scope: the first attempt on the earlier text was recorded and kept, but missed the case's story", () => {
     const loaded = preserve();
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
-    expect(loaded.inputs.messages).toEqual(demoCase("preserve-scope")!.deal.messages);
+    // Made on the earlier text of the case, which the first freeze pins; the case's text has since been revised.
+    expect(createHash("sha256").update(canonicalJson(loaded.inputs.messages)).digest("hex")).toBe("a98421b32768095881447b048a786171388886f23c17ddc337324ea6c759f30f");
+    expect(loaded.inputs.messages).not.toEqual(demoCase("preserve-scope")!.deal.messages);
     // The engine could not reach the offer family this case demonstrates, so the product keeps the labelled sample for it.
     expect(loaded.engine.initial.state).toBe("insufficient_information");
     expect(demoCase("preserve-scope")!.expected.engineState).toBe("options_ready");
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
     const report = read("cerebras-preserve-scope-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", caseCard: { agrees: false } });

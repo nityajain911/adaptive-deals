@@ -35,7 +35,7 @@
         "id": "preserve-3",
         "dealId": "case-preserve-scope",
         "author": "buyer",
-        "text": "This quarter is tight. I can release only ₹10,000 right now.",
+        "text": "I can release only ₹10,000 right now, as this quarter is tight.",
         "timestamp": "2026-10-01T08:51:00+05:30",
         "source": "whatsapp"
       },
@@ -85,8 +85,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "2aa12abac2db629013c6551d40b07a9d606829880f0eaddadd8924740f05ce44",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"preserve-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:20:00+05:30\">\nHi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.\n</message>\n<message id=\"preserve-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nThanks. We need the complete annual package for the admissions season, so please don’t remove anything.\n</message>\n<message id=\"preserve-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:51:00+05:30\">\nThis quarter is tight. I can release only ₹10,000 right now.\n</message>\n<message id=\"preserve-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nOur next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.\n</message>\n<message id=\"preserve-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:53:00+05:30\">\nFinance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "012f59b0887f2c2e9a60a4c9da985ff34c260e22347920dfff31e0a15140062c",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"preserve-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:20:00+05:30\">\nHi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.\n</message>\n<message id=\"preserve-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nThanks. We need the complete annual package for the admissions season, so please don’t remove anything.\n</message>\n<message id=\"preserve-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:51:00+05:30\">\nI can release only ₹10,000 right now, as this quarter is tight.\n</message>\n<message id=\"preserve-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nOur next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.\n</message>\n<message id=\"preserve-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:53:00+05:30\">\nFinance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -101,8 +101,8 @@
           },
           {
             "key": "budget_now_period",
-            "raw_text": "This quarter",
-            "evidence_quote": "This quarter is tight",
+            "raw_text": "this quarter",
+            "evidence_quote": "this quarter is tight",
             "message_id": "preserve-3",
             "confidence": "high"
           },
@@ -188,19 +188,19 @@
         "label": "Budget available now",
         "status": "stated",
         "display": "₹10,000 available 1 Oct 2026 – 31 Dec 2026",
-        "rawText": "₹10,000 · This quarter",
+        "rawText": "₹10,000 · this quarter",
         "evidence": [
           {
             "quote": "I can release only ₹10,000 right now",
             "messageId": "preserve-3",
-            "start": 23,
-            "end": 59
+            "start": 0,
+            "end": 36
           },
           {
-            "quote": "This quarter is tight",
+            "quote": "this quarter is tight",
             "messageId": "preserve-3",
-            "start": 0,
-            "end": 21
+            "start": 41,
+            "end": 62
           }
         ],
         "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
@@ -350,14 +350,14 @@
         {
           "quote": "I can release only ₹10,000 right now",
           "messageId": "preserve-3",
-          "start": 23,
-          "end": 59
+          "start": 0,
+          "end": 36
         },
         {
-          "quote": "This quarter is tight",
+          "quote": "this quarter is tight",
           "messageId": "preserve-3",
-          "start": 0,
-          "end": 21
+          "start": 41,
+          "end": 62
         },
         {
           "quote": "Our next campaign budget opens on 1 May",

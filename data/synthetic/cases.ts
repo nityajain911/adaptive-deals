@@ -60,7 +60,7 @@ const reducedExtraction: ExtractionOutput = {
 const preserveExtraction: ExtractionOutput = {
   fields: [
     { key: "budget_now_amount", raw_text: "₹10,000", evidence_quote: "I can release only ₹10,000 right now", message_id: "preserve-3", confidence: "high" },
-    { key: "budget_now_period", raw_text: "This quarter", evidence_quote: "This quarter is tight", message_id: "preserve-3", confidence: "high" },
+    { key: "budget_now_period", raw_text: "this quarter", evidence_quote: "this quarter is tight", message_id: "preserve-3", confidence: "high" },
     { key: "approval_limit_amount", raw_text: "₹15,000", evidence_quote: "approve up to ₹15,000 per payment", message_id: "preserve-5", confidence: "high" },
     { key: "approval_limit_scope", raw_text: "per payment", evidence_quote: "approve up to ₹15,000 per payment", message_id: "preserve-5", confidence: "high" },
     { key: "amounts_include_gst", raw_text: "before GST", evidence_quote: "Both the ₹10,000 and ₹15,000 figures are before GST", message_id: "preserve-5", confidence: "high" },
@@ -197,7 +197,7 @@ const catalog: Record<CaseId, DemoCase> = {
         id: "preserve-3",
         dealId: "case-preserve-scope",
         author: "buyer",
-        text: "This quarter is tight. I can release only ₹10,000 right now.",
+        text: "I can release only ₹10,000 right now, as this quarter is tight.",
         timestamp: "2026-10-01T08:51:00+05:30",
         source: "whatsapp",
       },

@@ -1139,3 +1139,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **What was done:** the rules were written first (batches 4 and 5). Cerebras attempt 3: the same miss. Groq: not run, because no Groq key is set in this environment.
 
+### 2026-10-12 — [Claude Code] Preserve scope: root-cause fix and a successful recording
+
+**Asked by the applicant:** fix the root cause by changing the case text of this case only, then retry it only.
+
+**Cause:** the sentence-initial capital in "This quarter is tight" against a case-sensitive quote check (the model returned lowercase). **Change:** one message reworded; the hand-written sample, its freeze hash and its tests updated; hero and no-fit untouched (their replay files were byte-identical after rebuilding). **Rule written first:** one attempt, final whatever it is. **Result:** the expected deferred-start offer; mapped. The three earlier attempts remain as evidence.
+
+**Honesty note:** the case text was reworded after the model missed. The log, the recording README and the product decisions say so.
+

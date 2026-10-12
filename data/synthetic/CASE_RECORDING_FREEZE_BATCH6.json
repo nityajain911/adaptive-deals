@@ -1,0 +1,43 @@
+{
+  "schema": "adaptive-deals.case-recording-freeze.v1",
+  "frozenAt": "2026-10-12T14:10:00+05:30",
+  "authoredBy": "OpenAI Codex, directed by Nitya Jain",
+  "cases": {
+    "reduced-scope": {
+      "messagesSha256": "81db55020d060e55f8927a2a81a17a3b0da6d7b4c583dbef9d729b8c71f0d7af"
+    },
+    "preserve-scope": {
+      "messagesSha256": "5911d76548077f113c8209aa36b9f5ce37812d3a5c38876de18e52c998cd00cf"
+    },
+    "no-fit": {
+      "messagesSha256": "50465eabd7296c608e5b9e2e50923f2e5c9fbc8886f3f63463a116269c8cbebc"
+    }
+  },
+  "prompts": {
+    "extract": {
+      "version": "extract.v2",
+      "sha256": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a"
+    },
+    "clarify": {
+      "version": "clarify.v1",
+      "sha256": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e"
+    },
+    "explain": {
+      "version": "explain.v3",
+      "sha256": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14"
+    }
+  },
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "scope": [
+    "preserve-scope"
+  ],
+  "maximumProviderRequests": 7,
+  "retryRule": "technical failures only",
+  "resultRule": "one Cerebras attempt on the revised text; its first technically valid output is final, whatever it is; it is kept either way; the product maps it only if it reaches the case's expected engine state and offer family (state and template); no further attempt on any provider",
+  "networkCallsMade": 0,
+  "batch": "Sixth recording batch: preserve-scope on its revised message (preserve-3 now reads 'I can release only \u20b910,000 right now, as this quarter is tight.'). The cause of the three earlier misses was the capitalised sentence-initial 'This quarter', which the case-sensitive quote check rejected when the model returned 'this quarter'. Nothing else in the case changed. Attempts 1 to 3 were made on the earlier text and are kept unchanged as evidence.",
+  "authorisedBy": "Nitya Jain, explicit instruction in chat on 12 October 2026 to fix the root cause by changing the case text of preserve-scope only, and retry that case only",
+  "maximumProviderRequestsApplies": "per case, as in the first batch",
+  "attempt": "text2"
+}

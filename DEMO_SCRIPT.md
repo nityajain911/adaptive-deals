@@ -43,7 +43,7 @@ The merchant's screens are written for a merchant, not an auditor: there are two
 
 - Keep the main story on the preventive path. The failed-payment path belongs on the presenter page for questions.
 - In a counter-offer, say that the merchant overrode a limit and that the app still reports it as outside the limits.
-- No provider call runs during this demo. The hero replays **Recorded Cerebras output** from the exact current conversation; the **no-fit** case also replays its own **Recorded Cerebras output**; the **preserve-scope** case stays a hand-written sample (its Cerebras recording missed the case's story, so it is kept as evidence only). The three earlier Groq runs are historical evidence only. None of these is an independent evaluation.
+- No provider call runs during this demo. The hero replays **Recorded Cerebras output** from the exact current conversation; the other two cases (**preserve-scope** and **no-fit**) replay their own **Recorded Cerebras output** too. (Preserve scope took a rewording of one message and a fresh recording; its earlier attempts are kept as evidence.) Every case keeps a labelled hand-written sample as its fallback if a recording ever stops matching its conversation. The three earlier Groq runs are historical evidence only. None of these is an independent evaluation.
 - Do not say that AI read the payment-change reply. A fixed set of date phrases is read by rules; anything else needs the merchant.
 - Do not claim a mandate guarantees payment, that the prototype measures actual delivery, or that the frozen evaluation is independent.
 - If a step is out of sequence, choose **Restart** in the walkthrough and confirm. The guide returns to case selection and the guided path starts cleanly.

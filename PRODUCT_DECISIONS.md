@@ -533,3 +533,7 @@ The model's explanation has two parts that code validates separately: a full com
 
 **A third Cerebras attempt, again at the applicant's instruction, missed identically.** The rule was written first (`CASE_RECORDING_FREEZE_BATCH4.json`: this output is final; if it misses, exactly one Groq attempt follows). The same model on the same request gave the same answer: three attempts, one result. The Groq attempt is prepared (`CASE_RECORDING_FREEZE_BATCH5.json`) but cannot run until a Groq key is configured.
 
+**Preserve scope: fixed at the root, then recorded once.** Three Cerebras attempts missed identically, which showed the model was not the variable. The cause was one capitalised phrase: "This quarter is tight" at the start of a sentence, which the model returned in lowercase and the exact quote check (rightly) rejected. Only that message was reworded, so "this quarter" sits mid-sentence; nothing else in the case, the hero or no-fit changed, and the hand-written sample and freeze records were updated to match. The rule for the new attempt was written first (one attempt, final whatever it is, mapped only if it reaches the expected offer). It did, so the case now replays Recorded Cerebras output. The model's remaining misses are kept in the recording.
+
+**What this does and does not show.** It shows the product's checks working (a mismatch is rejected, never patched) and that the recorded case text can be tuned. It is also a case where the text was reworded after the model missed, and we say so. All three cases now run on recorded Cerebras output.
+

@@ -1,0 +1,235 @@
+{
+  "recordedAt": "2026-10-12T07:53:55.918Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "preserve-scope",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    },
+    {
+      "n": 2,
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24963,
+      "retryOf": null
+    }
+  ],
+  "retries": [],
+  "rejectedAttempts": [],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "preserve-scope",
+      "runId": "run-case-preserve-scope-1ec088fa",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "012f59b0887f2c2e",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "field amounts_include_gst rejected: conflicting values in the same message",
+            "field required_package rejected: does not match a deal package"
+          ]
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e",
+          "inputHash": "330960e812412db7",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "comparison rejected: contains a literal figure, date or percentage"
+          ]
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "required_package",
+          "raw_text": "complete annual package",
+          "evidence_quote": "We need the complete annual package for the admissions season, so please don’t remove anything.",
+          "message_id": "preserve-2",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹10,000",
+          "evidence_quote": "I can release only ₹10,000 right now, as this quarter is tight.",
+          "message_id": "preserve-3",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "I can release only ₹10,000 right now, as this quarter is tight.",
+          "message_id": "preserve-3",
+          "confidence": "high"
+        },
+        {
+          "key": "next_budget_date",
+          "raw_text": "1 May",
+          "evidence_quote": "Our next campaign budget opens on 1 May.",
+          "message_id": "preserve-4",
+          "confidence": "high"
+        },
+        {
+          "key": "latest_start",
+          "raw_text": "1 May",
+          "evidence_quote": "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
+          "message_id": "preserve-4",
+          "confidence": "high"
+        },
+        {
+          "key": "approval_limit_amount",
+          "raw_text": "₹15,000",
+          "evidence_quote": "Finance lets me approve up to ₹15,000 per payment without escalating it.",
+          "message_id": "preserve-5",
+          "confidence": "high"
+        },
+        {
+          "key": "approval_limit_scope",
+          "raw_text": "per payment",
+          "evidence_quote": "Finance lets me approve up to ₹15,000 per payment without escalating it.",
+          "message_id": "preserve-5",
+          "confidence": "high"
+        },
+        {
+          "key": "amounts_include_gst",
+          "raw_text": "₹10,000",
+          "evidence_quote": "Both the ₹10,000 and ₹15,000 figures are before GST.",
+          "message_id": "preserve-5",
+          "confidence": "high"
+        },
+        {
+          "key": "amounts_include_gst",
+          "raw_text": "₹15,000",
+          "evidence_quote": "Both the ₹10,000 and ₹15,000 figures are before GST.",
+          "message_id": "preserve-5",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹10,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "preserve-3: “I can release only ₹10,000 right now, as this quarter is tight.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Next budget",
+          "status": "stated",
+          "value": "Available from 1 May 2027 (day precision); amount not stated",
+          "evidence": [
+            "preserve-4: “Our next campaign budget opens on 1 May.”"
+          ],
+          "note": "Next budget amount not stated; engine checks timing only for payments after it"
+        },
+        {
+          "field": "Buyer approval limit",
+          "status": "stated",
+          "value": "Above ₹15,000 needs MD approval",
+          "evidence": [
+            "preserve-5: “Finance lets me approve up to ₹15,000 per payment without escalating it.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Approval limit applies",
+          "status": "stated",
+          "value": "Applies per payment",
+          "evidence": [
+            "preserve-5: “Finance lets me approve up to ₹15,000 per payment without escalating it.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "ambiguous",
+          "value": null,
+          "evidence": [
+            "preserve-3: “I can release only ₹10,000 right now, as this quarter is tight.”",
+            "preserve-5: “Finance lets me approve up to ₹15,000 per payment without escalating it.”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Latest start date",
+          "status": "stated",
+          "value": "Start by 1 May 2027",
+          "evidence": [
+            "preserve-4: “Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [
+        {
+          "key": "amounts_include_gst",
+          "reason": "conflicting values in the same message",
+          "rawText": "₹15,000"
+        },
+        {
+          "key": "required_package",
+          "reason": "does not match a deal package",
+          "rawText": "complete annual package"
+        }
+      ],
+      "engine": {
+        "initial": "options_ready",
+        "final": "options_ready",
+        "feasible": [
+          "Full annual scope from May 2027 · 12 monthly payments [deferred_start; within_limit]"
+        ]
+      },
+      "questions": [],
+      "answeredWithScriptedBuyerReply": [],
+      "explanation": {
+        "source": {
+          "ranking": "ai",
+          "text": "code_fallback"
+        },
+        "issues": [
+          "comparison rejected: contains a literal figure, date or percentage"
+        ],
+        "rankedFirst": "Full annual scope from May 2027 · 12 monthly payments [deferred_start]",
+        "notes": [
+          {
+            "structureId": "deferred_start:start=2027-05-01,plan=monthly_12",
+            "text": "The schedule spreads cash flow evenly, keeping the largest payment at ₹11,800 and limiting the peak unpaid value to ₹22,000 while delivering a net contribution of ₹60,168."
+          }
+        ]
+      },
+      "caseCard": {
+        "expectedState": "options_ready",
+        "expectedTemplate": "deferred_start",
+        "actualState": "options_ready",
+        "actualTemplate": "deferred_start",
+        "agrees": true
+      }
+    }
+  ],
+  "stopped": null
+}

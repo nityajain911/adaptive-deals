@@ -20,7 +20,7 @@ const REDUCED_SCOPE_MESSAGES = [
 const PRESERVE_SCOPE_MESSAGES = [
   "Hi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.",
   "Thanks. We need the complete annual package for the admissions season, so please don’t remove anything.",
-  "This quarter is tight. I can release only ₹10,000 right now.",
+  "I can release only ₹10,000 right now, as this quarter is tight.",
   "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
   "Finance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.",
 ] as const;

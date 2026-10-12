@@ -17,16 +17,15 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
   from the final realistic conversation, kept from its first valid three-request run.
 - `no-fit` → `run-case-no-fit-6fb4027d`: **Recorded Cerebras output**, one extraction request, kept as it came.
   The engine reaches the case's expected outcome (no approved offer fits).
-- `preserve-scope`: recorded (`run-case-preserve-scope-fcc306d2`) and kept as evidence, but **not mapped**. The
-  model's first extraction rejected the budget period and found no required services, so the engine stopped at
-  "insufficient information" and never reached the offer this case exists to show. The recording rules keep the first
-  valid output, so it was not re-run at first.
-  On the applicant's instruction it was run a second time (`run-case-preserve-scope-ff0d6acf`, under
-  `CASE_RECORDING_FREEZE_BATCH3.json`, whose rule was written before the call: the second output is final, both are
-  kept, and the case is mapped only if it reaches its expected engine state). It missed in exactly the same way, so
-  both recordings are kept as evidence and the case uses the labelled hand-written sample. A third attempt, again on the
-  applicant's instruction (`run-case-preserve-scope-9a841334`, `CASE_RECORDING_FREEZE_BATCH4.json`), missed identically.
-  The same model on the same request returned the same answer each time.
+- `preserve-scope` → `run-case-preserve-scope-1ec088fa`: **Recorded Cerebras output** on the case's revised text. Three
+  earlier attempts on the earlier text (`fcc306d2`, `ff0d6acf`, `9a841334`) all missed identically, and are kept as
+  evidence but never mapped (their conversation no longer matches the case). The cause was the capitalised, sentence-initial
+  "This quarter is tight": the model returned "this quarter", and the exact, case-sensitive quote check rejected it, so the
+  engine stopped at "insufficient information". On the applicant's instruction only that one message was reworded so the
+  phrase sits mid-sentence, the rule for the new attempt was written first (`CASE_RECORDING_FREEZE_BATCH6.json`: one
+  attempt, final whatever it is, mapped only if it reaches the expected offer), and the single new attempt reached the
+  expected deferred-start offer. Its misses are kept: the phrase "complete annual package" matches no package (the merchant
+  confirms the services) and the GST statement was rejected as conflicting.
 
 The three Groq files and `recording-report.json` are historical evidence made from the earlier
 conversation text. They remain immutable and are not loaded for the rewritten cases.

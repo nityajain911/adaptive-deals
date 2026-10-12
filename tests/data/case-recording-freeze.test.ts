@@ -34,9 +34,13 @@ describe("the pre-call case recording freeze", () => {
     expect(freeze.authoredBy).toBe("OpenAI Codex, directed by Nitya Jain");
     expect(Number.isNaN(Date.parse(freeze.frozenAt))).toBe(false);
 
+    // The first batch pins the text as it was; preserve-scope's message was revised later, and its own freeze pins the new text.
+    const revised = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH6.json"), "utf8")) as CaseRecordingFreeze;
     for (const id of CASE_IDS) {
-      expect(freeze.cases[id].messagesSha256).toBe(sha256(canonicalJson(demoCase(id)!.deal.messages)));
+      const pinned = id === "preserve-scope" ? revised : freeze;
+      expect(pinned.cases[id].messagesSha256).toBe(sha256(canonicalJson(demoCase(id)!.deal.messages)));
     }
+    expect(freeze.cases["preserve-scope"].messagesSha256).toBe("a98421b32768095881447b048a786171388886f23c17ddc337324ea6c759f30f");
 
     for (const [task, version] of Object.entries({ extract: "extract.v2", clarify: "clarify.v1", explain: "explain.v3" }) as ["extract" | "clarify" | "explain", string][]) {
       expect(freeze.prompts[task]).toEqual({ version, sha256: promptHash(promptFor(task, version)) });
@@ -56,7 +60,7 @@ describe("the pre-call case recording freeze", () => {
   });
 
   it("keeps historical Groq inputs separate and maps only exact frozen Cerebras recordings", () => {
-    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-ed5442a3", "no-fit": "run-case-no-fit-6fb4027d" };
+    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-ed5442a3", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" };
     for (const id of CASE_IDS) {
       expect(RECORDED_CASE_MESSAGES[id]).not.toEqual(demoCase(id)!.deal.messages);
       const runId = mapped[id];
