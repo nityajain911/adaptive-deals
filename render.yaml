@@ -1,0 +1,18 @@
+# Render blueprint: one web service, no database. Each visitor gets their own copy of the demo state (see lib/store.ts).
+services:
+  - type: web
+    name: adaptive-deals
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start -- -p $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: ADAPTIVE_DEALS_SESSIONS
+        value: "1"
+      - key: ADAPTIVE_DEALS_DATA_DIR
+        value: /tmp/adaptive-deals
+      - key: RAZORPAY_MODE
+        value: simulated

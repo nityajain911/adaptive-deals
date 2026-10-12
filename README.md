@@ -183,3 +183,7 @@ app/, components/       three-stage merchant product, buyer proposal, walkthroug
 - Refunds, external payments and accounting reconciliation are not modelled.
 - The evidence consists of one synthetic merchant segment, three fictional cases (three current recorded Cerebras runs, one per case, with a hand-written sample as the fallback for each), earlier historical model runs, and agent-conducted role inspections. It does not establish market frequency.
 - How often Indian service sellers negotiate commercial structure over WhatsApp remains an assumption to validate.
+
+## Hosting a public demo
+
+No database or Supabase is needed. Set `ADAPTIVE_DEALS_SESSIONS=1` and every visitor gets a private copy of the state (a random cookie id, files under `sessions/<id>/`), so reviewers do not interfere with each other. See `docs/DEPLOY.md`, `render.yaml` and the `Dockerfile`. It runs with no model or Razorpay keys.
