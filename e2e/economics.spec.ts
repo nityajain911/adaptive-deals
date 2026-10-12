@@ -130,7 +130,7 @@ test("commercial memory · the offer connects buyer words, merchant evidence and
   await expect(evidence).toContainText("Buyer message");
   await expect(evidence).toContainText("Pinecone 2026 rate card");
   await expect(evidence).toContainText("The engine checked");
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-commercial-memory")).toContainText("exact chunk");
 });
@@ -163,7 +163,7 @@ test("mcp · Track and Audit state that no Razorpay action occurred when the cap
   await page.goto("/deals/hero/track");
   // Nothing happened with Razorpay MCP, so the merchant's Track screen does not show an MCP card at all.
   await expect(page.getByTestId("mcp-collection-card")).toHaveCount(0);
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-mcp")).toContainText("Capability unavailable");
 });
@@ -268,7 +268,7 @@ test("corridor · the ladder is shown, and the 5% row prepares an offer that pas
   expect(counter.source).toBe("listed_offer");
   expect(counter.override).toBeNull();
   // A deal started under the example is labelled as such in its audit.
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.locator("body")).toContainText("prices & costs, version 2 (illustrative example)", { ignoreCase: true });
 });
@@ -326,7 +326,7 @@ test("preset · the illustrative example fills the draft, activates as an Illust
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-total")).toHaveText(before ?? "");
   // The open deal stays pinned to version 1, so its audit does not claim to use the example.
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.locator("body")).not.toContainText("illustrative example");
 });

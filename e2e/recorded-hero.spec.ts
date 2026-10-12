@@ -30,7 +30,7 @@ test("the default hero replays the exact Cerebras recording without a provider c
   await page.goto("/deals/hero/understand");
   await expect(page.getByText("AI · Recorded Cerebras output", { exact: true })).toHaveCount(1);
   await expect(page.getByTestId("thread-understand")).toContainText("I only have ₹50,000 left in this quarter.");
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-drawer")).toContainText("Recorded Cerebras output");
   await expect(page.getByTestId("audit-drawer")).toContainText("Constraint extraction: cerebras · gpt-oss-120b · accepted with corrections");
@@ -52,7 +52,7 @@ test("cases without an exact current recording stay clearly labelled as hand-wri
   await action(page, { action: "start_case", caseId: "preserve-scope" });
   expect(state().run.record.kind).toBe("synthetic_replay");
   await page.goto("/deals/hero/understand");
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-drawer")).toContainText("Sample output written by hand · no model ran");
 });

@@ -116,7 +116,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   if (!preferences.open) return preferences.dismissedWelcome ? (
     <button
       type="button"
-      className="fixed bottom-20 right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#c7d3ff] bg-surface px-4 text-[14px] font-semibold text-blue shadow-lg hover:bg-blue-weak md:bottom-5 md:right-5"
+      className="fixed bottom-20 right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#3d6bff] bg-[#0b1b3f] px-4 text-[14px] font-semibold text-white shadow-lg hover:bg-[#12285a] md:bottom-5 md:right-5"
       data-testid="walkthrough-resume"
       aria-label="Resume demo walkthrough"
       onClick={() => {
@@ -164,7 +164,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
   const currentIndex = view.objectives.findIndex((item) => item.id === view.currentObjectiveId);
 
   return (
-    <aside className={`walkthrough-shell fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t border-line bg-surface shadow-[0_-10px_35px_rgba(16,24,40,0.16)] ${mobileExpanded ? "max-h-[62dvh]" : "max-h-[64px]"} md:inset-x-auto md:inset-y-0 md:right-0 md:w-[320px] md:max-h-none md:border-l md:border-t-0 xl:w-[360px]`} role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
+    <aside className={`walkthrough-shell fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t-4 border-[#3d6bff] bg-[#0b1b3f] text-white shadow-[0_-10px_35px_rgba(2,8,23,0.4)] ${mobileExpanded ? "max-h-[62dvh]" : "max-h-[64px]"} md:inset-x-auto md:inset-y-0 md:right-0 md:w-[320px] md:max-h-none md:border-l-4 md:border-t-0 xl:w-[360px]`} role="region" aria-label="Buildathon product walkthrough" data-open="true" data-testid="walkthrough">
       <button
         type="button"
         className="flex h-16 w-full items-center justify-between gap-3 px-4 text-left md:hidden"
@@ -175,13 +175,13 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
         data-testid="walkthrough-mobile-toggle"
       >
         <span className="flex min-w-0 items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-weak text-blue"><Compass aria-hidden className="h-4 w-4" /></span>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#3d6bff] text-white"><Compass aria-hidden className="h-4 w-4" /></span>
           <span className="min-w-0">
-            <span className="block text-[12px] font-bold uppercase tracking-[0.1em] text-blue">Demo walkthrough</span>
-            <span className="block truncate text-[13px] font-semibold text-ink">{displayed.title}</span>
+            <span className="block text-[12px] font-bold uppercase tracking-[0.1em] text-[#9db4ff]">Demo guide</span>
+            <span className="block truncate text-[13px] font-semibold text-white">{displayed.title}</span>
           </span>
         </span>
-        {mobileExpanded ? <ChevronDown aria-hidden className="h-5 w-5 shrink-0 text-muted" /> : <ChevronUp aria-hidden className="h-5 w-5 shrink-0 text-muted" />}
+        {mobileExpanded ? <ChevronDown aria-hidden className="h-5 w-5 shrink-0 text-slate-300" /> : <ChevronUp aria-hidden className="h-5 w-5 shrink-0 text-slate-300" />}
       </button>
       <div id="walkthrough-content" className={`${mobileExpanded ? "block h-[calc(62dvh-64px)]" : "hidden"} md:block md:h-full`}>
         <WalkthroughProgress

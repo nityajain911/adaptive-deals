@@ -11,7 +11,7 @@ const PRESENTER = path.join(".data-e2e", "presenter.json");
 
 type StoredState = DemoState & Record<string, unknown>;
 
-/** Reviewer tools (guide, audit trail) live in the "For reviewers" menu; open it only if it is closed. */
+/** Reviewer tools (guide, audit trail) live in the presenter frame; open it only if it is closed. */
 /** The alternatives and the strategy comparison live in one closed section; open it first. */
 async function openOtherOptions(page: Page) {
   const section = page.getByTestId("other-options");
@@ -19,8 +19,8 @@ async function openOtherOptions(page: Page) {
 }
 
 async function clickReviewer(page: Page, testId: "audit-details" | "walkthrough-launcher") {
-  const menu = page.getByTestId("reviewer-menu");
-  if ((await menu.getAttribute("open")) === null) await page.getByTestId("reviewer-menu-toggle").click();
+  const menu = page.getByTestId("presenter-frame");
+  if ((await menu.getAttribute("open")) === null) await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId(testId).click();
 }
 
@@ -478,7 +478,7 @@ test("stage links, audit drawer and disclosures work from the keyboard", async (
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/offer$/);
 
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   const opener = page.getByTestId("audit-details");
   await opener.focus();
   await page.keyboard.press("Enter");

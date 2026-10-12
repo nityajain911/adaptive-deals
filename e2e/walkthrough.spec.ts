@@ -8,10 +8,10 @@ const MOBILE = { width: 390, height: 844 };
 
 const state = () => JSON.parse(readFileSync(STORE, "utf8")) as DemoState;
 
-/** Reviewer tools (guide, audit trail) live in the "For reviewers" menu; open it only if it is closed. */
+/** Reviewer tools (guide, audit trail) live in the presenter frame; open it only if it is closed. */
 async function clickReviewer(page: Page, testId: "audit-details" | "walkthrough-launcher") {
-  const menu = page.getByTestId("reviewer-menu");
-  if ((await menu.getAttribute("open")) === null) await page.getByTestId("reviewer-menu-toggle").click();
+  const menu = page.getByTestId("presenter-frame");
+  if ((await menu.getAttribute("open")) === null) await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId(testId).click();
 }
 
@@ -147,8 +147,8 @@ test("a hidden walkthrough has a visible resume button at desktop, tablet and ph
     await startCase(page);
     await page.goto("/deals/hero/understand");
     await openGuide(page);
-    const menu = page.getByTestId("reviewer-menu");
-    if (await menu.getAttribute("open") !== null) await page.getByTestId("reviewer-menu-toggle").click();
+    const menu = page.getByTestId("presenter-frame");
+    if (await menu.getAttribute("open") !== null) await page.getByTestId("presenter-frame-toggle").click();
     if (width === 390) await page.getByTestId("walkthrough-mobile-toggle").click();
     await guide(page).getByRole("button", { name: "Hide" }).click();
     await expect(guide(page)).toHaveCount(0);
@@ -201,7 +201,7 @@ test("keyboard users can open the guide and move focus to the product target", a
   await reset(page);
   await startCase(page);
   await page.goto("/deals/hero/understand");
-  await page.getByTestId("reviewer-menu-toggle").focus();
+  await page.getByTestId("presenter-frame-toggle").focus();
   await page.keyboard.press("Enter");
   await page.getByTestId("walkthrough-launcher").focus();
   await page.keyboard.press("Enter");

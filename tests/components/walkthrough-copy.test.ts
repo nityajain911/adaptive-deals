@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// The presenter frame reads stored state on the server; this file only renders the header around it.
+vi.mock("@/components/presenter/presenter-frame", () => ({ PresenterFrame: () => null }));
 import { MerchantHeader } from "@/components/merchant-header";
 import { WalkthroughProgress } from "@/components/walkthrough/walkthrough-progress";
 import type { WalkthroughView } from "@/lib/walkthrough";
@@ -57,12 +60,12 @@ describe("buildathon walkthrough presentation", () => {
 
   it("shows one focused value sentence, action and source disclosure", () => {
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
-    expect(html).toContain("DEMO WALKTHROUGH");
+    expect(html).toContain("GUIDE · STEP 2 OF 2");
     expect(html).toContain("STEP 2 OF 2");
     expect(html).toContain("Understand the buyer");
     expect(html).toContain("Review the extracted constraints and evidence.");
     expect(html).not.toContain("What to notice");
-    expect(html).toContain("How this step is sourced");
+    expect(html).toContain("Under the hood");
     expect(html).toContain("AI analysis");
     expect(html).toContain("Recorded Groq output");
     expect(html).not.toMatch(/₹|contribution|invoice_[A-Za-z0-9]|model confidence/i);
@@ -131,12 +134,37 @@ describe("buildathon walkthrough presentation", () => {
 
   it("makes a simulation visibly different from a product action: violet, and labelled before it runs", () => {
     const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: { ...view, currentAction: { ...view.currentAction!, type: "system", systemAction: "pay_upfront_link", label: "Simulate: buyer pays the upfront link", consequence: "Simulated system event · buyer pays the upfront link", productLabel: null } }, displayedObjectiveId: "understand_buyer", primaryLabel: "Simulate: buyer pays the upfront link", primaryTone: "simulate" }));
-    expect(html).toMatch(/data-walkthrough-primary="true"[^>]*class="[^"]*bg-violet-weak[^"]*"[^>]*>Simulate: buyer pays the upfront link/);
+    expect(html).toMatch(/data-walkthrough-primary="true"[^>]*class="[^"]*bg-violet-weak[^"]*"[^>]*>.*?Next step.*?Simulate: buyer pays the upfront link/s);
     expect(html).toContain("Simulated system event");
   });
 
-  it("keeps the walkthrough permanently reachable from the merchant header", () => {
-    expect(renderToStaticMarkup(createElement(MerchantHeader))).toContain("Walkthrough");
+  it("keeps reviewer tools out of the merchant header, and the SIMULATED pill in it", () => {
+    const html = renderToStaticMarkup(createElement(MerchantHeader));
+    expect(html).not.toContain("For reviewers");
+    expect(html).not.toContain("Presenter page");
+    expect(html).toContain("SIMULATED");
+  });
+
+  it("is one big Next step button that says what it will do, in the dark guide pane", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "choose_case", primaryLabel: "Take me there" }));
+    expect(html).toMatch(/data-walkthrough-primary="true"[^>]*>.*?Next step.*?Take me there/s);
+    expect(html).toContain("bg-[#0b1b3f]");
+    expect(html.match(/data-walkthrough-primary/g)).toHaveLength(1);
+  });
+
+  it("points at a merchant's own button from the same big button, and never offers to click it", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
+    expect(html).toMatch(/data-walkthrough-show="true"[^>]*>.*?Next step.*?Show me where to click/s);
+    expect(html).not.toContain("data-walkthrough-primary");
+    expect(html).toContain("The guide never clicks it for you");
+  });
+
+  it("makes Restart and Hide quiet text links, and says what produced the step", () => {
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view, displayedObjectiveId: "understand_buyer", primaryLabel: null }));
+    expect(html).toMatch(/underline[^>]*>.*?Hide/s);
+    expect(html).toContain("Restart");
+    expect(html).toContain("A model proposed this, as words and quotes only");
+    expect(html).not.toMatch(/vector/i);
   });
 
   it("states the actor and consequence before a simulation control", () => {

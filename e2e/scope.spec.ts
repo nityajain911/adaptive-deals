@@ -44,7 +44,7 @@ async function confirmAllServices(page: Page) {
 }
 
 async function openAudit(page: Page) {
-  await page.getByTestId("reviewer-menu-toggle").click();
+  await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   const drawer = page.getByTestId("audit-drawer");
   await expect(drawer).toBeVisible();
