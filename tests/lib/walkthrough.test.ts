@@ -244,7 +244,7 @@ describe("the real button the person must click", () => {
     s.selectedOption = { structureId: "x", fingerprint: "f", selectedAt: "t", draftVersion: 1, evidenceMessageIds: [], explicit: false };
     s.agreements = [{ version: 1, status: "draft" }] as never;
     const view = resolve(s, { ...progress("offer.review", "offer", "merchant", "action_required"), primaryAction: { id: "review_buyer_proposal" as const, label: "Review buyer proposal" } });
-    expect(view.currentAction).toMatchObject({ id: "approve_and_send_draft", productLabel: "Approve and send to buyer", href: "/deals/hero/offer/preview" });
+    expect(view.currentAction).toMatchObject({ id: "approve_and_send_draft", productLabel: "Send offer", href: "/deals/hero/offer/preview" });
   });
 });
 

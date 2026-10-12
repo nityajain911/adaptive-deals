@@ -1195,3 +1195,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** inline edits in the profit breakdown, a slider for the profit limit, a visible "Customized" mark. **Applicant decision:** the Customized tag stays off the buyer-facing preview.
 
 **Where I departed from the brief:** the slider stops at real offers' profit instead of free dragging (the engine runs on the server, so a free drag cannot show what it unlocks); a reason stays required; the same slider is on the "No offer fits" screen, because that is where the merchant is actually blocked.
+
+### 2026-10-12 — [Claude Code] Sending the offer
+
+**Asked by the applicant:** a merchant summary instead of the buyer's checkout page, the message as the main object framed as WhatsApp, a simple Send offer. **Applicant decision:** the buyer view opens as a sheet.
+
+**Where I departed from the brief:** the margin is about 50% of the price (the engine's measure), not 42% (which counts GST); the buyer-side disclosure is kept on the buyer's page and in the sheet; the draft message is read-only so it cannot drift from the approved terms.

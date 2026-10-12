@@ -240,7 +240,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expect(page.getByTestId("preview-frame")).toContainText("Not sent");
   await expect(page.getByTestId("buyer-message-preview")).toContainText("Here is our proposal");
   await expect(page.getByTestId("buyer-message-preview")).toContainText("Review and respond here");
-  await expect(page.getByTestId("primary-action")).toHaveText("Approve and send to buyer");
+  await expect(page.getByTestId("primary-action")).toHaveText("Send offer");
   await shot(page, "desktop-3-preview");
   await page.getByTestId("buyer-message-preview").click();
   await shot(page, "desktop-3b-preview-message");
@@ -988,13 +988,14 @@ test("accepted terms show truthful setup copy without delivery metadata or a tec
   await expect(page.getByTestId("setup-panel")).toBeVisible();
 });
 
-test("step 4 · the merchant preview says it is what the buyer will see, and the simulated buyer reply is a set of choices", async ({ page }) => {
+test("step 4 · the draft is marked not sent, and the buyer view says it is what the buyer will see", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await prepareOptions(page);
   await api(page, { action: "review_buyer_proposal" });
   await page.goto("/deals/hero/offer/preview");
-  await expect(page.getByTestId("preview-frame")).toContainText("You're seeing what");
-  await expect(page.getByTestId("preview-frame")).toContainText("will see");
+  await expect(page.getByTestId("preview-frame")).toContainText("Not sent yet");
+  await page.getByTestId("preview-buyer-view").click();
+  await expect(page.getByTestId("buyer-view-sheet")).toContainText("will see");
 });
 
 test("step 5 · on a phone a bar points at the one real action when it is off-screen, and never performs it; on desktop it is hidden", async ({ page }) => {
@@ -1380,4 +1381,36 @@ test("offer · the quote and the offer are one list, the alternatives are at mos
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
   await expect(page.getByTestId("audit-ruled-out")).toBeAttached();
+});
+
+test("send · a short summary and the drafted message come first, and the buyer's page is a sheet that Escape closes", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await prepareOptions(page);
+  await page.goto("/deals/hero/offer");
+  await clickPrimary(page);
+  await expect(page).toHaveURL(/\/offer\/preview$/);
+  const summary = page.getByTestId("send-summary");
+  await expect(summary).toContainText("Website fixes");
+  await expect(page.getByTestId("summary-you-keep")).toContainText("about ₹19,330");
+  await expect(page.getByTestId("summary-you-keep")).not.toContainText("about about");
+  await expect(page.getByTestId("summary-approval")).toContainText("Buyer can approve");
+  await expect(page.getByTestId("summary-you-keep")).toContainText("50% of the price");
+  await expect(page.getByTestId("buyer-message-preview")).toContainText("Here is our proposal");
+  await expect(page.getByTestId("proposal-card")).toContainText("₹46,020");
+  // The buyer's page, with its boilerplate, is not on the screen until asked for.
+  await expect(page.getByText("After you accept")).toHaveCount(0);
+  await shot(page, "send-desktop");
+  await page.getByTestId("preview-buyer-view").click();
+  const sheet = page.getByTestId("buyer-view-sheet");
+  await expect(sheet).toContainText("After you accept");
+  await expect(sheet).toContainText("not sent");
+  await expect(page.getByTestId("primary-action")).toBeVisible();
+  await shot(page, "send-sheet");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId("preview-buyer-view")).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/deals/hero/offer/preview");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await shot(page, "send-mobile");
 });

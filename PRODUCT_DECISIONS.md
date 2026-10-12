@@ -607,3 +607,9 @@ The model's explanation has two parts that code validates separately: a full com
 **The profit limit is a slider that stops where an offer would work.** The stops are the offers ruled out for being under the profit limit and nothing else, at each one's real profit; dragging shows which of them become available and what they keep. It is not a free-drag preview. When a deal is blocked entirely on profit, the slider is on the "No offer fits" screen, where the merchant needs it.
 
 **Changed values are tagged.** "Customized" sits beside each changed limit and on delivery costs, and a strip over the breakdown says how many changes the deal carries, with Undo all and Remove on each. The buyer never sees any of this: the buyer proposal carries only the terms.
+
+## Sending the offer (12 October 2026)
+
+**The send screen is the merchant's, not the buyer's.** It opens with four facts (included, buyer pays, you keep, approval), then the drafted WhatsApp message as a not-yet-sent draft with a small proposal card and **Send offer** beside it, like a chat. The buyer's page is in a sheet behind **Preview buyer view**: the same component the buyer sees, one click away, closed with Escape. The margin is shown as the engine measures it (about 50% of the price before GST), not against the GST-inclusive total.
+
+**The buyer's disclosure stays.** "How automatic payments work", the approval confirmation and "After you accept" were taken out of the merchant's path but not out of the product: they are the buyer's consent for the auto-pay authorisation and remain on the buyer's page and in the preview sheet. The message is not editable, because it carries the link to the exact terms being approved; sending is still the approval, bound to the same terms hash.

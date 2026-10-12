@@ -93,7 +93,7 @@ test("guide completes the core journey while every merchant decision stays in th
   await expect(guide(page)).toContainText("STEP 4 OF 6");
   await productPrimary(page);
   await expect(page).toHaveURL(/\/offer\/preview$/);
-  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Approve and send to buyer");
+  await expect(guide(page).getByTestId("walkthrough-your-turn")).toContainText("Send offer");
   await productPrimary(page);
 
   await expect(page).toHaveURL(/\/track$/);
