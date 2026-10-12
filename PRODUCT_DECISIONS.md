@@ -697,3 +697,7 @@ The merchant's screens never name the provider, say "live", or show a fallback. 
 **Defaults the merchant cannot yet edit.** The 45-day hold and the choice of payment plan (the first the engine accepts: nine ₹8,000 payments fall below the merchant's smallest instalment, so three quarterly payments are used) live in code, not in Prices & costs. Every first-phase offer now carries a held offer if it passes the engine; the merchant sees it before approving.
 
 **Why this case.** Nobody in it says no. The stall is a limit on what one person can sign, which is the situation the product is for, and it shows scope, time and commitment moving together.
+
+## Nothing from the replaced hero is left on a screen (13 October 2026)
+
+After the hero changed to Harbour Fresh Foods, the Presenter page still offered the three earlier model runs on the old conversation and labelled one situation "Tight budget · Smaller scope fits", and its example outcomes mentioned "patient bookings". The earlier-runs section is gone from the page (the run files stay in the repository as history), the situation button now reads "Start small · Pilot first, rest of the year held", and the examples were reworded ("new online orders"). The frozen evaluation files and the domain-test fixture keep their original wording because their numbers and hashes are pinned; neither is shown in the product.

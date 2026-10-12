@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -35,16 +35,6 @@ export default async function PresenterPage() {
   const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const flags = await readPresenterFlags();
   const live = liveProviderDiagnostics();
-  let committed: string[] = [];
-  try { committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")); } catch { /* no saved runs: the page still works */ }
-  const earlierRuns = committed.map((id) => {
-    try {
-      const record = JSON.parse(readFileSync(path.join(process.cwd(), "data/live-runs", `${id}.json`), "utf8")) as { createdAt?: string };
-      return { id, label: `earlier run ${id.slice(-8)}${record.createdAt ? ` · ${fmtTime(record.createdAt)}` : ""}` };
-    } catch {
-      return { id, label: `earlier run ${id.slice(-8)}` };
-    }
-  });
   const documentReadings = Object.entries(await loadReadings(await loadKnowledgeSources()));
   const outcome = await currentOutcome(s).catch(() => null);
   const reproduced = await checkReproduced(s);
@@ -85,19 +75,6 @@ export default async function PresenterPage() {
           </ActionButton>
 
         </div>
-        {earlierRuns.length ? (
-          <details className="border-t border-line px-5 py-3" data-testid="earlier-runs">
-            <summary className="cursor-pointer text-[13px] font-semibold text-ink">Earlier model runs · historical evidence, not the demo</summary>
-            <p className="mt-1 text-[12px] text-muted">{earlierRuns.length} earlier run{earlierRuns.length === 1 ? "" : "s"} on the same buyer conversation. Replaying one loads it without a model call.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {earlierRuns.map((run) => (
-                <ActionButton key={run.id} body={{ action: "replay_run", runId: run.id }} variant="secondary">
-                  Replay {run.label}
-                </ActionButton>
-              ))}
-            </div>
-          </details>
-        ) : null}
       </Card>
 
       <Card>
