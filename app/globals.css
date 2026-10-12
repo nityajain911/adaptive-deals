@@ -239,3 +239,15 @@ dialog.audit-drawer[open] {
     bottom: 9.25rem;
   }
 }
+
+/* A value or a question the merchant was just taken to flashes once so the eye lands on it. */
+@keyframes flash-highlight {
+  0% { box-shadow: 0 0 0 3px rgba(61, 107, 255, 0.55); }
+  100% { box-shadow: 0 0 0 3px rgba(61, 107, 255, 0); }
+}
+[data-flash="true"] {
+  animation: flash-highlight 1.6s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-flash="true"] { animation: none; outline: 3px solid rgba(61, 107, 255, 0.55); }
+}

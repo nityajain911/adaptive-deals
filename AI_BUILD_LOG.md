@@ -1165,3 +1165,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Already done earlier:** the "clears the current one" constraint and the "Jump to" tiles. **Where I departed from the brief:** the tags are derived by code from the verified, quote-backed profile (not parsed by a model on the page, and not inferred from tone), so Kestrel's timeline reads "No start date stated" rather than "Needs immediate start".
 
+### 2026-10-12 — [Claude Code] Understand the buyer, conversation first
+
+**Asked by the applicant:** hide the proof table, move the clarifying questions into the chat as editable drafts with one send button, and merge unresolved ambiguities into the constraint list. **Decision on the table:** the applicant said to remove it now and decide later what to do with it; it is not shown on this screen (the audit keeps the evidence).
+
+**Where I departed from the brief:** no "AI confidence" indicator (no calibrated score exists); the drafted questions can be reworded, and a reworded question is marked as the merchant's, checked for buyer-safe wording, and recorded in the audit. Also in this round: redundant copy was cut from Deal settings and Active deals.
+

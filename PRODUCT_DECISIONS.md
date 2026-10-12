@@ -563,3 +563,11 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Several deals at once**, with no "clears the current one" warning, was already in place; the panel says only that the deal you leave keeps its progress. A deal that is on screen but was never started counts as not started until you press Start.
 
+## Understand the buyer, conversation first (12 October 2026)
+
+**The proof table is off this screen.** "How this decision is grounded" (source, understood-as, used-to, for every fact) no longer sits on Understand. Each fact in "What's in the way" shows where it came from on hover, focus or tap: the buyer's own words, and a **Show in chat** link that takes the eye to that message (which already has the words highlighted). The full evidence stays in the audit trail. We do not show an "AI confidence" figure: there is no calibrated score, a value is either found in the buyer's words or not shown, and a number would be invented.
+
+**The unknowns are on the facts they affect.** "Confirm if GST is included" sits on the budget, "Confirm: per payment or whole deal" on the approval limit, "Confirm which services" on the scope. Each leads to the draft or the question that settles it; after sending it reads "Waiting for the buyer", then "Buyer replied", then "Confirmed by the buyer" once the merchant uses the answer.
+
+**The questions are drafts in the chat, and the send button is in it.** They appear under the buyer's last message as "Suggested questions · not sent", with the wording label ("Suggested by AI", "Drafted by code" or a hand-written sample). Each can be reworded in place. A reworded question still answers the same question and must still be safe for the buyer (no internal wording, 5 to 300 characters); it is sent as the merchant's own words, shown as "Edited by you", and recorded in the audit ("Reworded N of them before sending"). After sending, **Use these answers** (or the reading of an unclear reply) is in the chat too.
+

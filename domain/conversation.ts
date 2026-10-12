@@ -45,7 +45,7 @@ export interface ConversationItem {
   provenance: "simulated";
   /** Selected from the demo operator's pre-scripted replies (false = typed). */
   scripted: boolean | null;
-  refs: { questionId?: string; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
+  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
   /** Code's classification of an inbound reply (never an AI interpretation). */
   classification: ReplyClassification | null;
 }
@@ -74,6 +74,21 @@ export function draftClarification(args: { id: string; dealId: string; questionI
     refs: { questionId: args.questionId },
     classification: null,
   };
+}
+
+/**
+ * The merchant rewrites a clarification draft before sending it. The question and what it asks about are unchanged;
+ * only the words are. The text must still be fit for the buyer, and the message is marked as the merchant's own.
+ */
+export function editClarificationDraft(item: ConversationItem, text: string): ConversationItem {
+  if (item.direction !== "outbound" || item.kind !== "clarification") throw new ConversationError("Only clarification drafts can be edited");
+  if (item.sentAt) throw new ConversationError("A sent message cannot be edited");
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length < 5) throw new ConversationError("A question needs at least a few words");
+  if (cleaned.length > 300) throw new ConversationError("A question can be at most 300 characters");
+  assertBuyerSafe(cleaned);
+  if (cleaned === item.text) return item;
+  return { ...item, text: cleaned, author: "merchant", refs: { ...item.refs, edited: true } };
 }
 
 /** The merchant sends a draft. This is the only way a clarification leaves the merchant. */

@@ -99,7 +99,7 @@ function UploadDocument({ sources, open, onClose, onUploaded }: { sources: Memor
     <dialog ref={dialog} onClose={onClose} aria-labelledby="upload-title" data-testid="memory-upload" className="m-auto max-h-[92vh] w-[min(36rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/40">
       <div className="space-y-3 p-5">
         <h2 id="upload-title" className="text-[18px] font-semibold text-ink">Bring in your rate card</h2>
-        <p className="text-[13px] text-ink-2">A CSV or a text-based PDF, or paste text. A built-in reader and an AI reader propose values, and code checks each against your document. Nothing changes until you confirm.</p>
+        <p className="text-[13px] text-ink-2">CSV, text-based PDF or pasted text. Nothing changes until you confirm.</p>
         <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Try a sample:{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>rate card (PDF)</a>,{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>cost sheet (PDF)</a> or{" "}
@@ -156,7 +156,7 @@ function UploadDocument({ sources, open, onClose, onUploaded }: { sources: Memor
 function UploadResult({ result }: { result: UploadSummary }) {
   return (
           <div className="rounded-lg border border-[#c9e7d3] bg-green-weak px-3 py-2 text-[13px] text-ink" role="status" data-testid="memory-upload-result">
-      <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}. Review them below.</p>
+      <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}.</p>
       {result.reader ? <p className="mt-1 text-[12px] text-ink-2" data-testid="memory-upload-reader">{result.reader.label ? `AI reading: ${result.reader.label}. It proposed ${result.reader.proposed} line${result.reader.proposed === 1 ? "" : "s"}; ${result.reader.rejected ? `${result.reader.rejected} did not pass the check against your document and ${result.reader.rejected === 1 ? "was" : "were"} dropped.` : "all passed the check against your document."}` : (result.reader.message ?? "")}</p> : null}
       {result.notes.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px] text-ink-2" data-testid="memory-upload-notes">{result.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason}</li>)}</ul> : null}
       {result.extractedText ? <details className="mt-2"><summary className="cursor-pointer text-[12px] font-semibold text-blue">What we read from the PDF</summary><pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-surface p-2 text-[12px]" data-testid="memory-upload-read-text">{result.extractedText}</pre></details> : null}
@@ -237,7 +237,7 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
         <div>
           <h3 className="text-[16px] font-semibold text-ink">Review what we found</h3>
           {review.message ? <p className="text-[13px] font-medium text-ink" data-testid="review-summary">{review.message}</p> : null}
-          <p className="text-[14px] text-ink-2" data-testid="review-question">{draft.proposals.length ? `Do these ${asked.every((proposal) => proposal.field.endsWith("directCostPaise")) ? "costs" : asked.every((proposal) => proposal.field.endsWith("listPricePaise")) ? "prices" : "prices and costs"} look correct?` : "Nothing in your documents could be read as a price or cost."} Untick any that are wrong.</p>
+          <p className="text-[14px] text-ink-2" data-testid="review-question">{draft.proposals.length ? `Do these ${asked.every((proposal) => proposal.field.endsWith("directCostPaise")) ? "costs" : asked.every((proposal) => proposal.field.endsWith("listPricePaise")) ? "prices" : "prices and costs"} look correct?` : "Nothing in your documents could be read as a price or cost."}</p>
           <p className="mt-1 text-[12px] text-muted" data-testid="review-readers">{draft.readers?.length ? `Read by the built-in line reader and an AI reader (${[...new Set(draft.readers.map((reader) => reader.label))].join(", ")}). Code checked every value against your document.` : "Read by the built-in line reader, not AI. Code checked every value against your document."}</p>
         </div>
         {draft.status === "conflicting_evidence" ? <p className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-amber">Two of your documents give different numbers for the same thing. Remove or replace one, then try again.</p> : null}
@@ -252,7 +252,7 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
         <div className="flex flex-wrap items-center gap-3 pt-1"><Button variant="primary" data-testid="memory-apply" disabled={pending || selected.length === 0} onClick={() => void run(async () => {
           const result = await call({ action: "confirm_economics_from_memory", draftId: draft.id, proposalIds: selected }) as { content: EconomicsContent; confirmed: number };
           onApply(result.content); onEditorVisibilityChange(true); setMessage(`${result.confirmed} values added below. Check them, then save.`);
-        })}>{pending ? "Adding…" : `Looks right, use these ${selected.length} values`}</Button><Button data-testid="memory-edit-instead" disabled={pending} onClick={() => { setDraft(null); onEditorVisibilityChange(true); }}>Edit by hand instead</Button><span className="text-[12px] text-muted">Nothing changes until you check and save.</span></div>
+        })}>{pending ? "Adding…" : `Looks right, use these ${selected.length} values`}</Button><Button data-testid="memory-edit-instead" disabled={pending} onClick={() => { setDraft(null); onEditorVisibilityChange(true); }}>Edit by hand instead</Button></div>
       </div> : null}
       {message ? <p className="mt-3 text-[13px] font-medium text-green" role="status">{message}</p> : null}
       {error ? <p className="mt-3 text-[13px] text-red" role="alert">{error}</p> : null}

@@ -213,7 +213,10 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await clickPrimary(page);
   await expectStage(page, "understand", "Their reply will appear here. Nothing else is needed from you.", undefined);
   await expect(page.getByText("Waiting for buyer", { exact: true })).toHaveCount(1);
-  await expect(page.getByTestId("questions-card")).not.toContainText("Waiting for the buyer.");
+  // The questions have left the drafts; what is pending is flagged on the facts they concern.
+  await expect(page.getByTestId("clarification-drafts")).toHaveCount(0);
+  await expect(page.getByTestId("flag-budget")).toHaveText("Waiting for the buyer");
+  await expect(page.getByTestId("flag-approval")).toHaveText("Waiting for the buyer");
 
   // The simulated buyer's replies are choices, including honest uncertainty.
   await expect(page.getByTestId("walkthrough-reply-clar-gst-unclear")).toBeVisible();
@@ -722,7 +725,6 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     await page.goto("/deals");
     await expect(page.getByTestId("case-picker")).toBeVisible();
     await page.getByTestId(`select-case-${item.id}`).click();
-    await expect(page.getByTestId("case-switch-warning")).toHaveText(item.id === state().caseId ? "" : "The deal you leave keeps its progress.");
     await page.getByTestId("start-selected-case").click();
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(item.buyer);
@@ -793,7 +795,7 @@ test("active deals · an inbox: the deals on the left, and what is in the way, i
   await api(page, { action: "reset" });
   await page.goto("/deals");
   await expect(page.getByText("Jump to")).toHaveCount(0);
-  await expect(page.getByTestId("case-switch-warning")).not.toContainText("clears");
+  await expect(page.getByText(/clears the current/i)).toHaveCount(0);
   const panel = page.getByTestId("deal-panel");
   // The open deal is selected, and its situation is a few facts, each from the buyer's own words.
   await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Kestrel Lane Clinics");
@@ -801,7 +803,7 @@ test("active deals · an inbox: the deals on the left, and what is in the way, i
   await expect(panel.getByTestId("tile-budget")).toContainText("₹50,000 available now");
   await expect(panel.getByTestId("tile-budget")).toContainText("I only have ₹50,000 left in this quarter");
   await expect(panel.getByTestId("tile-timeline")).toContainText("No start date stated");
-  await expect(panel.getByTestId("situation-source")).toContainText("Each fact is a quote that was found in the conversation");
+  await expect(panel.getByTestId("situation-source")).toContainText("Verdicts are worked out by code");
   await expect(panel.getByTestId("deal-conversation")).toContainText("The broken booking page is costing us patient enquiries");
   // The action sits inside the selected deal's panel.
   await expect(panel.getByTestId("start-selected-case")).toBeVisible();
@@ -848,6 +850,65 @@ test("active deals · all three deals are held at once, each with its own progre
   await api(page, { action: "open_deal", caseId: "no-fit" });
   expect(state().agreements).toHaveLength(0);
   expect(state().conversation.filter((item) => item.kind === "clarification" && item.sentAt)).toHaveLength(0);
+});
+
+test("understand · the facts carry their sources, the questions are drafts in the chat, and one button sends them", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  await page.goto("/deals/hero/understand");
+  const list = page.getByTestId("constraint-list");
+  await expect(list).toContainText("Budget this quarter");
+  // Unknowns sit on the fact they affect.
+  await expect(page.getByTestId("flag-budget")).toHaveText("Confirm if GST is included");
+  await expect(page.getByTestId("flag-approval")).toHaveText("Confirm: per payment or whole deal");
+  // A value shows where it came from on demand, and leads to the message.
+  await expect(page.getByTestId("source-budget")).toHaveCount(0);
+  await page.getByTestId("value-budget").click();
+  await expect(page.getByTestId("source-budget")).toContainText("I only have ₹50,000 left in this quarter");
+  await page.getByTestId("show-in-chat-budget").click();
+  await expect(page.locator("#source-reduced-4")).toHaveAttribute("data-flash", "true");
+  // The proof table is gone from this screen.
+  await expect(page.getByText("How this decision is grounded")).toHaveCount(0);
+  // The questions are drafts at the foot of the chat, with the send button in it.
+  const chat = page.getByTestId("thread-understand");
+  const drafts = chat.getByTestId("clarification-drafts");
+  await expect(drafts).toContainText("Suggested questions · not sent");
+  await expect(drafts.locator("textarea")).toHaveCount(2);
+  await expect(page.getByTestId("questions-card")).toHaveCount(0);
+  // Reword one before sending: it goes as the merchant's own words, and is marked so.
+  const first = drafts.locator("textarea").first();
+  await first.fill("Just to be sure: do the ₹50,000 and ₹60,000 both include GST?");
+  await expect(page.getByTestId("draft-wording")).toHaveText("Edited by you");
+  await drafts.getByTestId("primary-action").click();
+  await expect(page.getByTestId("flag-budget")).toHaveText("Waiting for the buyer");
+  await expect(chat).toContainText("Just to be sure: do the ₹50,000 and ₹60,000 both include GST?");
+  await expect(chat).toContainText("Edited by you");
+  const sent = state().conversation.filter((item) => item.kind === "clarification" && item.sentAt);
+  expect(sent).toHaveLength(2);
+  expect(sent.find((item) => item.refs.edited)).toMatchObject({ author: "merchant", state: "approved_and_sent_by_merchant", text: "Just to be sure: do the ₹50,000 and ₹60,000 both include GST?" });
+  expect(sent.filter((item) => item.refs.edited)).toHaveLength(1);
+  // Once the buyer answers, the flags turn into confirmations and the next step is inside the chat.
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await page.reload();
+  await expect(page.getByTestId("flag-budget")).toHaveText("Buyer replied");
+  await expect(page.getByTestId("thread-understand").getByTestId("primary-action")).toContainText("Use these answers");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("understand · a reworded question cannot carry internal wording, and an empty one cannot be sent", async ({ page }) => {
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  const first = state().conversation.find((item) => item.kind === "clarification" && !item.sentAt)!;
+  const refused = await page.request.post("/api/actions", { data: { action: "send_questions", edits: { [first.refs.questionId!]: "Our contribution floor is 35%, so can you pay more?" } } });
+  expect((await refused.json()) as { ok: boolean }).toMatchObject({ ok: false });
+  expect(state().conversation.filter((item) => item.kind === "clarification" && item.sentAt)).toHaveLength(0);
+  const empty = await page.request.post("/api/actions", { data: { action: "send_questions", edits: { [first.refs.questionId!]: "  " } } });
+  expect((await empty.json()) as { ok: boolean }).toMatchObject({ ok: false });
+  await page.goto("/deals/hero/understand");
+  await page.locator("textarea").first().fill("hi");
+  await expect(page.getByTestId("primary-action")).toBeDisabled();
 });
 
 test("step 3 · alternatives are visible rows, not hidden behind a disclosure", async ({ page }) => {
@@ -1232,9 +1293,11 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
   // Blue Harbor needs nothing asked: the engine already knows no offer fits. The merchant still sees what the buyer said first.
   await page.goto("/deals/hero");
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
-  await expect(page.getByTestId("blocking-card")).toContainText("Their budget this quarter");
+  await expect(page.getByTestId("blocking-card")).toContainText("Budget this quarter");
   await expect(page.getByTestId("thread-understand")).toContainText("The issue is timing");
-  await expect(page.getByTestId("see-evidence")).not.toContainText(/synthetic deal fixture|simulated WhatsApp/i);
+  // The proof table is not on this screen; the facts carry their own sources.
+  await expect(page.getByTestId("see-evidence")).toHaveCount(0);
+  await expect(page.getByText("How this decision is grounded")).toHaveCount(0);
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
   await expect(page.getByTestId("offer-no-fit")).toBeVisible();

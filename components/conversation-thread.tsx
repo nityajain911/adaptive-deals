@@ -38,7 +38,7 @@ function linkify(text: string): ReactNode[] {
   );
 }
 
-export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2, showDrafts = true }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number; showDrafts?: boolean }) {
+export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2, showDrafts = true, footer = null }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number; showDrafts?: boolean; footer?: ReactNode }) {
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -75,6 +75,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
           <span className="font-semibold text-ink-2">{outbound ? KIND[i.kind] : buyerName}</span>
           {outbound && draft ? <Badge tone="neutral">Not sent yet</Badge> : null}
+          {outbound && i.refs.edited ? <Badge tone="neutral">Edited by you</Badge> : null}
           {!outbound && i.source === "buyer_proposal_page" ? <span>From the buyer proposal page</span> : null}
         </div>
         <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
@@ -92,7 +93,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
           </div>
         ) : null}
       </>,
-      { "data-kind": i.kind },
+      { "data-kind": i.kind, id: `thread-${i.id}`, tabIndex: "-1" },
     );
   };
 
@@ -136,6 +137,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
           <ol className="space-y-2">{drafts.map(bubble)}</ol>
         </div>
       ) : null}
+      {footer ? <div className="border-t border-line bg-[#f0f2f5] p-3" data-testid="chat-footer">{footer}</div> : null}
     </section>
   );
 }

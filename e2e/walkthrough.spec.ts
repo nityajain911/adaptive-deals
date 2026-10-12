@@ -351,7 +351,8 @@ test("the first screen opens with the problem, not the product", async ({ page }
   await page.reload();
   await expect(page.getByTestId("walkthrough-welcome-title")).toHaveText("A client says your quote doesn't fit their budget. What now?");
   await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("you decide every step");
-  await expect(page.getByTestId("walkthrough-welcome-body")).toContainText("The buyer and the payments are simulated");
+  // The SIMULATED pill already says the buyer and payments are simulated; the welcome does not repeat it.
+  await expect(page.getByTestId("simulated-pill")).toBeVisible();
 });
 
 

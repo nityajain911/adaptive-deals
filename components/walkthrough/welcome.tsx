@@ -26,7 +26,7 @@ export function WalkthroughWelcome() {
           <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-blue"><Compass aria-hidden className="h-4 w-4" /> Guided demo</div>
           <h2 className="mt-2 text-[18px] font-semibold text-ink" data-testid="walkthrough-welcome-title">A client says your quote doesn&apos;t fit their budget. What now?</h2>
           <p className="mt-1 text-[13px] leading-5 text-ink-2" data-testid="walkthrough-welcome-body">
-            We read what they said, find an offer you can deliver at a profit, and you decide every step. The buyer and the payments are simulated.
+            We read what they said, find an offer you can deliver at a profit, and you decide every step.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { ConversationThread } from "@/components/conversation-thread";
 import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/components/client";
+import { ClarificationDrafts } from "@/components/understand/clarification-drafts";
+import { ConstraintList, type ConstraintFlag, type ConstraintItem } from "@/components/understand/constraint-list";
 import { StageShell } from "@/components/deal/stage-shell";
 import { ConfirmedServices, ScopeConfirmationCard } from "@/components/understand/scope-confirmation";
-import { InfoButton } from "@/components/info-button";
 import { Card } from "@/components/ui";
 import { understandSummary } from "@/lib/stage-summary";
 import { loadDeal, stageHref } from "@/lib/deal-page";
 import { originalProposalOf } from "@/lib/deal-context";
-import { blockingLines, uncapturedLines } from "@/lib/understand-copy";
+import { blockingLines, constraintRows, uncapturedLines } from "@/lib/understand-copy";
+import { clarificationDraftLabel, taskOrRunProvenance } from "@/lib/model-provenance";
 import { decisionAnswers, latestClarificationForQuestion, unmappedScopeOf } from "@/lib/service";
 import { commercialMemoryForDeal } from "@/lib/commercial-memory-view";
 import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RelevantHistory } from "@/components/commercial-memory/deal-evidence";
-import { SourceDecisionTrace } from "@/components/evidence/source-decision-trace";
-import { sourceTracesForDeal } from "@/lib/source-trace";
 
 const INTERPRET_OPTIONS: Record<string, { value: string; label: string }[]> = {
   "clar-gst": [
@@ -41,7 +41,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const scope = s.decisionBranch?.scope ?? null;
   const packages = activeCase.deal.packages;
   const confirmedServices = scope ? <ConfirmedServices names={scope.packageIds.map((id) => packages.find((p) => p.id === id)?.name ?? id)} phrases={scope.sources.map((x) => x.rawText)} /> : null;
-  const sourceTraces = sourceTracesForDeal({ profile: r.engine.profile, messages: r.inputs.messages });
   const answers = decisionAnswers(s);
   const primary = current ? progress.primaryAction : null;
   const memory = commercialMemoryForDeal({ merchantId: activeCase.deal.merchant.id, buyerId: activeCase.buyer.id, asOf: "2026-10-08", serviceIds: packages.map((item) => item.id) }, await loadKnowledgeSources());
@@ -52,8 +51,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     const answer = answers.find((a) => a.questionId === q.id) ?? null;
     return { q, draft, reply, answer };
   });
-
-  const evidenceDetails = <div className="mt-3" data-testid="see-evidence" data-walkthrough="constraint-evidence"><SourceDecisionTrace traces={sourceTraces} /></div>;
 
   if (!current && !firstLook) {
     return (
@@ -87,7 +84,6 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                 ))}
               </dl>
             ) : null}
-            {evidenceDetails}
             <div className="mt-4">
               <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} showDrafts={questions.length === 0} />
             </div>
@@ -97,23 +93,48 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     );
   }
 
+  const names = Object.fromEntries(packages.map((p) => [p.id, p.name]));
+  const byQuestion = Object.fromEntries(questions.map((x) => [x.q.id, x]));
+  // What still needs asking is flagged on the fact it affects; once the buyer has answered it says so.
+  const flagFor = (questionId: string, ask: string): ConstraintFlag | null => {
+    const x = byQuestion[questionId];
+    if (!x) return null;
+    if (x.answer) return { tone: "ok", text: "Confirmed by the buyer", target: null };
+    if (x.reply) return x.reply.refs.answerValue ? { tone: "ok", text: "Buyer replied", target: `thread-${x.reply.id}` } : { tone: "warn", text: "Replied: needs your reading", target: `thread-${x.reply.id}` };
+    if (x.draft?.sentAt) return { tone: "wait", text: "Waiting for the buyer", target: x.draft.id ? `thread-${x.draft.id}` : null };
+    return { tone: "warn", text: ask, target: "clarification-drafts" };
+  };
+  const items: ConstraintItem[] = constraintRows(out.profile, originalProposalOf(baseline), names).map((row) => ({
+    ...row,
+    flag: row.id === "budget" ? flagFor("clar-gst", "Confirm if GST is included") : row.id === "approval" ? flagFor("clar-approval", "Confirm: per payment or whole deal") : row.id === "needs" && unmapped.length ? { tone: "warn", text: "Confirm which services", target: "scope-confirmation" } : null,
+  }));
+
+  const unsent = questions.filter((x) => x.draft && !x.draft.sentAt);
+  const provenance = taskOrRunProvenance(r, "clarify", s.run.viewing);
+  const wordingLabel = [...new Set(unsent.map((x) => clarificationDraftLabel(x.draft!.state, provenance)))].join(" · ") || null;
+  const interpret = primary?.id === "interpret_reply"
+    ? questions.filter((x) => x.reply && !x.reply.refs.answerValue).map(({ q, reply }, index) => (
+        <div key={q.id} className="rounded-xl border border-line bg-white p-2.5 text-[13px] text-ink-2" data-testid={`question-${q.id}`}>
+          Their reply to “{q.question}”: <span className="font-medium text-ink">“{reply!.text}”</span>
+          <InterpretForm messageId={reply!.id} buyerText={reply!.text} options={INTERPRET_OPTIONS[q.id] ?? []} primary={index === 0} />
+        </div>
+      ))
+    : null;
+
   return (
     <StageShell dealId={dealId} viewing="understand">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="space-y-5">
-          <Card className="p-5" data-testid="blocking-card">
+          <Card className="p-5" data-testid="blocking-card" data-walkthrough="constraint-evidence">
             <h2 className="text-[16px] font-semibold text-ink">What&apos;s in the way</h2>
-            <ul className="mt-2 space-y-1.5 text-[14px] text-ink">
-              {lines.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-              {uncaptured.map((l) => (
-                <li key={l} className="text-[13px] text-ink-2" data-testid="uncaptured">
-                  {l}
-                </li>
-              ))}
-            </ul>
-            {evidenceDetails}
+            <ConstraintList items={items} />
+            {uncaptured.length ? (
+              <ul className="mt-2 space-y-1 text-[13px] text-ink-2">
+                {uncaptured.map((l) => (
+                  <li key={l} data-testid="uncaptured">{l}</li>
+                ))}
+              </ul>
+            ) : null}
             {firstLook ? (
               <div className="mt-4">
                 <PrimaryActionButton body={{ action: "understand_reviewed" }} onDone={stageHref(dealId, "offer")}>
@@ -126,40 +147,32 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
           <RelevantHistory memory={memory} />
 
           {unmapped.length ? (
-            <ScopeConfirmationCard
-              phrases={unmapped.map((u) => ({ rawText: u.rawText, evidenceQuote: u.evidenceQuote }))}
-             
-              form={<ConfirmServicesForm packages={packages.map((p) => ({ id: p.id, name: p.name }))} onDone={stageHref(dealId, "offer")} />}
-            />
-          ) : null}
-
-          {questions.length ? (
-            <Card className="p-5" data-testid="questions-card">
-              <h2 className="text-[16px] font-semibold text-ink">{questions.length === 1 ? "A question for the buyer" : "Questions for the buyer"}</h2>
-              {questions.some((x) => !x.draft?.sentAt) ? <p className="mt-1 text-[13px] text-muted">Not sent yet. Nothing reaches the buyer until you send.</p> : null}
-              <ol className="mt-3 space-y-3">
-                {questions.map(({ q, reply }, qi) => (
-                  <li key={q.id} className="rounded-xl border border-line p-3" data-testid={`question-${q.id}`}>
-                    <p className="text-[15px] font-medium text-ink">
-                      {q.question} <InfoButton label="Why this question matters" testId={`why-${q.id}`}>{q.whyItMatters}</InfoButton>
-                    </p>
-                    {reply ? (
-                      <div className="mt-2 text-[13px] text-ink-2">
-                        Buyer replied: <span className="font-medium text-ink">“{reply.text}”</span>
-                        {!reply.refs.answerValue && primary?.id === "interpret_reply" ? <InterpretForm messageId={reply.id} buyerText={reply.text} options={INTERPRET_OPTIONS[q.id] ?? []} primary={qi === questions.findIndex((x) => x.reply && !x.reply.refs.answerValue)} /> : null}
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-4">
-                {primary?.id === "send_questions" ? <PrimaryActionButton body={{ action: "send_questions" }}>{primary.label}</PrimaryActionButton> : null}
-                {primary?.id === "use_answers" ? <PrimaryActionButton body={{ action: "adopt_replies" }} onDone={stageHref(dealId, "offer")}>{primary.label}</PrimaryActionButton> : null}
-              </div>
-            </Card>
+            <div id="scope-confirmation" tabIndex={-1}>
+              <ScopeConfirmationCard
+                phrases={unmapped.map((u) => ({ rawText: u.rawText, evidenceQuote: u.evidenceQuote }))}
+                form={<ConfirmServicesForm packages={packages.map((p) => ({ id: p.id, name: p.name }))} onDone={stageHref(dealId, "offer")} />}
+              />
+            </div>
           ) : null}
         </div>
-        <ConversationThread s={s} scope="understand" buyerName={activeCase.buyer.name} opening={r.inputs.messages} showDrafts={questions.length === 0} />
+        <ConversationThread
+          s={s}
+          scope="understand"
+          buyerName={activeCase.buyer.name}
+          opening={r.inputs.messages}
+          showDrafts={questions.length === 0}
+          footer={
+            questions.length ? (
+              <ClarificationDrafts
+                drafts={unsent.map((x) => ({ questionId: x.q.id, text: x.draft!.text, why: x.q.whyItMatters }))}
+                wordingLabel={wordingLabel}
+                sendLabel={primary?.id === "send_questions" ? primary.label : null}
+                next={primary?.id === "use_answers" ? { label: primary.label, onDone: stageHref(dealId, "offer") } : null}
+                interpret={interpret}
+              />
+            ) : null
+          }
+        />
       </div>
     </StageShell>
   );

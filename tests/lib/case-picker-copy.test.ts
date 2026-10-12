@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { casePickerCards, CASE_SWITCH_NOTE } from "@/lib/case-picker-cards";
+import { casePickerCards } from "@/lib/case-picker-cards";
 import { dealStatus } from "@/lib/deal-status";
 import type { DealProgress } from "@/lib/progress";
 import { allDemoCases } from "@/data/synthetic/cases";
@@ -24,10 +24,6 @@ describe("commercial case picker copy", () => {
   it("states for each case whether a model or a hand-written sample produced its outputs", () => {
     const cards = casePickerCards(allDemoCases(), "reduced-scope", MODEL_OUTPUT);
     expect(cards.map((card) => card.modelOutput)).toEqual(["Recorded Groq output", "Sample output written by hand · no model ran", "Sample output written by hand · no model ran"]);
-  });
-
-  it("says the deal you leave keeps its progress, rather than warning that it is cleared", () => {
-    expect(CASE_SWITCH_NOTE).toBe("The deal you leave keeps its progress.");
   });
 
   it("gives each deal its own status, and invents none for a deal that was never started", () => {

@@ -4,8 +4,6 @@ import type { DealProgress } from "./progress";
 import type { RunRecord } from "@/ai/run-record";
 import { dealSituation, type SituationTile } from "./deal-situation";
 
-export const CASE_SWITCH_NOTE = "The deal you leave keeps its progress.";
-
 export interface CasePickerCard {
   id: CaseId;
   title: string;

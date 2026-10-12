@@ -158,6 +158,8 @@ export function whoDidWhat(
   const merchant: string[] = [];
   const sent = s.conversation.filter((i) => i.kind === "clarification" && i.state === "approved_and_sent_by_merchant").length;
   if (sent) merchant.push(`Sent ${sent} clarification question${sent === 1 ? "" : "s"}`);
+  const edited = s.conversation.filter((i) => i.kind === "clarification" && i.refs?.edited).length;
+  if (edited) merchant.push(`Reworded ${edited} of them before sending (the merchant's own words)`);
   for (const v of s.agreements) if (v.merchantApproval) merchant.push(`Approved terms version ${v.version}`);
   if (s.events?.some((e) => e.kind === "strategy_changed")) merchant.push(`Chose the strategy ${strategyLabel ?? "for this deal"}`);
   if (s.outcomes.some((o) => o.type === "option_selected")) merchant.push("Selected an alternative offer");

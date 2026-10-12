@@ -6,6 +6,7 @@ import {
   codeMessage,
   ConversationError,
   draftClarification,
+  editClarificationDraft,
   merchantSend,
   noticeMessageText,
   proposalMessageText,
@@ -110,5 +111,29 @@ describe("change requests select the collection line through the notice", () => 
     expect(createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 2, existing: [first] })).toMatchObject({ agreementVersion: 2, unavailableUntil: "2026-12-25" });
     const closed = transitionChangeRequest(first, "not_restructured", T0, "");
     expect(createChangeRequest({ id: "chg-2", reply: r2, conversation: conv, notices: [notice], attempts: [attempt], activeVersion: 1, existing: [closed] }).state).toBe("change_requested");
+  });
+});
+
+
+describe("rewording a clarification draft", () => {
+  const draft = () => draftClarification({ id: "c1", dealId: "d", questionId: "clar-gst", text: "Do both ₹50,000 and ₹60,000 include GST?", wording: "ai", at: T0, paused: false })!;
+
+  it("keeps the question it answers, marks the words as the merchant's, and sends them", () => {
+    const edited = editClarificationDraft(draft(), "  Just checking:   do both amounts include GST? ");
+    expect(edited).toMatchObject({ text: "Just checking: do both amounts include GST?", author: "merchant", refs: { questionId: "clar-gst", edited: true } });
+    expect(merchantSend(edited, T0)).toMatchObject({ state: "approved_and_sent_by_merchant", sentAt: T0, refs: { edited: true } });
+  });
+
+  it("leaves a draft alone when the words did not change", () => {
+    const d = draft();
+    expect(editClarificationDraft(d, d.text)).toBe(d);
+    expect(editClarificationDraft(d, d.text).refs.edited).toBeUndefined();
+  });
+
+  it("refuses an empty, over-long or internal-sounding question and a message already sent", () => {
+    expect(() => editClarificationDraft(draft(), "  ")).toThrow(ConversationError);
+    expect(() => editClarificationDraft(draft(), "x".repeat(301))).toThrow(/300/);
+    expect(() => editClarificationDraft(draft(), "Our contribution floor is 35%, so can you pay more?")).toThrow(/internal wording/);
+    expect(() => editClarificationDraft(merchantSend(draft(), T0), "Another question here?")).toThrow(/cannot be edited/);
   });
 });

@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, ErrorText, useAction } from "@/components/client";
 import type { CaseId } from "@/data/synthetic/cases";
-import { CASE_SWITCH_NOTE, type CasePickerCard } from "@/lib/case-picker-cards";
+import type { CasePickerCard } from "@/lib/case-picker-cards";
 import type { SituationTone } from "@/lib/deal-situation";
 import { Badge, cx } from "@/components/ui";
 
@@ -68,7 +68,6 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
             <Button variant="primary" onClick={go} disabled={pending} data-testid="start-selected-case" className="min-h-11 px-5 text-[15px]">
               {pending ? "Opening…" : card.started ? "Open deal" : "Start deal"} <ArrowRight aria-hidden className="h-4 w-4" />
             </Button>
-            <p className="min-h-4 text-[12px] text-muted" data-testid="case-switch-warning">{card.current ? "" : CASE_SWITCH_NOTE}</p>
           </div>
         </div>
         <ErrorText error={error} />
@@ -86,7 +85,7 @@ export function CasePicker({ cards, activeCaseId }: { cards: CasePickerCard[]; a
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[12px] text-muted" data-testid="situation-source">Read from their messages ({card.modelOutput.toLowerCase().startsWith("recorded") ? card.modelOutput : "hand-written sample"}). Each fact is a quote that was found in the conversation; the verdicts are worked out by code.</p>
+            <p className="mt-2 text-[12px] text-muted" data-testid="situation-source">From their messages ({card.modelOutput.toLowerCase().startsWith("recorded") ? card.modelOutput : "hand-written sample"}). Verdicts are worked out by code.</p>
           </div>
         ) : null}
 

@@ -8,7 +8,7 @@ export function ReviewPanel({ preview, error }: { preview: EconomicsActivationPr
     return (
     <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="economics-review">
       <h2 className="text-[18px] font-semibold text-ink">Check before you save</h2>
-      <p className="mt-1 text-[13px] text-ink-2">New deals will use these prices and costs once you save them.</p>
+      <p className="mt-1 text-[13px] text-ink-2">New deals use these once saved. Deals already quoted keep theirs.</p>
       {preview.unchanged ? <div className="mt-4 rounded-lg border border-line bg-surface-muted px-3 py-2 text-[13px] font-medium text-ink-2" data-testid="economics-unchanged">Nothing has changed yet. Change a price, cost or limit above, then check again.</div> : null}
       {preview.issues.length ? (
         <div className="mt-4 space-y-2">

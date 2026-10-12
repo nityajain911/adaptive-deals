@@ -63,3 +63,51 @@ export function uncapturedLines(evaluation: Pick<DealEvaluation, "state" | "ambi
     .filter((a) => !a.decisionRelevant)
     .map((a) => `${UNCAPTURED_LABEL[a.field] ?? a.field} was not mentioned. Every offer works either way, so we did not need to ask.`);
 }
+
+export interface ConstraintRow {
+  id: "quote" | "budget" | "nextBudget" | "approval" | "needs" | "start";
+  label: string;
+  value: string;
+  /** A second, quieter line. */
+  note: string | null;
+  /** The buyer's own words the value was read from; none for the merchant's own quote. */
+  evidence: { quote: string; messageId: string }[];
+}
+
+const evidenceOf = (field: { evidence: { quote: string; messageId: string }[] }) => field.evidence.map((e) => ({ quote: e.quote, messageId: e.messageId }));
+const monthName = (date: { value: string; precision: "day" | "month" }) => (date.precision === "month" ? `${MONTHS[Number(date.value.slice(5, 7)) - 1]} ${date.value.slice(0, 4)}` : formatDate(date.value));
+
+/**
+ * The same facts as `blockingLines`, one per row, so each can carry its own source and flag. Worked out by code from the
+ * verified profile. GST is spelled out only once the buyer has confirmed it; until then the row says nothing about it and
+ * the page flags it.
+ */
+export function constraintRows(p: ConstraintProfile, original: ReturnType<typeof originalProposalOf>, packageNames: Record<string, string>): ConstraintRow[] {
+  const rows: ConstraintRow[] = [{ id: "quote", label: "Your quote", value: `${formatINR(original.totalPaise)} including GST`, note: null, evidence: [] }];
+  const gst = p.amountsIncludeGst.status === "stated" ? p.amountsIncludeGst.value : null;
+  const gstText = gst === "yes" ? " including GST" : gst === "no" ? " excluding GST" : "";
+  const b = p.budgetNow.value;
+  if (b) rows.push({ id: "budget", label: isCalendarQuarter(b.period.start, b.period.end) ? "Budget this quarter" : "Budget now", value: `${formatINR(b.amountPaise)}${gstText}, until ${formatDate(b.period.end)}`, note: null, evidence: evidenceOf(p.budgetNow) });
+  else rows.push({ id: "budget", label: "Budget", value: "Not mentioned", note: null, evidence: [] });
+  const nb = p.nextBudget.value;
+  if (nb) rows.push({ id: "nextBudget", label: "More budget", value: `From ${monthName(nb.available)}${nb.amountPaise !== null ? ` · ${formatINR(nb.amountPaise)}` : ""}`, note: null, evidence: evidenceOf(p.nextBudget) });
+  const lim = p.approvalLimit.value;
+  if (lim) {
+    const scope = p.approvalScope.status === "stated" ? p.approvalScope.value : null;
+    rows.push({
+      id: "approval",
+      label: "Approval",
+      value: scope === "per_payment" ? `Any payment above ${formatINR(lim.amountPaise)} needs their MD` : `Above ${formatINR(lim.amountPaise)} needs their MD${scope === "per_contract" ? ", counted for the whole deal" : ""}`,
+      note: null,
+      evidence: evidenceOf(p.approvalLimit),
+    });
+  }
+  const required = p.requiredPackages.value ?? [];
+  if (required.length) {
+    const optional = (p.optionalPackages.value ?? []).map((id) => packageNames[id] ?? id);
+    rows.push({ id: "needs", label: "Needs", value: required.map((id) => packageNames[id] ?? id).join(", "), note: optional.length ? `${optional.join(", ")} can wait` : null, evidence: evidenceOf(p.requiredPackages) });
+  }
+  const start = p.latestStart.value;
+  if (start) rows.push({ id: "start", label: "Start by", value: monthName(start), note: null, evidence: evidenceOf(p.latestStart) });
+  return rows;
+}

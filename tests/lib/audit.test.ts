@@ -283,3 +283,15 @@ describe("evidence for the table", () => {
     }
   });
 });
+
+
+describe("who reworded a question", () => {
+  it("credits the merchant when they changed the words before sending", () => {
+    const sentEdited = { kind: "clarification", state: "approved_and_sent_by_merchant", direction: "outbound", refs: { edited: true } };
+    const sentPlain = { kind: "clarification", state: "approved_and_sent_by_merchant", direction: "outbound", refs: {} };
+    const w = whoDidWhat(run, { ranking: "ai", text: "ai" }, { ...baseState, conversation: [sentEdited, sentPlain] } as never);
+    expect(w.merchant).toContain("Sent 2 clarification questions");
+    expect(w.merchant).toContain("Reworded 1 of them before sending (the merchant's own words)");
+    expect(whoDidWhat(run, { ranking: "ai", text: "ai" }, { ...baseState, conversation: [sentPlain] } as never).merchant.join(" ")).not.toMatch(/Reworded/);
+  });
+});

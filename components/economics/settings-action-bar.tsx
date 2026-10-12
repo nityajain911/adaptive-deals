@@ -32,7 +32,7 @@ export function SettingsActionBar({
     <div className="settings-action-bar sticky bottom-0 z-20 -mx-3 border-t border-line bg-surface/95 px-3 py-3 backdrop-blur sm:-mx-6 sm:px-6" data-testid="settings-action-bar" data-state={state} role="region" aria-label="Next step">
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-end gap-x-3 gap-y-2">
         <p className="w-full min-w-0 text-[13px] text-ink-2 sm:w-auto sm:flex-1 sm:text-right" data-testid="economics-current" role="status">
-          {state === "saved" ? `Saved as version ${version}. Deals already quoted keep their prices.` : state === "unsaved" ? "You have changes that are not saved yet." : "Checked. Save to use these on new deals."}
+          {state === "saved" ? `Saved as version ${version}` : state === "unsaved" ? "Unsaved changes" : "Ready to save"}
         </p>
         {state === "saved" ? (
           <Link href="/deals" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue px-5 text-[15px] font-semibold text-white hover:bg-blue-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue" data-testid="settings-go-deals">

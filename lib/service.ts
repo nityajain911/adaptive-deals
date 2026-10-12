@@ -50,6 +50,7 @@ import {
   ConversationError,
   draftClarification,
   merchantSend,
+  editClarificationDraft,
   noticeMessageText,
   paymentLinkMessageText,
   proposalMessageText,
@@ -1150,13 +1151,16 @@ export async function sendProposal(version: number): Promise<{ state: DemoState;
 }
 
 /** The merchant sends every unsent clarification draft as one atomic batch. */
-export async function sendQuestions(): Promise<DemoState> {
+export async function sendQuestions(edits: Record<string, string> = {}): Promise<DemoState> {
   return mutate((s) => {
     const drafts = s.conversation.filter((i) => i.kind === "clarification" && !i.sentAt);
     if (!drafts.length) throw new ActionError("No questions to send");
     const at = clockOf(s).now();
-    const sent = drafts.map((d) => {
+    const sent = drafts.map((original) => {
       try {
+        // The merchant's own wording, when they changed it; the question it answers does not change.
+        const edit = original.refs.questionId ? edits[original.refs.questionId] : undefined;
+        const d = edit === undefined ? original : editClarificationDraft(original, edit);
         return merchantSend(d, at);
       } catch (e) {
         if (e instanceof ConversationError) throw new ActionError(e.message);
@@ -1165,7 +1169,7 @@ export async function sendQuestions(): Promise<DemoState> {
     });
     for (const d of sent) {
       s.conversation[s.conversation.findIndex((x) => x.id === d.id)] = d;
-      event(s, "clarification_sent", "Approved and sent by merchant", "merchant", d.text);
+      event(s, "clarification_sent", d.refs.edited ? "Edited and sent by merchant" : "Approved and sent by merchant", "merchant", d.text);
     }
   });
 }

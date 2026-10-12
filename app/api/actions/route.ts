@@ -111,7 +111,7 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("counter_offer"), totalPaise: z.number().int().positive().max(100_000_000_00), overrideConfirmed: z.boolean(), acknowledgedChecks: z.array(z.string().max(80)).max(20), reason: z.string().max(300).optional() }),
   z.object({ action: z.literal("approve_and_send_draft"), version: z.number().int().positive(), termsHash: Hash }),
   z.object({ action: z.literal("retry_send"), version: z.number().int().positive() }),
-  z.object({ action: z.literal("send_questions") }),
+  z.object({ action: z.literal("send_questions"), edits: z.record(z.string().max(80), z.string().max(400)).optional() }),
   z.object({ action: z.literal("accept_agreement"), version: z.number().int().positive(), termsHash: Hash, authorityConfirmed: z.boolean() }),
   z.object({ action: z.literal("simulate"), event: z.enum(["payment_link_paid", "mandate_confirmed", "advance_notice", "debit_failed", "debit_succeeded", "buyer_reply"]) }),
   z.object({ action: z.literal("check_payment_link") }),
@@ -272,7 +272,7 @@ export async function POST(request: Request) {
         break;
       }
       case "send_questions":
-        await svc.sendQuestions();
+        await svc.sendQuestions(a.edits);
         break;
       case "accept_agreement":
         await svc.acceptAgreement(a.version, a.termsHash, a.authorityConfirmed);
