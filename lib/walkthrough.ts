@@ -176,7 +176,7 @@ function action(step: DemoStep | null, dealId: string, progress: DealProgress): 
   return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step), productLabel };
 }
 
-const UNDERSTAND_STEPS = ["Send the questions", "Buyer answers", "Use the answers"];
+const UNDERSTAND_STEPS = ["Send the questions", "Buyer answers"];
 const OFFER_STEPS = ["Choose the offer", "Preview and send"];
 const SETUP_STEPS = ["Buyer pays and sets up auto-pay"];
 

@@ -1177,3 +1177,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** unknowns as slots that fill when the reply arrives, highlights only on pointing at a fact, auto-refresh while waiting, no redundant text. **Applicant decisions:** no "Next deal" button and no inbox re-ordering (prototype replies are instant).
 
 **Where I departed from the brief:** none beyond those decisions. Reply reading stays rules-based (not AI), so the slot answer is not described as AI output. A first test failure (the lit sentence read before its colour transition finished) was a test timing issue, fixed by polling the computed colour; a layout overlap of the filled slot on long values was fixed from a screenshot.
+
+### 2026-10-12 — [Claude Code] Answers applied as they arrive
+
+**Asked by the applicant:** no manual "Use these answers" click, confirmation chips in the chat, the action at the end of the chat. **Applicant decision:** if a reply is unclear, the offer waits for the merchant.
+
+**Where I departed from the brief:** no "AI confidence" gate (replies are read by rules, not a model, so there is no score); the unclear-reply path keeps its form because it needs the buyer's exact words rather than a one-tap guess; the answer can be changed only before an offer is chosen. The "demo sidebar" was already separate from the product, and the action was already under the last bubble.

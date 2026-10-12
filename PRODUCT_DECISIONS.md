@@ -581,3 +581,11 @@ The model's explanation has two parts that code validates separately: a full com
 **The page refreshes by itself every 3 seconds while the buyer has not replied** (only while the tab is visible). The banner says just "Questions sent."
 
 **Not built, by decision:** a "Next deal" button and re-ordering the inbox while waiting. The prototype's replies are instant, so the merchant stays on the same deal. In real use the merchant would move to another deal; that is a deployment concern, not shown here. The buyer's reply is read by fixed rules (yes/no, per contract/per payment), not by AI.
+
+## When the buyer's answers arrive (12 October 2026)
+
+**Clear answers are applied without a click.** When every question has a reply the code can read, the answers are recorded as they arrive. What was read shows as a small chip under each reply ("Includes GST", "Whole deal"), and the facts on the left update. The merchant still approves the offer itself: the button under the last bubble is **Review offer**. "Use these answers" is gone.
+
+**Change, until an offer is chosen.** The chip's **Change** swaps it for the other answer (the buyer's words stay as they were) and the offer is worked out again; the change is recorded in the audit. After an offer is chosen or sent it cannot be changed this way.
+
+**Unclear replies are not guessed.** The reply is read by fixed rules, not by AI, so there is no confidence figure: it matches exactly one answer or it does not. An unclear one keeps the existing form under the chat, which needs the buyer's exact words as support and records the choice as the merchant's judgement. Once every question is answered, the rest applies by itself.

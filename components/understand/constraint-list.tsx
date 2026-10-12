@@ -116,12 +116,12 @@ export function ConstraintList({ items }: { items: ConstraintItem[] }) {
                   data-state={slot.state}
                   aria-label={slot.state === "filled" ? `${slot.label} ${slot.filled}` : slot.state === "asked" ? `${slot.label} Asked, waiting for the reply` : slot.label}
                   className={cx(
-                    "mt-1 flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-[12px] font-medium",
+                    "mt-1 flex w-fit items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[12px] font-medium",
                     slot.state === "filled" ? "border-[var(--border-success,#9bd3ae)] bg-green-weak text-green" : slot.state === "reading" || slot.state === "action" ? "border-dashed border-[#e0a21b] bg-amber-weak text-amber" : "border-dashed border-line-strong text-ink-2",
                   )}
                 >
                   {slot.state === "filled" ? <Check aria-hidden className="h-3.5 w-3.5" /> : slot.state === "asked" ? <Clock aria-hidden className="h-3.5 w-3.5" /> : <CircleHelp aria-hidden className="h-3.5 w-3.5" />}
-                  {slot.state === "filled" ? slot.filled : slot.state === "reading" ? "Read their reply" : slot.label}
+                  {slot.state === "filled" ? null : slot.state === "reading" ? "Read their reply" : slot.label}
                 </button>
               ) : null}
             </div>

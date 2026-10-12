@@ -250,10 +250,10 @@ describe("the real button the person must click", () => {
 
 describe("sub-steps inside one stage", () => {
   const items = (view: ReturnType<typeof resolve>) => view.subSteps?.map((x) => `${x.state}:${x.label}`);
-  it("shows the three Understand actions and where the person is", () => {
-    expect(items(resolve(started(), progress("understand.send", "understand", "merchant")))).toEqual(["current:Send the questions", "todo:Buyer answers", "todo:Use the answers"]);
-    expect(items(resolve(started(), progress("understand.waiting", "understand", "buyer", "waiting_on_buyer")))).toEqual(["done:Send the questions", "current:Buyer answers", "todo:Use the answers"]);
-    expect(items(resolve(started(), progress("understand.use_answers", "understand", "merchant")))).toEqual(["done:Send the questions", "done:Buyer answers", "current:Use the answers"]);
+  it("shows the two Understand actions and where the person is", () => {
+    expect(items(resolve(started(), progress("understand.send", "understand", "merchant")))).toEqual(["current:Send the questions", "todo:Buyer answers"]);
+    expect(items(resolve(started(), progress("understand.waiting", "understand", "buyer", "waiting_on_buyer")))).toEqual(["done:Send the questions", "current:Buyer answers"]);
+    expect(items(resolve(started(), progress("understand.use_answers", "understand", "merchant")))).toEqual(["done:Send the questions", "done:Buyer answers"]);
   });
   it("shows choose then preview for the offer, switching when a draft exists", () => {
     expect(items(resolve(started(), progress("offer.review", "offer", "merchant")))).toEqual(["current:Choose the offer", "todo:Preview and send"]);

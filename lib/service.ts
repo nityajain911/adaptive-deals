@@ -118,6 +118,8 @@ export interface DemoState {
   suggestionsPaused: boolean;
   /** Set once the merchant has read the Understand stage and moved on, so a new deal opens there first. Absent on older stores. */
   understandReviewed?: boolean;
+  /** The buyer's clear replies were applied as answers without a click. Absent on older stores. */
+  autoApplied?: boolean;
   changeRequests: ChangeRequest[];
   // ── Merchant-decision redesign (store schema 2; see lib/migrate.ts) ──
   schemaVersion: number;
@@ -725,12 +727,14 @@ export interface AnswerInput {
   answeredAt?: string;
 }
 
-export async function recordAnswers(inputs: AnswerInput[]): Promise<DemoState> {
+export async function recordAnswers(inputs: AnswerInput[], opts: { reopen?: boolean } = {}): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
     s.understandReviewed = true;
-    if (s.status !== "clarifying") throw new ActionError(`Answers can only be recorded while clarifying (deal is ${s.status})`);
+    // A recorded answer can be changed only before an offer has been chosen or sent.
+    const reopened = opts.reopen && s.status !== "clarifying" && s.agreements.length === 0 && s.selectedOption === null;
+    if (s.status !== "clarifying" && !reopened) throw new ActionError(`Answers can only be recorded while clarifying (deal is ${s.status})`);
     const asked = new Set(s.run.record.displayed.questions.map((q) => q.id));
     if (inputs.length !== asked.size || !inputs.every((i) => asked.has(i.questionId))) throw new ActionError("Answer every clarification question");
     const answers: RecordedAnswer[] = inputs.map((i) => ({
@@ -1604,6 +1608,8 @@ export async function setSuggestionsPaused(paused: boolean): Promise<DemoState> 
 /** Record the buyer's scripted clarification replies as the answers (confirmed via WhatsApp). */
 export async function adoptRepliesAsAnswers(): Promise<DemoState> {
   const s = await getState();
+  // Clear answers are applied as they arrive; asking again for the same answers changes nothing.
+  if (s.status !== "clarifying" && s.autoApplied) return s;
   const inputs: AnswerInput[] = s.run.record.displayed.questions.map((q) => {
     const draft = latestClarificationForQuestion(s, q.id);
     if (!draft) throw new ActionError(`Send the question “${q.question}” first`);
@@ -1616,6 +1622,41 @@ export async function adoptRepliesAsAnswers(): Promise<DemoState> {
     return { questionId: q.id, value: reply.refs.answerValue, answerText: quote ?? reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
   });
   return recordAnswers(inputs);
+}
+
+/**
+ * Once every question has a reply the code could read, the answers are applied without a click. Replies that need the
+ * merchant (unclear wording) leave the deal waiting; nothing is guessed. The offer still needs the merchant's approval.
+ */
+export async function applyClearAnswers(): Promise<DemoState> {
+  const s = await getState();
+  if (s.status !== "clarifying" || !s.run.record.displayed.questions.length) return s;
+  for (const q of s.run.record.displayed.questions) {
+    const draft = latestClarificationForQuestion(s, q.id);
+    const reply = draft?.sentAt ? [...s.conversation].reverse().find((i) => i.inReplyTo === draft.id) : null;
+    if (!reply?.refs.answerValue) return s;
+  }
+  await adoptRepliesAsAnswers();
+  // The merchant has not yet looked at the answers: keep the conversation in view until they go to the offer.
+  return mutate((x) => {
+    x.understandReviewed = false;
+    x.autoApplied = true;
+    event(x, "answers_applied", "Answers applied as the buyer replied", "engine", "Read by fixed rules from the buyer's own words; the merchant can change either before choosing an offer.");
+  });
+}
+
+/** The merchant changes one applied answer, before any offer is chosen. The buyer's words stay as they were. */
+export async function changeAnswer(questionId: string, value: string): Promise<DemoState> {
+  const s = await getState();
+  if (!(SUPPORTED_VALUES[questionId] ?? []).includes(value)) throw new ActionError("Choose a supported value for this question");
+  const answers = decisionAnswers(s);
+  if (!answers.some((a) => a.questionId === questionId)) throw new ActionError("That question has no answer to change");
+  const inputs: AnswerInput[] = answers.map((a) => ({ questionId: a.questionId, value: a.questionId === questionId ? value : a.value, answerText: a.answerText, confirmedByBuyerVia: a.confirmedByBuyerVia, answeredAt: a.answeredAt }));
+  await recordAnswers(inputs, { reopen: true });
+  return mutate((x) => {
+    x.understandReviewed = false;
+    event(x, "answer_changed", "Merchant changed an answer", "merchant", `${questionId} → ${value}`);
+  });
 }
 
 /** Buyer asks for a change from the proposal page. Terms are not touched. */

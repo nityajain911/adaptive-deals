@@ -226,8 +226,11 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await walkthroughPrimary(page).click();
   await expect(page.getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-approval-contract");
   await walkthroughPrimary(page).click();
-  await expectStage(page, "understand", "The buyer answered", "Use these answers");
-  await clickPrimary(page);
+  // Clear replies are applied as they arrive: the chips are under the replies and the next step is in the chat.
+  await expect(page.getByTestId("answer-clar-gst")).toContainText("Includes GST");
+  await expect(page.getByTestId("answer-clar-approval")).toContainText("Whole deal");
+  await expect(page.getByTestId("primary-action")).toHaveText("Review offer");
+  await page.getByTestId("primary-action").click();
 
   await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
   await expect(page.getByTestId("recommendation")).toContainText("Suggested offer");
@@ -294,7 +297,8 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await page.reload();
-  await clickPrimary(page);
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/offer$/);
   await clickPrimary(page);
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/track$/);
@@ -374,6 +378,10 @@ test("legacy routes redirect to the domain-derived current stage", async ({ page
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
   }
   await prepareOptions(page);
+  // Until the merchant has looked at the applied answers, the deal opens on them.
+  await page.goto("/decision");
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  await api(page, { action: "understand_reviewed" });
   await page.goto("/decision");
   await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
 });
@@ -765,6 +773,7 @@ test("step 3 · info buttons open on click and close on Escape, and the settled 
   await expect(page.getByTestId("why-clar-gst-note")).toHaveCount(0);
 
   await prepareOptions(page);
+  await api(page, { action: "understand_reviewed" });
   await page.goto("/deals/hero/understand");
   await expect(page.getByTestId("understand-summary")).toContainText("Budget ₹50,000 now including GST");
 });
@@ -897,9 +906,10 @@ test("understand · pointing at a fact lights its sentence, unknowns are slots t
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await expect(page.getByTestId("slot-budget")).toHaveAttribute("data-state", "filled", { timeout: 12000 });
-  await expect(page.getByTestId("slot-budget")).toHaveText("Includes GST");
-  await expect(page.getByTestId("slot-approval")).toHaveText("Whole deal");
-  await expect(page.getByTestId("thread-understand").getByTestId("primary-action")).toContainText("Use these answers");
+  await expect(page.getByTestId("slot-budget")).toHaveAttribute("aria-label", "GST included? Includes GST");
+  await expect(page.getByTestId("constraint-budget")).toContainText("including GST");
+  await expect(page.getByTestId("thread-understand").getByTestId("primary-action")).toHaveText("Review offer");
+  await expect(page.getByTestId("answer-clar-gst")).toContainText("Includes GST");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
@@ -1326,4 +1336,24 @@ test("the outcome card records what the deal taught, and proposes nothing from a
   await expect(page.getByTestId("learning-recorded")).toContainText("Suggested offer followed · no pricing exception · buyer accepted");
   await expect(page.getByTestId("learning-decision")).toContainText("No policy change proposed.");
   await expect(page.getByTestId("learning-path")).toContainText("You approve it");
+});
+
+test("understand · an applied answer can be changed before an offer is chosen, and the offer follows it", async ({ page }) => {
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  await api(page, { action: "send_questions" });
+  const clarification = (id: string) => state().conversation.find((item) => item.kind === "clarification" && item.refs.questionId === id)!;
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  expect(state().status).toBe("options_ready");
+  expect(state().events.some((event) => event.kind === "answers_applied")).toBe(true);
+  await page.goto("/deals/hero/understand");
+  await page.getByTestId("change-clar-approval").click();
+  await page.getByTestId("change-clar-approval-per_payment").click();
+  await expect(page.getByTestId("answer-clar-approval")).toContainText("Per payment");
+  await expect(page.getByTestId("slot-approval")).toHaveAttribute("aria-label", "Per payment or whole deal? Per payment");
+  expect(state().events.some((event) => event.kind === "answer_changed")).toBe(true);
+  // Asking for the answers again changes nothing.
+  expect((await page.request.post("/api/actions", { data: { action: "adopt_replies" } })).ok()).toBe(true);
+  await expect(page.getByTestId("answer-clar-approval")).toContainText("Per payment");
 });

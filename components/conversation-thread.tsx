@@ -38,7 +38,7 @@ function linkify(text: string): ReactNode[] {
   );
 }
 
-export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2, showDrafts = true, footer = null }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number; showDrafts?: boolean; footer?: ReactNode }) {
+export function ConversationThread({ s, scope, buyerName, opening = [], compact = 2, showDrafts = true, footer = null, annotations = {} }: { s: DemoState; scope: "understand" | "track"; buyerName: string; opening?: Message[]; compact?: number; showDrafts?: boolean; footer?: ReactNode; annotations?: Record<string, ReactNode> }) {
   const byId = new Map(s.conversation.map((i) => [i.id, i]));
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
@@ -80,6 +80,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
         </div>
         <p className="mt-1 text-[15px] leading-6 text-ink [overflow-wrap:anywhere]">{outbound ? linkify(i.text) : i.text}</p>
         <div className="mt-1 text-right text-[13px] text-muted">{fmtTime(i.sentAt ?? i.createdAt)}</div>
+        {annotations[i.id] ?? null}
         {outcome ? (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]" data-testid={`outcome-${i.id}`} data-outcome={outcome.label}>
             <Badge tone={outcome.tone}>{outcome.label}</Badge>

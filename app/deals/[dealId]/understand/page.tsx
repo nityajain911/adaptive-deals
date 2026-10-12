@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConversationThread } from "@/components/conversation-thread";
 import { ConfirmServicesForm, InterpretForm, PrimaryActionButton } from "@/components/client";
 import { ClarificationDrafts } from "@/components/understand/clarification-drafts";
+import { AnswerChip } from "@/components/understand/answer-chip";
 import { AutoRefresh } from "@/components/understand/auto-refresh";
 import { ConstraintList, type ConstraintItem, type ConstraintSlot } from "@/components/understand/constraint-list";
 import { StageShell } from "@/components/deal/stage-shell";
@@ -118,6 +119,17 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
     slot: row.id === "budget" ? slotFor("clar-gst", "GST included?") : row.id === "approval" ? slotFor("clar-approval", "Per payment or whole deal?") : row.id === "needs" && unmapped.length ? { state: "action", label: "Which services?", target: "scope-confirmation" } : null,
   }));
 
+  // What the code read from each clear reply sits under that reply. The answer can be changed until an offer is chosen.
+  const canChange = s.agreements.length === 0 && s.selectedOption === null;
+  const annotations = Object.fromEntries(
+    questions
+      .filter((x) => x.reply && (x.answer?.value ?? x.reply.refs.answerValue) && ANSWER_TEXT[x.q.id]?.[x.answer?.value ?? x.reply.refs.answerValue!])
+      .map((x) => {
+        const value = (x.answer?.value ?? x.reply!.refs.answerValue)!;
+        const others = Object.entries(ANSWER_TEXT[x.q.id]!).filter(([v]) => v !== value).map(([v, label]) => ({ value: v, label }));
+        return [x.reply!.id, <AnswerChip key={x.q.id} questionId={x.q.id} label={ANSWER_TEXT[x.q.id]![value]!} others={canChange && s.status !== "clarifying" ? others : null} />];
+      }),
+  );
   const unsent = questions.filter((x) => x.draft && !x.draft.sentAt);
   const provenance = taskOrRunProvenance(r, "clarify", s.run.viewing);
   const wordingLabel = [...new Set(unsent.map((x) => clarificationDraftLabel(x.draft!.state, provenance)))].join(" · ") || null;
@@ -145,7 +157,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
                 ))}
               </ul>
             ) : null}
-            {firstLook ? (
+            {firstLook && !questions.length ? (
               <div className="mt-4">
                 <PrimaryActionButton body={{ action: "understand_reviewed" }} onDone={stageHref(dealId, "offer")}>
                   {progress.rule === "offer.no_feasible" ? "See why nothing fits" : "See the offer"}
@@ -171,13 +183,14 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
           buyerName={activeCase.buyer.name}
           opening={r.inputs.messages}
           showDrafts={questions.length === 0}
+          annotations={annotations}
           footer={
             questions.length ? (
               <ClarificationDrafts
                 drafts={unsent.map((x) => ({ questionId: x.q.id, text: x.draft!.text, why: x.q.whyItMatters }))}
                 wordingLabel={wordingLabel}
                 sendLabel={primary?.id === "send_questions" ? primary.label : null}
-                next={primary?.id === "use_answers" ? { label: primary.label, onDone: stageHref(dealId, "offer") } : null}
+                next={primary?.id === "use_answers" ? { label: primary.label, action: "adopt_replies", onDone: stageHref(dealId, "offer") } : firstLook ? { label: progress.rule === "offer.no_feasible" ? "See why nothing fits" : "Review offer", action: "understand_reviewed", onDone: stageHref(dealId, "offer") } : null}
                 interpret={interpret}
               />
             ) : null

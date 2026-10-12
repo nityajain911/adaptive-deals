@@ -130,6 +130,7 @@ const Action = z.discriminatedUnion("action", [
   // Simulated buyer reply: a pre-scripted reply or typed text, both read by the same code rules.
   z.object({ action: z.literal("buyer_reply"), inReplyTo: z.string().max(40), scriptId: z.string().max(40).optional(), text: z.string().trim().min(1).max(500).optional() }),
   z.object({ action: z.literal("adopt_replies") }),
+  z.object({ action: z.literal("change_answer"), questionId: z.string().max(40), value: z.string().max(20) }),
   z.object({ action: z.literal("understand_reviewed") }),
   z.object({ action: z.literal("buyer_complete_setup") }),
   // Buyer proposal page (demo buyer view).
@@ -315,6 +316,10 @@ export async function POST(request: Request) {
         break;
       case "buyer_reply":
         await svc.buyerReply({ inReplyTo: a.inReplyTo, scriptId: a.scriptId, text: a.text });
+        await svc.applyClearAnswers();
+        break;
+      case "change_answer":
+        await svc.changeAnswer(a.questionId, a.value);
         break;
       case "adopt_replies":
         await svc.adoptRepliesAsAnswers();
@@ -345,6 +350,7 @@ export async function POST(request: Request) {
         break;
       case "interpret_reply":
         await svc.interpretClarificationReply(a.messageId, a.value, a.quote);
+        await svc.applyClearAnswers();
         break;
       case "ask_clarification_again":
         await svc.askClarificationAgain(a.messageId);

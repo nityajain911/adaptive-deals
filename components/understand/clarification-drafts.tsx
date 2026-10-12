@@ -17,7 +17,7 @@ export interface DraftQuestion {
  * words to send and can be reworded in place; one button sends them all. After they are sent, this holds what the merchant does
  * next with the replies.
  */
-export function ClarificationDrafts({ drafts, wordingLabel, sendLabel, next, interpret }: { drafts: DraftQuestion[]; wordingLabel: string | null; sendLabel: string | null; next: { label: string; onDone: string } | null; interpret: ReactNode }) {
+export function ClarificationDrafts({ drafts, wordingLabel, sendLabel, next, interpret }: { drafts: DraftQuestion[]; wordingLabel: string | null; sendLabel: string | null; next: { label: string; action: "adopt_replies" | "understand_reviewed"; onDone: string } | null; interpret: ReactNode }) {
   const router = useRouter();
   const send = useAction();
   const move = useAction();
@@ -60,7 +60,7 @@ export function ClarificationDrafts({ drafts, wordingLabel, sendLabel, next, int
       {interpret}
       {next ? (
         <div className="flex justify-end">
-          <Button variant="primary" disabled={move.pending} data-testid="primary-action" onClick={() => move.run({ action: "adopt_replies" }, () => router.push(next.onDone))}>{move.pending ? "Working…" : next.label}</Button>
+          <Button variant="primary" disabled={move.pending} data-testid="primary-action" onClick={() => move.run({ action: next.action }, () => router.push(next.onDone))}>{move.pending ? "Working…" : next.label}</Button>
           <ErrorText error={move.error} />
         </div>
       ) : null}
