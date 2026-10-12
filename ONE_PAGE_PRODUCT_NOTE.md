@@ -2,16 +2,16 @@
 
 AI-native deal desk for B2B and SME commerce · Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2
 
-**The same stalled deal.** Client budget: ₹50,000 this quarter. Our annual quote: ₹1,41,600 (incl. GST).
+**The same stalled deal.** The buyer can commit ₹50,000 now, and any contract above ₹60,000 needs their MD's sign-off. Our annual quote: ₹1,41,600 (incl. GST).
 
 **Today: the owner discounts:** Delivers 12 months of work for ₹42,373 (before GST); Costs ₹57,000 to deliver. **Result: loses ₹14,600.**
 
-**With Adaptive Deals: the owner restructures:** Sells a 3-month package for ₹39,000 (before GST); Fits the ₹50,000 budget; costs and fees paid. **Result: earns ₹19,330.**
+**With Adaptive Deals: the owner restructures:** Sells a 3-month package for ₹39,000 (before GST); Under their ₹50,000 and ₹60,000 limits; costs and fees paid. **Result: earns ₹19,330.**
 
 ## 1. The merchant, the problem and the Razorpay opportunity
 
 - **Merchant:** founders of small B2B service firms (marketing agencies, design studios, IT and compliance consultancies) selling modular retainers.
-- **Problem:** checkout is binary: pay in full now or walk away. A buyer says, “I only have ₹50,000 this quarter; anything above ₹60,000 needs our MD,” and the quote stalls. Service deals stall not on willingness to pay but because rebuilding scope, phases and cost by hand takes days.
+- **Problem:** checkout is binary: pay in full now or walk away. A buyer says, “I only have ₹50,000 this quarter; anything above ₹60,000 needs our MD,” and the quote stalls: it is over the contact's own approval limit, even if the money exists over the year. Service deals stall not on willingness to pay but because rebuilding scope, phases and cost by hand takes days.
 - **Razorpay opportunity:** proposal tools (PandaDoc, Proposify) reshape quotes but cannot collect; a gateway collects only after terms are final. An adaptive deal desk upstream of Payment Links and mandates moves Razorpay from settlement rail to revenue recovery ([mandate docs](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-intent/initiate-mandate-registration/)).
 
 ## 2. Evidence, workarounds and merchant discovery
