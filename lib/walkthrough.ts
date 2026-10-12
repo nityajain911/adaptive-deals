@@ -18,6 +18,12 @@ export interface WalkthroughObjective {
   title: string;
   instruction: string;
   notice: string;
+  /** The one-line point of this step, written for the person watching the demo. */
+  pitch?: string;
+  /** What to look for, in one line. */
+  watch?: string;
+  /** How this step is built, in plain words; true of the code that runs. */
+  architecture?: string;
   href: string;
   anchorId: string;
   optional: boolean;
@@ -72,6 +78,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "business_economics",
     actor: "merchant",
     title: "Set your prices & costs",
+    pitch: "Your rules come first",
+    watch: "Every offer is checked against your prices, costs and limits before you see it.",
+    architecture: "Prices and costs are saved as numbered versions; each deal is checked against the version it started with.",
     instruction: "Look at the prices and costs your offers are worked out from. Change one, or try the example that allows discounts, then check and save it yourself.",
     notice: "Every offer is checked against these before you see it. The guide never saves anything for you.",
     href: "/economics",
@@ -83,6 +92,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "choose_case",
     actor: "merchant",
     title: "Choose a buyer situation",
+    pitch: "Every buyer needs a different answer",
+    watch: "Three situations: a tight budget, a request for everything, and one with no fit.",
+    architecture: "Each situation replays a recorded model reading of its own conversation, with a labelled hand-written sample as the fallback.",
     instruction: "Pick a buyer situation to start.",
     notice: "Different customers need different answers.",
     href: "/deals",
@@ -94,6 +106,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "understand_buyer",
     actor: "sample",
     title: "Understand the buyer",
+    pitch: "What the buyer said, with proof",
+    watch: "Every fact is tied to a quote in the chat; nothing the buyer did not say is shown.",
+    architecture: "A model (Cerebras, recorded) reads the chat as words and quotes. Code keeps only what it finds in the buyer's own messages.",
     instruction: "Check what was understood from the buyer's words.",
     notice: "The app keeps track of what the buyer said and what is still unclear.",
     href: "/deals/:dealId/understand",
@@ -105,6 +120,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "review_decision",
     actor: "engine",
     title: "Review the commercial decision",
+    pitch: "A sale you can afford to make",
+    watch: "Offers are ranked against your limits, and what you keep is shown before you send.",
+    architecture: "Code lists and ranks every offer against your limits. No model writes a figure.",
     instruction: "Review the recommendation. You can choose a different offer.",
     notice: "The app, not AI, works out every figure and checks every limit.",
     href: "/deals/:dealId/offer",
@@ -116,6 +134,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "confirm_terms",
     actor: "buyer",
     title: "Buyer accepts and collection begins",
+    pitch: "Both sides agree the same terms",
+    watch: "The buyer accepts exactly what you sent, and collection starts only after that.",
+    architecture: "Both acceptances are bound to the same SHA-256 terms hash. Payment and auto-pay are simulated.",
     instruction: "Let the buyer accept the exact offer, then see the collection setup.",
     notice: "The buyer accepts the same terms you sent. Collection starts only after that.",
     href: "/deals/:dealId/track",
@@ -127,6 +148,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "preventive_restructure",
     actor: "system",
     title: "Explore preventive restructuring",
+    pitch: "Fix a late payment before it happens",
+    watch: "When the buyer asks for time, the schedule, profit and mandate are rechecked before either side agrees.",
+    architecture: "A fixed set of date phrases is read by rules; anything else needs you. A change is a new version both sides accept.",
     instruction: "See what happens when the buyer asks to move a payment.",
     notice: "The app checks the new schedule before either side agrees.",
     href: "/deals/:dealId/track",
@@ -138,6 +162,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "no_fit",
     actor: "engine",
     title: "Explore when no offer fits",
+    pitch: "Saying no, with a reason",
+    watch: "When nothing fits your rules, the app names the rule that blocks it instead of inventing an offer.",
+    architecture: "The rules engine evaluates every possible offer and reports the checks each one fails.",
     instruction: "See why the buyer's request cannot be offered within your current rules.",
     notice: "No offer is recommended when the buyer's needs and your rules do not safely fit together.",
     href: "/deals/:dealId/offer",
@@ -149,6 +176,9 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     id: "negotiate_price",
     actor: "merchant",
     title: "Answer a buyer's price request",
+    pitch: "Your margin holds under pressure",
+    watch: "A price request is answered from your own limits; a smaller scope is offered only if it passes every rule.",
+    architecture: "The rules engine works out the lowest price and the smaller scope. No model writes a figure, and you approve and send.",
     instruction: "Before a fresh deal, open Deal settings, try the example that allows discounts, then check and save it yourself. When the buyer asks for a lower price, choose how to answer.",
     notice: "The lowest price and the discounts come from your own limits. The guide never saves your prices or sends an offer for you.",
     href: "/deals/:dealId/track",

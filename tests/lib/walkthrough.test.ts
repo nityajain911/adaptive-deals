@@ -301,3 +301,18 @@ describe("how the walkthrough ends", () => {
     expect(resolve(sample, progress("track.next_payment", "track", null, "informational")).finish!.lines).toContain("Buyer constraints came from: Sample output written by hand · no model ran.");
   });
 });
+
+describe("the pitch copy", () => {
+  it("gives every step a pitch, a line to watch and how it is built, without claims the product cannot back", async () => {
+    const source = (await import("node:fs")).readFileSync("lib/walkthrough.ts", "utf8");
+    const ids = [...source.matchAll(/^\s{4}id: "([a-z_]+)",\n\s{4}actor/gm)].map((m) => m[1]);
+    expect(ids.length).toBeGreaterThanOrEqual(8);
+    for (const id of ids) {
+      const block = source.slice(source.indexOf(`id: "${id}",`), source.indexOf("capability:", source.indexOf(`id: "${id}",`)));
+      expect(block, id).toContain("pitch:");
+      expect(block, id).toContain("watch:");
+      expect(block, id).toContain("architecture:");
+    }
+    expect(source).not.toMatch(/Pinecone vector|zero-risk|without human intervention|AI negotiat/i);
+  });
+});

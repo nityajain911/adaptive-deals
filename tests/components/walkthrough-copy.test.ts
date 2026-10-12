@@ -222,4 +222,19 @@ describe("a hand-written sample in the walkthrough", () => {
     expect(html).toContain("Sample output written by hand · no model ran");
     expect(html).not.toMatch(/\bAI\b|Groq/);
   });
+
+  it("leads with the pitch, then what to watch, and keeps how it is built under the hood", () => {
+    const base = { primaryDisabled: false, onPrimary: () => undefined, onBack: () => undefined, onNext: () => undefined, onHide: () => undefined, onRestart: () => undefined };
+    const withPitch = { ...view, objectives: view.objectives.map((objective) => (objective.id === "understand_buyer" ? { ...objective, pitch: "What the buyer said, with proof", watch: "Every fact is tied to a quote.", architecture: "Code keeps only what it finds in the buyer's own messages." } : objective)) };
+    const html = renderToStaticMarkup(createElement(WalkthroughProgress, { ...base, view: withPitch, displayedObjectiveId: "understand_buyer", primaryLabel: null, yourTurn: { who: "merchant", label: "Send 2 questions to buyer" }, onShowMe: () => undefined }));
+    expect(html).toMatch(/<h2[^>]*>What the buyer said, with proof<\/h2>/);
+    expect(html).toContain("GUIDE · STEP 2 OF 2 · UNDERSTAND THE BUYER");
+    expect(html).toContain("Every fact is tied to a quote.");
+    // The old note moves under the hood with how it is built.
+    const outside = html.replace(/<details[\s\S]*?<\/details>/g, "");
+    expect(outside).not.toContain("Groq structures the conversation");
+    expect(html).toContain('data-testid="walkthrough-architecture"');
+    expect(html).toContain("Code keeps only what it finds");
+    expect(html).not.toMatch(/Pinecone vector|zero-risk|without human intervention/i);
+  });
 });

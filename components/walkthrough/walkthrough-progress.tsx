@@ -76,9 +76,13 @@ export function WalkthroughProgress({
   return (
     <div className="flex h-full flex-col bg-[#0b1b3f] text-white">
       <div className="border-b border-white/15 px-5 py-4">
-        <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9db4ff]">GUIDE · {displayedStepLabel.toUpperCase()}</div>
-        <h2 id="walkthrough-heading" tabIndex={-1} className="mt-2 text-[20px] font-bold tracking-tight text-white">{objective.title}</h2>
-        <p className="mt-2 text-[14px] leading-5 text-slate-300">{objective.notice}</p>
+        <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9db4ff]">GUIDE · {displayedStepLabel.toUpperCase()}{objective.pitch ? ` · ${objective.title.toUpperCase()}` : ""}</div>
+        <h2 id="walkthrough-heading" tabIndex={-1} className="mt-2 text-[22px] font-bold leading-7 tracking-tight text-white">{objective.pitch ?? objective.title}</h2>
+        {objective.pitch ? (
+          <p className="mt-2 text-[14px] leading-5 text-slate-300" data-testid="walkthrough-watch"><span className="font-semibold text-[#9db4ff]">Watch </span>{objective.watch}</p>
+        ) : (
+          <p className="mt-2 text-[14px] leading-5 text-slate-300">{objective.notice}</p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -121,6 +125,8 @@ export function WalkthroughProgress({
 
         <details className="mt-5 border-t border-white/15 pt-3" data-testid="walkthrough-under-the-hood">
           <summary className="cursor-pointer text-[13px] font-semibold text-white">Under the hood</summary>
+          {objective.architecture ? <p className="mt-2 text-[12px] leading-5 text-slate-200" data-testid="walkthrough-architecture">{objective.architecture}</p> : null}
+          {objective.pitch ? <p className="mt-2 text-[12px] leading-5 text-slate-300" data-testid="walkthrough-notice">{objective.notice}</p> : null}
           <p className="mt-2 text-[12px] leading-5 text-slate-300">{UNDER_THE_HOOD[objective.actor]}</p>
           <p className="mt-2 text-[12px] leading-5 text-slate-400" data-testid="walkthrough-provenance">
             {ACTOR_LABEL[objective.actor]}{displayedObjectiveId === view.currentObjectiveId && view.provenanceLabel ? ` · ${view.provenanceLabel}` : ""}

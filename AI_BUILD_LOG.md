@@ -1225,3 +1225,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** a table with margin and status, a live what-if preview, AI-inferred dependencies, a focused upload review. **Applicant decision:** the editor reopens by itself after the merchant confirms the review (that behaviour was already there).
 
 **Where I departed from the brief:** most of it existed (compact table, preview, folded editor during review); I added the Margin and Status columns and the example deal; service dependencies stay merchant-set, because they decide what can be dropped from a buyer's offer and a model's guess should not set them silently.
+
+### 2026-10-12 — [Claude Code] The demo guide as a pitch
+
+**Asked by the applicant:** treat the guide like a slide (thesis, proof, action), separate it visually, one main button, an architecture-flavoured "Under the hood". **Applicant decision:** headlines in plain business language.
+
+**Where I departed from the brief:** the dark pane, the single Next step button and "Under the hood" already existed; I added the pitch, Watch and architecture lines per step. I left out "zero-risk AI negotiation… without human intervention" (the engine enforces the margin and the merchant approves everything) and "Pinecone vector search" (the product has no vector database).

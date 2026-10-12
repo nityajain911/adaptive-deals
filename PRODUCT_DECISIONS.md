@@ -643,3 +643,9 @@ The guided inputs (an amount with its GST basis, the services as checkboxes, a p
 **An example deal beside the limits.** "What these limits mean" opens with a worked example: every service for three months, at the prices and costs on screen, what the merchant keeps after the payment fee, and whether the lowest-profit limit would let it be suggested. It is arithmetic on the merchant's own numbers and moves as they type; it saves nothing.
 
 **What was already there, and what is not done.** The compact table, the per-service rules behind an icon, the live per-service preview, and the folded editor while an uploaded rate card is reviewed (the review table opens by itself) were already built. Service rules (what can be left out, what depends on what) are still set by the merchant and not inferred by a model: they decide which services can be removed from a buyer's offer, so nothing about them is guessed.
+
+## The demo guide as a pitch (12 October 2026)
+
+Each guide step now leads with a one-line point for the person watching ("A sale you can afford to make"), a **Watch** line saying what to look for, and one action line. The step name moves into the small top label. The old note about who produced the step, and a new line on how the step is built (what runs: a recorded Cerebras reading, code that keeps only quoted facts, the rules engine, the shared terms hash), sit under **Under the hood**. The pane was already a dark, separate panel with a single large Next step button and quiet Back, Hide and Restart links.
+
+The pitch lines say what is true: the rules engine, not AI, enforces the margin and works out every figure, and the merchant approves and sends every offer. The guide does not claim "zero-risk" or "without human intervention", and does not name a vector database the product does not use.
