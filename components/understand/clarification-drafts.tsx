@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { Button, ErrorText, useAction } from "../client";
@@ -17,6 +17,34 @@ export interface DraftQuestion {
  * words to send and can be reworded in place; one button sends them all. After they are sent, this holds what the merchant does
  * next with the replies.
  */
+/** One question as an obvious text field: bordered, with a pencil that puts the cursor in it, and tall enough to show all of it in any browser. */
+function DraftField({ index, testId, value, onChange }: { index: number; testId: string; value: string; onChange: (value: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <div className="flex min-w-0 flex-1 items-start gap-1.5 rounded-md border border-line-strong bg-white px-2 py-1 focus-within:border-blue focus-within:ring-2 focus-within:ring-blue/20">
+      <textarea
+        ref={ref}
+        aria-label={`Question ${index + 1}, editable`}
+        data-testid={testId}
+        className="min-h-6 w-full flex-1 resize-none bg-transparent text-[14px] leading-5 text-ink focus:outline-none"
+        rows={1}
+        maxLength={300}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <button type="button" aria-label={`Edit question ${index + 1}`} data-testid={`edit-${testId}`} className="mt-0.5 shrink-0 rounded p-1 text-muted hover:bg-surface-muted hover:text-ink" onClick={() => { ref.current?.focus(); ref.current?.setSelectionRange(value.length, value.length); }}>
+        <Pencil aria-hidden className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export function ClarificationDrafts({ drafts, wordingLabel, sendLabel, next, interpret }: { drafts: DraftQuestion[]; wordingLabel: string | null; sendLabel: string | null; next: { label: string; action: "adopt_replies" | "understand_reviewed"; onDone: string } | null; interpret: ReactNode }) {
   const router = useRouter();
   const send = useAction();
@@ -36,16 +64,8 @@ export function ClarificationDrafts({ drafts, wordingLabel, sendLabel, next, int
           </div>
           <ol className="space-y-1.5">
             {drafts.map((draft, index) => (
-              <li key={draft.questionId} className="flex items-start gap-2 rounded-lg border border-[#b8c0c5] bg-white px-2.5 py-1.5" data-testid={`draft-${draft.questionId}`}>
-                <textarea
-                  aria-label={`Question ${index + 1}, editable`}
-                  data-testid={`draft-text-${draft.questionId}`}
-                  className="w-full flex-1 resize-none bg-transparent text-[14px] leading-5 text-ink [field-sizing:content] focus:outline-none"
-                  rows={1}
-                  maxLength={300}
-                  value={texts[draft.questionId] ?? draft.text}
-                  onChange={(event) => setTexts((current) => ({ ...current, [draft.questionId]: event.target.value }))}
-                />
+              <li key={draft.questionId} className="flex items-start gap-2" data-testid={`draft-${draft.questionId}`}>
+                <DraftField index={index} testId={`draft-text-${draft.questionId}`} value={texts[draft.questionId] ?? draft.text} onChange={(value) => setTexts((current) => ({ ...current, [draft.questionId]: value }))} />
                 <InfoButton label="Why this question matters" testId={`why-${draft.questionId}`}>{draft.why}</InfoButton>
               </li>
             ))}

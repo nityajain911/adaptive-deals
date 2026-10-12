@@ -207,6 +207,11 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const originalApprovalLabel = p.approvalLimit.value && baseline.quotedTotalPaise > p.approvalLimit.value.amountPaise ? "Needs buyer approval" : "Buyer can approve";
   const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [] });
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
+  // When the suggested offer starts later than usual, say why in the buyer's own terms: what an earlier start would ask of them now.
+  const startsLater = !!deal.templates.defaultStartDate && x.structure.startDate > deal.templates.defaultStartDate;
+  const budgetMisses = startsLater ? r.rejected.flatMap((o) => { const c = o.buyerChecks.find((check) => check.id === "buyer_budget" && check.code === "BUDGET_EXCEEDS_CURRENT_PERIOD"); return c ? [{ due: Number(c.facts.duePaise), budget: Number(c.facts.budgetPaise), end: String(c.facts.periodEnd), beforeGst: c.facts.gstIncluded === "no" }] : []; }) : [];
+  const leastDue = budgetMisses.length ? budgetMisses.reduce((m, n) => (n.due < m.due ? n : m)) : null;
+  const startNote = leastDue ? `Starts ${formatDate(x.structure.startDate)} because they cannot pay before then. Any earlier start asks at least ${formatINR(leastDue.due)} by ${formatDate(leastDue.end)}; they have ${formatINR(leastDue.budget)}${leastDue.beforeGst ? " (both before GST)" : ""}.` : null;
   const buyerSaid = buyerBudgetQuote(s.run.record.engine.profile, s.run.record.inputs.messages);
   const knowledgeSources = await loadKnowledgeSources();
   const allSourceTraces = sourceTracesForDeal({
@@ -270,6 +275,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             economics={{ version: s.economics.pinned.version, overrides: s.economics.overrides.length }}
             counter={activeCounter}
             editor={editor}
+            startNote={startNote}
             proof={
               <RecommendationEvidence
                 traces={sourceTraces}

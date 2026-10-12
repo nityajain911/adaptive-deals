@@ -665,3 +665,11 @@ Already in place: no raw error when no live key is set (the page says it is usin
 ## Evidence and integrity, last touches (12 October 2026)
 
 Already in place: the AI and rules-engine lanes side by side in the execution pipeline, a "Reproduced" badge, syntax-highlighted JSON blocks with a copy button, and a Razorpay section that maps each part of a deal to what is implemented (Payment Links in test mode), simulated (the mandate and later debits) or not used. Added: the prompt table shows a green "✓ Matches" badge (or "Differs") against the frozen record instead of a bare "Yes", and the evidence's advanced details name the message but no longer show character offsets. The Razorpay section does not say that the Subscriptions API "is triggered": none of its tools was found among the ones Razorpay advertises, so the page does not claim it.
+
+## Bugs found in a walk through the flows (13 October 2026)
+
+- **A deal always opens on what the buyer said until an offer is chosen.** Opening Blue Harbor Foods from Active deals after it had been read once went straight to the dead end "No offer fits"; now the deal home sends any deal without a chosen offer to Understand, and Understand shows the conversation with one button to the offer (or "See why nothing fits"), however many times it has been read.
+- **"I'll follow up later" now shows that it worked.** Before, it recorded the choice but the card looked unchanged. The card now says "Follow-up pending since …", the third button becomes "You'll follow up", and the item explains that nothing was sent to the buyer.
+- **A date change that could not be made says which rule stopped it**, in words, instead of "did not pass the confirmed checks", and writes dates as "20 Dec 2026" rather than "2026-12-20".
+- **The question drafts are plainly editable.** Each is a bordered field with a pencil, tall enough to show the whole question in any browser, so it no longer depends on a browser feature (`field-sizing`) that Safari lacks.
+- **A late start is explained.** When the suggested offer starts later than usual (Northstar, May 2027), the card says why in the buyer's terms: the least any earlier start would ask of them in their current budget, and what they have. It does not invent an earlier offer: every earlier start breaks the buyer's budget.

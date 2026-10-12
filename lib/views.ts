@@ -3,6 +3,8 @@ import type { ConversationItem } from "@/domain/conversation";
 import { formatDate } from "@/domain/dates";
 import type { ExplanationResult } from "@/ai/explain";
 import { formatINR } from "@/domain/money";
+import { explainCheck } from "@/domain/copy";
+import type { CheckResult } from "@/domain/checks";
 import type { ChangeRequest } from "@/domain/restructure";
 import type { MerchantPolicy, ServicePackage } from "@/domain/types";
 import type { CollectionAttempt } from "@/domain/collections";
@@ -56,6 +58,8 @@ type WorkState = {
   attempts: CollectionAttempt[];
   handledMessages: HandledMessage[];
   workDispositions: WorkDisposition[];
+  /** The rechecks behind a request that could not be restructured, so the merchant is told which rule stopped it. */
+  amendments?: { id: string; revised: { buyerChecks: CheckResult[]; sellerChecks: CheckResult[] } }[];
   events: { kind: string; title: string; detail: string | null; at: string }[];
 };
 
@@ -74,7 +78,7 @@ export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
   const applyDisposition = (item: UnresolvedWorkItem): UnresolvedWorkItem | null => {
     const d = dispositionFor(item.sourceKind, item.sourceId);
     if (d && resolving(d.kind)) return null;
-    if (d?.kind === "follow_up_pending") return { ...item, kind: "follow_up_pending", note: d.note, occurredAt: d.at };
+    if (d?.kind === "follow_up_pending") return { ...item, kind: "follow_up_pending", note: d.note, occurredAt: d.at, detail: "You said you would follow up with the buyer. Nothing has been sent to them, and your offer stays as it is." };
     return item;
   };
   const out: UnresolvedWorkItem[] = [];
@@ -98,13 +102,15 @@ export function unresolvedWork(s: WorkState): UnresolvedWorkItem[] {
   for (const request of s.changeRequests) {
     if (request.agreementVersion !== activeVersion || request.state !== "not_restructured") continue;
     const reply = s.conversation.find((m) => m.id === request.replyId);
+    const amendment = s.amendments?.find((a) => a.id === request.amendmentId);
+    const reasons = amendment ? [...new Set([...amendment.revised.buyerChecks, ...amendment.revised.sellerChecks].filter((c) => c.status === "fail" || c.status === "needs_information").map((c) => explainCheck(c)))] : [];
     const item = applyDisposition({
       kind: "not_restructured",
       sourceKind: "change_request",
       sourceId: request.id,
       version: request.agreementVersion,
       text: reply?.text ?? request.phrase,
-      detail: "The requested date did not pass the confirmed checks. The original payment remains scheduled.",
+      detail: reasons.length ? `Moving the payment to ${formatDate(request.earliestDebit)} does not pass: ${reasons.join(" ")} The original payment remains scheduled.` : "The requested date did not pass the confirmed checks. The original payment remains scheduled.",
       occurredAt: request.history.at(-1)?.at ?? request.createdAt,
       note: null,
       dateAmbiguity: false,
@@ -193,7 +199,7 @@ export function noticeReplyOutcome(
   const cr = s.changeRequests.find((x) => x.replyId === reply.id);
   if (cr) {
     const d = changeRequestDisplay(cr, activeVersion);
-    return { label: d.label, tone: d.label === "Payment rescheduled" ? "green" : d.label === "Not restructured" ? "red" : d.kind === "stale" ? "neutral" : "blue", detail: `“${c.phrase}” → unavailable through ${c.unavailableUntil}, earliest debit ${c.earliestDebit}`, changeRequestId: cr.id };
+    return { label: d.label, tone: d.label === "Payment rescheduled" ? "green" : d.label === "Not restructured" ? "red" : d.kind === "stale" ? "neutral" : "blue", detail: `“${c.phrase}” → unavailable through ${formatDate(c.unavailableUntil)}, earliest debit ${formatDate(c.earliestDebit)}`, changeRequestId: cr.id };
   }
   const own = s.events
     .map((e, i) => ({ e, i }))

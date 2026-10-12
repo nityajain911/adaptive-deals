@@ -138,10 +138,10 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
                 <li key={`${item.sourceKind}-${item.sourceId}`} className="px-5 py-4 text-[13px]" data-testid={`work-${item.sourceId}`}>
                   <div className="font-medium text-ink">Buyer: “{item.text}”</div>
                   <div className="mt-1 text-ink-2">{item.detail}</div>
-                  {item.note ? <div className="mt-1 text-ink-2">Your note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
+                  {item.kind === "follow_up_pending" ? <div className="mt-1 font-medium text-amber" data-testid={`follow-up-note-${item.sourceId}`}>Follow-up pending since {fmtTime(item.occurredAt)}{item.note ? ` · ${item.note}` : ""}</div> : item.note ? <div className="mt-1 text-ink-2">Your note: {item.note} · {fmtTime(item.occurredAt)}</div> : null}
                   
                   {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? <NegotiationCorridor view={corridor} onDone={stageHref(dealId, "offer")} requestId={item.sourceId} buyerRequest={item.text} requested={structuredPrice(s.conversation.find((m) => m.id === item.sourceId)?.refs.request)} /> : null}
-                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? null : <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} />}
+                  {corridor && item.kind === "buyer_request" && item.sourceKind === "message" && item.sourceId === priceRequestId ? null : <ReviewWorkForm sourceKind={item.sourceKind} sourceId={item.sourceId} followingUp={item.kind === "follow_up_pending"} />}
                 </li>
               ))}
             </ul>

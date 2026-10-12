@@ -83,6 +83,9 @@ test("scope · preserve scope holds at Understand until the merchant confirms th
   await expect(page.getByTestId("primary-action")).toBeDisabled();
   await confirmAllServices(page);
   await expect(page.getByTestId("recommendation")).toBeVisible();
+  // A start in May is explained in the buyer's own terms: what any earlier start would ask of them now.
+  await expect(page.getByTestId("start-note")).toContainText("Starts 1 May 2027 because they cannot pay before then");
+  await expect(page.getByTestId("start-note")).toContainText("asks at least ₹20,000 by 31 Dec 2026; they have ₹10,000 (both before GST)");
   await expect(page.getByTestId("attribution")).toContainText("Worked out again after the merchant confirmed the services.");
 
   const branch = state().decisionBranch!;

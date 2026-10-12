@@ -378,12 +378,15 @@ test("legacy routes redirect to the domain-derived current stage", async ({ page
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
   }
   await prepareOptions(page);
-  // Until the merchant has looked at the applied answers, the deal opens on them.
+  // Until an offer is chosen, the deal opens on what the buyer said, however many times it has been read.
   await page.goto("/decision");
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
   await api(page, { action: "understand_reviewed" });
   await page.goto("/decision");
-  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  await api(page, { action: "review_buyer_proposal" });
+  await page.goto("/decision");
+  await expect(page).toHaveURL(/\/deals\/hero\/offer\/preview$|\/deals\/hero\/offer$/);
 });
 
 test("v1 stores migrate only when delivery evidence supports the saved state", async ({ page }) => {
@@ -669,6 +672,9 @@ test("P0 · a failed restructure stays actionable and leaves the original paymen
   await page.goto("/deals/hero/track");
   await expectStage(page, "track", /requested date does not fit/i, "Review with buyer");
   await expect(page.getByTestId("buyer-work-card")).toContainText("original payment remains scheduled");
+  // It names the rule that stopped the move and writes dates in words.
+  await expect(page.getByTestId("buyer-work-card")).toContainText(/Moving the payment to \d+ \w+ 2027? does not pass:/);
+  await expect(page.getByTestId("buyer-work-card")).not.toContainText(/20\d\d-\d\d-\d\d/);
   await expect(page.getByTestId("payment-timeline")).toContainText("1 Dec 2026");
   await expect(page.getByTestId("amendment-settled")).toHaveCount(0);
 });
@@ -782,7 +788,8 @@ test("step 3 · info buttons open on click and close on Escape, and the settled 
   await expect(page.getByTestId("why-clar-gst-note")).toHaveCount(0);
 
   await prepareOptions(page);
-  await api(page, { action: "understand_reviewed" });
+  // Once an offer has been chosen, Understand settles into a summary line.
+  await api(page, { action: "review_buyer_proposal" });
   await page.goto("/deals/hero/understand");
   await expect(page.getByTestId("understand-summary")).toContainText("Budget ₹50,000 now including GST");
 });
@@ -1344,9 +1351,9 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
   await expect(page.getByTestId("close-reason-cannot_meet_start_date")).toContainText("Suggested");
   await expect(page.getByTestId("close-reason-cannot_meet_start_date").locator("input")).not.toBeChecked();
   await expect(page.getByTestId("confirm-close")).toBeDisabled();
-  // Once read, the deal opens where the work is.
+  // Read once, it still opens on what the buyer said until an offer is chosen.
   await page.goto("/deals/hero");
-  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
 });
 
 
@@ -1508,4 +1515,45 @@ test("presenter · any buyer situation opens in one tap, and the earlier model r
   await page.getByTestId("situation-reduced-scope").click();
   await expect(page).toHaveURL(/\/deals\/hero\//);
   expect(state().caseId).toBe("reduced-scope");
+});
+
+test("bugs · a deal opened from the inbox always lands on what the buyer said until an offer is chosen", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await api(page, { action: "reset" });
+  for (const caseId of ["no-fit", "reduced-scope", "no-fit"]) {
+    await api(page, { action: "open_deal", caseId });
+    await page.goto("/deals");
+    await page.getByTestId(`select-case-${caseId}`).click();
+    await page.getByTestId("start-selected-case").click();
+    await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+    if (caseId === "no-fit") {
+      await expect(page.getByTestId("primary-action")).toHaveText("See why nothing fits");
+      await page.getByTestId("primary-action").click();
+      await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+    }
+  }
+});
+
+test("bugs · I'll follow up later shows that the follow-up is recorded, and the question drafts are plainly editable", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  // Question drafts: a visible field with a pencil, and a typed edit goes out as the merchant's own words.
+  await api(page, { action: "reset" });
+  await api(page, { action: "start_case", caseId: "reduced-scope" });
+  await page.goto("/deals/hero/understand");
+  const first = page.locator('[data-testid^="draft-text-"]').first();
+  await expect(first).toBeEditable();
+  await page.locator('[data-testid^="edit-draft-text-"]').first().click();
+  await expect(first).toBeFocused();
+  await page.keyboard.type(" Thank you.");
+  await expect(first).toHaveValue(/Thank you\.$/);
+  // The follow-up button.
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Can we talk on a call first?", topic: "other", detail: { kind: "other" } });
+  await page.goto("/deals/hero/track");
+  const work = page.getByTestId("buyer-work-card");
+  await page.locator('[data-testid^="follow-up-"]').first().click();
+  await expect(page.locator('[data-testid^="following-up-"]').first()).toHaveText("You'll follow up");
+  await expect(page.locator('[data-testid^="follow-up-note-"]').first()).toContainText("Follow-up pending since");
+  await expect(work).toContainText("You said you would follow up with the buyer");
+  expect(state().workDispositions.some((d) => d.kind === "follow_up_pending")).toBe(true);
 });

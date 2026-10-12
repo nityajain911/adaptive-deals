@@ -1231,3 +1231,9 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Asked by the applicant:** treat the guide like a slide (thesis, proof, action), separate it visually, one main button, an architecture-flavoured "Under the hood". **Applicant decision:** headlines in plain business language.
 
 **Where I departed from the brief:** the dark pane, the single Next step button and "Under the hood" already existed; I added the pitch, Watch and architecture lines per step. I left out "zero-risk AI negotiation… without human intervention" (the engine enforces the margin and the merchant approves everything) and "Pinecone vector search" (the product has no vector database).
+
+### 2026-10-13 — [Claude Code] Bugs from a walk through the flows
+
+**Reported by the applicant:** Kestrel (questions cannot be edited; "I'll follow up later" does nothing), Blue Harbor (does not open on Understand from the inbox), Northstar (a start that far away is not a good recommendation); fix such bugs across the flows.
+
+**What I found and did:** all four, plus an unexplained "not restructured" message and ISO dates in the chat, are fixed or explained (see PRODUCT_DECISIONS). A click-through of every button on every screen for the three cases on the recorded runs found no other dead controls. **Not changed:** Northstar's recommendation itself. The engine's logic is sound for the buyer's own constraint (their budget opens on 1 May) and the merchant's limits; a better offer would need a new structure ("start a small first phase now, the full plan from May"), which is a product decision for the applicant.

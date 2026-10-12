@@ -35,7 +35,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
   const { s, out, progress, activeCase, baseline } = await loadDeal(dealId);
   const current = progress.stages.understand === "current";
   // A deal the merchant has not yet read: nothing needs asking, but they should see what the buyer said before the offer.
-  const firstLook = !current && !s.understandReviewed && s.selectedOption === null && s.agreements.length === 0 && ["offer.review", "offer.no_feasible", "offer.outside_templates"].includes(progress.rule);
+  const firstLook = !current && s.selectedOption === null && s.agreements.length === 0 && ["offer.review", "offer.no_feasible", "offer.outside_templates"].includes(progress.rule);
   const r = s.run.record;
   const lines = blockingLines(out.profile, originalProposalOf(baseline));
   const uncaptured = uncapturedLines(out.evaluation);
@@ -150,6 +150,7 @@ export default async function UnderstandPage(props: PageProps<"/deals/[dealId]/u
           <Card className="p-5" data-testid="blocking-card" data-walkthrough="constraint-evidence">
             <h2 className="text-[16px] font-semibold text-ink">What&apos;s in the way</h2>
             <ConstraintList items={items} />
+            {confirmedServices ? <div className="mt-3">{confirmedServices}</div> : null}
             {uncaptured.length ? (
               <ul className="mt-2 space-y-1 text-[13px] text-ink-2">
                 {uncaptured.map((l) => (

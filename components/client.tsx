@@ -394,7 +394,7 @@ export function MarkHandledForm({ messageId }: { messageId: string }) {
 }
 
 /** Bounded merchant decisions for one unresolved buyer work item. None changes terms or payments. */
-export function ReviewWorkForm({ sourceKind, sourceId }: { sourceKind: "message" | "change_request"; sourceId: string }) {
+export function ReviewWorkForm({ sourceKind, sourceId, followingUp = false }: { sourceKind: "message" | "change_request"; sourceId: string; followingUp?: boolean }) {
   const { run, pending, error } = useAction();
   const [note, setNote] = useState("");
   const send = (disposition: "keep_current_terms" | "handled_outside" | "follow_up_pending") =>
@@ -412,9 +412,13 @@ export function ReviewWorkForm({ sourceKind, sourceId }: { sourceKind: "message"
         <Button disabled={pending} onClick={() => send("handled_outside")} data-testid={`handled-outside-${sourceId}`}>
           I&apos;ll handle this myself, outside the app
         </Button>
-        <Button disabled={pending} onClick={() => send("follow_up_pending")} data-testid={`follow-up-${sourceId}`}>
-          I&apos;ll follow up later
-        </Button>
+        {followingUp ? (
+          <span className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-amber-weak px-3.5 text-[13px] font-semibold text-amber" data-testid={`following-up-${sourceId}`}>You&apos;ll follow up</span>
+        ) : (
+          <Button disabled={pending} onClick={() => send("follow_up_pending")} data-testid={`follow-up-${sourceId}`}>
+            I&apos;ll follow up later
+          </Button>
+        )}
       </div>
       <ErrorText error={error} />
     </div>

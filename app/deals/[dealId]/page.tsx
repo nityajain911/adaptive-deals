@@ -5,8 +5,8 @@ import { loadDeal, stageHref } from "@/lib/deal-page";
 export default async function DealHome(props: PageProps<"/deals/[dealId]">) {
   const { dealId } = await props.params;
   const { s, progress } = await loadDeal(dealId);
-  // A deal the merchant has not yet read opens on Understand, even when nothing needs asking: it shows what the buyer said.
+  // Until an offer has been chosen, a deal always opens on Understand, even when nothing needs asking: it shows what the buyer said.
   const beforeSend = ["offer.review", "offer.no_feasible", "offer.outside_templates"].includes(progress.rule);
-  if (beforeSend && !s.understandReviewed && s.selectedOption === null && s.agreements.length === 0) redirect(stageHref(dealId, "understand"));
+  if (beforeSend && s.selectedOption === null && s.agreements.length === 0) redirect(stageHref(dealId, "understand"));
   redirect(stageHref(dealId, progress.stage));
 }

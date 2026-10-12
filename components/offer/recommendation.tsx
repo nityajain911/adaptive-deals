@@ -33,7 +33,7 @@ export function contextLine(baseline: DealBaseline, budgetPaise: number | null, 
 }
 
 /** The single recommendation (spec §5.1). Rejections and calculations stay collapsed. */
-export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null, proof = null, editor = null }: {
+export function Recommendation({ x, policy, baseline, packages, transformation: suppliedTransformation, context, primary, presentation, reason, attribution, evidence = null, economics, counter = null, leaderNote = null, comparison = null, proof = null, editor = null, startNote = null }: {
   x: EvaluatedStructure;
   policy: MerchantPolicy;
   baseline: DealBaseline;
@@ -59,6 +59,8 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
   /** The evidence behind the figures, shown inside the closed explanation. */
   proof?: ReactNode;
   /** Changing a number for this deal, in place: what can be changed, what is changed, and what the profit limit would unlock. */
+  /** Why this offer starts later than usual, in the buyer's own terms. */
+  startNote?: string | null;
   editor?: { account: EditorAccount; overrides: InputOverride[]; stops: UnlockStop[] } | null;
 }) {
   const total = sum(x.structure.payments.map((p) => p.totalPaise));
@@ -77,7 +79,7 @@ export function Recommendation({ x, policy, baseline, packages, transformation: 
           {headlineFor(x)}
         </h2>
       </div>
-      <DealTransformationCard value={transformation} />
+      <DealTransformationCard value={transformation} startNote={startNote} />
       <div className="space-y-1 border-b border-line px-5 py-3 text-[14px] text-ink-2">
         <OfferPaymentSchedule payments={x.structure.payments} />
       </div>

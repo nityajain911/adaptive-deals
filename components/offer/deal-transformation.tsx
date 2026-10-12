@@ -2,7 +2,7 @@ import { formatINR } from "@/domain/money";
 import type { DealTransformation } from "@/lib/deal-transformation";
 
 /** The original quote and the offer as one list: what stays is shown once, what changed shows the old value struck through. */
-export function DealTransformationCard({ value }: { value: DealTransformation }) {
+export function DealTransformationCard({ value, startNote = null }: { value: DealTransformation; startNote?: string | null }) {
   return (
     <section className="border-b border-line px-5 py-4" aria-label="What changed from the original quote" data-testid="deal-transformation">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -29,6 +29,7 @@ export function DealTransformationCard({ value }: { value: DealTransformation })
           );
         })}
       </ul>
+      {startNote ? <p className="mt-2 text-[13px] text-ink-2" data-testid="start-note">{startNote}</p> : null}
       {value.economicsChanged ? <p className="mt-2 text-[14px] text-ink-2">Your prices or costs changed in version {value.economicsChanged.toVersion}. This offer now keeps {formatINR(value.economicsChanged.contributionDeltaPaise)} {value.economicsChanged.contributionDeltaPaise < 0 ? "less" : "more"} after costs.</p> : null}
     </section>
   );
