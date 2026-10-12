@@ -10,10 +10,10 @@ const MISSING_QUESTION: Record<string, string> = {
 };
 
 const OUTCOMES = [
-  { state: "insufficient_information", scenarioId: "scenario-insufficient", title: "Missing information", action: "Draft the specific missing question" },
-  { state: "ambiguous", scenarioId: null, title: "Ambiguous", action: "Draft the decision-relevant confirmation" },
-  { state: "outside_templates", scenarioId: "scenario-outside", title: "Outside approved offer types", action: "Hand over to the merchant" },
-  { state: "no_feasible_deal", scenarioId: "scenario-no-feasible", title: "No feasible offer", action: "Explain the binding checks; close or reconsider inputs" },
+  { state: "insufficient_information", scenarioId: "scenario-insufficient", title: "Missing information", action: "Draft the specific missing question", band: "border-t-amber" },
+  { state: "ambiguous", scenarioId: null, title: "Ambiguous", action: "Draft the decision-relevant confirmation", band: "border-t-[#2d5bff]" },
+  { state: "outside_templates", scenarioId: "scenario-outside", title: "Outside approved offer types", action: "Hand over to the merchant", band: "border-t-violet" },
+  { state: "no_feasible_deal", scenarioId: "scenario-no-feasible", title: "No feasible offer", action: "Explain the binding checks; close or reconsider inputs", band: "border-t-red" },
 ] as const;
 
 /**
@@ -32,8 +32,8 @@ export function OtherOutcomes({ scenario }: { scenario: { id: string; record: Ru
             const sc = SCENARIOS.find((x) => x.id === o.scenarioId);
             const selected = !!sc && sc.id === scenario?.id;
             return (
-              <li key={o.state} className="rounded-xl border border-line p-3">
-                <div className="text-[13px] font-semibold text-ink">{o.title}</div>
+              <li key={o.state} className={`rounded-2xl border border-line border-t-4 bg-surface p-4 ${o.band}`} data-testid={`outcome-card-${o.state}`}>
+                <div className="text-[15px] font-semibold text-ink">{o.title}</div>
                 <div className="mt-0.5 text-[12px] text-muted">Next action: {o.action}</div>
                 <div className="mt-2">
                   {o.state === "ambiguous" ? (

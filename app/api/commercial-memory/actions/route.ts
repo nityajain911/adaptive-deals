@@ -89,6 +89,8 @@ export async function POST(request: Request) {
       const ranked = await rerankCommercialCandidates(input.query, lexical.candidates, { provider });
       const id = `memory-test-${createHash("sha256").update(JSON.stringify({
         query: input.query,
+        // The same question asked over a different set of documents is a different run, never a clash with the earlier record.
+        eligibleSourceIds: lexical.eligibleSourceIds,
         inputHash: ranked.inputHash,
         attribution: ranked.attribution,
         selectedChunkIds: ranked.candidates.map((candidate) => candidate.id),

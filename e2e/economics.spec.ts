@@ -141,8 +141,7 @@ test("commercial memory · presenter proves unseen retrieval and an unsupported-
   await proof.getByTestId("memory-proof-run").click();
   await expect(proof.getByTestId("memory-proof-result")).toContainText("Service delivery rules");
   await expect(proof.getByTestId("memory-proof-result")).toContainText("Code retrieval");
-  await proof.getByRole("button", { name: "Use unsupported query" }).click();
-  await proof.getByTestId("memory-proof-run").click();
+  await proof.getByTestId("qa-unsupported").click();
   await expect(proof.getByTestId("memory-proof-result")).toContainText("Insufficient evidence");
   await expect(proof.getByTestId("memory-proof-result")).toContainText("did not guess");
 });

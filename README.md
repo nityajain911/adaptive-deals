@@ -49,7 +49,7 @@ The guide explains the current decision. On a merchant step it names the product
 
 Code normalises amounts and dates, enumerates every merchant-approved template, calculates GST and economics, applies policies, ranks the eligible offers according to the merchant's chosen priority, validates every model output, creates canonical terms and hashes, and gates every approval and payment action. A recorded model order is retained as evidence but does not drive the recommendation. Payment-change replies use narrow deterministic rules because an interpretation error could move money; unsupported language goes to the merchant.
 
-Who or what produced an output is shown in the reviewer audit trail (**For reviewers → Audit trail for this deal**), derived from the stored run rather than from the feature. The merchant's own screens stay in plain words: an offer card says *Suggested for the default priority: earning the most*, *Suggested for what matters most to you*, or *You chose this offer*, because code ranks the offers by the merchant's priority and works out every figure.
+Who or what produced an output is shown in the reviewer audit trail (**Presenter → Audit trail for this deal**), derived from the stored run rather than from the feature. The merchant's own screens stay in plain words: an offer card says *Suggested for the default priority: earning the most*, *Suggested for what matters most to you*, or *You chose this offer*, because code ranks the offers by the merchant's priority and works out every figure.
 
 ### Commercial Memory (RAG)
 

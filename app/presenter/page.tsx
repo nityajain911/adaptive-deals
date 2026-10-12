@@ -9,6 +9,7 @@ import { AuditSections } from "@/components/audit/sections";
 import { OtherOutcomes } from "@/components/presenter/other-outcomes";
 import { CommercialMemoryProof } from "@/components/presenter/commercial-memory-proof";
 import { PresenterTabs } from "@/components/presenter/presenter-tabs";
+import { ScenarioCards } from "@/components/presenter/scenario-cards";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { readPresenterFlags } from "@/lib/presenter-store";
 import { currentOutcome, getState } from "@/lib/service";
@@ -27,7 +28,8 @@ export default async function PresenterPage() {
   const deal = dealContextFor(s, await pinnedEconomicsOf(s));
   const flags = await readPresenterFlags();
   const live = liveProviderDiagnostics();
-  const committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+  let committed: string[] = [];
+  try { committed = readdirSync(path.join(process.cwd(), "data/live-runs")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")); } catch { /* no saved runs: the page still works */ }
   let integrity: string;
   const outcome = await currentOutcome(s).catch(() => null);
   try {
@@ -36,7 +38,8 @@ export default async function PresenterPage() {
   } catch (e) {
     integrity = `Replay integrity failed: ${(e as Error).message}`;
   }
-  const frozen = JSON.parse(readFileSync(path.join(process.cwd(), "evaluation/datasets/frozen/FREEZE.json"), "utf8")) as { promptHashes: Record<string, string> };
+  let frozen: { promptHashes: Record<string, string> } = { promptHashes: {} };
+  try { frozen = JSON.parse(readFileSync(path.join(process.cwd(), "evaluation/datasets/frozen/FREEZE.json"), "utf8")) as { promptHashes: Record<string, string> }; } catch { /* the table below then says the frozen record is unavailable */ }
   const hashes = Object.entries(PROMPTS).map(([k, p]) => [k, p.version, promptHash(p), frozen.promptHashes[k]] as const);
   const r = s.run.record;
   const json = (v: unknown) => <pre className="max-h-[320px] overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] leading-4 text-ink-2">{JSON.stringify(v, null, 2)}</pre>;
@@ -52,15 +55,21 @@ export default async function PresenterPage() {
 
       <PresenterTabs controls={<div className="space-y-5">
       <Card>
+        <CardHeader title="Ask the rate card · judge Q&A" meta={<span>Exact quotes with sources, and an honest “insufficient evidence”. Private to the merchant.</span>} />
+        <CommercialMemoryProof liveAvailable={live.available} />
+      </Card>
+
+      <Card>
         <CardHeader title="Runs" meta={<span>Run live makes a new external model call and always creates a new run ID; it never overwrites a pinned or committed run or any frozen result.</span>} />
         <div className="flex flex-wrap items-center gap-2 p-5">
           <p className="w-full text-[13px] text-ink-2" data-testid="presenter-provider">
             Configured live provider: {live.providerName} · {live.model} · credential {live.available ? "available" : "unavailable"}
           </p>
+          {!live.available ? <p className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-[13px] text-ink-2" data-testid="presenter-using-cached">Using recorded runs. No live model is set up here, so every answer in the demo replays a saved run and no model is called.</p> : null}
           <ActionButton body={{ action: "run_live" }} testId="presenter-run-live" disabled={!live.available}>
             Run live (new external model call)
           </ActionButton>
-          {!live.available && live.reason ? <span className="text-[12px] text-muted">Unavailable: {live.reason.split(";")[0]}.</span> : null}
+
           {committed.map((id) => (
             <ActionButton key={id} body={{ action: "replay_run", runId: id }} variant="ghost">
               Replay {id} (no model call)
@@ -70,39 +79,9 @@ export default async function PresenterPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Commercial Memory proof" meta={<span>Test an unseen query, a truthful abstention and a blocked conflict. This evidence stays private to the merchant.</span>} />
-        <CommercialMemoryProof liveAvailable={live.available} />
-      </Card>
-
-      <Card>
-        <CardHeader title="Simulations" meta={<span>Every control is labelled and simulated. The guided demo follows the preventive path; the failed-debit path is a secondary scenario.</span>} />
-        <div className="space-y-3 p-5 text-[13px]">
-          <div className="flex flex-wrap gap-2">
-            <ActionButton body={{ action: "simulate", event: "payment_link_paid" }} variant="sim">
-              Simulate: upfront link paid
-            </ActionButton>
-            <ActionButton body={{ action: "simulate", event: "mandate_confirmed" }} variant="sim">
-              Simulate: mandate confirmed
-            </ActionButton>
-            <ActionButton body={{ action: "simulate", event: "advance_notice" }} variant="sim">
-              Simulate: send the scheduled notice (advances the date)
-            </ActionButton>
-            <ActionButton body={{ action: "simulate", event: "debit_succeeded" }} variant="sim">
-              Simulate: next debit succeeds (on its due date)
-            </ActionButton>
-          </div>
-          <div className="rounded-xl border border-line p-3" data-testid="presenter-failed-debit">
-            <div className="font-semibold text-ink">Secondary scenario: restructure after a failed debit</div>
-            <p className="mt-0.5 text-muted">Simulates the 1 Dec debit failing (an internal retry is scheduled), then the buyer&apos;s reply after the failure. The amendment is then recorded as after a failed debit, not preventive.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <ActionButton body={{ action: "simulate", event: "debit_failed" }} variant="sim" testId="presenter-debit-failed">
-                Simulate failed debit on its due date
-              </ActionButton>
-              <ActionButton body={{ action: "simulate", event: "buyer_reply" }} variant="sim">
-                Simulate: buyer replies after the failure
-              </ActionButton>
-            </div>
-          </div>
+        <CardHeader title="Scenarios" meta={<span>Pick a situation. Every control is labelled and simulated; the guided demo follows the preventive path.</span>} />
+        <div className="space-y-4 p-5 text-[13px]">
+          <ScenarioCards />
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
             <span className="font-semibold text-ink">Fail next send</span>
             <Badge tone={flags.failNextSend ? "amber" : "neutral"}>{flags.failNextSend ? "Armed (one-shot)" : "Off"}</Badge>
@@ -152,7 +131,7 @@ export default async function PresenterPage() {
                 <tr key={k}>
                   <td>{k}</td>
                   <td>{v}</td>
-                  <td>{h === f ? "Yes" : "No"}</td>
+                  <td>{f === undefined ? "Frozen record unavailable" : h === f ? "Yes" : "No"}</td>
                 </tr>
               ))}
             </tbody>

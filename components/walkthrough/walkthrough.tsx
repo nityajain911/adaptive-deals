@@ -188,7 +188,7 @@ export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; 
           view={view}
           displayedObjectiveId={displayedId}
           primaryLabel={offRoute ? "Take me there" : economicsContinue ? "Continue: choose a buyer situation" : current && view.currentAction?.systemAction ? view.currentAction.label : null}
-          primaryTone={offRoute ? "navigate" : "simulate"}
+          primaryTone={!offRoute && current && view.currentAction?.systemAction ? "simulate" : "navigate"}
           yourTurn={yourTurn}
           onShowMe={showMe}
           primaryDisabled={pending}

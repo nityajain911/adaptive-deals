@@ -7,7 +7,9 @@ import { Presentation } from "lucide-react";
 export function FrameShell({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
-    const close = () => { if (ref.current?.open) ref.current.open = false; };
+    // While the audit drawer is open it owns Escape and focus; closing the frame then would lose the button focus returns to.
+    const drawerOpen = () => !!document.querySelector('dialog[data-testid="audit-drawer"][open]');
+    const close = () => { if (ref.current?.open && !drawerOpen()) ref.current.open = false; };
     const outside = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) close(); };
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
     document.addEventListener("pointerdown", outside);
@@ -26,7 +28,7 @@ export function FrameShell({ children }: { children: ReactNode }) {
       <div
         className="absolute bottom-14 left-0 w-[min(20rem,calc(100vw-1.5rem))] space-y-3 rounded-2xl border border-white/15 bg-[#0b1b3f] p-4 text-white shadow-[0_12px_40px_rgba(2,8,23,0.45)]"
         data-testid="presenter-hub"
-        onClick={(event) => { if ((event.target as HTMLElement).closest("a, button")) window.setTimeout(() => { if (ref.current) ref.current.open = false; }, 0); }}
+        onClick={(event) => { const target = event.target as HTMLElement; if (target.closest("a, button") && !target.closest('[data-testid="audit-details"]')) window.setTimeout(() => { if (ref.current) ref.current.open = false; }, 0); }}
       >
         {children}
       </div>

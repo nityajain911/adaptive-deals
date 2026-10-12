@@ -386,3 +386,103 @@ test("prices & costs is the first tab, the guide's first step, and is tied to th
   await expect(page).toHaveURL(/\/economics$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// ---- The presentation layer: presenter frame, guide pane, presenter page ----
+
+test("the merchant's header carries no reviewer tools, and the SIMULATED pill is always there", async ({ page }) => {
+  await reset(page);
+  for (const viewport of [{ width: 1280, height: 900 }, MOBILE]) {
+    await page.setViewportSize(viewport);
+    for (const url of ["/deals", "/economics"]) {
+      await page.goto(url);
+      await expect(page.getByRole("banner")).not.toContainText("For reviewers");
+      await expect(page.getByRole("banner")).not.toContainText("Presenter page");
+      await expect(page.getByTestId("simulated-pill")).toBeVisible();
+      await expect(page.getByTestId("simulated-pill")).toContainText("SIMULATED");
+      await expect(page.locator("footer")).toContainText("Synthetic data");
+    }
+  }
+});
+
+test("the presenter frame holds the tools, closes by itself, and can start the deal again", async ({ page }) => {
+  await startCase(page);
+  await page.goto("/deals/hero/understand");
+  await page.getByTestId("presenter-frame-toggle").click();
+  const hub = page.getByTestId("presenter-hub");
+  await expect(hub).toBeVisible();
+  await expect(hub).toContainText("Not part of the product");
+  await expect(hub.getByTestId("walkthrough-launcher")).toBeVisible();
+  await expect(hub.getByTestId("audit-details")).toBeVisible();
+  await expect(hub.getByTestId("nav-presenter")).toBeVisible();
+  // It gets out of the way: a click elsewhere closes it, and so does Escape.
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(hub).toBeHidden();
+  await page.getByTestId("presenter-frame-toggle").click();
+  await page.keyboard.press("Escape");
+  await expect(hub).toBeHidden();
+  // Reset to step 1 after the deal has moved on.
+  await api(page, { action: "send_questions" });
+  expect(state().conversation.some((item) => item.kind === "clarification" && item.sentAt)).toBe(true);
+  await page.goto("/deals/hero/understand");
+  await page.getByTestId("presenter-frame-toggle").click();
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.getByTestId("presenter-reset-deal").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
+  await expect.poll(() => state().conversation.some((item) => item.kind === "clarification" && item.sentAt)).toBe(false);
+});
+
+test("the guide is a dark pane with one big Next step button, and quiet Hide and Restart links", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await reset(page);
+  await page.goto("/deals");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByTestId("start-walkthrough").click();
+  await expect(guide(page)).toBeVisible();
+  // Dark slate-blue, clearly apart from the white product.
+  await expect.poll(() => guide(page).evaluate((el) => getComputedStyle(el).backgroundColor)).toMatch(/^(rgb\(11, 27, 63\)|oklab|color\()/);
+  expect(await guide(page).evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(255, 255, 255)");
+  const button = guide(page).locator("[data-walkthrough-primary]");
+  await expect(button).toContainText("Next step");
+  expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+  for (const name of ["Hide", "Restart"]) {
+    const link = guide(page).getByRole("button", { name });
+    await expect(link).toBeVisible();
+    expect(await link.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
+  }
+  await expect(guide(page).getByRole("button", { name: "Take me there" })).toHaveCount(0);
+  await guide(page).getByTestId("walkthrough-under-the-hood").locator("summary").click();
+  await expect(guide(page).getByTestId("walkthrough-under-the-hood")).toContainText("You decide. Nothing is sent or saved until you approve the exact terms.");
+  await expect(guide(page)).not.toContainText("How this step is sourced");
+});
+
+test("presenter page · scenario cards, an honest cached-runs notice, and the rate-card Q&A with exact quotes", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await reset(page);
+  await page.goto("/presenter");
+  await expect(page.getByTestId("presenter-using-cached")).toContainText("Using recorded runs");
+  await expect(page.getByTestId("presenter")).not.toContainText("_API_KEY");
+  await expect(page.getByTestId("scenario-cards").locator("li")).toHaveCount(3);
+  for (const tone of ["blue", "green", "red"]) await expect(page.getByTestId(`scenario-card-${tone}`)).toBeVisible();
+  const proof = page.getByTestId("commercial-memory-proof");
+  await expect(proof.getByTestId("qa-claim")).toContainText("Code retrieves exact quotes; an AI re-ranker only reorders them; every answer cites its source line");
+  await proof.getByRole("button", { name: "What is our discount policy?" }).click();
+  const result = proof.getByTestId("memory-proof-result");
+  await expect(result).toContainText("Source: Commercial guardrails");
+  await expect(result).toContainText("Code retrieval");
+  await expect(proof.getByTestId("memory-proof-live")).toBeDisabled();
+  await proof.getByTestId("qa-unsupported").click();
+  await expect(result).toContainText("Insufficient evidence");
+  // The same question over a different set of documents is a new run, not an error.
+  const upload = await page.request.post("/api/commercial-memory/actions", { data: { action: "upload_memory_source", title: "Qa probe", kind: "rate_card", effectiveFrom: "2026-10-08", format: "csv", fileName: "qa.csv", text: "Service,Price\nWebsite fixes,26001", supersedes: null } });
+  const uploaded = (await upload.json()) as { ok: boolean; result?: { sourceId: string } };
+  expect(uploaded.ok).toBe(true);
+  await page.reload();
+  await proof.getByTestId("qa-unsupported").click();
+  await expect(result).toContainText("Insufficient evidence");
+  await expect(proof).not.toContainText("did not work just now");
+  await page.request.post("/api/commercial-memory/actions", { data: { action: "withdraw_memory_source", sourceId: uploaded.result!.sourceId } });
+  await expect(page.locator("body")).not.toContainText(/vector/i);
+  await page.setViewportSize(MOBILE);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});

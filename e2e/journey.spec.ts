@@ -319,7 +319,7 @@ test("walkthrough navigation reaches merchant decisions but never approves them"
   await prepareOptions(page);
   await page.goto("/deals/hero/understand");
   await openWalkthrough(page);
-  await expect(walkthroughPrimary(page)).toHaveText("Take me there");
+  await expect(walkthroughPrimary(page)).toContainText("Take me there");
   await walkthroughPrimary(page).click();
   expect(state().agreements.filter((a) => a.merchantApproval)).toHaveLength(0);
   await expect(page.getByTestId("primary-action")).toHaveText("Review buyer proposal");

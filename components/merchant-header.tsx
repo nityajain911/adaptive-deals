@@ -14,6 +14,7 @@ const underline = <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3p
 export function MerchantHeader({ current = "deals", dealPage = false }: { current?: "deals" | "adaptive" | "economics"; dealPage?: boolean }) {
   const onDeals = current === "deals" || current === "adaptive";
   return (
+    <>
     <header className="relative bg-header text-white">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-3 sm:gap-6 sm:px-6">
         <span className="hidden text-[19px] font-extrabold italic tracking-tight sm:inline" aria-label="Razorpay">
@@ -42,7 +43,8 @@ export function MerchantHeader({ current = "deals", dealPage = false }: { curren
         <span aria-hidden className="h-2.5 w-5 rounded-full bg-[#1fb56f]" />
         SIMULATED
       </div>
-      <PresenterFrame dealPage={dealPage} />
     </header>
+    <PresenterFrame dealPage={dealPage} />
+    </>
   );
 }

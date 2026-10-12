@@ -1097,3 +1097,13 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** all unit and browser tests pass; the four-document evaluation is in `docs/DOCUMENT_READING_EVAL.md` and re-scores with no model call.
 
+### 2026-10-12 — [Claude Code] Phase 4 of the UX list: the presentation layer
+
+**Asked by the applicant:** a quarantined demo pane, one Next step button, "Under the hood", reviewer tools out of the main nav, a quick reset, a bulletproof presenter page with scenario cards, and the rate-card Q&A.
+
+**What changed:** a presenter frame, a dark guide pane with one Next step button, Under the hood copy, scenario cards, a graceful presenter page, and a Q&A with example questions that returns quotes only.
+
+**Where I corrected the brief and the applicant agreed:** "Pinecone vector search" was not true (retrieval is lexical code; Pinecone is the fictional merchant); the guide never clicks merchant buttons; the SIMULATED pill stays (and now shows on phones); no generated answers in the Q&A.
+
+**Checks:** all unit and browser tests pass; no model or Razorpay call made.
+

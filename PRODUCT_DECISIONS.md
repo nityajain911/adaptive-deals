@@ -489,3 +489,15 @@ The model's explanation has two parts that code validates separately: a full com
 
 **The designed PDF is recorded too.** Its first scoring showed the check rejecting four correct values: the model joined wrapped lines, so its quote differed only in whitespace. The check now allows whitespace to differ (all other characters in order) and quotes the document's own text, and a service leading its entry may name another in its description. Both the sample CSV and PDF replay a recorded Cerebras reading.
 
+## The presentation layer, Phase 4 (12 October 2026)
+
+**Reviewer tools sit in a presenter frame, not in the merchant's navigation.** A floating **Presenter** button holds the guide launcher, the audit trail, the presenter page and **Reset this deal to step 1**. It closes on Escape, on a click elsewhere and after an action, so it never covers the product. The long "this is a prototype" note lives in the footer and the presenter frame; the green **SIMULATED** pill stays on every screen (it was hidden on phones and no longer is).
+
+**The guide is a dark, separate pane with one big Next step button.** The button says what it will do ("Take me there", "Simulate: …"). It performs only simulated buyer and system events. On a merchant step it points at the product's own button ("Show me where to click") and never clicks it: the presenter makes every merchant decision. Hide and Restart are quiet text links. **Under the hood** (formerly "How this step is sourced") says plainly what produced the step.
+
+**Honest architecture wording.** Retrieval is lexical code; an AI re-ranker only reorders the same quotes; every answer cites its source line. The app does not use a vector database, and "Pinecone" in this project is the fictional merchant's name.
+
+**The presenter page degrades politely.** With no live model key it says "Using recorded runs" and never prints a key name; missing saved files no longer break it; a page error shows a plain message. Simulations are three large colour-coded scenario cards (each also named in words), and the engine outcomes are colour-banded cards.
+
+**Ask the rate card · judge Q&A** returns exact retrieved quotes with their source line and a "Code retrieval" label, or "Insufficient evidence". It never writes an answer.
+
