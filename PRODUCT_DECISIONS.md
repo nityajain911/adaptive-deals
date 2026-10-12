@@ -681,3 +681,11 @@ Already in place: the AI and rules-engine lanes side by side in the execution pi
 2. **A buyer's payment reply the rules cannot read** ("20 tak cash tight hai", "20 ke baad pay karunga") gets a suggested reading from the same chain. The model returns words only (the quote, the day as written, the direction); code checks the quote is in the reply, works out the calendar date and refuses anything unclear, far away, or not in the reply. The merchant sees one plain suggestion ("unavailable until 20 Dec 2026, from '20 tak'") with Use this date and Ignore; nothing moves until they use it, and then it follows exactly the path a rule-read reply takes. If neither model answers, the reply is left for the merchant as before.
 
 The merchant's screens never name the provider, say "live", or show a fallback. Which model answered, what was tried first, and when nothing was used are in the presenter page and the event log, so the audit stays truthful. No call cap: the link is shared only with judges.
+
+## The hero case is a pilot-first buyer (13 October 2026)
+
+**Decision.** The default case is Harbour Fresh Foods: a buyer who would rather start small and see results first, has ₹50,000 left this quarter, sends anything above ₹60,000 to their MD, and gets fresh budget in January. The merchant offers a three-month first phase; the rest of the year is for a review. The offer the engine recommends is unchanged in shape (the website plus three months of search and reporting, ₹46,020, two payments), and the full-scope plans appear as alternatives that need the MD.
+
+**What the product does not do.** The conversation includes the merchant's promise to hold today's rates and the buyer's go-ahead test. The product does not price, lock, enforce or track a second phase. That is a deliberate boundary for this round (no UI change), not a hidden feature; the demo script says not to claim it.
+
+**Why this case.** Nobody in it says no. The stall is a limit on what one person can sign, which is the situation the product is for, and it shows scope, time and commitment moving together.

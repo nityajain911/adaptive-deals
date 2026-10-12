@@ -2,7 +2,7 @@
   "schema": "adaptive-deals.commercial-memory-freeze.v1",
   "frozenAt": "2026-10-08T12:00:00+05:30",
   "caseFile": "cases.json",
-  "caseSetSha256": "2c334f98f8c680cb13308368029fb953bbd228520285836bf4c441a49f7f4aaf",
+  "caseSetSha256": "b57a22287917cdc91033caae63461ed2ea7e5c628404c3e350852e0e932292e0",
   "promptVersion": "commercial_retrieval_rerank.v1",
   "status": "frozen-before-provider-implementation"
 }

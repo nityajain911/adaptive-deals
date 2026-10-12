@@ -13,8 +13,10 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
 
 ## Current product mapping
 
-- `reduced-scope` → `run-case-reduced-scope-ed5442a3`: **Recorded Cerebras output**
-  from the final realistic conversation, kept from its first valid three-request run.
+- `reduced-scope` → `run-case-reduced-scope-4e94d36d`: **Recorded Cerebras output** of the Harbour Fresh Foods
+  conversation (the hero from 13 October 2026), kept from its first valid three-request run under the pre-call freeze
+  `data/synthetic/CASE_RECORDING_FREEZE_BATCH7.json`. The earlier Kestrel Lane Clinics hero run (`ed5442a3`) is kept as
+  evidence and no longer maps to any case.
 - `no-fit` → `run-case-no-fit-6fb4027d`: **Recorded Cerebras output**, one extraction request, kept as it came.
   The engine reaches the case's expected outcome (no approved offer fits).
 - `preserve-scope` → `run-case-preserve-scope-1ec088fa`: **Recorded Cerebras output** on the case's revised text. Three

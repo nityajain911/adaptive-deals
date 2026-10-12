@@ -6,7 +6,7 @@ import { heroPackages } from "@/data/synthetic/hero";
 import { dealSituation } from "@/lib/deal-situation";
 
 const NAMES = Object.fromEntries(heroPackages.map((pkg) => [pkg.id, pkg.name]));
-const RUNS: Record<CaseId, string> = { "reduced-scope": "run-case-reduced-scope-ed5442a3", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" };
+const RUNS: Record<CaseId, string> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" };
 const tiles = (id: CaseId) => {
   const run = JSON.parse(readFileSync(`data/case-recorded-runs/${RUNS[id]}.json`, "utf8")) as RunRecord;
   const t = dealSituation({ quotePrePaise: demoCase(id)!.quote.prePaise, profile: run.engine.profile, rejectedFields: run.engine.rejectedFields, packageNames: NAMES });
@@ -16,7 +16,7 @@ const tiles = (id: CaseId) => {
 describe("a buyer's situation as scannable facts", () => {
   it("reduced scope: the budget is short of the quote, no start date was stated, and the scope is named", () => {
     const t = tiles("reduced-scope");
-    expect(t.budget).toMatchObject({ value: "Short of your quote", tone: "red", detail: "₹50,000 available now · more from Apr 2027", quote: "I only have ₹50,000 left in this quarter." });
+    expect(t.budget).toMatchObject({ value: "Short of your quote", tone: "red", detail: "₹50,000 available now · more from Jan 2027", quote: "I only have ₹50,000 left in this quarter." });
     expect(t.timeline).toMatchObject({ value: "No start date stated", tone: "neutral", quote: null });
     expect(t.scope).toMatchObject({ value: "Website fixes, Search marketing", tone: "neutral" });
     expect(t.approval!.value).toBe("Above ₹60,000 needs MD approval");

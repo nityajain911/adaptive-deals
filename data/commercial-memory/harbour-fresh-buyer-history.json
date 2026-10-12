@@ -1,9 +1,9 @@
 {
   "schema": "adaptive-deals.knowledge-source.v1",
-  "id": "source-kestrel-history",
+  "id": "source-harbour-fresh-history",
   "merchantId": "merchant-pinecone",
-  "buyerId": "buyer-kestrel",
-  "title": "Kestrel purchase history",
+  "buyerId": "buyer-harbour-fresh",
+  "title": "Harbour Fresh purchase history",
   "kind": "buyer_history",
   "format": "text",
   "access": "buyer_specific",
@@ -11,7 +11,7 @@
   "effectiveTo": null,
   "supersedes": null,
   "status": "active",
-  "content": "On 12 June 2026, Kestrel Lane Clinics purchased website maintenance as a separate service. Historical purchases are context only and are not a current commitment or proof of payment authority.",
-  "contentHash": "e682a3a60578ef227b521ab3d4c54efef20dd347bd9bb9646083ae9e9c12d51e",
+  "content": "On 12 June 2026, Harbour Fresh Foods purchased website maintenance as a separate service. Historical purchases are context only and are not a current commitment or proof of payment authority.",
+  "contentHash": "782d11808c4a39e248d6061434564f462c20967dbe7d0b56fb76531636d17e04",
   "indexedAt": "2026-10-08T09:00:00+05:30"
 }

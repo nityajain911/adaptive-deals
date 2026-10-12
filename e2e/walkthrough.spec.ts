@@ -331,7 +331,7 @@ test("the walkthrough ends with a summary and a way to try another case", async 
   await openGuide(page);
   const finish = guide(page).getByTestId("walkthrough-finish");
   await expect(finish).toContainText("Walkthrough complete");
-  await expect(finish).toContainText("You walked through: They only need the website and search for now.");
+  await expect(finish).toContainText("You walked through: They want to start small and see results first.");
   await expect(finish).toContainText("Your decisions: approved version 1, approved version 2.");
   await expect(finish).toContainText("A payment was moved to a later date after both sides approved version 2.");
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toHaveCount(0);

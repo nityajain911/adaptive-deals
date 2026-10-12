@@ -10,7 +10,7 @@ describe("Commercial Memory source contracts", () => {
     expect(new Set(sources.map((source) => source.kind)).size).toBeGreaterThanOrEqual(5);
     expect(sources.filter((source) => source.merchantId === "merchant-pinecone")).toHaveLength(8);
     expect(sources.some((source) => source.merchantId === "merchant-saffron")).toBe(true);
-    expect(sources.some((source) => source.buyerId === "buyer-kestrel")).toBe(true);
+    expect(sources.some((source) => source.buyerId === "buyer-harbour-fresh")).toBe(true);
   });
 
   it("refuses content whose declared hash no longer matches", () => {

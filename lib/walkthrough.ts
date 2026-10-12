@@ -93,7 +93,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "merchant",
     title: "Choose a buyer situation",
     pitch: "Every buyer needs a different answer",
-    watch: "Three situations: a tight budget, a request for everything, and one with no fit.",
+    watch: "Three situations: a buyer who wants to start small, a request for everything, and one with no fit.",
     architecture: "Each situation replays a recorded model reading of its own conversation, with a labelled hand-written sample as the fallback.",
     instruction: "Pick a buyer situation to start.",
     notice: "Different customers need different answers.",

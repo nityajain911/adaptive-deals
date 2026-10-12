@@ -13,9 +13,9 @@
     {"id":"contribution-rule","query":"minimum contribution after costs","access":["finance_restricted"],"buyerId":null,"expectedSourceId":"source-commercial-policy","abstain":false},
     {"id":"reporting-dependency","query":"what must monthly reporting be sold with","access":["commercial"],"buyerId":null,"expectedSourceId":"source-service-rules","abstain":false},
     {"id":"tone-pressure","query":"may we pressure a buyer with scarcity","access":["merchant_wide"],"buyerId":null,"expectedSourceId":"source-tone-guide","abstain":false},
-    {"id":"kestrel-history","query":"did Kestrel buy website work separately","access":["buyer_specific"],"buyerId":"buyer-kestrel","expectedSourceId":"source-kestrel-history","abstain":false},
-    {"id":"kestrel-proposal","query":"Kestrel annual proposal scope","access":["buyer_specific"],"buyerId":"buyer-kestrel","expectedSourceId":"source-kestrel-proposal","abstain":false},
-    {"id":"wrong-buyer","query":"Kestrel separate website purchase","access":["buyer_specific"],"buyerId":"buyer-northstar","expectedSourceId":null,"abstain":true},
+    {"id":"harbour-fresh-history","query":"did Harbour Fresh buy website work separately","access":["buyer_specific"],"buyerId":"buyer-harbour-fresh","expectedSourceId":"source-harbour-fresh-history","abstain":false},
+    {"id":"harbour-fresh-proposal","query":"Harbour Fresh annual proposal scope","access":["buyer_specific"],"buyerId":"buyer-harbour-fresh","expectedSourceId":"source-harbour-fresh-proposal","abstain":false},
+    {"id":"wrong-buyer","query":"Harbour Fresh separate website purchase","access":["buyer_specific"],"buyerId":"buyer-northstar","expectedSourceId":null,"abstain":true},
     {"id":"unsupported-electricity","query":"office electricity bill","access":["merchant_wide","commercial","finance_restricted"],"buyerId":null,"expectedSourceId":null,"abstain":true}
   ]
 }

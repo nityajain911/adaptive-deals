@@ -4,7 +4,7 @@ Adaptive Deals turns a buyer's budget, timing and approval constraints into comm
 
 Built for the Razorpay × ISB AI Product Manager Build Challenge (Track 2).
 
-> **Synthetic prototype.** Pinecone Media Works, Kestrel Lane Clinics, every amount, policy and date, and all WhatsApp and payment events are fictional. Payments are simulated, or use Razorpay test mode when test credentials are supplied. This is not a live Razorpay product.
+> **Synthetic prototype.** Pinecone Media Works, Harbour Fresh Foods, every amount, policy and date, and all WhatsApp and payment events are fictional. Payments are simulated, or use Razorpay test mode when test credentials are supplied. This is not a live Razorpay product.
 
 ## Run locally
 
@@ -18,7 +18,7 @@ npm run dev
 
 Open [http://localhost:3000/deals](http://localhost:3000/deals) and choose a case. The deal home (`/deals/hero`) always redirects to the stage that currently needs attention.
 
-The prototype works without credentials and makes no model call during its saved replay. **Repair bookings now, defer social** starts from a real, frozen Cerebras run of that exact conversation, labelled **Recorded Cerebras output** in the reviewer audit trail. The other two cases use clearly labelled **hand-written sample output**. New live runs use Cerebras by default when `CEREBRAS_API_KEY` is configured. Three earlier Groq runs are kept unchanged as historical evidence of the previous conversations. Messaging and payments are simulated.
+The prototype works without credentials and makes no model call during its saved replay. **Start small, see results first** (Harbour Fresh Foods) starts from a real, frozen Cerebras run of that exact conversation, labelled **Recorded Cerebras output** in the reviewer audit trail. The other two cases use clearly labelled **hand-written sample output**. New live runs use Cerebras by default when `CEREBRAS_API_KEY` is configured. Three earlier Groq runs are kept unchanged as historical evidence of the previous conversations. Messaging and payments are simulated.
 
 ## Product journey
 
@@ -95,7 +95,7 @@ Step 2 happens on Track after the buyer accepts: **Review Razorpay test Payment 
 
 ### Current hero recording
 
-On 9 October 2026, the final **Repair bookings now, defer social** conversation was run once on Cerebras `gpt-oss-120b` under the frozen recording policy. Three provider requests were made—extract, clarify and explain—with no retry. The first technically valid outputs were kept, misses included. The model found the buyer's budget, timing, approval limit and required services, drafted both clarification questions, and reached the expected phased-scope offer family. Exact validators rejected one case-mismatched evidence string and two unchecked explanation notes; the engine outcome was unchanged. The committed run is `data/case-recorded-runs/run-case-reduced-scope-ed5442a3.json`, and its report is `data/case-recorded-runs/cerebras-reduced-scope-recording-report.json`.
+On 13 October 2026, the hero conversation (Harbour Fresh Foods, a buyer who wants to start small and see results first, told over eight messages) was run once on Cerebras `gpt-oss-120b` under its own pre-call freeze (`data/synthetic/CASE_RECORDING_FREEZE_BATCH7.json`, committed before the call). Three provider requests were made—extract, clarify and explain—with no retry and no rejected attempt. The first technically valid outputs were kept. The model found the buyer's budget, next budget date, approval limit, required services and the buyer's own success test, drafted both clarification questions, and reached the expected phased-scope offer family. The committed run is `data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json`, and its report is `data/case-recorded-runs/cerebras-reduced-scope-harbour-fresh-recording-report.json`. The earlier Kestrel Lane Clinics hero run (`ed5442a3`) is kept as evidence and no longer maps to any case. What the product does not model: the merchant's promise in the chat to hold today's monthly rates for the rest of the year, and the buyer's go-ahead test for the rest of the year. Both are agreed in the conversation; the engine prices and protects the first phase only.
 
 The product loads this recording only when its deal ID and complete conversation match the current hero case byte for byte. A mismatch falls back to the labelled hand-written sample. Replaying it makes no provider call.
 
@@ -114,7 +114,7 @@ Each case had one real Groq run (`openai/gpt-oss-120b`, prompts `extract.v2`, `c
 
 | Case | What the recording shows | What the merchant does |
 | --- | --- | --- |
-| **Repair bookings now, defer social** | The earlier Groq recording remains historical. The current case uses the exact-match Cerebras recording described above. | Code recommends the **two-payment** offer under *Protect contribution*. **Preserve scope** leads with the annual offer, says it needs the buyer's MD approval and names the best offer without it. Back on *Protect contribution*, the preventive restructuring journey continues. |
+| **Start small, see results first** (Harbour Fresh Foods) | The earlier Groq recording remains historical. The current case uses the exact-match Cerebras recording described above. | Code recommends the **two-payment** offer under *Protect contribution*. **Preserve scope** leads with the annual offer, says it needs the buyer's MD approval and names the best offer without it. Back on *Protect contribution*, the preventive restructuring journey continues. |
 | **Keep the annual scope, move the start** | Schema-valid extraction with one rejected required-scope field ("complete annual package" names no service) and one missed GST fact. The model's explanation broke its schema twice, so code writes the explanation. | **Confirms the required services** before any offer. The engine then recalculates, and the card reads *Recalculated by the engine after the merchant confirmed the services · explanation written by code.* |
 | **Decline an impossible start date** | A clean extraction. | Reads why the engine rejects every approved structure, and closes the deal. |
 

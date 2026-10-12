@@ -21,16 +21,18 @@ const mapping = JSON.parse(readFileSync(path.join(process.cwd(), CASE_RUN_MAP_FI
 const report = read("recording-report.json");
 const historical = report.acceptedRecords as Record<CaseId, string>;
 const record = (id: CaseId) => read(`${historical[id]}.json`) as RunRecord;
-const cerebrasReport = read("cerebras-reduced-scope-recording-report.json");
-const currentHero = () => read("run-case-reduced-scope-ed5442a3.json") as RunRecord;
+const cerebrasReport = read("cerebras-reduced-scope-harbour-fresh-recording-report.json");
+const currentHero = () => read("run-case-reduced-scope-4e94d36d.json") as RunRecord;
 
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-ed5442a3", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" });
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
+      // The Kestrel Lane Clinics hero run, kept as evidence and no longer mapped: its conversation was replaced by Harbour Fresh Foods.
       "run-case-reduced-scope-ed5442a3.json",
+      "run-case-reduced-scope-4e94d36d.json",
       "run-case-no-fit-6fb4027d.json",
       // Recorded and kept as evidence, but not mapped: see the report for why.
       "run-case-preserve-scope-fcc306d2.json",
@@ -39,6 +41,7 @@ describe("the committed case recordings", () => {
       "run-case-preserve-scope-1ec088fa.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
+      "cerebras-reduced-scope-harbour-fresh-recording-report.json",
       "cerebras-no-fit-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
       "cerebras-preserve-scope-attempt2-recording-report.json",
@@ -62,7 +65,7 @@ describe("the committed case recordings", () => {
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
     expect(loaded!.inputs.messages).toEqual(demoCase("reduced-scope")!.deal.messages);
     expect(loaded!.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
-      ["extract", "cerebras", "accepted_with_corrections"],
+      ["extract", "cerebras", "accepted"],
       ["clarify", "cerebras", "accepted"],
       ["explain", "cerebras", "accepted_with_corrections"],
     ]);
@@ -181,7 +184,7 @@ describe("the current Cerebras hero recording report", () => {
       ["clarify", true, true],
       ["explain", true, true],
     ]);
-    expect(cerebrasReport.summaries[0]).toMatchObject({ caseId: "reduced-scope", runId: "run-case-reduced-scope-ed5442a3", status: "complete", caseCard: { agrees: true } });
+    expect(cerebrasReport.summaries[0]).toMatchObject({ caseId: "reduced-scope", runId: "run-case-reduced-scope-4e94d36d", status: "complete", caseCard: { agrees: true } });
   });
 
   it("keeps the reviewer documentation aligned with the mixed recorded-and-sample product", () => {

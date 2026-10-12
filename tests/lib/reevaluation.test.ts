@@ -82,10 +82,10 @@ describe("explicit re-evaluation", () => {
 
   it("judges 'the recommendation changes' by the deal's own strategy, not by one fixed order", async () => {
     await answerHeroQuestions();
-    // A 3-month maximum payment duration removes both full-scope offers and nothing else.
+    // A 3-month maximum payment duration removes the four full-scope offers and nothing else.
     const version = await activateVersion((content) => { content.guardrails.maxTenureMonths = 3; });
     const protect = await service.previewReevaluation(version.version);
-    expect(protect.becomesInfeasible.length).toBe(2);
+    expect(protect.becomesInfeasible.length).toBe(4);
     expect(protect.recommendationChanges).toBe(false);
 
     await service.setStrategy("preserve_scope");

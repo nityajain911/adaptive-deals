@@ -19,7 +19,7 @@
         "id": "reduced-1",
         "dealId": "case-reduced-scope",
         "author": "merchant",
-        "text": "Hi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+        "text": "Hi Kabir, Divya, good speaking on Monday. Sharing the annual plan we discussed: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
         "timestamp": "2026-09-29T16:10:00+05:30",
         "source": "whatsapp"
       },
@@ -27,7 +27,7 @@
         "id": "reduced-2",
         "dealId": "case-reduced-scope",
         "author": "buyer",
-        "text": "Thanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.",
+        "text": "Kabir: Thanks Meera. Honestly, I would rather start small and see results before we commit to a full year.",
         "timestamp": "2026-10-01T08:47:00+05:30",
         "source": "whatsapp"
       },
@@ -35,7 +35,7 @@
         "id": "reduced-3",
         "dealId": "case-reduced-scope",
         "author": "buyer",
-        "text": "For now, we need the website fixes and search marketing. Social media can wait.",
+        "text": "Divya: For now, we need the website fixes and search marketing. Social media can wait.",
         "timestamp": "2026-10-01T08:48:00+05:30",
         "source": "whatsapp"
       },
@@ -43,7 +43,7 @@
         "id": "reduced-4",
         "dealId": "case-reduced-scope",
         "author": "buyer",
-        "text": "I only have ₹50,000 left in this quarter. Our fresh budget opens in April.",
+        "text": "Kabir: I only have ₹50,000 left in this quarter. Our fresh budget opens in January.",
         "timestamp": "2026-10-01T08:49:00+05:30",
         "source": "whatsapp"
       },
@@ -51,8 +51,32 @@
         "id": "reduced-5",
         "dealId": "case-reduced-scope",
         "author": "buyer",
-        "text": "Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
+        "text": "Kabir: Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
         "timestamp": "2026-10-01T08:50:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-6",
+        "dealId": "case-reduced-scope",
+        "author": "merchant",
+        "text": "That works. Phase one could be the website fixes plus three months of search and reporting. If it goes well, I will hold today's monthly rates for the rest of the year, provided you confirm within 45 days of the month-three review.",
+        "timestamp": "2026-10-01T09:05:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-7",
+        "dealId": "case-reduced-scope",
+        "author": "buyer",
+        "text": "Kabir: Fair. If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.",
+        "timestamp": "2026-10-01T09:10:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "reduced-8",
+        "dealId": "case-reduced-scope",
+        "author": "buyer",
+        "text": "Divya: Sounds good. Send the offer across when it is ready.",
+        "timestamp": "2026-10-01T09:12:00+05:30",
         "source": "whatsapp"
       }
     ],
@@ -102,8 +126,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "b2743243b149e93b5434061c0f7454726b1388edd4bdd7e257db05bdb911ce77",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"reduced-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:10:00+05:30\">\nHi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"reduced-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nThanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.\n</message>\n<message id=\"reduced-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:48:00+05:30\">\nFor now, we need the website fixes and search marketing. Social media can wait.\n</message>\n<message id=\"reduced-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:49:00+05:30\">\nI only have ₹50,000 left in this quarter. Our fresh budget opens in April.\n</message>\n<message id=\"reduced-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nAnything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "e14e956745c369fd1dee8795bfa7d51d9f2c458309c5ff3649288fdeb1342c44",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"reduced-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-29T16:10:00+05:30\">\nHi Kabir, Divya, good speaking on Monday. Sharing the annual plan we discussed: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"reduced-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nKabir: Thanks Meera. Honestly, I would rather start small and see results before we commit to a full year.\n</message>\n<message id=\"reduced-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:48:00+05:30\">\nDivya: For now, we need the website fixes and search marketing. Social media can wait.\n</message>\n<message id=\"reduced-4\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:49:00+05:30\">\nKabir: I only have ₹50,000 left in this quarter. Our fresh budget opens in January.\n</message>\n<message id=\"reduced-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nKabir: Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.\n</message>\n<message id=\"reduced-6\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T09:05:00+05:30\">\nThat works. Phase one could be the website fixes plus three months of search and reporting. If it goes well, I will hold today's monthly rates for the rest of the year, provided you confirm within 45 days of the month-three review.\n</message>\n<message id=\"reduced-7\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:10:00+05:30\">\nKabir: Fair. If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.\n</message>\n<message id=\"reduced-8\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:12:00+05:30\">\nDivya: Sounds good. Send the offer across when it is ready.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -125,8 +149,8 @@
           },
           {
             "key": "next_budget_date",
-            "raw_text": "April",
-            "evidence_quote": "Our fresh budget opens in April",
+            "raw_text": "January",
+            "evidence_quote": "Our fresh budget opens in January",
             "message_id": "reduced-4",
             "confidence": "high"
           },
@@ -157,6 +181,13 @@
             "evidence_quote": "Social media can wait",
             "message_id": "reduced-3",
             "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "we'll go ahead with the rest of the year",
+            "evidence_quote": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year",
+            "message_id": "reduced-7",
+            "confidence": "high"
           }
         ],
         "ambiguities": [
@@ -181,8 +212,8 @@
       "task": "clarify",
       "promptVersion": "clarify.v1",
       "promptHash": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e",
-      "inputHash": "16ee2ed53200e960b4a81bbfda5a534ac92f95677f2254de79b109719c2264e9",
-      "userContent": "Unresolved facts that change the deal options:\n- fact: amountsIncludeGst\n  about: Whether these amounts include GST: ₹50,000 and ₹60,000\n  readings: includes GST | excludes GST\n  engine comparison: If it includes GST, 4 options are feasible (3 within the approval limit); if it excludes GST, 5 options are feasible (4 within the approval limit). 1 option changes outcome. For example, “3-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.\n- fact: approvalScope\n  about: Whether the approval limit of ₹60,000 applies per payment or to the whole contract\n  readings: applies per payment | applies to the whole contract\n  engine comparison: If it applies per payment, 5 options are feasible (4 within the approval limit); if it applies to the whole contract, 5 options are feasible (3 within the approval limit). 1 option changes outcome. For example, “Full annual scope from May 2027 · 12 monthly payments” is feasible within the limit when it applies per payment but feasible but needs MD approval when it applies to the whole contract.\n\nWrite one question per fact.",
+      "inputHash": "314a71508ed3924b127105435e0c33477ecc507a309706dbd4cb230e283bb3f5",
+      "userContent": "Unresolved facts that change the deal options:\n- fact: amountsIncludeGst\n  about: Whether these amounts include GST: ₹50,000 and ₹60,000\n  readings: includes GST | excludes GST\n  engine comparison: If it includes GST, 6 options are feasible (5 within the approval limit); if it excludes GST, 7 options are feasible (6 within the approval limit). 1 option changes outcome. For example, “3-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.\n- fact: approvalScope\n  about: Whether the approval limit of ₹60,000 applies per payment or to the whole contract\n  readings: applies per payment | applies to the whole contract\n  engine comparison: If it applies per payment, 7 options are feasible (6 within the approval limit); if it applies to the whole contract, 7 options are feasible (3 within the approval limit). 3 options change outcome. For example, “Full annual scope · 4 quarterly payments” is feasible within the limit when it applies per payment but feasible but needs MD approval when it applies to the whole contract.\n\nWrite one question per fact.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -206,8 +237,8 @@
       "task": "explain",
       "promptVersion": "explain.v3",
       "promptHash": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14",
-      "inputHash": "a3016140febd37d08af1c8df2110e7e18fdabc95147eacc9998e124baa29ef65",
-      "userContent": "Engine-feasible options (already checked against buyer constraints and seller policy):\n\nOption A: Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {A.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n    {A.approval} = Within buyer's approval limit\n    {A.total} = ₹46,020\n    {A.price_excl_gst} = ₹39,000\n    {A.payment_count} = 2\n    {A.largest_payment} = ₹23,010\n    {A.first_payment_date} = 1 Nov 2026\n    {A.last_payment_date} = 1 Dec 2026\n    {A.start_date} = 1 Nov 2026\n    {A.net_contribution} = ₹19,329.60\n    {A.net_contribution_pct} = 49.56%\n    {A.peak_funding} = ₹0\n    {A.peak_unpaid_value} = ₹9,500\n    {A.payment_1.total} = ₹23,010\n    {A.payment_1.date} = 1 Nov 2026\n    {A.payment_2.total} = ₹23,010\n    {A.payment_2.date} = 1 Dec 2026\n\nOption B: Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {B.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n    {B.approval} = Within buyer's approval limit\n    {B.total} = ₹46,020\n    {B.price_excl_gst} = ₹39,000\n    {B.payment_count} = 1\n    {B.largest_payment} = ₹46,020\n    {B.first_payment_date} = 1 Nov 2026\n    {B.last_payment_date} = 1 Nov 2026\n    {B.start_date} = 1 Nov 2026\n    {B.net_contribution} = ₹19,329.60\n    {B.net_contribution_pct} = 49.56%\n    {B.peak_funding} = ₹0\n    {B.peak_unpaid_value} = ₹0\n    {B.payment_1.total} = ₹46,020\n    {B.payment_1.date} = 1 Nov 2026\n\nOption C: Full annual scope · 30% at start, 70% in month 7\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {C.label} = Full annual scope · 30% at start, 70% in month 7\n    {C.approval} = Needs buyer's MD approval\n    {C.total} = ₹1,41,600\n    {C.price_excl_gst} = ₹1,20,000\n    {C.payment_count} = 2\n    {C.largest_payment} = ₹99,120\n    {C.first_payment_date} = 1 Nov 2026\n    {C.last_payment_date} = 1 May 2027\n    {C.start_date} = 1 Nov 2026\n    {C.net_contribution} = ₹60,168\n    {C.net_contribution_pct} = 50.14%\n    {C.peak_funding} = ₹0\n    {C.peak_unpaid_value} = ₹36,000\n    {C.payment_1.total} = ₹42,480\n    {C.payment_1.date} = 1 Nov 2026\n    {C.payment_2.total} = ₹99,120\n    {C.payment_2.date} = 1 May 2027\n\nOption D: Full annual scope from May 2027 · 12 monthly payments\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {D.label} = Full annual scope from May 2027 · 12 monthly payments\n    {D.approval} = Needs buyer's MD approval\n    {D.total} = ₹1,41,600\n    {D.price_excl_gst} = ₹1,20,000\n    {D.payment_count} = 12\n    {D.largest_payment} = ₹11,800\n    {D.first_payment_date} = 1 May 2027\n    {D.last_payment_date} = 1 Apr 2028\n    {D.start_date} = 1 May 2027\n    {D.net_contribution} = ₹60,168\n    {D.net_contribution_pct} = 50.14%\n    {D.peak_funding} = ₹5,750\n    {D.peak_unpaid_value} = ₹22,000\n    {D.payment_1.total} = ₹11,800\n    {D.payment_1.date} = 1 May 2027\n    {D.payment_2.total} = ₹11,800\n    {D.payment_2.date} = 1 Jun 2027\n    {D.payment_3.total} = ₹11,800\n    {D.payment_3.date} = 1 Jul 2027\n    {D.payment_4.total} = ₹11,800\n    {D.payment_4.date} = 1 Aug 2027\n    {D.payment_5.total} = ₹11,800\n    {D.payment_5.date} = 1 Sep 2027\n    {D.payment_6.total} = ₹11,800\n    {D.payment_6.date} = 1 Oct 2027\n    {D.payment_7.total} = ₹11,800\n    {D.payment_7.date} = 1 Nov 2027\n    {D.payment_8.total} = ₹11,800\n    {D.payment_8.date} = 1 Dec 2027\n    {D.payment_9.total} = ₹11,800\n    {D.payment_9.date} = 1 Jan 2028\n    {D.payment_10.total} = ₹11,800\n    {D.payment_10.date} = 1 Feb 2028\n    {D.payment_11.total} = ₹11,800\n    {D.payment_11.date} = 1 Mar 2028\n    {D.payment_12.total} = ₹11,800\n    {D.payment_12.date} = 1 Apr 2028\n\nRank them for the merchant and explain the trade-offs.",
+      "inputHash": "8113d9fb4f311e202ffe2945530e4dede8f6e41806f17303062acb5e5eed3839",
+      "userContent": "Engine-feasible options (already checked against buyer constraints and seller policy):\n\nOption A: Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {A.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments\n    {A.approval} = Within buyer's approval limit\n    {A.total} = ₹46,020\n    {A.price_excl_gst} = ₹39,000\n    {A.payment_count} = 2\n    {A.largest_payment} = ₹23,010\n    {A.first_payment_date} = 1 Nov 2026\n    {A.last_payment_date} = 1 Dec 2026\n    {A.start_date} = 1 Nov 2026\n    {A.net_contribution} = ₹19,329.60\n    {A.net_contribution_pct} = 49.56%\n    {A.peak_funding} = ₹0\n    {A.peak_unpaid_value} = ₹9,500\n    {A.payment_1.total} = ₹23,010\n    {A.payment_1.date} = 1 Nov 2026\n    {A.payment_2.total} = ₹23,010\n    {A.payment_2.date} = 1 Dec 2026\n\nOption B: Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {B.label} = Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start\n    {B.approval} = Within buyer's approval limit\n    {B.total} = ₹46,020\n    {B.price_excl_gst} = ₹39,000\n    {B.payment_count} = 1\n    {B.largest_payment} = ₹46,020\n    {B.first_payment_date} = 1 Nov 2026\n    {B.last_payment_date} = 1 Nov 2026\n    {B.start_date} = 1 Nov 2026\n    {B.net_contribution} = ₹19,329.60\n    {B.net_contribution_pct} = 49.56%\n    {B.peak_funding} = ₹0\n    {B.peak_unpaid_value} = ₹0\n    {B.payment_1.total} = ₹46,020\n    {B.payment_1.date} = 1 Nov 2026\n\nOption C: Full annual scope · 4 quarterly payments\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {C.label} = Full annual scope · 4 quarterly payments\n    {C.approval} = Needs buyer's MD approval\n    {C.total} = ₹1,41,600\n    {C.price_excl_gst} = ₹1,20,000\n    {C.payment_count} = 4\n    {C.largest_payment} = ₹35,400\n    {C.first_payment_date} = 1 Nov 2026\n    {C.last_payment_date} = 1 Aug 2027\n    {C.start_date} = 1 Nov 2026\n    {C.net_contribution} = ₹60,168\n    {C.net_contribution_pct} = 50.14%\n    {C.peak_funding} = ₹0\n    {C.peak_unpaid_value} = ₹18,000\n    {C.payment_1.total} = ₹35,400\n    {C.payment_1.date} = 1 Nov 2026\n    {C.payment_2.total} = ₹35,400\n    {C.payment_2.date} = 1 Feb 2027\n    {C.payment_3.total} = ₹35,400\n    {C.payment_3.date} = 1 May 2027\n    {C.payment_4.total} = ₹35,400\n    {C.payment_4.date} = 1 Aug 2027\n\nOption D: Full annual scope · 30% at start, 70% in month 7\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {D.label} = Full annual scope · 30% at start, 70% in month 7\n    {D.approval} = Needs buyer's MD approval\n    {D.total} = ₹1,41,600\n    {D.price_excl_gst} = ₹1,20,000\n    {D.payment_count} = 2\n    {D.largest_payment} = ₹99,120\n    {D.first_payment_date} = 1 Nov 2026\n    {D.last_payment_date} = 1 May 2027\n    {D.start_date} = 1 Nov 2026\n    {D.net_contribution} = ₹60,168\n    {D.net_contribution_pct} = 50.14%\n    {D.peak_funding} = ₹0\n    {D.peak_unpaid_value} = ₹36,000\n    {D.payment_1.total} = ₹42,480\n    {D.payment_1.date} = 1 Nov 2026\n    {D.payment_2.total} = ₹99,120\n    {D.payment_2.date} = 1 May 2027\n\nOption E: Full annual scope from Apr 2027 · 12 monthly payments\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {E.label} = Full annual scope from Apr 2027 · 12 monthly payments\n    {E.approval} = Needs buyer's MD approval\n    {E.total} = ₹1,41,600\n    {E.price_excl_gst} = ₹1,20,000\n    {E.payment_count} = 12\n    {E.largest_payment} = ₹11,800\n    {E.first_payment_date} = 1 Apr 2027\n    {E.last_payment_date} = 1 Mar 2028\n    {E.start_date} = 1 Apr 2027\n    {E.net_contribution} = ₹60,168\n    {E.net_contribution_pct} = 50.14%\n    {E.peak_funding} = ₹5,750\n    {E.peak_unpaid_value} = ₹22,000\n    {E.payment_1.total} = ₹11,800\n    {E.payment_1.date} = 1 Apr 2027\n    {E.payment_2.total} = ₹11,800\n    {E.payment_2.date} = 1 May 2027\n    {E.payment_3.total} = ₹11,800\n    {E.payment_3.date} = 1 Jun 2027\n    {E.payment_4.total} = ₹11,800\n    {E.payment_4.date} = 1 Jul 2027\n    {E.payment_5.total} = ₹11,800\n    {E.payment_5.date} = 1 Aug 2027\n    {E.payment_6.total} = ₹11,800\n    {E.payment_6.date} = 1 Sep 2027\n    {E.payment_7.total} = ₹11,800\n    {E.payment_7.date} = 1 Oct 2027\n    {E.payment_8.total} = ₹11,800\n    {E.payment_8.date} = 1 Nov 2027\n    {E.payment_9.total} = ₹11,800\n    {E.payment_9.date} = 1 Dec 2027\n    {E.payment_10.total} = ₹11,800\n    {E.payment_10.date} = 1 Jan 2028\n    {E.payment_11.total} = ₹11,800\n    {E.payment_11.date} = 1 Feb 2028\n    {E.payment_12.total} = ₹11,800\n    {E.payment_12.date} = 1 Mar 2028\n\nOption F: Full annual scope from May 2027 · 12 monthly payments\n  approval: needs buyer's MD approval\n  placeholders (use these, never the values):\n    {F.label} = Full annual scope from May 2027 · 12 monthly payments\n    {F.approval} = Needs buyer's MD approval\n    {F.total} = ₹1,41,600\n    {F.price_excl_gst} = ₹1,20,000\n    {F.payment_count} = 12\n    {F.largest_payment} = ₹11,800\n    {F.first_payment_date} = 1 May 2027\n    {F.last_payment_date} = 1 Apr 2028\n    {F.start_date} = 1 May 2027\n    {F.net_contribution} = ₹60,168\n    {F.net_contribution_pct} = 50.14%\n    {F.peak_funding} = ₹5,750\n    {F.peak_unpaid_value} = ₹22,000\n    {F.payment_1.total} = ₹11,800\n    {F.payment_1.date} = 1 May 2027\n    {F.payment_2.total} = ₹11,800\n    {F.payment_2.date} = 1 Jun 2027\n    {F.payment_3.total} = ₹11,800\n    {F.payment_3.date} = 1 Jul 2027\n    {F.payment_4.total} = ₹11,800\n    {F.payment_4.date} = 1 Aug 2027\n    {F.payment_5.total} = ₹11,800\n    {F.payment_5.date} = 1 Sep 2027\n    {F.payment_6.total} = ₹11,800\n    {F.payment_6.date} = 1 Oct 2027\n    {F.payment_7.total} = ₹11,800\n    {F.payment_7.date} = 1 Nov 2027\n    {F.payment_8.total} = ₹11,800\n    {F.payment_8.date} = 1 Dec 2027\n    {F.payment_9.total} = ₹11,800\n    {F.payment_9.date} = 1 Jan 2028\n    {F.payment_10.total} = ₹11,800\n    {F.payment_10.date} = 1 Feb 2028\n    {F.payment_11.total} = ₹11,800\n    {F.payment_11.date} = 1 Mar 2028\n    {F.payment_12.total} = ₹11,800\n    {F.payment_12.date} = 1 Apr 2028\n\nRank them for the merchant and explain the trade-offs.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -237,8 +268,8 @@
           {
             "quote": "I only have ₹50,000 left in this quarter",
             "messageId": "reduced-4",
-            "start": 0,
-            "end": 40
+            "start": 7,
+            "end": 47
           }
         ],
         "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
@@ -250,17 +281,17 @@
         "key": "nextBudget",
         "label": "Next budget",
         "status": "stated",
-        "display": "Available from Apr 2027 (month precision); amount not stated",
-        "rawText": "April",
+        "display": "Available from Jan 2027 (month precision); amount not stated",
+        "rawText": "January",
         "evidence": [
           {
-            "quote": "Our fresh budget opens in April",
+            "quote": "Our fresh budget opens in January",
             "messageId": "reduced-4",
-            "start": 42,
-            "end": 73
+            "start": 49,
+            "end": 82
           }
         ],
-        "transformation": "next april after message date 2026-10-01; month precision kept",
+        "transformation": "next january after message date 2026-10-01; month precision kept",
         "confidence": "high",
         "note": "Next budget amount not stated; engine checks timing only for payments after it",
         "confirmedBy": null
@@ -275,8 +306,8 @@
           {
             "quote": "Anything above ₹60,000 has to go to our MD",
             "messageId": "reduced-5",
-            "start": 0,
-            "end": 42
+            "start": 7,
+            "end": 49
           }
         ],
         "transformation": "numeric rupees",
@@ -294,8 +325,8 @@
           {
             "quote": "Anything above ₹60,000 has to go to our MD",
             "messageId": "reduced-5",
-            "start": 0,
-            "end": 42
+            "start": 7,
+            "end": 49
           }
         ],
         "transformation": "clarification answer",
@@ -317,14 +348,14 @@
           {
             "quote": "I only have ₹50,000 left in this quarter",
             "messageId": "reduced-4",
-            "start": 0,
-            "end": 40
+            "start": 7,
+            "end": 47
           },
           {
             "quote": "Anything above ₹60,000 has to go to our MD",
             "messageId": "reduced-5",
-            "start": 0,
-            "end": 42
+            "start": 7,
+            "end": 49
           }
         ],
         "transformation": "clarification answer",
@@ -358,14 +389,14 @@
           {
             "quote": "we need the website fixes and search marketing",
             "messageId": "reduced-3",
-            "start": 9,
-            "end": 55
+            "start": 16,
+            "end": 62
           },
           {
             "quote": "we need the website fixes and search marketing",
             "messageId": "reduced-3",
-            "start": 9,
-            "end": 55
+            "start": 16,
+            "end": 62
           }
         ],
         "transformation": "matched to deal packages",
@@ -383,38 +414,36 @@
           {
             "quote": "Social media can wait",
             "messageId": "reduced-3",
-            "start": 57,
-            "end": 78
+            "start": 64,
+            "end": 85
           }
         ],
         "transformation": "matched to deal packages",
         "confidence": "high",
         "note": null,
         "confirmedBy": null
+      },
+      {
+        "key": "other_0",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "we'll go ahead with the rest of the year",
+        "rawText": "we'll go ahead with the rest of the year",
+        "evidence": [
+          {
+            "quote": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year",
+            "messageId": "reduced-7",
+            "start": 13,
+            "end": 109
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
       }
     ],
-    "derivedBudgetGap": {
-      "from": "2027-01-01",
-      "until": {
-        "value": "2027-04",
-        "precision": "month"
-      },
-      "evidence": [
-        {
-          "quote": "I only have ₹50,000 left in this quarter",
-          "messageId": "reduced-4",
-          "start": 0,
-          "end": 40
-        },
-        {
-          "quote": "Our fresh budget opens in April",
-          "messageId": "reduced-4",
-          "start": 42,
-          "end": 73
-        }
-      ],
-      "rule": "Current-period budget plus a later next-budget date: no additional budget is available between them"
-    },
+    "derivedBudgetGap": null,
     "rejectedFields": [],
     "suspectedInstructions": [],
     "initial": {
@@ -433,12 +462,12 @@
             "shorter_commitment:term_months=3,plan=upfront"
           ],
           "feasibleCountByReading": {
-            "yes": 4,
-            "no": 5
+            "yes": 6,
+            "no": 7
           },
           "withinLimitCountByReading": {
-            "yes": 3,
-            "no": 4
+            "yes": 5,
+            "no": 6
           }
         },
         {
@@ -449,14 +478,16 @@
             "per_contract"
           ],
           "differingStructures": [
+            "split_payment:plan=quarterly_4",
+            "deferred_start:start=2027-04-01,plan=monthly_12",
             "deferred_start:start=2027-05-01,plan=monthly_12"
           ],
           "feasibleCountByReading": {
-            "per_payment": 5,
-            "per_contract": 5
+            "per_payment": 7,
+            "per_contract": 7
           },
           "withinLimitCountByReading": {
-            "per_payment": 4,
+            "per_payment": 6,
             "per_contract": 3
           }
         }
@@ -486,12 +517,10 @@
           "label": "Full annual scope · 12 monthly payments",
           "template": "split_payment",
           "scopeKind": "full",
-          "verdict": "rejected",
+          "verdict": "needs_information",
           "approval": "requires_approval",
           "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
-          ],
+          "failingCodes": [],
           "needsInformationCodes": [
             "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
           ],
@@ -556,12 +585,10 @@
           "label": "Full annual scope · 4 quarterly payments",
           "template": "split_payment",
           "scopeKind": "full",
-          "verdict": "rejected",
+          "verdict": "feasible",
           "approval": "requires_approval",
-          "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
-          ],
+          "approvable": true,
+          "failingCodes": [],
           "needsInformationCodes": [],
           "prePaise": 12000000,
           "totalPaise": 14160000,
@@ -722,13 +749,13 @@
           "label": "Phase 1: Website fixes + 3 months of search marketing and reporting · 3 monthly payments",
           "template": "phased_scope",
           "scopeKind": "phase_1",
-          "verdict": "rejected",
+          "verdict": "needs_information",
           "approval": "within_limit",
           "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
+          "failingCodes": [],
+          "needsInformationCodes": [
+            "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
           ],
-          "needsInformationCodes": [],
           "prePaise": 3900000,
           "totalPaise": 4602000,
           "payments": [
@@ -754,12 +781,10 @@
           "label": "Full annual scope from Jan 2027 · 12 monthly payments",
           "template": "deferred_start",
           "scopeKind": "full",
-          "verdict": "rejected",
+          "verdict": "needs_information",
           "approval": "requires_approval",
           "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
-          ],
+          "failingCodes": [],
           "needsInformationCodes": [
             "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
           ],
@@ -824,13 +849,11 @@
           "label": "Full annual scope from Apr 2027 · 12 monthly payments",
           "template": "deferred_start",
           "scopeKind": "full",
-          "verdict": "needs_information",
+          "verdict": "feasible",
           "approval": "requires_approval",
-          "approvable": false,
+          "approvable": true,
           "failingCodes": [],
-          "needsInformationCodes": [
-            "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
-          ],
+          "needsInformationCodes": [],
           "prePaise": 12000000,
           "totalPaise": 14160000,
           "payments": [
@@ -982,13 +1005,13 @@
           "label": "3-month commitment · 3 monthly payments",
           "template": "shorter_commitment",
           "scopeKind": "shorter_term",
-          "verdict": "rejected",
+          "verdict": "needs_information",
           "approval": "within_limit",
           "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
+          "failingCodes": [],
+          "needsInformationCodes": [
+            "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
           ],
-          "needsInformationCodes": [],
           "prePaise": 4800000,
           "totalPaise": 5664000,
           "payments": [
@@ -1038,12 +1061,10 @@
           "label": "6-month commitment · 6 monthly payments",
           "template": "shorter_commitment",
           "scopeKind": "shorter_term",
-          "verdict": "rejected",
+          "verdict": "needs_information",
           "approval": "requires_approval",
           "approvable": false,
-          "failingCodes": [
-            "PAYMENT_BEFORE_NEXT_BUDGET"
-          ],
+          "failingCodes": [],
           "needsInformationCodes": [
             "PAYMENT_DAY_UNKNOWN_IN_BUDGET_MONTH"
           ],
@@ -1083,11 +1104,13 @@
       "feasibleOrder": [
         "phased_scope:scope=web-search-report-3m,plan=two_monthly",
         "phased_scope:scope=web-search-report-3m,plan=upfront",
+        "split_payment:plan=quarterly_4",
         "split_payment:plan=deposit_30",
+        "deferred_start:start=2027-04-01,plan=monthly_12",
         "deferred_start:start=2027-05-01,plan=monthly_12"
       ],
       "featured": {
-        "buyer": "split_payment:plan=monthly_12",
+        "buyer": "split_payment:plan=two_equal",
         "seller": "split_payment:plan=deposit_20"
       }
     }
@@ -1098,7 +1121,7 @@
         "id": "clar-gst",
         "field": "amountsIncludeGst",
         "question": "Do both ₹50,000 and ₹60,000 include GST?",
-        "whyItMatters": "If it includes GST, 4 options are feasible (3 within the approval limit); if it excludes GST, 5 options are feasible (4 within the approval limit). 1 option changes outcome. For example, “3-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.",
+        "whyItMatters": "If it includes GST, 6 options are feasible (5 within the approval limit); if it excludes GST, 7 options are feasible (6 within the approval limit). 1 option changes outcome. For example, “3-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.",
         "wording": "ai",
         "covers": [
           "budgetNow",
@@ -1109,7 +1132,7 @@
         "id": "clar-approval",
         "field": "approvalScope",
         "question": "Is ₹60,000 the limit per payment or for the full contract?",
-        "whyItMatters": "If it applies per payment, 5 options are feasible (4 within the approval limit); if it applies to the whole contract, 5 options are feasible (3 within the approval limit). 1 option changes outcome. For example, “Full annual scope from May 2027 · 12 monthly payments” is feasible within the limit when it applies per payment but feasible but needs MD approval when it applies to the whole contract.",
+        "whyItMatters": "If it applies per payment, 7 options are feasible (6 within the approval limit); if it applies to the whole contract, 7 options are feasible (3 within the approval limit). 3 options change outcome. For example, “Full annual scope · 4 quarterly payments” is feasible within the limit when it applies per payment but feasible but needs MD approval when it applies to the whole contract.",
         "wording": "ai",
         "covers": []
       }
@@ -1118,7 +1141,9 @@
       "order": [
         "phased_scope:scope=web-search-report-3m,plan=two_monthly",
         "phased_scope:scope=web-search-report-3m,plan=upfront",
+        "split_payment:plan=quarterly_4",
         "split_payment:plan=deposit_30",
+        "deferred_start:start=2027-04-01,plan=monthly_12",
         "deferred_start:start=2027-05-01,plan=monthly_12"
       ],
       "comparisonTemplate": "Option A keeps the work the buyer needs now and uses the engine-checked payment schedule.",

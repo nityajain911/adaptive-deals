@@ -9,7 +9,7 @@ const index = sources.flatMap(chunkSource);
 describe("eligible Commercial Memory retrieval", () => {
   it("finds finance evidence for the right merchant and never leaks a stronger other-merchant match", () => {
     const result = retrieveCommercialEvidence("direct cost for website fixes", {
-      merchantId: "merchant-pinecone", buyerId: "buyer-kestrel", asOf: "2026-10-08", allowedAccess: ["finance_restricted", "commercial"],
+      merchantId: "merchant-pinecone", buyerId: "buyer-harbour-fresh", asOf: "2026-10-08", allowedAccess: ["finance_restricted", "commercial"],
     }, sources, index);
     expect(result.status).toBe("found");
     expect(result.candidates[0]).toMatchObject({ sourceId: "source-cost-sheet-2026" });
@@ -27,13 +27,13 @@ describe("eligible Commercial Memory retrieval", () => {
   });
 
   it("only retrieves buyer-specific history for the named buyer", () => {
-    const kestrel = retrieveCommercialEvidence("separate website purchase", {
-      merchantId: "merchant-pinecone", buyerId: "buyer-kestrel", asOf: "2026-10-08", allowedAccess: ["buyer_specific"],
+    const harbour = retrieveCommercialEvidence("separate website purchase", {
+      merchantId: "merchant-pinecone", buyerId: "buyer-harbour-fresh", asOf: "2026-10-08", allowedAccess: ["buyer_specific"],
     }, sources, index);
     const northstar = retrieveCommercialEvidence("separate website purchase", {
       merchantId: "merchant-pinecone", buyerId: "buyer-northstar", asOf: "2026-10-08", allowedAccess: ["buyer_specific"],
     }, sources, index);
-    expect(kestrel.candidates[0]?.sourceId).toBe("source-kestrel-history");
+    expect(harbour.candidates[0]?.sourceId).toBe("source-harbour-fresh-history");
     expect(northstar).toMatchObject({ status: "insufficient_evidence", candidates: [] });
   });
 

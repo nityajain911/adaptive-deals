@@ -20,10 +20,10 @@ test.beforeEach(async ({ page }) => {
 
 test("the default hero replays the exact Cerebras recording without a provider credential", async ({ page }) => {
   await action(page, { action: "start_case", caseId: "reduced-scope" });
-  expect(state().run).toMatchObject({ viewing: "replay", sourceRunId: "run-case-reduced-scope-ed5442a3" });
-  expect(state().run.record).toMatchObject({ runId: "run-case-reduced-scope-ed5442a3", kind: "live", provider: "cerebras", model: "gpt-oss-120b" });
+  expect(state().run).toMatchObject({ viewing: "replay", sourceRunId: "run-case-reduced-scope-4e94d36d" });
+  expect(state().run.record).toMatchObject({ runId: "run-case-reduced-scope-4e94d36d", kind: "live", provider: "cerebras", model: "gpt-oss-120b" });
   expect(state().run.record.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
-    ["extract", "cerebras", "accepted_with_corrections"],
+    ["extract", "cerebras", "accepted"],
     ["clarify", "cerebras", "accepted"],
   ]);
 
@@ -43,7 +43,7 @@ test("the default hero replays the exact Cerebras recording without a provider c
   }
   await action(page, { action: "adopt_replies" });
   expect(state().run.record.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
-    ["extract", "cerebras", "accepted_with_corrections"],
+    ["extract", "cerebras", "accepted"],
     ["clarify", "cerebras", "accepted"],
     ["explain", "cerebras", "accepted_with_corrections"],
   ]);

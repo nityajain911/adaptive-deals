@@ -1,0 +1,288 @@
+{
+  "recordedAt": "2026-10-12T22:44:33.903Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "reduced-scope",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    },
+    {
+      "n": 2,
+      "caseId": "reduced-scope",
+      "task": "clarify",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24952,
+      "retryOf": null
+    },
+    {
+      "n": 3,
+      "caseId": "reduced-scope",
+      "task": "explain",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24974,
+      "retryOf": null
+    }
+  ],
+  "retries": [],
+  "rejectedAttempts": [],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "reduced-scope",
+      "runId": "run-case-reduced-scope-4e94d36d",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "e14e956745c369fd",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "clarify",
+          "promptVersion": "clarify.v1",
+          "promptHash": "0e6eec01fb70482e",
+          "inputHash": "314a71508ed3924b",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e",
+          "inputHash": "8113d9fb4f311e20",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "approval ordering enforced: options needing MD approval ranked below options within the limit"
+          ]
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹50,000",
+          "evidence_quote": "I only have ₹50,000 left in this quarter.",
+          "message_id": "reduced-4",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "I only have ₹50,000 left in this quarter.",
+          "message_id": "reduced-4",
+          "confidence": "high"
+        },
+        {
+          "key": "next_budget_date",
+          "raw_text": "January",
+          "evidence_quote": "Our fresh budget opens in January.",
+          "message_id": "reduced-4",
+          "confidence": "high"
+        },
+        {
+          "key": "approval_limit_amount",
+          "raw_text": "₹60,000",
+          "evidence_quote": "Anything above ₹60,000 has to go to our MD.",
+          "message_id": "reduced-5",
+          "confidence": "high"
+        },
+        {
+          "key": "required_package",
+          "raw_text": "website fixes and search marketing",
+          "evidence_quote": "we need the website fixes and search marketing",
+          "message_id": "reduced-3",
+          "confidence": "high"
+        },
+        {
+          "key": "optional_package",
+          "raw_text": "Social media",
+          "evidence_quote": "Social media can wait.",
+          "message_id": "reduced-3",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.",
+          "evidence_quote": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.",
+          "message_id": "reduced-7",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [
+        "approval_limit_scope"
+      ],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹50,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "reduced-4: “I only have ₹50,000 left in this quarter.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Next budget",
+          "status": "stated",
+          "value": "Available from Jan 2027 (month precision); amount not stated",
+          "evidence": [
+            "reduced-4: “Our fresh budget opens in January.”"
+          ],
+          "note": "Next budget amount not stated; engine checks timing only for payments after it"
+        },
+        {
+          "field": "Buyer approval limit",
+          "status": "stated",
+          "value": "Above ₹60,000 needs MD approval",
+          "evidence": [
+            "reduced-5: “Anything above ₹60,000 has to go to our MD.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Approval limit applies",
+          "status": "stated",
+          "value": "Applies to the whole contract",
+          "evidence": [
+            "reduced-5: “Anything above ₹60,000 has to go to our MD.”"
+          ],
+          "note": "Buyer did not specify whether the ₹60,000 limit applies per payment or per contract."
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "stated",
+          "value": "Amounts include GST",
+          "evidence": [
+            "reduced-4: “I only have ₹50,000 left in this quarter.”",
+            "reduced-5: “Anything above ₹60,000 has to go to our MD.”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Required packages",
+          "status": "stated",
+          "value": "website-fixes, search-marketing",
+          "evidence": [
+            "reduced-3: “we need the website fixes and search marketing”",
+            "reduced-3: “we need the website fixes and search marketing”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Optional packages",
+          "status": "stated",
+          "value": "social-media",
+          "evidence": [
+            "reduced-3: “Social media can wait.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.",
+          "evidence": [
+            "reduced-7: “If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [],
+      "engine": {
+        "initial": "ambiguous",
+        "final": "options_ready",
+        "feasible": [
+          "Phase 1: Website fixes + 3 months of search marketing and reporting · 2 monthly payments [phased_scope; within_limit]",
+          "Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start [phased_scope; within_limit]",
+          "Full annual scope · 4 quarterly payments [split_payment; requires_approval]",
+          "Full annual scope · 30% at start, 70% in month 7 [split_payment; requires_approval]",
+          "Full annual scope from Apr 2027 · 12 monthly payments [deferred_start; requires_approval]",
+          "Full annual scope from May 2027 · 12 monthly payments [deferred_start; requires_approval]"
+        ]
+      },
+      "questions": [
+        {
+          "id": "clar-gst",
+          "wording": "ai",
+          "question": "Do the amounts ₹50,000 and ₹60,000 include GST?"
+        },
+        {
+          "id": "clar-approval",
+          "wording": "ai",
+          "question": "Does the approval limit of ₹60,000 apply per payment or to the whole contract?"
+        }
+      ],
+      "answeredWithScriptedBuyerReply": [
+        "clar-gst",
+        "clar-approval"
+      ],
+      "explanation": {
+        "source": {
+          "ranking": "ai",
+          "text": "ai"
+        },
+        "issues": [
+          "approval ordering enforced: options needing MD approval ranked below options within the limit"
+        ],
+        "rankedFirst": "Phase 1: Website fixes + 3 months of search marketing and reporting · single payment at start [phased_scope]",
+        "notes": [
+          {
+            "structureId": "phased_scope:scope=web-search-report-3m,plan=upfront",
+            "text": "Single payment provides immediate cash and avoids multiple invoicing, but requires the full amount up front (₹46,020 on 1 Nov 2026)."
+          },
+          {
+            "structureId": "split_payment:plan=deposit_30",
+            "text": "Two payments with a large second installment give strong cash flow after the first month, though the second payment (₹99,120 on 1 May 2027) is sizable and the peak unpaid value (₹36,000) is higher."
+          },
+          {
+            "structureId": "phased_scope:scope=web-search-report-3m,plan=two_monthly",
+            "text": "Two equal payments spread cash receipt, lowering the largest payment to ₹23,010 and resulting in a modest peak unpaid value (₹9,500)."
+          },
+          {
+            "structureId": "split_payment:plan=quarterly_4",
+            "text": "Four quarterly payments spread cash over a year, with a moderate largest payment of ₹35,400 and a moderate peak unpaid value (₹18,000)."
+          },
+          {
+            "structureId": "deferred_start:start=2027-04-01,plan=monthly_12",
+            "text": "Twelve monthly payments start later, each at ₹11,800, extending cash collection and yielding a higher peak unpaid value (₹22,000)."
+          },
+          {
+            "structureId": "deferred_start:start=2027-05-01,plan=monthly_12",
+            "text": "Similar to Full annual scope from Apr 2027 · 12 monthly payments but begins one month later, with monthly payments of ₹11,800 and a peak unpaid value of ₹22,000."
+          }
+        ]
+      },
+      "caseCard": {
+        "expectedState": "options_ready",
+        "expectedTemplate": "phased_scope",
+        "actualState": "options_ready",
+        "actualTemplate": "phased_scope",
+        "agrees": true
+      }
+    }
+  ],
+  "stopped": null
+}

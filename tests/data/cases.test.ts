@@ -11,11 +11,14 @@ import { heroMessages } from "@/data/synthetic/hero";
 
 const CASE_IDS: CaseId[] = ["reduced-scope", "preserve-scope", "no-fit"];
 const REDUCED_SCOPE_MESSAGES = [
-  "Hi, good speaking on Monday. Sharing the annual plan we discussed — website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
-  "Thanks. The broken booking page is costing us patient enquiries, so fixing that is urgent.",
-  "For now, we need the website fixes and search marketing. Social media can wait.",
-  "I only have ₹50,000 left in this quarter. Our fresh budget opens in April.",
-  "Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
+  "Hi Kabir, Divya, good speaking on Monday. Sharing the annual plan we discussed: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+  "Kabir: Thanks Meera. Honestly, I would rather start small and see results before we commit to a full year.",
+  "Divya: For now, we need the website fixes and search marketing. Social media can wait.",
+  "Kabir: I only have ₹50,000 left in this quarter. Our fresh budget opens in January.",
+  "Kabir: Anything above ₹60,000 has to go to our MD. If a smaller website-and-search phase fits within the limit, I can move it ahead.",
+  "That works. Phase one could be the website fixes plus three months of search and reporting. If it goes well, I will hold today's monthly rates for the rest of the year, provided you confirm within 45 days of the month-three review.",
+  "Kabir: Fair. If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year.",
+  "Divya: Sounds good. Send the offer across when it is ready.",
 ] as const;
 const PRESERVE_SCOPE_MESSAGES = [
   "Hi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.",
@@ -80,11 +83,11 @@ describe("commercial demo case catalog", () => {
     );
   });
 
-  it("uses the approved five-message reduced-scope opening without pre-answering clarification", () => {
+  it("uses the approved eight-message reduced-scope conversation without pre-answering clarification", () => {
     const messages = demoCase("reduced-scope")!.deal.messages;
     expect(messages.map((message) => message.text)).toEqual(REDUCED_SCOPE_MESSAGES);
-    expect(messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
-    expect(messages.map((message) => message.id)).toEqual(["reduced-1", "reduced-2", "reduced-3", "reduced-4", "reduced-5"]);
+    expect(messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer", "merchant", "buyer", "buyer"]);
+    expect(messages.map((message) => message.id)).toEqual(["reduced-1", "reduced-2", "reduced-3", "reduced-4", "reduced-5", "reduced-6", "reduced-7", "reduced-8"]);
     expect(messages.map((message) => message.text).join(" ")).not.toMatch(/both amounts include GST|per contract/i);
   });
 

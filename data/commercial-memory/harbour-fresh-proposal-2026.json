@@ -1,9 +1,9 @@
 {
   "schema": "adaptive-deals.knowledge-source.v1",
-  "id": "source-kestrel-proposal",
+  "id": "source-harbour-fresh-proposal",
   "merchantId": "merchant-pinecone",
-  "buyerId": "buyer-kestrel",
-  "title": "Kestrel annual proposal · 29 September 2026",
+  "buyerId": "buyer-harbour-fresh",
+  "title": "Harbour Fresh annual proposal · 29 September 2026",
   "kind": "proposal",
   "format": "text",
   "access": "buyer_specific",
@@ -11,7 +11,7 @@
   "effectiveTo": null,
   "supersedes": null,
   "status": "active",
-  "content": "Proposal for Kestrel Lane Clinics\n\nAnnual scope: website fixes, 12 months of search marketing, 12 months of social media and 12 months of monthly reporting. Quoted total: ₹1,20,000 before GST. This proposal records the offered scope; it does not prove current buyer acceptance.",
-  "contentHash": "4bf70238a093274c906cab3b362a9066681915f81da88567b2e0eb11fd494852",
+  "content": "Proposal for Harbour Fresh Foods\n\nAnnual scope: website fixes, 12 months of search marketing, 12 months of social media and 12 months of monthly reporting. Quoted total: ₹1,20,000 before GST. This proposal records the offered scope; it does not prove current buyer acceptance.",
+  "contentHash": "11c67c87ebd745390cb6f51d939fcc7c0b8c9f0bdd82caaa8d38e7cdb7d730d5",
   "indexedAt": "2026-10-08T09:00:00+05:30"
 }

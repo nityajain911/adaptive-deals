@@ -4,6 +4,8 @@ All values live in one file: `data/synthetic/hero.ts`. **Every value is illustra
 
 The fixture holds inputs only. Rejections, feasibility, approval labels and every displayed figure come from the engine.
 
+> **Note (13 October 2026).** The demo's hero case is now Harbour Fresh Foods (`data/synthetic/cases.ts`, case `reduced-scope`). This file's Kestrel Lane Clinics buyer is the engine's domain-test fixture (`hero.ts`), kept so the domain tests do not depend on the demo conversation. The merchant, packages, policy and templates below are shared by both.
+
 ## Parties (fictional)
 
 | Item | Value | Why |

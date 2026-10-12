@@ -21,3 +21,7 @@ This evaluation is agent-authored by OpenAI Codex, the same agent implementing t
 - No call occurs until the applicant authorises this budget and a local `GROQ_API_KEY` is configured outside the repository.
 
 The deterministic lexical result is always evaluated separately and remains the production fallback.
+
+## Buyer rename (13 October 2026)
+
+When the hero case changed from Kestrel Lane Clinics to Harbour Fresh Foods, the three cases that named the buyer were renamed (`harbour-fresh-history`, `harbour-fresh-proposal`, and the wrong-buyer query). Their structure, expected outcomes and access rules are unchanged, and the case-set hash in `FREEZE.json` was refreshed to the renamed file. No retrieval code or prompt changed.

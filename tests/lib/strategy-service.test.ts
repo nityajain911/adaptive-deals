@@ -24,7 +24,7 @@ afterAll(() => fetchSpy.mockRestore());
 
 const TWO_PAYMENTS = "phased_scope:scope=web-search-report-3m,plan=two_monthly";
 const UPFRONT = "phased_scope:scope=web-search-report-3m,plan=upfront";
-const ANNUAL = "split_payment:plan=deposit_30";
+const ANNUAL = "split_payment:plan=quarterly_4";
 
 beforeEach(async () => {
   await svc.resetToSeed();

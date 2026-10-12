@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (input.action === "test_memory_query") {
       const lexical = retrieveCommercialEvidence(input.query, {
         merchantId: "merchant-pinecone",
-        buyerId: "buyer-kestrel",
+        buyerId: "buyer-harbour-fresh",
         asOf: "2026-10-08",
         allowedAccess: ["merchant_wide", "commercial", "finance_restricted", "buyer_specific"],
         limit: 8,
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       await recordRetrievalRun({
         id,
         merchantId: "merchant-pinecone",
-        buyerId: "buyer-kestrel",
+        buyerId: "buyer-harbour-fresh",
         query: input.query,
         normalisedQuery: lexical.normalisedQuery,
         eligibleSourceIds: lexical.eligibleSourceIds,

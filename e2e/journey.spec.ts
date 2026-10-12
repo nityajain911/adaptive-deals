@@ -138,8 +138,8 @@ test("P0 · every clarification combination produces its engine decision and tru
   const cases = [
     { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", recorded: true },
     { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", recorded: false },
-    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", recorded: false },
-    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "deferred_start:start=2027-05-01,plan=monthly_12", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
+    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
   ] as const;
 
   for (const c of cases) {
@@ -726,8 +726,8 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
   const cases = [
     {
       id: "reduced-scope",
-      buyer: "Kestrel Lane Clinics",
-      message: "The broken booking page is costing us patient enquiries",
+      buyer: "Harbour Fresh Foods",
+      message: "I would rather start small and see results",
       status: "clarifying",
     },
     {
@@ -766,7 +766,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
       if (await details.count()) await details.click();
       await expect(page.getByTestId("thread-understand")).toContainText(item.message);
       expect(state().conversation).toHaveLength(0);
-      expect(state().run.record.inputs.messages.some((message) => message.text.includes("Kestrel"))).toBe(false);
+      expect(state().run.record.inputs.messages.some((message) => message.text.includes("Harbour Fresh"))).toBe(false);
     }
   }
 
@@ -824,13 +824,13 @@ test("active deals · an inbox: the deals on the left, and what is in the way, i
   await expect(page.getByText(/clears the current/i)).toHaveCount(0);
   const panel = page.getByTestId("deal-panel");
   // The open deal is selected, and its situation is a few facts, each from the buyer's own words.
-  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Kestrel Lane Clinics");
+  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Harbour Fresh Foods");
   await expect(panel.getByTestId("tile-budget")).toContainText("Short of your quote");
   await expect(panel.getByTestId("tile-budget")).toContainText("₹50,000 available now");
   await expect(panel.getByTestId("tile-budget")).toContainText("I only have ₹50,000 left in this quarter");
   await expect(panel.getByTestId("tile-timeline")).toContainText("No start date stated");
   await expect(panel.getByTestId("situation-source")).toContainText("Verdicts are worked out by code");
-  await expect(panel.getByTestId("deal-conversation")).toContainText("The broken booking page is costing us patient enquiries");
+  await expect(panel.getByTestId("deal-conversation")).toContainText("I would rather start small and see results");
   // The action sits inside the selected deal's panel.
   await expect(panel.getByTestId("start-selected-case")).toBeVisible();
   // Choosing another deal changes the panel, not the page.

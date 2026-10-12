@@ -14,7 +14,7 @@ const post = async (body: Record<string, unknown>) => {
   return json.result;
 };
 
-const EXAMPLES = ["Can monthly reporting be sold by itself?", "What is our discount policy?", "How does Kestrel prefer to pay?", "Which services depend on search marketing?"];
+const EXAMPLES = ["Can monthly reporting be sold by itself?", "What is our discount policy?", "Did Harbour Fresh buy website work before?", "Which services depend on search marketing?"];
 const UNSUPPORTED = "What is our office electricity bill?";
 
 /** A short, plain message for a failed request; the raw error is never shown. */

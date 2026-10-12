@@ -12,7 +12,8 @@ import { allDemoCases, type CaseId } from "@/data/synthetic/cases";
  * and record the case again.
  */
 const FROZEN: Record<CaseId, string> = {
-  "reduced-scope": "81db55020d060e55f8927a2a81a17a3b0da6d7b4c583dbef9d729b8c71f0d7af",
+  // Replaced 13 October 2026 by the Harbour Fresh Foods conversation; the Kestrel text was 81db5502… and its recordings are kept as evidence.
+  "reduced-scope": "d4284dcb6945d2667eb88ca4176aa91791dbe0b0606a5f2e09532344b09ec9b7",
   // Revised 12 October 2026: only preserve-3 changed ("this quarter" is now mid-sentence). The earlier text is a98421b3… and its recordings are kept as evidence.
   "preserve-scope": "5911d76548077f113c8209aa36b9f5ce37812d3a5c38876de18e52c998cd00cf",
   "no-fit": "50465eabd7296c608e5b9e2e50923f2e5c9fbc8886f3f63463a116269c8cbebc",
@@ -24,7 +25,10 @@ const revisedFreeze = JSON.parse(
   readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH6.json"), "utf8"),
 ) as { cases: Record<CaseId, { messagesSha256: string }> };
 /** The freeze that names each case's current text: the first batch, except for the revised preserve-scope. */
-const freezeFor = (id: CaseId) => (id === "preserve-scope" ? revisedFreeze : recordingFreeze);
+const heroFreeze = JSON.parse(
+  readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH7.json"), "utf8"),
+) as { cases: Record<CaseId, { messagesSha256: string }> };
+const freezeFor = (id: CaseId) => (id === "preserve-scope" ? revisedFreeze : id === "reduced-scope" ? heroFreeze : recordingFreeze);
 
 describe("the case conversations are frozen", () => {
   it.each(allDemoCases().map((c) => [c.id] as const))("%s: its messages hash to the frozen value", (id) => {
