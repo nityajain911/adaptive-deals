@@ -1,69 +1,43 @@
 # Adaptive Deals by Razorpay — one-page product note
 
-> Sections marked **[APPLICANT]** require the applicant's own judgement and voice. Replace every bracketed prompt before submission.
+Nitya Jain · Razorpay × ISB AI PM Build Challenge · Track 2
 
-## Problem and opportunity
+## The problem
 
-Small service sellers, such as agencies selling modular packages, often hear that a buyer has limited budget now, more budget later, or an internal approval threshold. The seller then discounts, gives informal credit or manually reshapes scope and timing—without a reliable view of delivery exposure, contribution or whether the payment plan can be executed.
+A small agency sends a ₹1.4 lakh annual quote. The client replies on WhatsApp: "I only have ₹50,000 this quarter, and anything above ₹60,000 goes to our MD." The sale is not lost on price. It is lost because nobody restructures it. Today the owner discounts on instinct, gives informal credit, or lets the thread go quiet, without knowing what the new shape does to margin or to cash spent before being paid.
 
-Public evidence supports the broader prevalence of buyer cash constraints and demand for payment flexibility. The frequency of this specific pre-signing problem among Indian agencies, and how often the negotiation occurs over WhatsApp, remain assumptions to validate. The prototype uses synthetic data and claims no market result.
+The cash constraint behind this is well documented: delayed payments to Indian MSMEs stood at about ₹7.34 lakh crore in March 2024 ([GAME–FISME–C2FO](https://fisme.org.in/study/delayed-payments-to-msmes-decline-from-rs-10-lakh-cr-to-rs-7-lakh-cr-but-challenges-persist-game-fisme-report/)), and in a vendor survey 51% of B2B buyers said they would switch to a seller offering flexible terms ([TreviPay, 2023](https://www.businesswire.com/news/home/20231114210927/en/New-Research-from-TreviPay-Shows-B2B-Buyer-Seller-Loyalty-Hinges-on-a-Better-Payments-Experience)). How often this exact pre-signing stall happens to Indian service sellers is my assumption, not a finding.
 
-**[APPLICANT]** Why this problem, and why Razorpay is well placed to solve it: [your reasoning and cited sources].
+**Why Razorpay.** A proposal tool can reshape a quote but cannot collect it. A payment gateway collects but only after terms exist. Razorpay already owns the rails a restructured deal needs, a Payment Link for the first payment and a registered mandate for the rest ([Razorpay docs](https://razorpay.com/docs/payments/payment-gateway/s2s-integration/recurring-payments/upi-intent/initiate-mandate-registration/)), so it is the one place where "the offer the buyer accepted" and "the schedule that gets collected" can be the same object.
 
-## Product
+## The product
 
-Adaptive Deals is a commercial-structuring layer between a buyer conversation and Razorpay's payment rails.
+1. **Understand the buyer.** AI reads the conversation and extracts constraints, each tied to a verbatim quote. Clear answers apply by themselves; unclear ones wait for the merchant.
+2. **Review the offer.** A rules engine builds every offer the merchant's own templates allow, checks each against the buyer's limits and the merchant's prices, costs and limits, and ranks what passes. The merchant sees one change list against the original quote, what they keep, and at most two alternatives.
+3. **Send and track.** The merchant sends the exact terms as a message. The buyer accepts and pays in one tap. Later changes (a lower price, a moved payment date) are rechecked before either side agrees.
 
-1. **Understand the buyer.** AI extracts candidate constraints with verbatim evidence. Code normalises the values and identifies only the missing facts that can change the decision; AI drafts the question wording.
-2. **Review the offer.** Code enumerates every merchant-approved template and checks buyer timing, approval conditions, contribution, funding and payment fit. Code ranks the eligible structures by the merchant's chosen priority and writes the explanation; the model's own ordering, where one was recorded, is kept only as history. The merchant previews the exact buyer proposal and outbound message before approval.
-3. **Track the deal.** The product shows the active version, agreed scope, collected amount, amount still to collect and one next action. Buyer changes become versioned amendments; accepted terms and scheduled collections change only after the required approvals.
+## The judgement call I would defend first
 
-The buyer receives a mobile proposal built from canonical terms. Merchant and buyer acceptance are tied to the same terms hash. A preventive path handles “Cash is tight till the 20th” before the scheduled debit, while unsupported payment-change language goes to the merchant. The engine can return **No feasible deal** after evaluating the full approved template space.
+**AI reads words. Code decides money. The merchant approves.** A model that is 95% right about a budget figure is useful; a model that is 95% right about a margin is a liability. So every figure, check and ranking comes from deterministic code, each offer is bound to a terms hash both sides accept, and when nothing fits the product says so and names the rule.
 
-## Product judgement and trust boundaries
+This shaped what I took from AI during the build:
 
-- **AI interprets the buyer's conversation and drafts the questions. Code reads the merchant's documents, calculates, checks and ranks. The merchant decides.** Every displayed commercial figure comes from the deterministic engine.
-- **Approval thresholds are conditions, not bans.** An annual option can remain feasible while clearly requiring the buyer's MD-approval attestation.
-- **Seller economics stay explicit.** Funding requirement and unpaid service value are separate concepts.
-- **Payment-change replies use narrow code rules.** An interpretation error can move money, so broader language is escalated rather than guessed. A broader AI reader would be a separate task with its own evaluation.
-- **Learning is governed.** Outcomes can propose versioned improvements to recommendations or templates. Changes are evaluated before release; merchant rules never adapt automatically, and commercial-policy changes require merchant approval.
+- **Rejected:** a suggested "AI confidence" score (no calibrated score exists), a claim that approval "triggers the Subscriptions API" (it is not among the tools Razorpay's MCP server advertises), and a card promising to hit a ₹40,000 ask by dropping one service (the engine shows it reaches ₹42,480, and the card now says so).
+- **Changed:** when the recorded model missed one case three times, I reworded a single buyer message, wrote the acceptance rule before the rerun, and kept the misses as evidence.
+- **Overrode:** the coding agent recommended two taps for accept and pay. I chose one, keeping the auto-pay authorisation in plain words above the button.
 
-**[APPLICANT]** Which judgement call you would defend first, and which AI suggestions you accepted, rejected or changed: [write in your own voice and mirror the decision in `AI_BUILD_LOG.md`].
+## Evidence, stated honestly
 
-## Evaluation and evidence
-
-The merchant's own prices, delivery costs and limits (their "Prices & costs") come from versioned records the merchant confirms, optionally drafted from an uploaded rate card or cost sheet: a built-in line reader and an AI reader propose values, and code accepts one only if its quote is in the document and its one amount matches. Every recommendation is worked out from those records and the buyer's confirmed constraints, so the same buyer gets a different answer under different economics.
-
-The frozen model evaluation was run once on 20 labelled cases against `extract.v2`, `clarify.v1` and `explain.v3`:
-
-- Correctly extracted fields: **42 of 47 expected**.
-- Unsupported extracted fields: **2 across 20 cases**.
-- Required clarifications asked: **4 of 6**; missed: **2 of 6**.
-- Unnecessary clarifications asked: **0 across 20 cases**.
-- Failure states correctly identified: **14 of 16**.
-- Failing options presented as approvable: **0 of 120**.
-
-The evaluation ran when the model also proposed an order for the eligible offers. The product now ranks them in code, so the last figure no longer measures anything the model controls; it is kept unchanged as the frozen result.
-
-The 20 cases were written by OpenAI Codex at Nitya Jain's direction, so this is agent-authored evidence and not independent validation. The connected buyer journey was added without changing the frozen prompts, schemas, validators or results. Five later persona reviews were also agent-conducted role inspections, not interviews; they informed usability and integrity changes but do not establish demand.
+A frozen evaluation on 20 labelled cases: 42 of 47 expected fields extracted, 2 unsupported fields, 4 of 6 required clarifications asked, 0 unnecessary ones, 14 of 16 failure states identified. The cases were written by an AI agent at my direction, so this is not independent validation. All three demo cases replay recorded Cerebras runs. Messaging, mandates and debits are simulated; the Payment Link step is built for Razorpay test mode only. No merchant has used this.
 
 ## Metric
 
-**Primary:** realised contribution within 90 days per eligible stalled deal = cash received within the window excluding GST, minus refunds, payment fees and direct delivery costs incurred or irrevocably committed because of the deal, divided by all eligible stalled deals in the group.
+**Realised contribution within 90 days per eligible stalled deal**: cash received excluding GST, minus refunds, fees and delivery costs, divided by all eligible stalled deals. It counts money kept, not offers sent, so a discount that "saves" a sale at a loss scores as a loss.
 
-The prototype displays a clearly labelled provisional figure because refund data, actual payment fees and committed future costs are unavailable. It separately tracks the accepted contract, verified payments, amount owed after day 90 and remaining delivery obligations. No outcome result is claimed.
+## The riskiest assumption
 
-## Assumptions and limitations
-
-- Hero prices, costs, the 35% contribution floor, ₹10,000 cash-at-risk limit, 2% fee and 18% GST rate are synthetic merchant configuration.
-- WhatsApp, mandates, recurring debits, retries and notices are simulated; a mandate does not guarantee payment.
-- The buyer proposal has no authentication. Buyer MD approval is an attestation, not identity verification.
-- Planned service dates are contractual inputs; actual delivery completion is not tracked.
-- Refunds, external payments and accounting reconciliation are not modelled.
-- Supported payment-change language is deliberately narrow. Hinglish such as “20 tak” and relative phrases such as “till next week” require merchant attention.
-
-**[APPLICANT]** The assumption you consider riskiest, and why: [write in your own voice].
+That merchants know their delivery costs well enough to set them. The whole engine rests on prices, costs and limits the merchant enters. If owners guess, the product produces confident, precise, wrong offers. I would rather learn this early than tune extraction accuracy.
 
 ## Next validation
 
-**[APPLICANT]** Define the next evidence step in your own words: [merchant segment and recruitment, what counts as an eligible stalled deal, the pilot comparison, and a kill or pivot threshold].
+Recruit 15 agencies of 5 to 50 people selling retainers of ₹50,000 to ₹5 lakh. An eligible stalled deal is a sent quote where the buyer cites budget, timing or approval and has not accepted in seven days. Run four weeks of each merchant's own baseline, then eight weeks with Adaptive Deals on alternating eligible deals. **Kill or pivot** if fewer than half the merchants see two eligible deals a month, if fewer than half can state a cost per service, or if realised contribution per eligible deal does not beat baseline.
