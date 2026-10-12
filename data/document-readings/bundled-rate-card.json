@@ -1,0 +1,37 @@
+{
+  "id": "bundled-rate-card",
+  "inputHash": "d88c8d2be027f84fe1b799e6e0e6cf82767ccbbdb2c8f7c9f14578df74050cec",
+  "promptVersion": "read_document.v1",
+  "promptHash": "1b9e8a4d1f9749eff98bf3387b3772da7fc08af63ce2f67fba336d3d2cd7431e",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 977,
+    "outputTokens": 336
+  },
+  "recordedAt": "2026-10-12T00:14:49.971Z",
+  "rawOutput": {
+    "entries": [
+      {
+        "service_id": "website-fixes",
+        "document_name": "Website fixes",
+        "amount_text": "Rs 26,000",
+        "evidence_quote": "Website fixes: Rs 26,000 one time"
+      },
+      {
+        "service_id": "monthly-reporting",
+        "document_name": "Monthly reporting on its own",
+        "amount_text": "Rs 1,200",
+        "evidence_quote": "Monthly reporting on its own: Rs 1,200 per month"
+      }
+    ],
+    "unreadable_lines": [
+      {
+        "quote": "Growth bundle (Search marketing + Social media + Monthly reporting): Rs 7,900 per month",
+        "reason": "Bundle covering multiple services"
+      }
+    ],
+    "suspected_instructions": []
+  }
+}

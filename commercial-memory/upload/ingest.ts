@@ -39,11 +39,8 @@ export function normaliseUploadedText(raw: string): string {
   return raw.replace(/^﻿/, "").replace(/\r\n?/g, "\n").replace(/\u0000/g, "").replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/**
- * Turn an upload into a knowledge source, or refuse it whole. Nothing is stored here. A document that yields no
- * price or cost for any of the merchant's own services is refused with the reason for every line it could not use.
- */
-export async function ingestUpload(input: unknown, active: BusinessEconomics, now: string): Promise<UploadResult> {
+/** The source and the text read from a PDF, before anything is read for prices. Nothing is stored here. */
+export async function buildUploadSource(input: unknown, now: string): Promise<{ source: KnowledgeSource; extractedText: string | null }> {
   const request = uploadRequestSchema.parse(input);
   let content: string;
   let origin: NonNullable<KnowledgeSource["origin"]>;
@@ -82,6 +79,16 @@ export async function ingestUpload(input: unknown, active: BusinessEconomics, no
     indexedAt: now,
     origin,
   });
+  return { source, extractedText };
+}
+
+/**
+ * Turn an upload into a knowledge source, or refuse it whole. Nothing is stored here. A document that yields no
+ * price or cost for any of the merchant's own services is refused with the reason for every line it could not use.
+ */
+export async function ingestUpload(input: unknown, active: BusinessEconomics, now: string): Promise<UploadResult> {
+  const request = uploadRequestSchema.parse(input);
+  const { source, extractedText } = await buildUploadSource(request, now);
   const reading = readUploadedSource(active, source);
   if (reading.proposals.length === 0) {
     throw new UploadError(`No ${request.kind === "rate_card" ? "prices" : "costs"} for your services were found. Each line or row must name one of your services and give exactly one amount.`, reading.notes.slice(0, 20));

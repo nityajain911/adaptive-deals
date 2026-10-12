@@ -471,3 +471,19 @@ The model's explanation has two parts that code validates separately: a full com
 
 **Analytics have their own tab.** "Outcome and learning" moved to **Performance**. Track keeps a one-line deal outcome that links to it, and never prints a ₹0 figure.
 
+## Prices & costs, Phase 3 (12 October 2026)
+
+**The AI proposes, code verifies, the merchant approves.** A rate card or cost sheet is read by two readers: the built-in line reader and an AI reader (Cerebras `gpt-oss-120b`, `read_document.v1`). The model's schema holds words and a quote, never a number. Code accepts a value only when the quote is found verbatim in the document, exactly one amount can be read out of it, that amount matches the one the model wrote, and the quote names no second service and holds no instruction. Where the readers disagree, the line reader wins and the difference is listed. A service matched under another name ("SEO retainer") is marked for the merchant to confirm.
+
+**Upload goes straight to review.** After an upload, the manual forms step aside and **Review what we found** asks "Do these prices look correct?", with the exact quote and the reader beside each value. Values already matching the saved ones sit in a closed group.
+
+**The AI path replays a recording.** The demo's clean sample rate card (CSV) replays a recorded Cerebras reading, labelled "Recorded Cerebras output". No live call happens unless `ADAPTIVE_DEALS_DOCUMENT_AI=live` and a key are set. A document with no recording is read by the line reader alone and says so.
+
+**Dependencies are never inferred.** "Needs another service first" and the other offer-shaping options sit behind a closed **Advanced rules** toggle, with a one-line summary. Nothing is guessed for the merchant.
+
+**One compact services table** (charge, cost, what you keep, a plain status) and a **what-if panel** beside the limits that follows typing, uses the same profit and fee arithmetic as the engine, and saves nothing.
+
+**A bug found on the way:** the instruction detector skipped any line in the middle of a document that did not end in punctuation, so an instruction there went unflagged. It now scans every line.
+
+**Evaluation (four documents, one request each):** see `docs/DOCUMENT_READING_EVAL.md`. In these runs the model made no mistake the checks had to catch, so five mistakes were injected into a recorded answer; the checks dropped all five. Four documents show the design working; they do not measure accuracy.
+

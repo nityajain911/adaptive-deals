@@ -1,0 +1,44 @@
+{
+  "id": "clean-rate-card",
+  "inputHash": "3e6b5b19519d5b1ba9e8720367678b57af6fecb09229b35a98677fcd305e00d9",
+  "promptVersion": "read_document.v1",
+  "promptHash": "1b9e8a4d1f9749eff98bf3387b3772da7fc08af63ce2f67fba336d3d2cd7431e",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 969,
+    "outputTokens": 368
+  },
+  "recordedAt": "2026-10-12T00:14:48.894Z",
+  "rawOutput": {
+    "entries": [
+      {
+        "service_id": "website-fixes",
+        "document_name": "Website fixes",
+        "amount_text": "\"26,000\"",
+        "evidence_quote": "Website fixes,\"26,000\",One time"
+      },
+      {
+        "service_id": "search-marketing",
+        "document_name": "Search marketing",
+        "amount_text": "\"4,500\"",
+        "evidence_quote": "Search marketing,\"4,500\",Per month"
+      },
+      {
+        "service_id": "social-media",
+        "document_name": "Social media",
+        "amount_text": "\"3,200\"",
+        "evidence_quote": "Social media,\"3,200\",Per month"
+      },
+      {
+        "service_id": "monthly-reporting",
+        "document_name": "Monthly reporting",
+        "amount_text": "\"1,200\"",
+        "evidence_quote": "Monthly reporting,\"1,200\",Per month"
+      }
+    ],
+    "unreadable_lines": [],
+    "suspected_instructions": []
+  }
+}

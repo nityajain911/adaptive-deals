@@ -2,9 +2,12 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { DEMO_ANCHOR } from "@/domain/clock";
 import { activeEconomics, saveEconomicsDraft } from "@/lib/economics-store";
-import { applyConfirmedEconomicsProposals, buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
+import { applyConfirmedEconomicsProposals, buildEconomicsEvidenceDraft, mergeDocumentReadings } from "@/commercial-memory/economics-draft";
+import { loadReadings, readDocumentWithAi, readingLabel } from "@/commercial-memory/upload/ai-reader";
+import { interpretDocumentReading } from "@/commercial-memory/upload/ai-reading";
+import { readUploadedSource } from "@/commercial-memory/upload/proposals";
 import { loadKnowledgeSources } from "@/lib/knowledge";
-import { ingestUpload, uploadRequestSchema } from "@/commercial-memory/upload/ingest";
+import { buildUploadSource, uploadRequestSchema } from "@/commercial-memory/upload/ingest";
 import { UploadError } from "@/commercial-memory/upload/limits";
 import { saveUploadedSource, withdrawUploadedSource } from "@/commercial-memory/upload/store";
 import { recordEvidenceConfirmation, recordRetrievalRun } from "@/commercial-memory/store";
@@ -35,7 +38,10 @@ const reply = (body: unknown, status = 200) => Response.json(body, { status });
 const currentDraft = async () => {
   const active = await activeEconomics();
   const sources = await loadKnowledgeSources();
-  return { active, sources, draft: buildEconomicsEvidenceDraft(active, sources, "2026-10-08") };
+  const readings = await loadReadings(sources);
+  const draft = buildEconomicsEvidenceDraft(active, sources, "2026-10-08", Object.fromEntries(Object.entries(readings).map(([id, reading]) => [id, reading.rawOutput])));
+  const readers = Object.entries(readings).map(([sourceId, reading]) => ({ sourceId, label: readingLabel(reading) }));
+  return { active, sources, draft, readers };
 };
 
 export async function POST(request: Request) {
@@ -50,16 +56,27 @@ export async function POST(request: Request) {
         const target = existing.find((item) => item.id === request.supersedes);
         if (!target || target.status !== "active" || target.kind !== request.kind) throw new UploadError("The document to replace must be an active source of the same type");
       }
-      const result = await ingestUpload(request, active, new Date().toISOString());
-      const saved = await saveUploadedSource(result.source);
+      const built = await buildUploadSource(request, new Date().toISOString());
+      // Two readers: the built-in line reader, and the AI (a recording, or a live call only when switched on). Code checks the AI against the document.
+      const rules = readUploadedSource(active, built.source);
+      const outcome = await readDocumentWithAi(active, built.source);
+      const ai = "reading" in outcome ? interpretDocumentReading(active, built.source, outcome.reading.rawOutput) : null;
+      const merged = mergeDocumentReadings(rules, ai);
+      if (merged.proposals.length === 0) {
+        throw new UploadError(`No ${request.kind === "rate_card" ? "prices" : "costs"} for your services were found. Each line or row must name one of your services and give exactly one amount.`, merged.notes.slice(0, 20));
+      }
+      const saved = await saveUploadedSource(built.source);
       const { source } = saved;
-      return reply({ ok: true, result: { sourceId: source.id, title: source.title, kind: source.kind, alreadyStored: saved.alreadyStored, proposalCount: result.proposalCount, considered: result.considered, notes: result.notes, extractedText: result.extractedText } });
+      const reader = "reading" in outcome
+        ? { mode: outcome.mode, label: readingLabel(outcome.reading), proposed: ai?.proposed ?? 0, rejected: ai?.rejected ?? 0, message: null as string | null }
+        : { mode: outcome.mode, label: null as string | null, proposed: 0, rejected: 0, message: outcome.message as string | null };
+      return reply({ ok: true, result: { sourceId: source.id, title: source.title, kind: source.kind, alreadyStored: saved.alreadyStored, proposalCount: merged.proposals.length, considered: rules.considered, notes: merged.notes.slice(0, 20), extractedText: built.extractedText, reader } });
     }
     if (input.action === "withdraw_memory_source") {
       const withdrawn = await withdrawUploadedSource(input.sourceId);
       return reply({ ok: true, result: { sourceId: withdrawn.id, status: withdrawn.status } });
     }
-    const { active, sources, draft } = await currentDraft();
+    const { active, sources, draft, readers } = await currentDraft();
     if (input.action === "test_memory_query") {
       const lexical = retrieveCommercialEvidence(input.query, {
         merchantId: "merchant-pinecone",
@@ -131,7 +148,7 @@ export async function POST(request: Request) {
         status: draft.status === "ready" ? "found" : draft.status,
         createdAt: DEMO_ANCHOR,
       });
-      return reply({ ok: true, result: draft });
+      return reply({ ok: true, result: { ...draft, readers } });
     }
 
     if (input.draftId !== draft.id) throw new Error("The evidence or Business economics changed; draft it again before confirming");

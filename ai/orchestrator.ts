@@ -65,7 +65,7 @@ export async function runConstruct(args: {
         : { ok: true, raw: prior.rawOutput, meta: { provider: prior.provider, model: prior.model, temperature: prior.temperature } }
       : await provider.generate(req);
     const step: RunStep = {
-      task: req.task,
+      task: req.task as RunStep["task"],
       promptVersion: req.prompt.version,
       promptHash: promptHash(req.prompt),
       inputHash: req.inputHash,

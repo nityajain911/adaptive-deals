@@ -1,0 +1,43 @@
+{
+  "recordedAt": "2026-10-12T00:14:51.228Z",
+  "requestsMade": 4,
+  "maximumRequests": 6,
+  "documents": [
+    {
+      "id": "clean-rate-card",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ]
+    },
+    {
+      "id": "messy-email",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ]
+    },
+    {
+      "id": "bundled-rate-card",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ]
+    },
+    {
+      "id": "trap-draft-rate-card",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ]
+    }
+  ]
+}

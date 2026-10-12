@@ -99,10 +99,37 @@ export function explanationSchemaFor(promptVersion: string) {
 }
 export type ExplanationOutput = z.infer<typeof ExplanationOutputSchema>;
 
+/**
+ * What a model proposes after reading a merchant's rate card or cost sheet. Like every other schema it holds no
+ * number: the amount is the document's own words, and code reads the figure out of the verified quote.
+ */
+export const DocumentReadingSchema = z
+  .object({
+    entries: z
+      .array(
+        z
+          .object({
+            service_id: z.string().min(1).max(64).describe("The id of one of the merchant's listed services"),
+            document_name: z.string().min(1).max(120).describe("The words the document uses for that service"),
+            amount_text: z.string().min(1).max(60).describe("The amount exactly as the document writes it, e.g. Rs 26,000"),
+            evidence_quote: z.string().min(1).max(400).describe("A verbatim copy of the document text that contains both the service wording and the amount"),
+          })
+          .strict(),
+      )
+      .max(40),
+    unreadable_lines: z
+      .array(z.object({ quote: z.string().min(1).max(300), reason: z.string().min(1).max(200) }).strict())
+      .max(20),
+    suspected_instructions: z.array(z.object({ quote: z.string().min(1).max(400) }).strict()).max(10),
+  })
+  .strict();
+export type DocumentReading = z.infer<typeof DocumentReadingSchema>;
+
 export const TASK_SCHEMAS = {
   extract: ExtractionOutputSchema,
   clarify: ClarificationOutputSchema,
   explain: ExplanationOutputSchema,
+  read_document: DocumentReadingSchema,
 } as const;
 export type AiTask = keyof typeof TASK_SCHEMAS;
 export type TaskOutput<T extends AiTask> = z.infer<(typeof TASK_SCHEMAS)[T]>;

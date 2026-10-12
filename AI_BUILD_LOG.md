@@ -1085,3 +1085,15 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 
 **Checks:** see the commit; no model or Razorpay call made.
 
+### 2026-10-12 — [Claude Code] Phase 3 of the UX list: Prices & costs, with an AI document reader
+
+**Asked by the applicant:** review-first ingestion, advanced rules, a live what-if preview, a compact services table, and the document parse done with AI using the remaining model budget.
+
+**What changed:** a new `read_document` task (schema without numbers, prompt `read_document.v1`), a code verifier, recorded Cerebras readings of four documents (clean, messy, bundled, tricky; 4 requests, all valid on the first try), a review table that opens by itself after an upload, a compact services table, an Advanced rules toggle and a what-if panel.
+
+**Where I disagreed and the applicant agreed:** the AI does not infer dependencies (a wrong one silently changes which offers exist); it is named a reader, not "AI rules"; the demo replays a recording, and anything without one falls back to the line reader and says so. The earlier claim "no AI reads the file" was removed from the README, product note and demo script.
+
+**Found on the way:** the instruction detector missed unpunctuated mid-document lines. Fixed.
+
+**Checks:** all unit and browser tests pass; the four-document evaluation is in `docs/DOCUMENT_READING_EVAL.md` and re-scores with no model call.
+

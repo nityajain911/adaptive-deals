@@ -32,7 +32,7 @@ The buyer receives a mobile proposal built from canonical terms. Merchant and bu
 
 ## Evaluation and evidence
 
-The merchant's own prices, delivery costs and limits (their "Prices & costs") come from versioned records the merchant confirms, optionally drafted from an uploaded rate card or cost sheet by code (no model reads the document). Every recommendation is worked out from those records and the buyer's confirmed constraints, so the same buyer gets a different answer under different economics.
+The merchant's own prices, delivery costs and limits (their "Prices & costs") come from versioned records the merchant confirms, optionally drafted from an uploaded rate card or cost sheet: a built-in line reader and an AI reader propose values, and code accepts one only if its quote is in the document and its one amount matches. Every recommendation is worked out from those records and the buyer's confirmed constraints, so the same buyer gets a different answer under different economics.
 
 The frozen model evaluation was run once on 20 labelled cases against `extract.v2`, `clarify.v1` and `explain.v3`:
 

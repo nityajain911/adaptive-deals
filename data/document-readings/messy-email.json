@@ -1,0 +1,53 @@
+{
+  "id": "messy-email",
+  "inputHash": "3e3db14cf335727be5a5cfe33791e02ebee5c049fd7121cdf07a2512eb71cd13",
+  "promptVersion": "read_document.v1",
+  "promptHash": "1b9e8a4d1f9749eff98bf3387b3772da7fc08af63ce2f67fba336d3d2cd7431e",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 995,
+    "outputTokens": 619
+  },
+  "recordedAt": "2026-10-12T00:14:49.515Z",
+  "rawOutput": {
+    "entries": [
+      {
+        "service_id": "website-fixes",
+        "document_name": "Fixing your website",
+        "amount_text": "26k",
+        "evidence_quote": "Fixing your website (one-off): 26k"
+      },
+      {
+        "service_id": "search-marketing",
+        "document_name": "SEO retainer",
+        "amount_text": "Rs. 4,500",
+        "evidence_quote": "SEO retainer, billed monthly - Rs. 4,500"
+      },
+      {
+        "service_id": "social-media",
+        "document_name": "social media posting",
+        "amount_text": "INR 3,200",
+        "evidence_quote": "For social media posting we charge INR 3,200 a month"
+      },
+      {
+        "service_id": "monthly-reporting",
+        "document_name": "Monthly reporting dashboard",
+        "amount_text": "Rs 1,200/mo",
+        "evidence_quote": "Monthly reporting dashboard: Rs 1,200/mo"
+      }
+    ],
+    "unreadable_lines": [
+      {
+        "quote": "Podcast production is Rs 9,000 per episode",
+        "reason": "service not in listed services"
+      },
+      {
+        "quote": "Payment terms: 50% advance.",
+        "reason": "not a price line"
+      }
+    ],
+    "suspected_instructions": []
+  }
+}

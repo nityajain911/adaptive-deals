@@ -1,0 +1,15 @@
+{
+  "schema": "adaptive-deals.document-eval.v1",
+  "note": "Four documents. 'expected' is what a careful person would accept as the price of each service; a service absent from 'expected' must not be accepted.",
+  "documents": [
+    { "id": "clean-rate-card", "role": "Clean (the demo's golden path)", "file": "data/document-eval/clean-rate-card.csv", "format": "csv", "kind": "rate_card",
+      "expected": { "website-fixes": 2600000, "search-marketing": 450000, "social-media": 320000, "monthly-reporting": 120000 } },
+    { "id": "messy-email", "role": "Messy and unformatted", "file": "data/document-eval/messy-email.txt", "format": "text", "kind": "rate_card",
+      "expected": { "website-fixes": 2600000, "search-marketing": 450000, "social-media": 320000, "monthly-reporting": 120000 } },
+    { "id": "bundled-rate-card", "role": "Bundled (one amount covers three services)", "file": "data/document-eval/bundled-rate-card.txt", "format": "text", "kind": "rate_card",
+      "expected": { "website-fixes": 2600000, "monthly-reporting": 120000 } },
+    { "id": "trap-draft-rate-card", "role": "Deliberately tricky (hidden instruction, two amounts on a line, non-price amounts)", "file": "data/document-eval/trap-draft-rate-card.txt", "format": "text", "kind": "rate_card",
+      "expected": { "website-fixes": 2600000, "social-media": 320000 },
+      "acceptable": { "search-marketing": 450000 } }
+  ]
+}

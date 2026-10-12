@@ -8,6 +8,9 @@ import type { ExplanationResult } from "./explain";
 import type { ProviderFailureKind, ProviderName } from "./provider";
 import type { AiTask } from "./schemas";
 
+/** The tasks a deal run is made of. Reading a rate card is a separate task with its own record. */
+export type RunTask = Exclude<AiTask, "read_document">;
+
 export const RUN_RECORD_SCHEMA = "adaptive-deals.run.v1";
 
 /**
@@ -17,7 +20,7 @@ export const RUN_RECORD_SCHEMA = "adaptive-deals.run.v1";
 export type RunKind = "synthetic_replay" | "live";
 
 export interface RunStep {
-  task: AiTask;
+  task: RunTask;
   promptVersion: string;
   promptHash: string;
   inputHash: string;
@@ -93,7 +96,7 @@ export interface RunRecord {
   recordedAtWall: string | null;
   provider: ProviderName;
   model: string;
-  promptVersions: Record<AiTask, string>;
+  promptVersions: Record<RunTask, string>;
   inputs: {
     dealId: string;
     messages: Message[];

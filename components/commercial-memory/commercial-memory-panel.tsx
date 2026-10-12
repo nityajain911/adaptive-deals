@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EconomicsContent } from "@/domain/business-economics";
-import type { EconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
+import type { EconomicsEvidenceDraft, EconomicsEvidenceProposal } from "@/commercial-memory/economics-draft";
 import { formatINR } from "@/domain/money";
 import { Button } from "@/components/client";
 import { documentReview } from "@/lib/document-review";
@@ -37,6 +37,7 @@ interface UploadSummary {
   considered: number;
   notes: { line: string; reason: string }[];
   extractedText: string | null;
+  reader?: { mode: "recorded" | "live" | "unavailable" | "failed"; label: string | null; proposed: number; rejected: number; message: string | null };
 }
 
 const toBase64 = (buffer: ArrayBuffer) => {
@@ -48,8 +49,8 @@ const toBase64 = (buffer: ArrayBuffer) => {
 const DEMO_DATE = "2026-10-08";
 const inputClass = "mt-1 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink";
 
-/** Add the merchant's own rate card or cost sheet: a CSV, pasted text, or a text-based PDF. It stays on this computer and no model reads it. */
-function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[]; onUploaded: () => void }) {
+/** Add the merchant's own rate card or cost sheet: a CSV, pasted text, or a text-based PDF. A built-in reader and an AI reader propose values; code checks each against the document. */
+function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[]; onUploaded: (result: UploadSummary) => void }) {
   const [kind, setKind] = useState<"rate_card" | "cost_sheet">("rate_card");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(DEMO_DATE);
@@ -80,7 +81,7 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
       setPasted("");
       setReplace(false);
       if (fileRef.current) fileRef.current.value = "";
-      onUploaded();
+      onUploaded(json.result!);
     } catch {
       setError({ message: "The upload failed", notes: [] });
     } finally {
@@ -92,7 +93,7 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
     <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2" data-testid="memory-upload">
       <summary className="cursor-pointer text-[13px] font-semibold text-ink" data-testid="memory-upload-toggle">Upload your own rate card or cost sheet</summary>
       <div className="mt-3 space-y-3 pb-2">
-        <p className="text-[13px] text-ink-2">Upload a CSV or a PDF, or paste text. Each line should name one of your services and give one price. The file stays on this computer. Scanned PDFs and Excel files are not supported.</p>
+        <p className="text-[13px] text-ink-2">Upload a CSV or a PDF, or paste text. Each line should name one of your services and give one price. A built-in reader checks each line, and an AI reader may propose more (a recorded run for the sample documents; a live call only if it is switched on). Code checks every value against your document, and nothing changes until you confirm. Scanned PDFs and Excel files are not supported.</p>
         <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Want to try it first? Download a sample:{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>rate card (PDF)</a>,{" "}
           <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>cost sheet (PDF)</a> or{" "}
@@ -142,13 +143,33 @@ function UploadDocument({ sources, onUploaded }: { sources: MemorySourceSummary[
         ) : null}
         {result ? (
           <div className="rounded-lg border border-[#c9e7d3] bg-green-weak px-3 py-2 text-[13px] text-ink" role="status" data-testid="memory-upload-result">
-            <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}. Select <strong>Fill in from my documents</strong> to check them.</p>
+            <p className="font-medium">{result.alreadyStored ? "This document was already added." : "Added."} Found {result.proposalCount} {result.kind === "rate_card" ? "price" : "cost"}{result.proposalCount === 1 ? "" : "s"}{result.notes.length ? `; ${result.notes.length} line${result.notes.length === 1 ? "" : "s"} not used` : ""}. Review them below.</p>
+            {result.reader ? <p className="mt-1 text-[12px] text-ink-2" data-testid="memory-upload-reader">{result.reader.label ? `AI reading: ${result.reader.label}. It proposed ${result.reader.proposed} line${result.reader.proposed === 1 ? "" : "s"}; ${result.reader.rejected ? `${result.reader.rejected} did not pass the check against your document and ${result.reader.rejected === 1 ? "was" : "were"} dropped.` : "all passed the check against your document."}` : (result.reader.message ?? "")}</p> : null}
             {result.notes.length ? <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px] text-ink-2" data-testid="memory-upload-notes">{result.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason}</li>)}</ul> : null}
             {result.extractedText ? <details className="mt-2"><summary className="cursor-pointer text-[12px] font-semibold text-blue">What we read from the PDF</summary><pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-surface p-2 text-[12px]" data-testid="memory-upload-read-text">{result.extractedText}</pre></details> : null}
           </div>
         ) : null}
       </div>
     </details>
+  );
+}
+
+const READER: Record<NonNullable<EconomicsEvidenceProposal["reader"]>, string> = { rules: "Line reader", ai: "AI, checked", both: "Line reader and AI agree" };
+
+/** One found value: the service, what was found, what it is now, who read it, and the exact line it came from. */
+function ProposalRow({ proposal, checked, onToggle }: { proposal: EconomicsEvidenceProposal; checked: boolean; onToggle: (on: boolean) => void }) {
+  const same = proposal.currentValue === proposal.proposedValue;
+  return (
+    <div role="row" className="grid gap-x-3 gap-y-1 px-3 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-start" data-testid={`proposal-${proposal.id}`}>
+      <label role="cell" className="flex items-start gap-3">
+        <input className="mt-1" type="checkbox" checked={checked} disabled={proposal.status === "conflicting"} onChange={(event) => onToggle(event.target.checked)} />
+        <span className="min-w-0"><span className="block text-[13px] font-semibold text-ink">{proposal.serviceName} · {proposal.field.endsWith("listPricePaise") ? "standard price" : "direct delivery cost"}</span><span className="block text-[12px] text-muted">from {proposal.sourceTitle}</span>{proposal.matchedAs ? <span className="mt-0.5 block text-[12px] text-amber" data-testid="alias-note">Your document says “{proposal.matchedAs}”. The AI matched it to {proposal.serviceName}. Check that is right.</span> : null}</span>
+      </label>
+      <div role="cell" className="text-[14px] font-semibold text-ink"><span className="text-[12px] font-normal text-muted sm:hidden">Found </span>{formatINR(proposal.proposedValue)}</div>
+      <div role="cell" className="text-[13px] text-ink-2"><span className="text-[12px] text-muted sm:hidden">Now </span>{same ? "same as now" : formatINR(proposal.currentValue)}</div>
+      <div role="cell" className="text-[12px] font-medium text-ink-2" data-testid="proposal-reader">{READER[proposal.reader ?? "rules"]}</div>
+      <details className="sm:col-span-4 sm:ml-7"><summary className="cursor-pointer text-[12px] font-semibold text-blue" data-testid="memory-citation">Where this came from</summary><blockquote className="mt-2 border-l-2 border-blue pl-3 text-[13px] text-ink-2">{proposal.quote}</blockquote></details>
+    </div>
   );
 }
 
@@ -167,6 +188,17 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
     finally { setPending(false); }
   };
 
+  const changed = (draft?.proposals ?? []).filter((proposal) => proposal.proposedValue !== proposal.currentValue || proposal.status === "conflicting");
+  const unchanged = (draft?.proposals ?? []).filter((proposal) => proposal.proposedValue === proposal.currentValue && proposal.status !== "conflicting");
+  const asked = changed.length ? changed : (draft?.proposals ?? []);
+  const toggle = (id: string) => (on: boolean) => setSelected((current) => on ? [...current, id] : current.filter((item) => item !== id));
+  const readDocuments = () => run(async () => {
+    const result = await call({ action: "draft_economics_from_memory" }) as EconomicsEvidenceDraft;
+    setDraft(result);
+    setSelected(result.proposals.filter((proposal) => proposal.status === "supported").map((proposal) => proposal.id));
+    onEditorVisibilityChange(false);
+  });
+
   return (
     <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5" data-testid="commercial-memory">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -175,12 +207,7 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
           <p className="mt-1 max-w-2xl text-[14px] leading-5 text-ink-2" data-testid="document-default-message">{review.defaultMessage}</p>
           
         </div>
-        <Button variant="primary" data-testid="memory-draft" disabled={pending} onClick={() => void run(async () => {
-          const result = await call({ action: "draft_economics_from_memory" }) as EconomicsEvidenceDraft;
-          setDraft(result);
-          setSelected(result.proposals.filter((proposal) => proposal.status === "supported").map((proposal) => proposal.id));
-          onEditorVisibilityChange(false);
-        })}>{pending ? "Reading…" : "Fill in from my documents"}</Button>
+        <Button variant="primary" data-testid="memory-draft" disabled={pending} onClick={() => void readDocuments()}>{pending ? "Reading…" : "Fill in from my documents"}</Button>
       </div>
 
       {review.manageableDocuments.length ? <details className="mt-4 rounded-xl border border-line bg-surface-muted px-3 py-2">
@@ -190,25 +217,28 @@ export function CommercialMemoryPanel({ sources, onApply, onEditorVisibilityChan
         </div>
       </details> : null}
 
-      <UploadDocument sources={sources} onUploaded={() => { setDraft(null); router.refresh(); }} />
+      <UploadDocument sources={sources} onUploaded={() => { setDraft(null); router.refresh(); void readDocuments(); }} />
 
-      {draft && review.status === "match" ? <div className="mt-4 rounded-xl border border-[#c9e7d3] bg-green-weak p-3" data-testid="document-review-match"><p className="text-[14px] font-medium text-ink">{review.message}</p><div className="mt-3 flex gap-2"><Button onClick={() => { setDraft(null); onEditorVisibilityChange(true); }}>Done</Button><Button variant="primary" onClick={() => onEditorVisibilityChange(true)}>Review extracted values</Button></div></div> : null}
-      {draft && review.status === "differences" ? <div className="mt-4 rounded-xl border border-[#f7dfb4] bg-amber-weak p-3" data-testid="document-review-differences"><p className="text-[14px] font-medium text-ink">{review.message}</p><ul className="mt-2 space-y-2 text-[13px] text-ink-2">{review.changes.map((proposal) => <li key={proposal.id}><span className="font-semibold text-ink">{proposal.serviceName}</span> · {formatINR(proposal.currentValue)} → {formatINR(proposal.proposedValue)}<br />“{proposal.quote}”</li>)}</ul><Button className="mt-3" variant="primary" onClick={() => onEditorVisibilityChange(true)}>Review these changes</Button></div> : null}
-      {draft ? <div className="mt-4 space-y-2" data-testid="memory-proposals">
-        <div className="flex items-center justify-between gap-3"><h3 className="text-[15px] font-semibold text-ink">Check these values</h3></div>
+      {draft ? <div className="mt-4 space-y-3" data-testid="memory-proposals">
+        <div>
+          <h3 className="text-[16px] font-semibold text-ink">Review what we found</h3>
+          {review.message ? <p className="text-[13px] font-medium text-ink" data-testid="review-summary">{review.message}</p> : null}
+          <p className="text-[14px] text-ink-2" data-testid="review-question">{draft.proposals.length ? `Do these ${asked.every((proposal) => proposal.field.endsWith("directCostPaise")) ? "costs" : asked.every((proposal) => proposal.field.endsWith("listPricePaise")) ? "prices" : "prices and costs"} look correct?` : "Nothing in your documents could be read as a price or cost."} Untick any that are wrong.</p>
+          <p className="mt-1 text-[12px] text-muted" data-testid="review-readers">{draft.readers?.length ? `Read by the built-in line reader and an AI reader (${[...new Set(draft.readers.map((reader) => reader.label))].join(", ")}). Code checked every value against your document.` : "Read by the built-in line reader, not AI. Code checked every value against your document."}</p>
+        </div>
         {draft.status === "conflicting_evidence" ? <p className="rounded-lg border border-[#f7dfb4] bg-amber-weak px-3 py-2 text-[13px] text-amber">Two of your documents give different numbers for the same thing. Remove or replace one, then try again.</p> : null}
         {draft.notes?.length ? <details className="rounded-lg border border-line bg-surface-muted px-3 py-2 text-[13px]" data-testid="memory-draft-notes"><summary className="cursor-pointer font-semibold text-ink">{draft.notes.length} line{draft.notes.length === 1 ? "" : "s"} in your documents not used</summary><ul className="mt-1 list-disc space-y-0.5 pl-5 text-[12px] text-ink-2">{draft.notes.map((note, i) => <li key={i}><span className="font-mono">{note.line.slice(0, 80)}</span> · {note.reason} ({note.sourceTitle})</li>)}</ul></details> : null}
-        {draft.proposals.map((proposal) => <div key={proposal.id} className="rounded-xl border border-line px-3 py-3">
-          <label className="flex items-start gap-3">
-            <input className="mt-1" type="checkbox" checked={selected.includes(proposal.id)} disabled={proposal.status === "conflicting"} onChange={(event) => setSelected((current) => event.target.checked ? [...current, proposal.id] : current.filter((id) => id !== proposal.id))} />
-            <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold text-ink">{proposal.serviceName} · {proposal.field.endsWith("listPricePaise") ? "standard price" : "direct delivery cost"}</span><span className="block text-[13px] text-ink-2">{formatINR(proposal.proposedValue)} from {proposal.sourceTitle}{proposal.currentValue === proposal.proposedValue ? " · matches the active value" : ` · currently ${formatINR(proposal.currentValue)}`}</span></span>
-          </label>
-          <details className="ml-7 mt-2"><summary className="cursor-pointer text-[12px] font-semibold text-blue" data-testid="memory-citation">Where this came from</summary><blockquote className="mt-2 border-l-2 border-blue pl-3 text-[13px] text-ink-2">{proposal.quote}</blockquote></details>
-        </div>)}
-        <div className="flex flex-wrap items-center gap-3 pt-2"><Button variant="primary" data-testid="memory-apply" disabled={pending || selected.length === 0} onClick={() => void run(async () => {
+        <div className="overflow-hidden rounded-xl border border-line" role="table" aria-label="Values found in your documents">
+          <div role="row" className="hidden gap-3 border-b border-line bg-surface-muted px-3 py-2 text-[12px] font-semibold uppercase tracking-wide text-muted sm:grid sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"><span role="columnheader">Service</span><span role="columnheader">Found</span><span role="columnheader">Now</span><span role="columnheader">Read by</span></div>
+          <div className="divide-y divide-line">
+            {changed.map((proposal) => <ProposalRow key={proposal.id} proposal={proposal} checked={selected.includes(proposal.id)} onToggle={toggle(proposal.id)} />)}
+          </div>
+          {unchanged.length ? <details open={changed.length === 0} className="border-t border-line" data-testid="review-unchanged"><summary className="cursor-pointer bg-surface-muted px-3 py-2 text-[13px] font-semibold text-ink">{unchanged.length} value{unchanged.length === 1 ? "" : "s"} already match your saved prices and costs</summary><div className="divide-y divide-line">{unchanged.map((proposal) => <ProposalRow key={proposal.id} proposal={proposal} checked={selected.includes(proposal.id)} onToggle={toggle(proposal.id)} />)}</div></details> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-3 pt-1"><Button variant="primary" data-testid="memory-apply" disabled={pending || selected.length === 0} onClick={() => void run(async () => {
           const result = await call({ action: "confirm_economics_from_memory", draftId: draft.id, proposalIds: selected }) as { content: EconomicsContent; confirmed: number };
           onApply(result.content); onEditorVisibilityChange(true); setMessage(`${result.confirmed} values added below. Check them, then save.`);
-        })}>{pending ? "Adding…" : `Use these ${selected.length} values`}</Button><span className="text-[12px] text-muted">Nothing changes until you check and save.</span></div>
+        })}>{pending ? "Adding…" : `Looks right, use these ${selected.length} values`}</Button><Button data-testid="memory-edit-instead" disabled={pending} onClick={() => { setDraft(null); onEditorVisibilityChange(true); }}>Edit by hand instead</Button><span className="text-[12px] text-muted">Nothing changes until you check and save.</span></div>
       </div> : null}
       {message ? <p className="mt-3 text-[13px] font-medium text-green" role="status">{message}</p> : null}
       {error ? <p className="mt-3 text-[13px] text-red" role="alert">{error}</p> : null}

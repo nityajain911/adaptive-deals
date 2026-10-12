@@ -47,7 +47,7 @@ export function instructionSpans(source: string): VerifiedProfile["instructionSp
   const comments = [...source.matchAll(COMMENT)];
   for (const m of comments) spans.push({ start: m.index!, end: m.index! + m[0].length, text: m[0].trim() });
   const visible = source.replace(COMMENT, (c) => " ".repeat(c.length));
-  for (const m of visible.matchAll(/[^\n.!?]+(?:[.!?]+|$)/g)) {
+  for (const m of visible.matchAll(/[^\n.!?]+(?:[.!?]+|$)/gm)) {
     const text = m[0];
     if (text.trim() && INSTRUCTION.some((p) => p.test(text))) spans.push({ start: m.index!, end: m.index! + text.length, text: source.slice(m.index!, m.index! + text.length).trim() });
   }

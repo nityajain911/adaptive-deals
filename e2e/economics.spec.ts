@@ -381,6 +381,42 @@ test("offer · twelve instalments have a compact summary with an exact expandabl
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
+test("services · one compact table with a status per row, and advanced rules stay behind a toggle", async ({ page }) => {
+  await page.goto("/economics");
+  const row = page.getByTestId("service-row-website-fixes");
+  await expect(row).toBeVisible();
+  await expect(page.getByTestId("status-website-fixes")).toContainText("Ready");
+  await expect(page.getByTestId("keep-website-fixes")).toContainText("%");
+  // A missing cost and a loss are named in words.
+  await row.getByTestId("cost").fill("0");
+  await expect(page.getByTestId("status-website-fixes")).toContainText("Add a cost");
+  await row.getByTestId("cost").fill("30000");
+  await expect(page.getByTestId("status-website-fixes")).toContainText("Costs more than you charge");
+  // The manual dependency fields wait behind "Advanced rules", closed by default, and nothing is inferred.
+  const advanced = page.getByTestId("advanced-rules");
+  await expect(advanced).not.toHaveAttribute("open", "");
+  await expect(advanced.getByTestId("dependsOn").first()).toBeHidden();
+  await expect(advanced.locator("summary")).toContainText("1 service depends on another");
+  await advanced.locator("summary").click();
+  await expect(advanced.getByTestId("dependsOn").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("what-if · the preview beside the limits follows what you type, and saves nothing", async ({ page }) => {
+  await page.goto("/economics");
+  await expect(page.getByTestId("what-if-headline")).toContainText("35%");
+  await page.getByTestId("discount-limit").fill("20");
+  const before = await page.getByTestId("what-if-website-fixes").innerText();
+  await page.getByTestId("floor-percent").fill("60");
+  await expect(page.getByTestId("what-if-headline")).toContainText("60%");
+  await expect(page.getByTestId("what-if-website-fixes")).not.toHaveText(before);
+  await page.getByTestId("floor-percent").fill("99");
+  await expect(page.getByTestId("what-if-unreachable")).toBeVisible();
+  await expect(page.getByTestId("economics-version")).toBeHidden();
+  await page.reload();
+  await expect(page.getByTestId("floor-percent")).toHaveValue("35");
+});
+
 // ---- Bring your own documents: CSV, pasted text and a text-based PDF ----
 
 async function openUpload(page: Page) {
@@ -510,4 +546,50 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await openUpload(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
+
+  test("upload · the clean sample rate card replays the recorded Cerebras reading, and review is the next screen", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-rate-card-oct-2026.csv");
+    await page.getByTestId("memory-upload-title").fill("Pinecone rate card, October 2026");
+    await page.getByTestId("memory-upload-replace").check();
+    await page.getByTestId("memory-upload-submit").click();
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("all passed the check");
+    // No extra click: the review appears by itself and the manual forms step aside.
+    const proposals = page.getByTestId("memory-proposals");
+    await expect(proposals).toContainText("Review what we found");
+    await expect(page.getByTestId("review-question")).toContainText("Do these prices look correct?");
+    await expect(page.getByTestId("review-readers")).toContainText("Recorded Cerebras output");
+    await expect(proposals.getByText("Line reader and AI agree", { exact: true })).toHaveCount(4);
+    await expect(page.getByTestId("economics-editor-hidden")).toBeVisible();
+    await shot(page, "docs-1-review");
+    await page.getByTestId("memory-apply").click();
+    await expect(page.getByTestId("economics-services")).toBeVisible();
+  });
+
+  test("upload · a messy note: the AI matches the document's own names to your services, marked for you to confirm", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-format").selectOption("text");
+    await page.getByTestId("memory-upload-text").fill(readFileSync("data/document-eval/messy-email.txt", "utf8").trimEnd());
+    await page.getByTestId("memory-upload-replace").check();
+    await page.getByTestId("memory-upload-submit").click();
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("Recorded Cerebras output");
+    const proposals = page.getByTestId("memory-proposals");
+    await expect(proposals).toContainText("₹26,000");
+    await expect(proposals.getByTestId("alias-note")).toHaveCount(2);
+    await expect(proposals.getByTestId("alias-note").first()).toContainText("The AI matched it to");
+    await expect(proposals).toContainText("Fixing your website");
+    await expect(page.getByTestId("memory-draft-notes")).toContainText("Podcast production");
+    await shot(page, "docs-2-messy-review");
+  });
+
+  test("upload · a document with no recording is read by the built-in line reader only, and says so", async ({ page }) => {
+    await openUpload(page);
+    await page.getByTestId("memory-upload-text").fill("Service,Price\nWebsite fixes,26001");
+    await page.getByTestId("memory-upload-submit").click();
+    await expect(page.getByTestId("memory-upload-reader")).toContainText("No AI reading is available");
+    await expect(page.getByTestId("review-readers")).toContainText("not AI");
+    await expect(page.getByTestId("memory-proposals").getByTestId("proposal-reader").first()).toHaveText("Line reader");
+  });
 });
+
