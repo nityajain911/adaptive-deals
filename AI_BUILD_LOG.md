@@ -1301,3 +1301,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **What I did:** a two-step reply control in the guide (the second list holds the complete replies; Back returns), three change kinds carried as metadata on the scripted reply, an option generator in the engine layer (smaller scopes that reach a price, a later start, leaving a service out), a merchant card that lists only those options plus send-as-held, and a server refusal to close for a buyer who wants to continue. Tests: each change kind through to acceptance, the refusal, the guide's two steps (including Back) and the card, end to end.
 
 **Where I limited it:** a lower price is met only by a smaller scope, since this merchant allows no discount; changes the engine cannot express are not offered, and the card says so rather than inventing one.
+
+### 13 Oct 2026 · One screen for every change
+
+**Asked by the applicant:** fix question timestamps that preceded the buyer's last message; show what a requested change would do using the existing offer comparison; test the flow where the buyer asks for a change after the proposal is sent. Then, after a misunderstanding (the first idea was a new card on the Track page), the applicant clarified: every change, from the sent proposal or from the review, comes back to the offer screen, compared only with the committed version, with no restating of the request.
+
+**What the assistant found:** testing the change request on the sent proposal showed that the counter-offer and the smaller-scope answer dropped the held rest of the year; fixed and covered by `tests/lib/proposal-change-request.test.ts`, which runs a countered offer all the way to the review.
+
+**Applicant decisions:** the committed version is the only "was"; no request banner; suggested best fit with the rest as "Other offers"; no way out for a buyer who wants to carry on.

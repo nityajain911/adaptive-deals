@@ -77,3 +77,39 @@ export function dealTransformation(args: {
   rows.push({ id: "approval", label: "Approval", was: original.approvalLabel, now: adaptive.approvalLabel, note: null });
   return { rows, original, adaptive, changes, ...(args.economicsChanged ? { economicsChanged: args.economicsChanged } : {}) };
 }
+
+const approvalOf = (approval: "within_limit" | "requires_approval" | "unknown" | string) => approval === "within_limit" ? "Buyer can approve" : approval === "requires_approval" ? "Needs buyer approval" : "Approval needs confirming";
+
+/**
+ * The same comparison for a change the buyer asked for: the side that was is the terms already committed, and the side that is
+ * is what would replace them. A line that does not change is shown once.
+ */
+export function revisionTransformation(args: {
+  was: { scope: { packageId: string; months: number }[]; totalPaise: number; startDate: string | null; payments: number; approval: string; heldTotalPaise?: number; heldUntil?: string };
+  now: { scope: { packageId: string; months: number }[]; totalPaise: number; startDate: string | null; payments: number; approval: string; heldTotalPaise?: number; heldUntil?: string };
+  packages: Pick<ServicePackage, "id" | "name">[];
+  /** The label of the line that holds the rest of the year; only used for a first-phase offer that carries one. */
+  heldLabel?: string;
+}): DealTransformation {
+  const name = (id: string) => args.packages.find((service) => service.id === id)?.name ?? id;
+  const rows: TransformationRow[] = [];
+  for (const item of args.was.scope) {
+    const kept = args.now.scope.find((x) => x.packageId === item.packageId);
+    rows.push({ id: item.packageId, label: name(item.packageId), was: monthLabel(item.months), now: kept ? monthLabel(kept.months) : null, note: kept ? null : "Left out" });
+  }
+  for (const item of args.now.scope) if (!args.was.scope.some((x) => x.packageId === item.packageId)) rows.push({ id: item.packageId, label: name(item.packageId), was: null, now: monthLabel(item.months), note: "Added" });
+  if (args.was.startDate && args.now.startDate) rows.push({ id: "start", label: "Starts", was: formatDate(args.was.startDate), now: formatDate(args.now.startDate), note: null });
+  rows.push({ id: "payments", label: "Payments", was: `${args.was.payments} payment${args.was.payments === 1 ? "" : "s"}`, now: `${args.now.payments} payment${args.now.payments === 1 ? "" : "s"}`, note: null });
+  if (args.now.heldTotalPaise && args.now.heldUntil) {
+    const text = (x: { heldTotalPaise?: number; heldUntil?: string }) => (x.heldTotalPaise && x.heldUntil ? `${formatINR(x.heldTotalPaise)} held until ${formatDate(x.heldUntil)}` : null);
+    rows.push({ id: "follow_on", label: args.heldLabel ?? "Rest of the year", was: text(args.was), now: text(args.now), note: null });
+  }
+  rows.push({ id: "approval", label: "Approval", was: approvalOf(args.was.approval), now: approvalOf(args.now.approval), note: null });
+  const side = (x: typeof args.was) => ({ totalPaise: x.totalPaise, scopeLabel: scopeLabel(x.scope, args.packages), durationLabel: "", approvalLabel: approvalOf(x.approval) });
+  const changes: TransformationChange[] = [];
+  if (scopeSignature(args.was.scope) !== scopeSignature(args.now.scope)) changes.push("scope");
+  if (args.was.startDate !== args.now.startDate) changes.push("timing");
+  if (args.was.payments !== args.now.payments) changes.push("payment_split");
+  if (args.was.approval !== args.now.approval) changes.push("approval");
+  return { rows, original: side(args.was), adaptive: side(args.now), changes };
+}

@@ -29,18 +29,43 @@ import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 import { buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
 import { sourceTracesForDeal } from "@/lib/source-trace";
-import { dealTransformation } from "@/lib/deal-transformation";
+import { dealTransformation, revisionTransformation } from "@/lib/deal-transformation";
+import { evaluatedForVersion } from "@/lib/version-structure";
+import { isCounterStructureId } from "@/domain/counter";
+import { sum } from "@/domain/money";
 import { deriveFollowOn } from "@/domain/follow-on";
 import { interpretations } from "@/domain/constraints";
+import { evaluateFollowOn } from "@/domain/follow-on";
+import { followOnChangeOffer } from "@/lib/service";
+import { FollowOnOffer, candidatesOf } from "@/components/offer/follow-on-offer";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
   const { dealId } = await props.params;
   const { s, out, progress, activeCase, deal, baseline } = await loadDeal(dealId);
   const st = progress.stages.offer;
+  const optionParam = (await props.searchParams).option;
   const r = out.evaluation.result;
   const policy = deal.merchant.policy;
   const preview = `/deals/${dealId}/offer/preview`;
+
+  // The buyer asked, at the month-three review, to carry on with a change: the same comparison, with the held rest of the year on one side.
+  if (progress.rule === "track.follow_on_changes") {
+    const offer = await followOnChangeOffer(s, deal);
+    const heldTerms = offer?.held;
+    if (offer && heldTerms) {
+      const constraints = interpretations(out.profile)[0].constraints;
+      const candidates = candidatesOf(heldTerms, evaluateFollowOn(heldTerms, constraints, deal), offer.options);
+      const picked = typeof optionParam === "string" ? optionParam : candidates[0].id;
+      return (
+        <StageShell dealId={dealId} viewing="offer">
+          <div className="space-y-4">
+            <FollowOnOffer dealId={dealId} held={heldTerms} candidates={candidates} selectedId={picked} packages={deal.packages} />
+          </div>
+        </StageShell>
+      );
+    }
+  }
 
   if (st === "upcoming") {
     return (
@@ -207,7 +232,19 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const options = standard ? view.ranked : view.discounted;
   const p = out.profile;
   const originalApprovalLabel = p.approvalLimit.value && baseline.quotedTotalPaise > p.approvalLimit.value.amountPaise ? "Needs buyer approval" : "Buyer can approve";
-  const transformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [], followOn: deriveFollowOn(x, interpretations(p)[0].constraints, deal) });
+  const firstTransformation = dealTransformation({ baseline, offer: x, packages: deal.packages, originalApprovalLabel, originalStartDate: deal.templates.defaultStartDate, canWaitIds: p.optionalPackages.value ?? [], followOn: deriveFollowOn(x, interpretations(p)[0].constraints, deal) });
+  // When the buyer asked for a change to a sent offer, the comparison is with that offer (what is committed), not with the original quote.
+  const withdrawn = liveCounter ? s.agreements.find((v) => v.version === liveCounter.fromVersion && v.status === "superseded") : undefined;
+  const revising = withdrawn && (s.status === "options_ready" || s.status === "approved") ? withdrawn : null;
+  const heldNow = deriveFollowOn(x, interpretations(p)[0].constraints, deal) ?? (isCounterStructureId(x.structure.id) ? revising?.terms.followOn ?? null : null);
+  const sentStructure = revising ? evaluatedForVersion(s, revising, out) : null;
+  const transformation = revising
+    ? revisionTransformation({
+        was: { scope: revising.terms.scope, totalPaise: revising.terms.pricing.totalPaise, startDate: sentStructure?.structure.startDate ?? revising.terms.paymentSchedule[0]?.dueDate.value ?? null, payments: revising.terms.paymentSchedule.length, approval: revising.terms.conditions.includes("buyer_attests_required_approval") ? "requires_approval" : "within_limit", ...(revising.terms.followOn ? { heldTotalPaise: revising.terms.followOn.pricing.totalPaise, heldUntil: revising.terms.followOn.heldUntil } : {}) },
+        now: { scope: x.structure.scope, totalPaise: sum(x.structure.payments.map((pay) => pay.totalPaise)), startDate: x.structure.startDate, payments: x.structure.payments.length, approval: x.approval, ...(heldNow ? { heldTotalPaise: "pricing" in heldNow ? heldNow.pricing.totalPaise : heldNow.totalPaise, heldUntil: heldNow.heldUntil } : {}) },
+        packages: deal.packages,
+      })
+    : firstTransformation;
   const label = progress.primaryAction?.label ?? "Review buyer proposal";
   // When the suggested offer starts later than usual, say why in the buyer's own terms: what an earlier start would ask of them now.
   const startsLater = !!deal.templates.defaultStartDate && x.structure.startDate > deal.templates.defaultStartDate;
@@ -256,8 +293,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             </div>
           </figure>
         ) : null}
-        {control}
-        {!isLeader && !activeCounter && view.leader ? (
+        {revising ? null : control}
+        {!revising && !isLeader && !activeCounter && view.leader ? (
           <Notice tone="blue" title="You chose a different offer from the one we suggest.">
             <span data-testid="strategy-differs">We&apos;d suggest: {headlineFor(view.leader)}.</span>{" "}
             <ActionButton body={{ action: "select_option", structureId: view.leader.structure.id }} variant="ghost" testId="use-recommended">Use the suggested offer</ActionButton>

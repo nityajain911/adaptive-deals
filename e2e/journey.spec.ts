@@ -1188,6 +1188,26 @@ test("counter-offer · a price request shows its answers under the chat, and a s
   await expect(page.getByTestId("negotiation-corridor")).toHaveCount(0);
 });
 
+test("counter-offer · the offer screen compares the answer with the offer that was sent, not with the original quote", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  const sent = await prepareSent(page);
+  await api(page, { action: "request_change", version: sent.version, text: "Could you do a lower total: 40000?", topic: "price", detail: { kind: "price", targetPaise: 4_000_000, gstBasis: "including" } });
+  await page.goto("/deals/hero/track");
+  await page.getByTestId("path-scope-change").getByRole("button").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer/);
+  const card = page.getByTestId("deal-transformation");
+  // What was sent is the "was": ₹46,020 struck through, never the ₹1,41,600 quote.
+  await expect(page.getByTestId("offer-total")).toHaveText("₹42,480");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹46,020");
+  await expect(card).not.toContainText("1,41,600");
+  await expect(card.locator('[data-row="monthly-reporting"]')).toHaveAttribute("data-change", "removed");
+  await expect(card.locator('[data-row="search-marketing"]')).toHaveAttribute("data-change", "same");
+  // The held rest of the year is carried over unchanged, shown once.
+  await expect(card.locator('[data-row="follow_on"]')).toHaveAttribute("data-change", "same");
+  await expect(card.locator('[data-row="follow_on"]')).toContainText("₹84,960 held until 18 Mar 2027");
+  await shot(page, "counter-4-revision-vs-sent");
+});
+
 test("counter-offer · the merchant answers a buyer's request for a lower amount, overriding a failed rule on the record", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   const sent = await prepareSent(page);

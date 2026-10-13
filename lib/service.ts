@@ -10,7 +10,7 @@ import { interpretations } from "@/domain/constraints";
 import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
 import { compareDates, formatDate, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
-import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnOptionsFor, followOnStandingOn } from "@/domain/follow-on";
+import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnOptionsFor, followOnStandingOn, type CanonicalFollowOn, type FollowOnOption } from "@/domain/follow-on";
 import { evaluatedForVersion } from "./version-structure";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
@@ -1289,8 +1289,8 @@ export async function sendFollowOn(opts: { conditionMet?: boolean; optionId?: st
   });
 }
 
-/** What the buyer asked for and the options that meet it, for the merchant's card; null unless the buyer asked to carry on with a change. */
-export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ request: string; options: { id: string; label: string; totalPaise: number; instalments: number; within: boolean; firstPaymentDate: string }[] } | null> {
+/** What the buyer asked for and the options that meet it, as the engine checked them; null unless the buyer asked to carry on with a change. */
+export async function followOnChangeOffer(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ held: CanonicalFollowOn; request: string; options: FollowOnOption[] } | null> {
   const held = activeVersion(s)?.terms.followOn;
   const change = reviewOf(s).reply?.refs.reviewChange;
   if (!held || !change) return null;
@@ -1300,7 +1300,13 @@ export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeo
     change.kind === "lower_price" ? `They want the rest of the year at ${formatINR(change.targetPaise)} or less.`
     : change.kind === "later_start" ? `They ask to start on ${formatDate(change.startDate)} instead of ${formatDate(held.startDate)}.`
     : `They ask to leave out ${deal.packages.find((p) => p.id === change.removePackageId)?.name ?? change.removePackageId}.`;
-  return { request, options: options.map((o) => ({ id: o.id, label: o.label, totalPaise: o.totalPaise, instalments: o.instalments, within: o.within, firstPaymentDate: o.held.startDate })) };
+  return { held, request, options };
+}
+
+/** The same, for the merchant's card. */
+export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ request: string; options: { id: string; label: string; totalPaise: number; instalments: number; within: boolean; firstPaymentDate: string }[] } | null> {
+  const offer = await followOnChangeOffer(s, deal);
+  return offer ? { request: offer.request, options: offer.options.map((o) => ({ id: o.id, label: o.label, totalPaise: o.totalPaise, instalments: o.instalments, within: o.within, firstPaymentDate: o.held.startDate })) } : null;
 }
 
 /** The buyer's own go-ahead condition, in their words, when they set one. */

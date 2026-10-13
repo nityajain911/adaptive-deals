@@ -512,16 +512,30 @@ test("after the pilot the buyer can carry on with a change: the presenter picks 
 
   await expect(page.getByTestId("status-headline")).toContainText("The buyer wants to go ahead, with a change. Decide how to answer.");
   await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("₹60,000 or less");
-  await expect(page.getByTestId("follow-on-change")).toContainText("They want the rest of the year at ₹60,000 or less. These meet it:");
-  const options = page.getByTestId("follow-on-options");
-  await expect(options).toContainText("Send · Without Social media · ₹53,100");
-  await expect(options).toContainText("3 payments from 1 Feb 2027 · within their approval limit");
-  await expect(options).toContainText("Send · Without Social media and Monthly reporting · ₹42,480");
-  await expect(page.getByTestId("send-as-held")).toHaveText("Send as held · ₹84,960");
+  // The owner is taken to the offer screen: what is committed on one side, what the change would make it on the other.
+  await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
+  await expect(page.getByTestId("primary-action")).toHaveText("Review the change");
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer/);
+  await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · without Social media");
+  await expect(page.getByTestId("offer-total")).toHaveText("₹53,100");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹84,960");
+  await expect(page.locator('[data-row="social-media"]')).toHaveAttribute("data-change", "removed");
+  await expect(page.locator('[data-row="search-marketing"]')).toHaveAttribute("data-change", "same");
+  await expect(page.locator('[data-row="follow_on"]')).toHaveCount(0);
+  await expect(page.getByTestId("compare-alternatives")).toContainText("without Social media and Monthly reporting");
+  await expect(page.getByTestId("compare-alternatives")).toContainText("as held");
   // A buyer who wants to carry on is never shown a way to back out.
   await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
-  await expect(page.getByText(/Close after the first phase/)).toHaveCount(0);
-  await expect(page.getByTestId("primary-action")).toHaveText("Send · Without Social media · ₹53,100");
+  await expect(page.getByText(/Close after the first phase|Don.t proceed/)).toHaveCount(0);
+  // Another way to answer is one step away, and the choice is shown on the same screen.
+  await page.getByTestId("select-1").click();
+  await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · without Social media and Monthly reporting");
+  await expect(page.getByTestId("offer-total")).toHaveText("₹42,480");
+  await page.getByTestId("select-2").click();
+  await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · as held");
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · without Social media");
   await page.getByTestId("primary-action").click();
   await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 2.");
 
@@ -537,10 +551,11 @@ test("after the pilot the buyer can carry on with a change: the presenter picks 
 test("after the pilot a buyer who carries on with a later start gets that start, and a buyer who carries on as offered gets no way out either", async ({ page }) => {
   const review = await atReview(page);
   await api(page, { action: "buyer_reply", inReplyTo: review.id, scriptId: "review-change-date" });
-  await page.goto("/deals/hero/track");
-  await expect(page.getByTestId("follow-on-change")).toContainText("They ask to start on 1 Apr 2027 instead of 1 Feb 2027.");
-  await expect(page.getByTestId("follow-on-options")).toContainText("Send · Start 1 Apr 2027 · ₹84,960");
-  await expect(page.getByTestId("follow-on-options")).toContainText("3 payments from 1 Apr 2027");
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · start 1 Apr 2027");
+  await expect(page.locator('[data-row="start"]')).toContainText("1 Feb 2027");
+  await expect(page.locator('[data-row="start"]')).toContainText("1 Apr 2027");
+  await expect(page.getByTestId("offer-payments")).toContainText("from 1 Apr 2027");
   await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
   await page.getByTestId("primary-action").click();
   await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 2.");

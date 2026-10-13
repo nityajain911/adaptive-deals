@@ -96,6 +96,7 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
     case "track.follow_on_buyer_stop":
       return nav("close_follow_on", "merchant", "Next: close the deal after the first phase", at("track"));
     case "track.follow_on_changes":
+      return nav("send_follow_on", "merchant", "Next: review what their change would make of the rest of the year", at("offer"));
     case "track.follow_on_due":
       return nav("send_follow_on", "merchant", "Next: send the rest of the year", at("track"));
     default:
