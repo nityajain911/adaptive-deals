@@ -29,7 +29,7 @@ import { loadKnowledgeSources } from "@/lib/knowledge";
 import { RecommendationEvidence } from "@/components/commercial-memory/deal-evidence";
 import { buildEconomicsEvidenceDraft } from "@/commercial-memory/economics-draft";
 import { sourceTracesForDeal } from "@/lib/source-trace";
-import { dealTransformation, revisionTransformation } from "@/lib/deal-transformation";
+import { dealTransformation, revisionTransformation, sideOfVersion } from "@/lib/deal-transformation";
 import { evaluatedForVersion } from "@/lib/version-structure";
 import { isCounterStructureId } from "@/domain/counter";
 import { sum } from "@/domain/money";
@@ -38,6 +38,7 @@ import { interpretations } from "@/domain/constraints";
 import { evaluateFollowOn } from "@/domain/follow-on";
 import { followOnChangeOffer } from "@/lib/service";
 import { FollowOnOffer, candidatesOf } from "@/components/offer/follow-on-offer";
+import { AmendmentOffer } from "@/components/offer/amendment-offer";
 
 /** Stage 2 · Review the offer (spec §5). */
 export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer">) {
@@ -61,6 +62,24 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
         <StageShell dealId={dealId} viewing="offer">
           <div className="space-y-4">
             <FollowOnOffer dealId={dealId} request={offer.request} held={heldTerms} candidates={candidates} selectedId={picked} packages={deal.packages} />
+          </div>
+        </StageShell>
+      );
+    }
+  }
+
+  // A buyer who has accepted asks to move a payment: the same comparison, with what is committed on one side and the revised terms on the other.
+  if (progress.rule === "track.amendment_merchant") {
+    const amendment = s.amendments.find((a) => a.state === "proposed");
+    const change = amendment ? s.changeRequests.find((c) => c.amendmentId === amendment.id) : undefined;
+    const from = amendment ? s.agreements.find((v) => v.version === amendment.fromVersion) : undefined;
+    const to = amendment ? s.agreements.find((v) => v.version === amendment.toVersion) : undefined;
+    if (amendment && change && from && to) {
+      const request = s.conversation.find((i) => i.id === change.replyId)?.text ?? change.phrase;
+      return (
+        <StageShell dealId={dealId} viewing="offer">
+          <div className="space-y-4">
+            <AmendmentOffer dealId={dealId} request={request} change={change} amendment={amendment} from={from} to={to} packages={deal.packages} />
           </div>
         </StageShell>
       );
@@ -242,8 +261,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const sentStructure = revising ? evaluatedForVersion(s, revising, out) : null;
   const transformation = revising
     ? revisionTransformation({
-        was: { scope: revising.terms.scope, totalPaise: revising.terms.pricing.totalPaise, startDate: sentStructure?.structure.startDate ?? revising.terms.paymentSchedule[0]?.dueDate.value ?? null, payments: revising.terms.paymentSchedule.length, approval: revising.terms.conditions.includes("buyer_attests_required_approval") ? "requires_approval" : "within_limit", ...(revising.terms.followOn ? { heldTotalPaise: revising.terms.followOn.pricing.totalPaise, heldUntil: revising.terms.followOn.heldUntil } : {}) },
-        now: { scope: x.structure.scope, totalPaise: sum(x.structure.payments.map((pay) => pay.totalPaise)), startDate: x.structure.startDate, payments: x.structure.payments.length, approval: x.approval, ...(heldNow ? { heldTotalPaise: "pricing" in heldNow ? heldNow.pricing.totalPaise : heldNow.totalPaise, heldUntil: heldNow.heldUntil } : {}) },
+        was: { ...sideOfVersion(revising, sentStructure?.structure.startDate ?? revising.terms.paymentSchedule[0]?.dueDate.value ?? null) },
+        now: { scope: x.structure.scope, totalPaise: sum(x.structure.payments.map((pay) => pay.totalPaise)), startDate: x.structure.startDate, payments: x.structure.payments.length, approval: x.approval, discountBps: x.structure.discountBps, ...(heldNow ? { heldTotalPaise: "pricing" in heldNow ? heldNow.pricing.totalPaise : heldNow.totalPaise, heldUntil: heldNow.heldUntil } : {}) },
         packages: deal.packages,
       })
     : firstTransformation;

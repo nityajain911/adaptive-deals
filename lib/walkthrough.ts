@@ -219,7 +219,7 @@ const PRODUCT_LABEL: Record<string, string> = {
 function action(step: DemoStep | null, dealId: string, progress: DealProgress): WalkthroughAction | null {
   if (!step) return null;
   // A change at the review is answered on the offer screen, where the button is "Send to the buyer".
-  const productLabel = (progress.rule === "track.follow_on_changes" && step.id === "send_follow_on" ? "Send to the buyer" : null) ?? PRODUCT_LABEL[step.id] ?? (step.type === "merchant" ? (progress.primaryAction?.label ?? null) : null);
+  const productLabel = (progress.rule === "track.follow_on_changes" && step.id === "send_follow_on" ? "Send to the buyer" : null) ?? (progress.rule === "track.amendment_merchant" && step.id === "review_revised_terms" ? "Approve the new terms" : null) ?? PRODUCT_LABEL[step.id] ?? (step.type === "merchant" ? (progress.primaryAction?.label ?? null) : null);
   return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step), productLabel };
 }
 

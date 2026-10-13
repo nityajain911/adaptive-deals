@@ -109,7 +109,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           <div className="flex flex-wrap items-center gap-3">
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
             {primary?.id === "send_follow_on" || primary?.id === "close_follow_on" ? <FollowOnReview label={primary.label} condition={buyerConditionOf(out)} buyer={followOnBuyer} offerHref={stageHref(dealId, "offer")} /> : null}
-            {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
+            {primary?.id === "review_revised_terms" ? <Link href={stageHref(dealId, "offer")} className="inline-flex min-h-10 items-center rounded-lg bg-blue px-4 text-[14px] font-semibold text-white hover:bg-blue-ink" data-testid="primary-action">{primary.label}</Link> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
             {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId={decisionInChat ? "negotiation-corridor" : "buyer-work-card"}>{primary.label}</RevealButton> : null}
             {!hasAction && !quiet ? <p className="text-[15px] text-ink-2" data-testid="no-action">Nothing for you to do right now.</p> : null}
@@ -155,7 +155,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           </details>
         ) : null}
 
-        {cr ? <AmendmentCard s={s} cr={cr} a={amendment} open={primary?.id === "review_revised_terms" || primary?.id === "draft_revised_terms"} /> : null}
+        {cr ? <AmendmentCard s={s} cr={cr} a={amendment} open={primary?.id === "review_revised_terms" || primary?.id === "draft_revised_terms"} offerHref={stageHref(dealId, "offer")} /> : null}
 
         {attention.length ? (
           <details id="attention-card" open={primary?.id === "review_buyer_message"} className="rounded-[var(--radius-card)] border border-[#f7dfb4] bg-surface" data-testid="attention-card">

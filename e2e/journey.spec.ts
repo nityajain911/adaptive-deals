@@ -383,9 +383,16 @@ test("two-payment path · the preventive journey: a notice, a buyer who needs ti
   await expectStage(page, "track", "Review the revised terms", "Review revised terms");
   await expect(page.getByTestId("amendment-card")).toContainText("They said “till the 20th”");
   await shot(page, "desktop-6-amendment");
+  // The revised terms are reviewed on the offer screen, like every change: the committed terms on one side, what the buyer asked for on the other.
   await page.getByTestId("primary-action").click();
-  await expect(page.getByTestId("amendment-card")).toHaveAttribute("open", "");
-  await page.getByTestId("approve-revised-terms").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("buyer-request")).toContainText("Cash is tight till the 20th.");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Move payment 2 to 21 Dec 2026");
+  await expect(page.locator('[data-row="pay-pay-2"]')).toContainText("1 Dec 2026");
+  await expect(page.locator('[data-row="pay-pay-2"]')).toContainText("21 Dec 2026");
+  await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
+  await shot(page, "desktop-6b-amendment-offer");
+  await page.getByTestId("primary-action").click();
   await expectStage(page, "track", "Waiting for the buyer to accept the revised terms", undefined);
   await page.getByTestId("open-buyer-proposal").click();
   await page.getByTestId("accept").click();
@@ -426,7 +433,9 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await page.goto("/deals/hero/track");
   await clickPrimary(page);
   await page.getByTestId("primary-action").click();
-  await page.getByTestId("approve-revised-terms").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("open-buyer-proposal")).toBeVisible();
   await page.getByTestId("open-buyer-proposal").click();
   await page.getByTestId("accept").click();
   await expect(page.getByTestId("buyer-status")).toContainText(/Accepted|You accepted/);

@@ -82,7 +82,7 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
     case "track.change_request":
       return nav("draft_revised_terms", "merchant", "Next: draft the revised terms", at("track"));
     case "track.amendment_merchant":
-      return nav("review_revised_terms", "merchant", "Next: review and approve the revised terms", at("track"));
+      return nav("review_revised_terms", "merchant", "Next: review and approve the revised terms", at("offer"));
     case "track.amendment_buyer": {
       const v = progress.version ?? 2;
       return nav("buyer_accept_revision", "buyer", "Next: the buyer accepts the revised terms", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", v));

@@ -794,4 +794,42 @@ test("the discount case: no discount is recommended, the owner chooses the one a
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-headline")).toContainText("The buyer can't pay until after 12 Jan 2027.");
   expect(state().conversation.findLast((m) => m.kind === "buyer_reply")!.text).toBe("Priya: Invoice approval is delayed. Please hold the payment till the 12th.");
+
+  // The revised terms are reviewed on the offer screen, as in every case: the committed terms against what the buyer asked for.
+  await api(page, { action: "propose_amendment" });
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("buyer-request")).toContainText("Please hold the payment till the 12th.");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Move payment 2 to 13 Jan 2027");
+  await expect(page.locator('[data-row="pay-pay-2"]')).toContainText("1 Jan 2027");
+  await expect(page.locator('[data-row="pay-pay-2"]')).toContainText("13 Jan 2027");
+  await expect(page.locator('[data-row="discount"]')).toHaveAttribute("data-change", "same");
+  await expect(page.locator('[data-row="discount"]')).toContainText("10% off");
+  await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to accept the revised terms");
+});
+
+test("the discount case: a change the buyer asks for on the sent proposal comes back to the offer screen, against what was sent", async ({ page }) => {
+  await reset(page);
+  await startCase(page, "preserve-scope");
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "select_option", structureId: "phased_scope:scope=web-search-social-6m,plan=advance_40,discount_bps=1000" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "request_change", version: draft.version, text: "", topic: "price", detail: { kind: "price", targetPaise: 6_000_000, gstBasis: "including" } });
+  await page.goto("/deals/hero/track");
+  await page.getByTestId("path-scope-change").getByRole("button").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("buyer-request")).toContainText("Could you do ₹60,000 including GST?");
+  await expect(page.getByTestId("offer-total")).toHaveText("₹50,976");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹70,092");
+  await expect(page.getByTestId("deal-transformation")).not.toContainText("1,41,600");
+  await expect(page.locator('[data-row="social-media"]')).toHaveAttribute("data-change", "removed");
+  // What was committed and does not change is shown once, and the discount is among it.
+  await expect(page.locator('[data-row="discount"]')).toHaveAttribute("data-change", "same");
+  await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
+  await expect(page.getByTestId("offer-payments")).toContainText("₹20,390.40 on 1 Dec 2026");
 });

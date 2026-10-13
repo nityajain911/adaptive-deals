@@ -8,7 +8,6 @@ import type { DemoState } from "@/lib/service";
 import { proposalLinkOf } from "@/lib/track-links";
 import { collectionTruth } from "@/lib/track-copy";
 import { amendmentDiff } from "@/lib/amendment-diff";
-import { ActionButton } from "../client";
 import { AmendmentDifferences } from "../proposal-content";
 import { Checks } from "../structure-card";
 import { Badge } from "../ui";
@@ -17,7 +16,7 @@ import { Badge } from "../ui";
  * Buyer-requested payment change (spec §6.1). Shows what changes and what stays the same before the
  * merchant approves; the collection truth comes from the recorded attempts.
  */
-export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequest; a: Amendment | null; open: boolean }) {
+export function AmendmentCard({ s, cr, a, open, offerHref }: { s: DemoState; cr: ChangeRequest; a: Amendment | null; open: boolean; offerHref: string }) {
   const reply = s.conversation.find((i) => i.id === cr.replyId);
   const toV: AgreementVersion | undefined = a ? s.agreements.find((v) => v.version === a.toVersion) : undefined;
   const fromV: AgreementVersion | undefined = a ? s.agreements.find((v) => v.version === a.fromVersion) : undefined;
@@ -43,7 +42,12 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
             They said “{cr.phrase}”, so the earliest they can pay is {formatDate(cr.earliestDebit)}.
           </div>
         </div>
-        {a && line ? (
+        {a && line && a.state === "proposed" ? (
+          // The revised terms are reviewed and approved on the offer screen, as every change is.
+          <Link href={offerHref} className="inline-flex min-h-10 items-center rounded-lg bg-blue px-4 text-[14px] font-semibold text-white hover:bg-blue-ink" data-testid="review-revised-terms">
+            Review the revised terms
+          </Link>
+        ) : a && line ? (
           <>
             {fromV && toV ? <AmendmentDifferences differences={amendmentDiff(fromV.terms, toV.terms)} /> : null}
             <p className="text-[13px] font-medium text-green">Checked: {a.revised.verdict === "feasible" ? "this works for them and stays within your limits." : "this does not pass every check."}</p>
@@ -62,11 +66,6 @@ export function AmendmentCard({ s, cr, a, open }: { s: DemoState; cr: ChangeRequ
                 <li key={l}>{l}</li>
               ))}
             </ul>
-            {a.state === "proposed" && toV ? (
-              <ActionButton body={{ action: "approve_amendment", termsHash: toV.termsHash }} variant="primary" testId="approve-revised-terms">
-                Approve the new terms
-              </ActionButton>
-            ) : null}
             {a.state === "merchant_approved" && toV ? (
               <Badge tone="blue">
                 Waiting for the buyer ·{" "}
