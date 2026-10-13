@@ -33,11 +33,16 @@ const PRESERVE_SCOPE_MESSAGES = [
   "Aarav: Sounds good. Send one clear offer when it is ready.",
 ] as const;
 const NO_FIT_MESSAGES = [
-  "Hi, sharing the launch proposal. It is ₹1,20,000 plus GST for website fixes, search marketing, social media and monthly reporting. We currently have delivery starting in November.",
-  "The issue is timing. We need your team to start no later than 15 October.",
-  "We need the full scope: website fixes, search, social and monthly reporting.",
-  "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
-  "We can’t move the date or reduce the scope. If you can’t start by then, please tell us clearly.",
+  "Hi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+  "Ritu: Thanks Meera. We love the reporting format you showed us. The team is keen.",
+  "Sandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.",
+  "Could you share what it covers? I'd like to compare like for like.",
+  "Sandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.",
+  "Ritu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.",
+  "Sandeep: If you can come to ₹80,000, I can sign today.",
+  "Let me check what is possible and come back to you.",
+  "Ritu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+  "Sandeep: And please send a payment link, not a long contract. We pay by UPI.",
 ] as const;
 
 function storedRun(file: string): RunRecord {
@@ -50,21 +55,23 @@ describe("commercial demo case catalog", () => {
     expect(demoCase("missing")).toBeNull();
   });
 
-  it("keeps merchant policy, packages and approved templates identical", () => {
+  it("keeps merchant policy, packages and approved templates identical, except for a buyer with terms agreed for them", () => {
     const cases = allDemoCases();
     const first = cases[0].deal;
     for (const item of cases.slice(1)) {
       expect(canonicalJson(item.deal.packages)).toBe(canonicalJson(first.packages));
-      // The discount case carries the terms agreed for its buyer (a discount limit and its ways to pay); every other case shares the account's.
-      if (item.id === "preserve-scope") {
-        expect(item.terms).toBeTruthy();
-        expect(canonicalJson({ ...item.deal.merchant, policy: { ...item.deal.merchant.policy, discountLimitBps: 0 } })).toBe(canonicalJson(first.merchant));
+      if (item.terms) {
+        // A buyer's own terms (a discount limit, ways to pay, commitments) are applied to that deal only, and are part of its hash.
+        expect(item.deal.templates.discountsBps.length).toBeGreaterThan(0);
+        expect(canonicalJson(item.deal.templates)).not.toBe(canonicalJson(first.templates));
         continue;
       }
-      expect(item.terms).toBeUndefined();
       expect(canonicalJson(item.deal.merchant)).toBe(canonicalJson(first.merchant));
       expect(canonicalJson(item.deal.templates)).toBe(canonicalJson(first.templates));
     }
+    // Only the discount case changes the merchant's own policy (its discount limit); the competitor case changes only what is offered.
+    expect(demoCase("preserve-scope")!.deal.merchant.policy.discountLimitBps).toBe(1000);
+    expect(canonicalJson(demoCase("no-fit")!.deal.merchant)).toBe(canonicalJson(first.merchant));
   });
 
   it("uses chronological, unique messages and only verbatim extraction evidence", () => {
@@ -118,21 +125,18 @@ describe("commercial demo case catalog", () => {
     expect(item.hiddenReplies).toEqual(["clar-gst-no"]);
   });
 
-  it("uses the approved no-fit opening and normalises its exact deadline", () => {
+  it("uses the ten-message competitor conversation: a rival's ₹80,000 for the year, a cap, and one UPI link", () => {
     const item = demoCase("no-fit")!;
     expect(item.deal.messages.map((message) => message.text)).toEqual(NO_FIT_MESSAGES);
-    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
-    expect(item.deal.messages.map((message) => message.id)).toEqual(["no-fit-1", "no-fit-2", "no-fit-3", "no-fit-4", "no-fit-5"]);
-    const latest = item.expected.extraction.fields.find((field) => field.key === "latest_start");
-    expect(latest).toMatchObject({ raw_text: "15 October", message_id: "no-fit-2" });
-    const profile = interpretExtraction(item.expected.extraction, {
-      dealId: item.deal.dealId,
-      messages: item.deal.messages,
-      packages: item.deal.packages,
-      timeZone: item.deal.merchant.timeZone,
-    }).profile;
-    expect(profile.latestStart).toMatchObject({ status: "stated", value: { value: "2026-10-15", precision: "day" }, unit: "day" });
+    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "merchant", "buyer", "buyer", "buyer", "merchant", "buyer", "buyer"]);
+    expect(item.deal.messages.map((message) => message.id)).toEqual(Array.from({ length: 10 }, (_, i) => `lotus-${i + 1}`));
+    // The questions are not pre-answered: whether the ₹80,000 includes GST is for the buyer to say.
+    expect(item.expected.extraction.fields.map((field) => field.key)).not.toContain("amounts_include_gst");
+    expect(item.expected.extraction.ambiguities.map((a) => a.field_key)).toEqual(["amounts_include_gst"]);
+    const profile = interpretExtraction(item.expected.extraction, { dealId: item.deal.dealId, messages: item.deal.messages, packages: item.deal.packages, timeZone: item.deal.merchant.timeZone }).profile;
     expect(profile.requiredPackages.value).toEqual(["website-fixes", "search-marketing", "social-media", "monthly-reporting"]);
+    expect(item.terms).toMatchObject({ discountLimitBps: 0 });
+    expect(item.hiddenReplies).toEqual(["clar-gst-no"]);
   });
 
   it("gives the simulated buyer this case's own words, each carrying the recorded answer verbatim so the recorded run still continues", () => {
@@ -142,7 +146,7 @@ describe("commercial demo case catalog", () => {
     expect(item.replyScripts!["clar-gst-yes"]).toContain(answers.find((a) => a.questionId === "clar-gst")!.answerText);
     expect(item.replyScripts!["clar-approval-contract"]).toContain(answers.find((a) => a.questionId === "clar-approval")!.answerText);
     expect(scriptedReplyText("reduced-scope", { id: "clar-gst-yes", text: "shared" })).toMatch(/^Divya:/);
-    expect(scriptedReplyText("no-fit", { id: "clar-gst-yes", text: "shared" })).toBe("shared");
+    expect(scriptedReplyText("no-fit", { id: "clar-approval-contract", text: "shared" })).toBe("shared");
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {
@@ -161,7 +165,7 @@ describe("commercial demo case catalog", () => {
     const expected = {
       "reduced-scope": { state: "options_ready", template: "phased_scope" },
       "preserve-scope": { state: "options_ready", template: "phased_scope" },
-      "no-fit": { state: "no_feasible_deal", template: null },
+      "no-fit": { state: "options_ready", template: "shorter_commitment" },
     } as const;
 
     for (const id of CASE_IDS) {

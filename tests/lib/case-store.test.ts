@@ -73,8 +73,9 @@ describe("one active commercial case store", () => {
     const next = await svc.startCase("no-fit");
     expect(next.agreements).toEqual([]);
     expect(next.outcomes).toEqual([]);
-    expect(next.conversation).toEqual([]);
-    expect(next.run.record.inputs.messages.some((message) => message.text.includes("Kestrel"))).toBe(false);
+    // Only the new buyer's own unsent question drafts; nothing of the previous buyer's conversation.
+    expect(next.conversation.every((item) => item.kind === "clarification" && !item.sentAt)).toBe(true);
+    expect(next.run.record.inputs.messages.some((message) => message.text.includes("Harbour"))).toBe(false);
     expect(next.run.record.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
   });
 });

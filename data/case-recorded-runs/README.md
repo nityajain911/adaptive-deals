@@ -17,7 +17,7 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
   conversation (the hero from 13 October 2026), kept from its first valid three-request run under the pre-call freeze
   `data/synthetic/CASE_RECORDING_FREEZE_BATCH7.json`. The earlier Kestrel Lane Clinics hero run (`ed5442a3`) is kept as
   evidence and no longer maps to any case.
-- `no-fit` → `run-case-no-fit-6fb4027d`: **Recorded Cerebras output**, one extraction request, kept as it came.
+- `no-fit` is Lotus Row Interiors since 13 October 2026 and is mapped only once it has a recording of its own (until then it uses its labelled hand-written sample). The Blue Harbor Foods run `run-case-no-fit-6fb4027d` (**Recorded Cerebras output**, one extraction request, kept as it came) is kept as evidence and no longer maps to any case.
   The engine reaches the case's expected outcome (no approved offer fits).
 - `preserve-scope` → `run-case-preserve-scope-9fe9e42b`: **Recorded Cerebras output** on the Zephyr Logistics conversation (13 October 2026, pass rule `data/synthetic/CASE_RECORDING_FREEZE_BATCH9.json` committed first). Four provider requests: the first explanation attempt broke its schema (a note over 240 characters) and is kept in the report as a rejected attempt; the retry was valid, and code replaced its note because it carried a figure. The engine reaches the case's expected offer. Zephyr replaced Northstar as this case. The Northstar Learning Centres runs below are kept as evidence and no longer map to any case. Before then, `run-case-preserve-scope-1ec088fa` was **Recorded Cerebras output** on the case's revised text. Three
   earlier attempts on the earlier text (`fcc306d2`, `ff0d6acf`, `9a841334`) all missed identically, and are kept as

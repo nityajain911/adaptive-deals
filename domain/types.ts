@@ -87,6 +87,8 @@ export interface TemplateConfig {
   shorter_commitment: { enabled: boolean; terms: { termMonths: number; plans: PaymentPlan[] }[] };
   /** Discount levels the merchant allows templates to use (bps). Default [0]. */
   discountsBps: number[];
+  /** Templates a non-zero discount level applies to. Absent: all of them. */
+  discountOn?: TemplateType[];
 }
 
 export type TemplateType = "split_payment" | "phased_scope" | "deferred_start" | "shorter_commitment";

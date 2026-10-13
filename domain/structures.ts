@@ -155,27 +155,29 @@ export function enumerateStructures(templates: TemplateConfig, packages: Service
   for (const discountBps of templates.discountsBps) {
     const disc: Record<string, number> = discountBps ? { discount_bps: discountBps } : {};
     const discLabel = discountBps ? ` · ${discountBps / 100}% discount` : "";
+    // A discount level may be limited to some templates (a price the buyer wants matched for the year makes no sense for a short commitment).
+    const on = (template: TemplateType) => discountBps === 0 || !templates.discountOn || templates.discountOn.includes(template);
 
-    if (templates.split_payment.enabled) {
+    if (templates.split_payment.enabled && on("split_payment")) {
       for (const plan of templates.split_payment.plans) {
         out.push(buildStructure({ ...common, template: "split_payment", params: { plan: plan.id, ...disc }, label: `Full annual scope · ${plan.label}${discLabel}`, scopeKind: "full", scope: templates.fullScope, startDate: start, plan, discountBps }));
       }
     }
-    if (templates.phased_scope.enabled) {
+    if (templates.phased_scope.enabled && on("phased_scope")) {
       for (const preset of templates.phased_scope.phase1Scopes) {
         for (const plan of templates.phased_scope.plans) {
           out.push(buildStructure({ ...common, template: "phased_scope", params: { scope: preset.id, plan: plan.id, ...disc }, label: `Phase 1: ${preset.label} · ${plan.label}${discLabel}`, scopeKind: "phase_1", scope: preset.items, startDate: start, plan, discountBps }));
         }
       }
     }
-    if (templates.deferred_start.enabled) {
+    if (templates.deferred_start.enabled && on("deferred_start")) {
       for (const startDate of templates.deferred_start.startDates) {
         for (const plan of templates.deferred_start.plans) {
           out.push(buildStructure({ ...common, template: "deferred_start", params: { start: startDate, plan: plan.id, ...disc }, label: `Full annual scope from ${monthLabel(startDate)} · ${plan.label}${discLabel}`, scopeKind: "full", scope: templates.fullScope, startDate, plan, discountBps }));
         }
       }
     }
-    if (templates.shorter_commitment.enabled) {
+    if (templates.shorter_commitment.enabled && on("shorter_commitment")) {
       for (const { termMonths: term, plans } of templates.shorter_commitment.terms) {
         const scope = templates.fullScope.map((s) => ({ ...s, months: Math.min(s.months, term) }));
         for (const plan of plans) {

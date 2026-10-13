@@ -181,6 +181,11 @@ test("restart warns and atomically returns to case selection", async ({ page }) 
 test("no-fit and buyer-declined outcomes end honestly without an invoice action", async ({ page }) => {
   await reset(page);
   await startCase(page, "no-fit");
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "adopt_replies" });
+  // Nothing fits once the owner's own profit rule is set so high that every offer is ruled out.
+  await api(page, { action: "add_input_override", field: "contribution_floor", value: { minPercentBps: 6000, minPaise: null, combine: "both" }, reason: "Testing a very high floor" });
   await page.goto("/deals/hero");
   await openGuide(page);
   await expect(guide(page)).toContainText(/No offer fits|custom arrangement/i);
@@ -832,4 +837,83 @@ test("the discount case: a change the buyer asks for on the sent proposal comes 
   await expect(page.locator('[data-row="discount"]')).toHaveAttribute("data-change", "same");
   await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
   await expect(page.getByTestId("offer-payments")).toContainText("₹20,390.40 on 1 Dec 2026");
+});
+
+test("the competitor case: the product will not match the rival, recommends the longest commitment that fits, and the story ends when it is paid", async ({ page }) => {
+  await reset(page);
+  await startCase(page, "no-fit");
+  await api(page, { action: "send_questions" });
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  // One question, and only the answers that keep the deal as the chat describes it.
+  const choices = guide(page).getByTestId("walkthrough-reply-choice");
+  await expect(choices).toContainText("Sandeep: Yes, ₹80,000 includes GST.");
+  await expect(choices).toContainText("not sure whether the ₹80,000 includes GST");
+  await expect(guide(page).getByTestId("walkthrough-reply-clar-gst-no")).toHaveCount(0);
+  await guide(page).getByTestId("walkthrough-reply-clar-gst-yes").check();
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("status-headline")).toContainText("Review this offer before sending it.");
+
+  // A recommendation, as in any case: five months of the same four services, paid by one link, no discount.
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("offer-headline")).toHaveText("Offer a five-month commitment · paid upfront");
+  await expect(page.getByTestId("offer-total")).toHaveText("₹75,520");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹1,41,600");
+  for (const id of ["search-marketing", "social-media", "monthly-reporting"]) await expect(page.locator(`[data-row="${id}"]`)).toContainText("5 months");
+  await expect(page.locator('[data-row="discount"]')).toHaveCount(0);
+  await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
+  await expect(page.getByTestId("offer-payments")).toContainText("One payment: ₹75,520 on 1 Nov 2026");
+  await expect(page.getByTestId("compare-alternatives")).toContainText("Offer a three-month commitment · paid upfront");
+  // What it will not do, and why, is one click away: matching ₹80,000 for the year takes 44% off, which the owner's own rules refuse.
+  await page.getByTestId("presenter-frame-toggle").click();
+  await page.getByTestId("audit-details").click();
+  await expect(page.getByTestId("audit-drawer")).toContainText("Full annual scope · single payment at start · 44% discount");
+  await page.goto("/deals/hero/offer");
+
+  // Send, accept and pay: the walkthrough ends there, with every payment collected.
+  await productPrimary(page);
+  await expect(page).toHaveURL(/\/offer\/preview$/);
+  await page.getByTestId("primary-action").click();
+  await expect.poll(() => state().agreements.some((a) => a.status === "sent")).toBe(true);
+  const sent = state().agreements.find((a) => a.status === "sent")!;
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹75,520");
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  await expect(guide(page).getByTestId("walkthrough-finish")).toContainText("Walkthrough complete");
+  await expect(guide(page).getByTestId("walkthrough-finish")).toContainText("Every scheduled payment was collected.");
+  // Nothing follows a deal paid in one go: the guide does not offer a late-payment exploration that cannot happen.
+  await expect(guide(page)).not.toContainText("advance-notice date");
+  await expect(guide(page)).toContainText(/step 5 of 5/i);
+});
+
+test("the competitor case: a lower price asked for on the sent proposal comes back to the offer screen, against what was sent", async ({ page }) => {
+  await reset(page);
+  await startCase(page, "no-fit");
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "request_change", version: draft.version, text: "", topic: "price", detail: { kind: "price", targetPaise: 7_000_000, gstBasis: "including" } });
+  await page.goto("/deals/hero/track");
+  await page.getByTestId("check-buyer-amount").click();
+  const form = page.getByTestId("counter-form");
+  await form.getByTestId("counter-total").fill("70000");
+  await form.getByTestId("corridor-basis-including").check();
+  await form.getByTestId("counter-check").click();
+  // The owner allows no discount, and ₹70,000 for these services is one: the engine says so and the owner needs a reason to go on.
+  await expect(form.getByTestId("counter-fails")).toContainText("Outside your rules");
+  await form.getByTestId("review-exception").click();
+  await form.getByTestId("counter-reason").fill("They are a first client in a new sector");
+  await form.getByTestId("counter-make").click();
+  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  await expect(page.getByTestId("buyer-request")).toContainText("Could you do ₹70,000 including GST?");
+  await expect(page.getByTestId("offer-total")).toContainText("₹70,0");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹75,520");
+  await expect(page.getByTestId("deal-transformation")).not.toContainText("1,41,600");
+  await expect(page.locator('[data-row="payments"]')).toHaveAttribute("data-change", "same");
 });

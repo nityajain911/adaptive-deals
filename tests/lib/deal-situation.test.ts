@@ -6,7 +6,7 @@ import { heroPackages } from "@/data/synthetic/hero";
 import { dealSituation } from "@/lib/deal-situation";
 
 const NAMES = Object.fromEntries(heroPackages.map((pkg) => [pkg.id, pkg.name]));
-const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/case-recorded-runs/run-case-preserve-scope-9fe9e42b.json", "no-fit": "data/case-recorded-runs/run-case-no-fit-6fb4027d.json" };
+const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/case-recorded-runs/run-case-preserve-scope-9fe9e42b.json", "no-fit": "data/synthetic/replay/no-fit-synthetic-run.json" };
 const tiles = (id: CaseId) => {
   const run = JSON.parse(readFileSync(RUNS[id], "utf8")) as RunRecord;
   const t = dealSituation({ quotePrePaise: demoCase(id)!.quote.prePaise, profile: run.engine.profile, rejectedFields: run.engine.rejectedFields, packageNames: NAMES });
@@ -30,10 +30,11 @@ describe("a buyer's situation as scannable facts", () => {
     expect(t.approval!.value).toBe("Above ₹75,000 needs MD approval");
   });
 
-  it("no fit: the money is there, but the start is too soon", () => {
+  it("cheaper quote: a budget short of the quote, no start date, and all four services needed", () => {
     const t = tiles("no-fit");
-    expect(t.budget).toMatchObject({ value: "Covers your quote", tone: "green" });
-    expect(t.timeline).toMatchObject({ value: "Needs a fast start", tone: "red", detail: "Start by 15 Oct 2026" });
+    expect(t.budget).toMatchObject({ value: "Short of your quote", tone: "red", detail: "₹80,000 available now" });
+    expect(t.timeline).toMatchObject({ value: "No start date stated", tone: "neutral" });
+    expect(t.scope).toMatchObject({ value: "Website fixes, Search marketing, Social media, Monthly reporting", tone: "neutral" });
   });
 
   it("says 'not stated' for what the buyer did not say, and invents nothing", () => {

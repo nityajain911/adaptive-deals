@@ -8,6 +8,7 @@ import type { ExtractionOutput } from "@/ai/schemas";
 import type { DealTerms } from "@/lib/deal-economics";
 import { heroMerchant, heroPackages, heroTemplates } from "./hero";
 import { zephyrMerchant, zephyrTemplates, zephyrTerms } from "./zephyr";
+import { lotusMerchant, lotusTemplates, lotusTerms } from "./lotus";
 
 export const CASE_IDS = ["reduced-scope", "preserve-scope", "no-fit"] as const;
 export type CaseId = (typeof CASE_IDS)[number];
@@ -31,13 +32,13 @@ export interface DemoCase {
   /** The words of an answer as it is recorded, when the case's amounts are not the generic script's. The reply must contain them. */
   answerQuotes?: Partial<Record<string, string>>;
   /** The last part of this case's story, which the walkthrough counts as a step: the month-three review, or a payment moved before it is late. */
-  journeyEnd?: "month_three_review" | "preventive_restructure";
+  journeyEnd?: "month_three_review" | "preventive_restructure" | "none";
   /** What the merchant agreed for this buyer on top of the account's own terms: a discount limit and ways to pay. Absent: the account alone. */
   terms?: DealTerms;
   expected: {
     extraction: ExtractionOutput;
     engineState: "options_ready" | "no_feasible_deal";
-    recommendedTemplate: "phased_scope" | "deferred_start" | null;
+    recommendedTemplate: "phased_scope" | "deferred_start" | "shorter_commitment" | null;
     recordedAnswers: RecordedAnswer[];
   };
 }
@@ -48,6 +49,15 @@ const sharedDeal = (dealId: string, messages: DealContext["messages"]): DealCont
   merchant: heroMerchant,
   packages: heroPackages,
   templates: heroTemplates,
+});
+
+/** Case A: the same merchant and services, with the terms agreed for this buyer (shorter commitments, paid in one go). */
+const lotusDeal = (dealId: string, messages: DealContext["messages"]): DealContext => ({
+  dealId,
+  messages,
+  merchant: lotusMerchant,
+  packages: heroPackages,
+  templates: lotusTemplates,
 });
 
 /** Case B: the same merchant and services, with the terms agreed for this buyer. */
@@ -112,22 +122,32 @@ const discountAnswers: RecordedAnswer[] = [
   },
 ];
 
-const noFitExtraction: ExtractionOutput = {
+const competitorExtraction: ExtractionOutput = {
   fields: [
-    { key: "budget_now_amount", raw_text: "₹2,00,000", evidence_quote: "₹2,00,000 available this quarter, including GST", message_id: "no-fit-4", confidence: "high" },
-    { key: "budget_now_period", raw_text: "this quarter", evidence_quote: "₹2,00,000 available this quarter, including GST", message_id: "no-fit-4", confidence: "high" },
-    { key: "amounts_include_gst", raw_text: "including GST", evidence_quote: "₹2,00,000 available this quarter, including GST", message_id: "no-fit-4", confidence: "high" },
-    { key: "latest_start", raw_text: "15 October", evidence_quote: "start no later than 15 October", message_id: "no-fit-2", confidence: "high" },
-    { key: "required_package", raw_text: "website fixes", evidence_quote: "website fixes, search, social and monthly reporting", message_id: "no-fit-3", confidence: "high" },
-    { key: "required_package", raw_text: "search", evidence_quote: "website fixes, search, social and monthly reporting", message_id: "no-fit-3", confidence: "high" },
-    { key: "required_package", raw_text: "social", evidence_quote: "website fixes, search, social and monthly reporting", message_id: "no-fit-3", confidence: "high" },
-    { key: "required_package", raw_text: "monthly reporting", evidence_quote: "website fixes, search, social and monthly reporting", message_id: "no-fit-3", confidence: "high" },
+    { key: "budget_now_amount", raw_text: "₹80,000", evidence_quote: "₹80,000 is what is approved for us this quarter", message_id: "lotus-6", confidence: "high" },
+    { key: "budget_now_period", raw_text: "this quarter", evidence_quote: "₹80,000 is what is approved for us this quarter", message_id: "lotus-6", confidence: "high" },
+    { key: "required_package", raw_text: "website fixes", evidence_quote: "We need website fixes, search marketing, social media and monthly reporting", message_id: "lotus-6", confidence: "high" },
+    { key: "required_package", raw_text: "search marketing", evidence_quote: "We need website fixes, search marketing, social media and monthly reporting", message_id: "lotus-6", confidence: "high" },
+    { key: "required_package", raw_text: "social media", evidence_quote: "We need website fixes, search marketing, social media and monthly reporting", message_id: "lotus-6", confidence: "high" },
+    { key: "required_package", raw_text: "monthly reporting", evidence_quote: "We need website fixes, search marketing, social media and monthly reporting", message_id: "lotus-6", confidence: "high" },
+    { key: "other_constraint", raw_text: "pay by UPI", evidence_quote: "We pay by UPI", message_id: "lotus-10", confidence: "high" },
   ],
-  ambiguities: [],
+  ambiguities: [{ field_key: "amounts_include_gst", reason: "The buyer did not confirm whether the ₹80,000 includes GST" }],
   missing_required: [],
   unsupported_requests: [],
   suspected_instructions: [],
 };
+
+const competitorAnswers: RecordedAnswer[] = [
+  {
+    questionId: "clar-gst",
+    value: "yes",
+    answerText: "Yes, ₹80,000 includes GST.",
+    recordedBy: "Merchant (Pinecone Media Works)",
+    confirmedByBuyerVia: "whatsapp",
+    answeredAt: "2026-10-01T09:12:00+05:30",
+  },
+];
 
 const reducedAnswers: RecordedAnswer[] = [
   {
@@ -339,57 +359,105 @@ const catalog: Record<CaseId, DemoCase> = {
   },
   "no-fit": {
     id: "no-fit",
-    title: "They want to start in two weeks",
-    buyer: { id: "buyer-blueharbor", name: "Blue Harbor Foods" },
-    proposalSummary: "Launch support · ₹1,20,000 + GST",
-    barrier: "Their launch date can't move, and you can't start that soon.",
-    proofPoint: "Shows a clean extraction followed by justified abstention: every merchant-approved structure breaks a buyer constraint, so the engine rejects them all.",
+    title: "They found a cheaper quote",
+    buyer: { id: "buyer-lotus-row", name: "Lotus Row Interiors" },
+    proposalSummary: "Annual plan: website, search, social and reporting · ₹1,20,000 + GST",
+    barrier: "A rival quoted ₹80,000 for the year and they will not go above it. They would take less than a full year, paid by one UPI link.",
+    proofPoint: "Shows the product declining to match a rival's price: ₹80,000 for the year would take 44% off, against a limit of none and a 35% profit floor. It offers the longest commitment that fits instead: the same four services for five months.",
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/no-fit-synthetic-run.json",
     quote: { prePaise: 12_000_000 },
-    deal: sharedDeal("case-no-fit", [
+    terms: lotusTerms,
+    journeyEnd: "none",
+    hiddenReplies: ["clar-gst-no"],
+    answerQuotes: { "clar-gst-yes": "Yes, ₹80,000 includes GST." },
+    replyScripts: {
+      "clar-gst-yes": "Sandeep: Yes, ₹80,000 includes GST. It is our all-in number.",
+      "clar-gst-unclear": "Sandeep: I'm not sure whether the ₹80,000 includes GST. Let me check with accounts.",
+    },
+    deal: lotusDeal("case-no-fit", [
       {
-        id: "no-fit-1",
+        id: "lotus-1",
         dealId: "case-no-fit",
         author: "merchant",
-        text: "Hi, sharing the launch proposal. It is ₹1,20,000 plus GST for website fixes, search marketing, social media and monthly reporting. We currently have delivery starting in November.",
-        timestamp: "2026-09-29T16:30:00+05:30",
+        text: 'Hi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.',
+        timestamp: "2026-09-28T16:00:00+05:30",
         source: "whatsapp",
       },
       {
-        id: "no-fit-2",
+        id: "lotus-2",
         dealId: "case-no-fit",
         author: "buyer",
-        text: "The issue is timing. We need your team to start no later than 15 October.",
+        text: 'Ritu: Thanks Meera. We love the reporting format you showed us. The team is keen.',
+        timestamp: "2026-10-01T08:40:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-3",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: 'Sandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.',
+        timestamp: "2026-10-01T08:44:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-4",
+        dealId: "case-no-fit",
+        author: "merchant",
+        text: "Could you share what it covers? I'd like to compare like for like.",
+        timestamp: "2026-10-01T08:47:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-5",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: 'Sandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.',
+        timestamp: "2026-10-01T08:50:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-6",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: "Ritu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.",
+        timestamp: "2026-10-01T08:52:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-7",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: 'Sandeep: If you can come to ₹80,000, I can sign today.',
         timestamp: "2026-10-01T08:55:00+05:30",
         source: "whatsapp",
       },
       {
-        id: "no-fit-3",
+        id: "lotus-8",
         dealId: "case-no-fit",
-        author: "buyer",
-        text: "We need the full scope: website fixes, search, social and monthly reporting.",
-        timestamp: "2026-10-01T08:56:00+05:30",
-        source: "whatsapp",
-      },
-      {
-        id: "no-fit-4",
-        dealId: "case-no-fit",
-        author: "buyer",
-        text: "Budget isn’t the issue. We have ₹2,00,000 available this quarter, including GST.",
-        timestamp: "2026-10-01T08:57:00+05:30",
-        source: "whatsapp",
-      },
-      {
-        id: "no-fit-5",
-        dealId: "case-no-fit",
-        author: "buyer",
-        text: "We can’t move the date or reduce the scope. If you can’t start by then, please tell us clearly.",
+        author: "merchant",
+        text: 'Let me check what is possible and come back to you.',
         timestamp: "2026-10-01T08:58:00+05:30",
         source: "whatsapp",
       },
+      {
+        id: "lotus-9",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: "Ritu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+        timestamp: "2026-10-01T09:02:00+05:30",
+        source: "whatsapp",
+      },
+      {
+        id: "lotus-10",
+        dealId: "case-no-fit",
+        author: "buyer",
+        text: 'Sandeep: And please send a payment link, not a long contract. We pay by UPI.',
+        timestamp: "2026-10-01T09:04:00+05:30",
+        source: "whatsapp",
+      },
     ]),
-    expected: { extraction: noFitExtraction, engineState: "no_feasible_deal", recommendedTemplate: null, recordedAnswers: [] },
+    expected: { extraction: competitorExtraction, engineState: "options_ready", recommendedTemplate: "shorter_commitment", recordedAnswers: competitorAnswers },
   },
 };
 

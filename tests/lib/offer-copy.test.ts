@@ -17,7 +17,7 @@ describe("code-written headlines by template", () => {
     expect(headlineFor(byTemplate("phased_scope"))).toBe("Start with a three-month package · paid upfront");
     expect(headlineFor(byTemplate("split_payment"))).toBe("Keep the full project and split the payments");
     expect(headlineFor(byTemplate("deferred_start"))).toBe("Start when their next budget opens");
-    expect(headlineFor(byTemplate("shorter_commitment"))).toBe("Offer a shorter commitment");
+    expect(headlineFor(byTemplate("shorter_commitment"))).toBe("Offer a three-month commitment · paid upfront");
   });
 });
 

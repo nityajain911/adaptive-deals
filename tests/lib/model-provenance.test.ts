@@ -77,7 +77,9 @@ describe("attribution per stored step", () => {
   });
 
   it("returns nothing for a task that produced no stored output", () => {
-    expect(taskProvenance(samples[2], "explain")).toBeNull();
+    // A sample with a step removed produces no stored output for it.
+    const withoutExplain = { ...samples[2], steps: samples[2].steps.filter((step) => step.task !== "explain") } as RunRecord;
+    expect(taskProvenance(withoutExplain, "explain")).toBeNull();
     const failed = { ...recorded, steps: recorded.steps.map((step) => (step.task === "explain" ? { ...step, failure: { kind: "api_error", message: "x" } } : step)) } as RunRecord;
     expect(taskProvenance(failed, "explain")).toBeNull();
     expect(taskProvenance(failed, "extract")?.modelMade).toBe(true);

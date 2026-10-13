@@ -93,7 +93,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "merchant",
     title: "Choose a buyer situation",
     pitch: "Every buyer needs a different answer",
-    watch: "Three situations: a buyer who wants to start small, one who asks for a discount, and one with no fit.",
+    watch: "Three situations: a buyer who wants to start small, one who asks for a discount, and one who found a cheaper quote.",
     architecture: "Each situation replays a recorded model reading of its own conversation, with a labelled hand-written sample as the fallback.",
     instruction: "Pick a buyer situation to start.",
     notice: "Different customers need different answers.",
@@ -284,6 +284,8 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
 }
 
 function objectiveFor(progress: DealProgress, state: DemoState): string {
+  // A story that ends when the buyer has paid has nothing after it: the last step stays the one shown, with the ending under it.
+  if (progress.rule === "track.fully_paid" && demoCase(state.caseId)?.journeyEnd === "none") return "confirm_terms";
   if (progress.rule === "track.stopped_after_first" || progress.rule.startsWith("track.follow_on") || (state.followOnSale && progress.rule.startsWith("track."))) return "month_three_review";
   if (progress.rule === "track.next_payment" && state.amendments.at(-1)?.state === "active" && nextDemoStep(state, progress, "x")?.id === "collect_payment") return "month_three_review";
   if (progress.rule === "track.buyer_request" && state.conversation.some((m) => m.kind === "change_request" && m.refs?.topic === "price")) return "negotiate_price";
@@ -334,7 +336,8 @@ function provenanceLabel(provenance: WalkthroughProvenance | null, state: DemoSt
 function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughObjective {
   // Each case ends its story differently: the pilot with its month-three review, the discount with a balance that moves before it is late.
   // The one that ends this case's story is a step of the walkthrough; the other is optional exploration.
-  const ending = demoCase(state.caseId)?.journeyEnd ?? "month_three_review";
+  // Before a deal is started the walkthrough shows the default case's story.
+  const ending = (state.events.some((event) => event.kind === "case_started") ? demoCase(state.caseId)?.journeyEnd : undefined) ?? "month_three_review";
   if (item.id === "month_three_review" || item.id === "preventive_restructure") item = { ...item, optional: item.id !== ending };
   if (item.id === "understand_buyer") {
     const source = taskSource(state, "extract");

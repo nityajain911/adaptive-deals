@@ -27,7 +27,8 @@ const currentHero = () => read("run-case-reduced-scope-4e94d36d.json") as RunRec
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
     // preserve-scope is Zephyr Logistics since 13 October 2026; the Northstar runs are evidence only.
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b", "no-fit": "run-case-no-fit-6fb4027d" });
+    // no-fit is Lotus Row Interiors since 13 October 2026 and is mapped only once it has its own recording; the Blue Harbor run is evidence only.
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
@@ -99,14 +100,14 @@ describe("the second Cerebras recording batch", () => {
   const noFit = () => read("run-case-no-fit-6fb4027d.json") as RunRecord;
   const preserve = () => read("run-case-preserve-scope-fcc306d2.json") as RunRecord;
 
-  it("no-fit: one request, kept as it came, and the engine reaches the case's expected outcome", () => {
-    const loaded = mappedCaseRun("no-fit");
-    expect(loaded).toEqual(noFit());
+  it("no-fit, Blue Harbor: one request, kept as it came, and the engine reached that case's outcome; no longer mapped", () => {
+    expect(mappedCaseRun("no-fit")).toBeNull();
+    const loaded = noFit();
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
-    expect(loaded!.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
-    expect(loaded!.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([["extract", "cerebras", "accepted"]]);
-    expect(modelProvenance(loaded!).label).toBe("Recorded Cerebras output");
-    expect(loaded!.engine.initial.state).toBe("no_feasible_deal");
+    expect(loaded.inputs.messages).not.toEqual(demoCase("no-fit")!.deal.messages);
+    expect(loaded.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([["extract", "cerebras", "accepted"]]);
+    expect(modelProvenance(loaded).label).toBe("Recorded Cerebras output");
+    expect(loaded.engine.initial.state).toBe("no_feasible_deal");
     const report = read("cerebras-no-fit-recording-report.json");
     expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
     expect(report.requests).toHaveLength(1);

@@ -861,9 +861,9 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     },
     {
       id: "no-fit",
-      buyer: "Blue Harbor Foods",
-      message: "The issue is timing",
-      status: "no_feasible_structure",
+      buyer: "Lotus Row Interiors",
+      message: "we have another quote",
+      status: "clarifying",
     },
   ] as const;
 
@@ -880,17 +880,10 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     expect(state().agreements).toHaveLength(0);
     expect(state().outcomes).toHaveLength(0);
 
-    if (item.id !== "no-fit") {
-      await expect(page.getByTestId("thread-understand")).toContainText(item.message);
-      await api(page, { action: "send_questions" });
-      expect(state().conversation.length).toBeGreaterThan(0);
-    } else {
-      const details = page.getByText("Details", { exact: true });
-      if (await details.count()) await details.click();
-      await expect(page.getByTestId("thread-understand")).toContainText(item.message);
-      expect(state().conversation).toHaveLength(0);
-      expect(state().run.record.inputs.messages.some((message) => message.text.includes("Harbour Fresh"))).toBe(false);
-    }
+    await expect(page.getByTestId("thread-understand")).toContainText(item.message);
+    // Every case asks its buyer something before any offer: the questions are drafts until the merchant sends them.
+    expect(state().conversation.every((message) => message.kind === "clarification" && !message.sentAt)).toBe(true);
+    expect(state().run.record.inputs.messages.some((message) => message.text.includes("Harbour Fresh") && item.id !== "reduced-scope")).toBe(false);
   }
 
   // Leave the existing hero journey as the selected case for subsequent manual testing.
@@ -958,10 +951,11 @@ test("active deals · an inbox: the deals on the left, and what is in the way, i
   await expect(panel.getByTestId("start-selected-case")).toBeVisible();
   // Choosing another deal changes the panel, not the page.
   await page.getByTestId("select-case-no-fit").click();
-  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Blue Harbor Foods");
-  await expect(panel.getByTestId("tile-timeline")).toContainText("Needs a fast start");
-  await expect(panel.getByTestId("tile-budget")).toContainText("Covers your quote");
-  await expect(panel.getByTestId("deal-conversation")).toContainText("The issue is timing");
+  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Lotus Row Interiors");
+  await expect(panel.getByTestId("tile-budget")).toContainText("Short of your quote");
+  await expect(panel.getByTestId("tile-budget")).toContainText("₹80,000 available now");
+  await expect(panel.getByTestId("tile-scope")).toContainText("Website fixes, Search marketing, Social media, Monthly reporting");
+  await expect(panel.getByTestId("deal-conversation")).toContainText("we have another quote");
   await page.getByTestId("select-case-preserve-scope").click();
   await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Zephyr Logistics");
   await expect(panel.getByTestId("tile-budget")).toContainText("₹30,000 available now");
@@ -1479,29 +1473,27 @@ test("exceptions · the audit lists an input override separately from a failed-r
 });
 
 
-test("a new deal opens on Understand even when nothing needs asking, and the offer follows from one button", async ({ page }) => {
+test("a new deal opens on Understand, on what the buyer said, and a deal nothing fits is closed with a reason the merchant picks", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reset(page);
   await api(page, { action: "start_case", caseId: "no-fit" });
-  // Blue Harbor needs nothing asked: the engine already knows no offer fits. The merchant still sees what the buyer said first.
   await page.goto("/deals/hero");
   await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
-  await expect(page.getByTestId("blocking-card")).toContainText("Budget this quarter");
-  await expect(page.getByTestId("thread-understand")).toContainText("The issue is timing");
+  await expect(page.getByTestId("thread-understand")).toContainText("we have another quote");
   // The proof table is not on this screen; the facts carry their own sources.
   await expect(page.getByTestId("see-evidence")).toHaveCount(0);
   await expect(page.getByText("How this decision is grounded")).toHaveCount(0);
-  await page.getByTestId("primary-action").click();
-  await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
+  // Nothing fits once the owner's own profit rule is set so high that every offer is ruled out; the product then says so and offers to close.
+  await api(page, { action: "send_questions" });
+  const question = state().conversation.find((m) => m.kind === "clarification")!;
+  await api(page, { action: "buyer_reply", inReplyTo: question.id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "add_input_override", field: "contribution_floor", value: { minPercentBps: 6000, minPaise: null, combine: "both" }, reason: "Testing a very high floor" });
+  await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("offer-no-fit")).toBeVisible();
   await expect(page.getByTestId("primary-action")).toHaveText("Close this deal");
   await page.getByTestId("primary-action").click();
-  await expect(page.getByTestId("close-reason-cannot_meet_start_date")).toContainText("Suggested");
-  await expect(page.getByTestId("close-reason-cannot_meet_start_date").locator("input")).not.toBeChecked();
   await expect(page.getByTestId("confirm-close")).toBeDisabled();
-  // Read once, it still opens on what the buyer said until an offer is chosen.
-  await page.goto("/deals/hero");
-  await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
 });
 
 
@@ -1671,11 +1663,8 @@ test("bugs · a deal opened from the inbox always lands on what the buyer said u
     await page.getByTestId(`select-case-${caseId}`).click();
     await page.getByTestId("start-selected-case").click();
     await expect(page).toHaveURL(/\/deals\/hero\/understand$/);
-    if (caseId === "no-fit") {
-      await expect(page.getByTestId("primary-action")).toHaveText("See why nothing fits");
-      await page.getByTestId("primary-action").click();
-      await expect(page).toHaveURL(/\/deals\/hero\/offer$/);
-    }
+    // The deal opens on what the buyer said; its question is the next action until it is answered.
+    await expect(page.getByTestId("thread-understand")).toBeVisible();
   }
 });
 

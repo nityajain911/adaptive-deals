@@ -39,10 +39,9 @@ describe("a new deal", () => {
     await economics.resetEconomicsStore();
   });
 
-  it("has the same effective hash in every case that shares the merchant's offer types, and its own for the buyer with agreed terms", async () => {
+  it("has its own effective hash for each buyer with agreed terms, and the account's for the others", async () => {
     const hashes: Record<string, string> = {};
     for (const id of CASE_IDS) hashes[id] = (await service.startCase(id)).economics.effectiveHash;
-    expect(hashes["reduced-scope"]).toBe(hashes["no-fit"]);
-    expect(hashes["preserve-scope"]).not.toBe(hashes["reduced-scope"]);
+    expect(new Set(Object.values(hashes)).size).toBe(3);
   });
 });

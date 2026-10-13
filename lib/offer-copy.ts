@@ -25,7 +25,8 @@ const HEADLINES: Record<TemplateType, (x: EvaluatedStructure) => string> = {
   phased_scope: (x) => `Start with a ${word(phaseMonths(x))}-month package · ${paymentChoice(x)}`,
   split_payment: () => "Keep the full project and split the payments",
   deferred_start: () => "Start when their next budget opens",
-  shorter_commitment: () => "Offer a shorter commitment",
+  // Fewer months of the same services: say how many, and how it is paid.
+  shorter_commitment: (x) => `Offer a ${word(phaseMonths(x))}-month commitment · ${paymentChoice(x)}`,
 };
 
 export const headlineFor = (x: EvaluatedStructure): string => {

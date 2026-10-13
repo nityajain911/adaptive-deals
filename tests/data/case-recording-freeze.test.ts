@@ -40,8 +40,10 @@ describe("the pre-call case recording freeze", () => {
     const hero = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH7.json"), "utf8")) as CaseRecordingFreeze;
     // The second case was replaced on 13 October 2026 (Zephyr Logistics); its own freeze pins the new text.
     const zephyr = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH9.json"), "utf8")) as CaseRecordingFreeze;
+    // The third case was replaced on 13 October 2026 (Lotus Row Interiors); its own freeze pins the new text.
+    const lotus = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8")) as CaseRecordingFreeze;
     for (const id of CASE_IDS) {
-      const pinned = id === "preserve-scope" ? zephyr : id === "reduced-scope" ? hero : freeze;
+      const pinned = id === "preserve-scope" ? zephyr : id === "reduced-scope" ? hero : id === "no-fit" ? lotus : freeze;
       expect(pinned.cases[id].messagesSha256).toBe(sha256(canonicalJson(demoCase(id)!.deal.messages)));
     }
     expect(freeze.cases["reduced-scope"].messagesSha256).toBe("81db55020d060e55f8927a2a81a17a3b0da6d7b4c583dbef9d729b8c71f0d7af");
@@ -65,7 +67,7 @@ describe("the pre-call case recording freeze", () => {
   });
 
   it("keeps historical Groq inputs separate and maps only exact frozen Cerebras recordings", () => {
-    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b", "no-fit": "run-case-no-fit-6fb4027d" };
+    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b" };
     for (const id of CASE_IDS) {
       expect(RECORDED_CASE_MESSAGES[id]).not.toEqual(demoCase(id)!.deal.messages);
       const runId = mapped[id];

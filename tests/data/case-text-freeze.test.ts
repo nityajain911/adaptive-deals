@@ -16,7 +16,8 @@ const FROZEN: Record<CaseId, string> = {
   "reduced-scope": "d4284dcb6945d2667eb88ca4176aa91791dbe0b0606a5f2e09532344b09ec9b7",
   // Replaced 13 October 2026 by the Zephyr Logistics conversation; the Northstar text was 5911d765… (revised 12 October from a98421b3…) and its recordings are kept as evidence.
   "preserve-scope": "8665d2be7a3974b495e3270495d3280f9b28675a09ea86555173e7089f3f5a9e",
-  "no-fit": "50465eabd7296c608e5b9e2e50923f2e5c9fbc8886f3f63463a116269c8cbebc",
+  // Replaced 13 October 2026 by the Lotus Row Interiors conversation; the Blue Harbor text was 50465eab… and its recording is kept as evidence.
+  "no-fit": "b3a9113e5f1d8892d1a1c90354c577ba15ec49d0c5de3aed009002909d708ec3",
 };
 const recordingFreeze = JSON.parse(
   readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE.json"), "utf8"),
@@ -31,7 +32,10 @@ const heroFreeze = JSON.parse(
 const zephyrFreeze = JSON.parse(
   readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH9.json"), "utf8"),
 ) as { cases: Record<CaseId, { messagesSha256: string }> };
-const freezeFor = (id: CaseId) => (id === "preserve-scope" ? zephyrFreeze : id === "reduced-scope" ? heroFreeze : recordingFreeze);
+const lotusFreeze = JSON.parse(
+  readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8"),
+) as { cases: Record<CaseId, { messagesSha256: string }> };
+const freezeFor = (id: CaseId) => (id === "preserve-scope" ? zephyrFreeze : id === "reduced-scope" ? heroFreeze : id === "no-fit" ? lotusFreeze : recordingFreeze);
 
 describe("the case conversations are frozen", () => {
   it.each(allDemoCases().map((c) => [c.id] as const))("%s: its messages hash to the frozen value", (id) => {

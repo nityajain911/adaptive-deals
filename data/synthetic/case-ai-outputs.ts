@@ -29,10 +29,20 @@ const discountExplanation: ExplanationOutput = {
   option_notes: [],
 };
 
+const competitorClarification: ClarificationOutput = {
+  questions: [{ field: "amountsIncludeGst", question: "Does the ₹80,000 include GST?" }],
+};
+
+const competitorExplanation: ExplanationOutput = {
+  ranking: ["A"],
+  comparison: "Option A keeps all four services for as many months as the buyer's ₹80,000 allows, paid in one go, without any discount.",
+  option_notes: [],
+};
+
 export const caseAuthoredOutputs: Record<CaseId, Partial<Record<AiTask, unknown>>> = {
   "reduced-scope": { extract: extraction["reduced-scope"], clarify: reducedClarification, explain: reducedExplanation },
   "preserve-scope": { extract: extraction["preserve-scope"], clarify: discountClarification, explain: discountExplanation },
-  "no-fit": { extract: extraction["no-fit"] },
+  "no-fit": { extract: extraction["no-fit"], clarify: competitorClarification, explain: competitorExplanation },
 };
 
 export const CASE_SYNTHETIC_RUN_IDS: Record<CaseId, string> = {

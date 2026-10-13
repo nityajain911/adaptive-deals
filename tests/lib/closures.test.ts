@@ -3,7 +3,9 @@ import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { isDelivered } from "@/lib/deal-records";
-import { failingChecks } from "@/domain/engine";
+import { interpretExtraction } from "@/ai/extract";
+import { evaluateDeal, failingChecks } from "@/domain/engine";
+import { blueHarborCase } from "../fixtures/blue-harbor-case";
 import { failedChecksBlockingEveryStructure, suggestedMerchantCloseReason } from "@/lib/reason-codes";
 import { driveTo } from "../helpers/drive";
 
@@ -25,18 +27,16 @@ type S = Awaited<ReturnType<Svc["getState"]>>;
 const snap = (s: S) => JSON.stringify({ a: s.attempts, l: s.paymentLinks, g: s.agreements, m: s.mandate, d: s.deliveries, c: s.changeRequests, st: s.status });
 
 describe("evidence-based merchant closure reasons", () => {
-  it("suggests the requested-start-date reason for Blue Harbor's actual failed checks", async () => {
-    try {
-      const s = await svc.startCase("no-fit");
-      const out = await svc.currentOutcome(s);
-      const allFailures = [...new Set(out.evaluation.result!.structures.flatMap((structure) => failingChecks(structure).map((check) => check.code)))];
-      expect(allFailures).toEqual(["START_AFTER_LATEST_START", "CASH_AT_RISK_ABOVE_LIMIT", "REQUIRED_PACKAGE_EXCLUDED"]);
-      const codes = failedChecksBlockingEveryStructure(out.evaluation.result!.structures);
-      expect(codes).toEqual(["START_AFTER_LATEST_START"]);
-      expect(suggestedMerchantCloseReason(codes)).toBe("cannot_meet_start_date");
-    } finally {
-      await svc.startCase("reduced-scope");
-    }
+  it("suggests the requested-start-date reason for Blue Harbor's actual failed checks", () => {
+    // Blue Harbor is no longer a demo case; its retained fixture keeps this journey testable.
+    const item = blueHarborCase;
+    const { profile } = interpretExtraction(item.expected.extraction, { dealId: item.deal.dealId, messages: item.deal.messages, packages: item.deal.packages, timeZone: item.deal.merchant.timeZone });
+    const evaluation = evaluateDeal(profile, { merchant: item.deal.merchant, packages: item.deal.packages, templates: item.deal.templates });
+    const allFailures = [...new Set(evaluation.result!.structures.flatMap((structure) => failingChecks(structure).map((check) => check.code)))];
+    expect(allFailures).toEqual(["START_AFTER_LATEST_START", "CASH_AT_RISK_ABOVE_LIMIT", "REQUIRED_PACKAGE_EXCLUDED"]);
+    const codes = failedChecksBlockingEveryStructure(evaluation.result!.structures);
+    expect(codes).toEqual(["START_AFTER_LATEST_START"]);
+    expect(suggestedMerchantCloseReason(codes)).toBe("cannot_meet_start_date");
   });
 
   it("does not suggest a reason without a matching failed check or when supported reasons conflict", () => {

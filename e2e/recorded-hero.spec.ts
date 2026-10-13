@@ -81,15 +81,13 @@ test("the discount case replays its own recorded Cerebras run, asks one question
   await expect(page.getByTestId("reproduced-badge")).toContainText("Reproduced");
 });
 
-test("the no-fit case replays its own recorded Cerebras extraction and the engine says no approved offer fits", async ({ page }) => {
+test("the competitor case starts from the labelled hand-written sample until it has a recording of its own", async ({ page }) => {
   await action(page, { action: "start_case", caseId: "no-fit" });
-  expect(state().run.record.runId).toBe("run-case-no-fit-6fb4027d");
-  expect(state().run.record.kind).toBe("live");
-  expect(state().run.record.steps.map((step) => [step.task, step.provider])).toEqual([["extract", "cerebras"]]);
-  expect(state().status).toBe("no_feasible_structure");
-  await page.goto("/deals/hero/offer");
+  expect(state().run.record.kind).toBe("synthetic_replay");
+  expect(state().run.record.runId).toBe("run-synthetic-no-fit-0001");
+  expect(state().status).toBe("clarifying");
+  await page.goto("/deals/hero/understand");
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
-  await expect(page.getByTestId("audit-model-header")).toHaveText("Recorded Cerebras output · cerebras / gpt-oss-120b");
-  await expect(page.getByTestId("reproduced-badge")).toContainText("Reproduced");
+  await expect(page.getByTestId("audit-drawer")).toContainText("Sample output written by hand · no model ran");
 });
