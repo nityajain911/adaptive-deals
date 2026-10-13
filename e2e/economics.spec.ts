@@ -548,6 +548,33 @@ test.describe("bring your own documents", () => {
     await rm(path.join(".data-e2e", "knowledge", "uploads"), { recursive: true, force: true });
   });
 
+test("upload · the dialog shows a visible Choose file button, shows the chosen file, and the paste box waits while a file is chosen", async ({ page }) => {
+  await openUpload(page);
+  const zone = page.getByTestId("memory-upload-dropzone");
+  await expect(page.getByTestId("memory-upload-choose")).toBeVisible();
+  await expect(page.getByTestId("memory-upload-choose")).toHaveText("Choose file");
+  await expect(zone).toContainText("Drop a file here");
+  await expect(zone).toContainText("CSV, TXT or text-based PDF");
+  await expect(page.getByTestId("memory-upload-samples")).toContainText("No file handy? Try a sample:");
+  await expect(page.getByTestId("memory-upload-text")).toBeEnabled();
+  // Picking a file shows its name and a way to take it back; the paste box then waits.
+  await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-rate-card-oct-2026.csv");
+  await expect(page.getByTestId("memory-upload-chosen")).toContainText("pinecone-rate-card-oct-2026.csv");
+  await expect(page.getByTestId("memory-upload-choose")).toHaveCount(0);
+  await expect(page.getByTestId("memory-upload-text")).toBeDisabled();
+  await page.getByTestId("memory-upload-remove").click();
+  await expect(page.getByTestId("memory-upload-choose")).toBeVisible();
+  await expect(page.getByTestId("memory-upload-text")).toBeEnabled();
+  // The two kinds are a visible choice, not a hidden list.
+  await expect(page.getByTestId("memory-upload-kind-rate_card")).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("memory-upload-kind-cost_sheet").click();
+  await expect(page.getByTestId("memory-upload-kind-cost_sheet")).toHaveAttribute("aria-checked", "true");
+  // Nothing overflows on a phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await expect(page.getByTestId("memory-upload-submit")).toBeVisible();
+});
+
 test("upload · a pasted CSV that replaces the sample is read, quoted exactly, and reaches a draft only after confirmation", async ({ page }) => {
     await openUpload(page);
     await page.getByTestId("memory-upload-title").fill("Our October rates");
@@ -587,7 +614,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
     await openUpload(page);
     const pdf = makeTextPdf([["Pinecone rate card 2026", "Website fixes   Rs 26,000   one time", "Search marketing   Rs 4,500   per month"]]);
     await page.getByTestId("memory-upload-file").setInputFiles({ name: "rate-card.pdf", mimeType: "application/pdf", buffer: pdf });
-    await page.getByTestId("memory-upload-kind").selectOption("rate_card");
+    await page.getByTestId("memory-upload-kind-rate_card").click();
     await page.getByTestId("memory-upload-replace").check();
     await page.getByTestId("memory-upload-submit").click();
     await expect(page.getByTestId("memory-upload-result")).toContainText("Found 2 prices");
@@ -617,7 +644,7 @@ test("upload · a pasted CSV that replaces the sample is read, quoted exactly, a
 
   test("upload · the shipped sample cost sheet PDF is read as costs and replaces the sample cost sheet", async ({ page }) => {
     await openUpload(page);
-    await page.getByTestId("memory-upload-kind").selectOption("cost_sheet");
+    await page.getByTestId("memory-upload-kind-cost_sheet").click();
     await page.getByTestId("memory-upload-file").setInputFiles("public/sample-documents/pinecone-cost-sheet-oct-2026.pdf");
     await page.getByTestId("memory-upload-title").fill("Pinecone delivery costs, October 2026");
     await page.getByTestId("memory-upload-replace").check();

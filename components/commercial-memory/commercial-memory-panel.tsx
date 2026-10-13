@@ -59,6 +59,8 @@ function UploadDocument({ sources, open, onClose, onUploaded }: { sources: Memor
   const [replace, setReplace] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ message: string; notes: { line: string; reason: string }[] } | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -86,6 +88,7 @@ function UploadDocument({ sources, open, onClose, onUploaded }: { sources: Memor
       setPasted("");
       setReplace(false);
       if (fileRef.current) fileRef.current.value = "";
+      setFile(null);
       onUploaded(json.result!);
       onClose();
     } catch {
@@ -97,40 +100,81 @@ function UploadDocument({ sources, open, onClose, onUploaded }: { sources: Memor
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-labelledby="upload-title" data-testid="memory-upload" className="m-auto max-h-[92vh] w-[min(36rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/40">
-      <div className="space-y-3 p-5">
-        <h2 id="upload-title" className="text-[18px] font-semibold text-ink">Bring in your rate card</h2>
-        <p className="text-[13px] text-ink-2">CSV, text-based PDF or pasted text. Nothing changes until you confirm.</p>
-        <p className="text-[13px] text-ink-2" data-testid="memory-upload-samples">Try a sample:{" "}
-          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>rate card (PDF)</a>,{" "}
-          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>cost sheet (PDF)</a> or{" "}
-          <a className="font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.csv" download>rate card (CSV)</a>.</p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-[13px] font-medium text-ink">This is a
-            <select className={inputClass} value={kind} onChange={(e) => { setKind(e.target.value as typeof kind); setReplace(false); }} data-testid="memory-upload-kind">
-              <option value="rate_card">Rate card</option>
-              <option value="cost_sheet">Cost sheet</option>
-            </select>
-          </label>
-          <label className="text-[13px] font-medium text-ink">Name
-            <input className={inputClass} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Our 2026 rates" data-testid="memory-upload-title" />
-          </label>
-          <label className="text-[13px] font-medium text-ink">Valid from
-            <input type="date" className={inputClass} value={date} onChange={(e) => setDate(e.target.value)} data-testid="memory-upload-date" />
-          </label>
+      <div className="space-y-4 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="upload-title" className="text-[18px] font-semibold text-ink">Bring in your rate card</h2>
+            <p className="mt-1 text-[13px] text-ink-2">Nothing changes until you confirm.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="-mr-1 rounded-md px-2 py-1 text-[18px] leading-none text-muted hover:bg-surface-muted" data-testid="memory-upload-close">×</button>
         </div>
-        <label className="block text-[13px] font-medium text-ink">File (.csv, .txt or .pdf)
-          <input ref={fileRef} type="file" accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf" className="mt-1 block text-[13px]" data-testid="memory-upload-file" />
-        </label>
-        <div>
-          <div className="flex items-center justify-between gap-2 text-[13px] font-medium text-ink">
-            <label htmlFor="memory-upload-text">…or paste it here</label>
-            <select className="rounded-md border border-line-strong bg-surface px-2 py-1 text-[12px]" value={pastedFormat} onChange={(e) => setPastedFormat(e.target.value as typeof pastedFormat)} aria-label="Format of the pasted text" data-testid="memory-upload-format">
+        <p className="rounded-lg bg-surface-muted px-3 py-2.5 text-[13px] text-ink-2" data-testid="memory-upload-samples">
+          <span className="font-medium text-ink">No file handy? Try a sample:</span>{" "}
+          <a className="whitespace-nowrap font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.pdf" download>↓ Rate card (PDF)</a>{" · "}
+          <a className="whitespace-nowrap font-semibold text-blue hover:underline" href="/sample-documents/pinecone-cost-sheet-oct-2026.pdf" download>↓ Cost sheet (PDF)</a>{" · "}
+          <a className="whitespace-nowrap font-semibold text-blue hover:underline" href="/sample-documents/pinecone-rate-card-oct-2026.csv" download>↓ Rate card (CSV)</a>
+        </p>
+
+        <section className="space-y-2" aria-labelledby="upload-step-1">
+          <h3 id="upload-step-1" className="text-[13px] font-semibold text-ink">1. What is it?</h3>
+          <div role="radiogroup" aria-label="What this document is" className="inline-flex overflow-hidden rounded-lg border border-line-strong text-[13px]">
+            {([["rate_card", "Rate card"], ["cost_sheet", "Cost sheet"]] as const).map(([value, label]) => (
+              <button key={value} type="button" role="radio" aria-checked={kind === value} onClick={() => { setKind(value); setReplace(false); }} data-testid={`memory-upload-kind-${value}`}
+                className={`px-4 py-1.5 font-medium ${kind === value ? "bg-blue-weak text-blue" : "text-ink-2 hover:bg-surface-muted"} ${value === "cost_sheet" ? "border-l border-line-strong" : ""}`}>{label}</button>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-[12px] font-medium text-ink-2">Name
+              <input className={inputClass} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Our 2026 rates" data-testid="memory-upload-title" />
+            </label>
+            <label className="text-[12px] font-medium text-ink-2">Valid from
+              <input type="date" className={inputClass} value={date} onChange={(e) => setDate(e.target.value)} data-testid="memory-upload-date" />
+            </label>
+          </div>
+        </section>
+
+        <section className="space-y-2" aria-labelledby="upload-step-2">
+          <h3 id="upload-step-2" className="text-[13px] font-semibold text-ink">2. Add the document</h3>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault(); setDragging(false);
+              const dropped = e.dataTransfer.files?.[0];
+              if (dropped && fileRef.current) { const transfer = new DataTransfer(); transfer.items.add(dropped); fileRef.current.files = transfer.files; setFile(dropped); }
+            }}
+            className={`rounded-xl border-2 border-dashed px-4 py-5 text-center ${dragging ? "border-blue bg-blue-weak/40" : "border-line-strong"}`}
+            data-testid="memory-upload-dropzone"
+          >
+            <input ref={fileRef} type="file" accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf" className="sr-only" tabIndex={-1} aria-label="File (.csv, .txt or .pdf)" onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="memory-upload-file" />
+            {file ? (
+              <div className="flex flex-wrap items-center justify-center gap-3" data-testid="memory-upload-chosen">
+                <span className="text-[14px] font-medium text-ink">{file.name}</span>
+                <span className="text-[12px] text-muted">{file.size < 1024 ? `${file.size} B` : `${Math.round(file.size / 1024)} KB`}</span>
+                <button type="button" className="text-[13px] font-semibold text-blue hover:underline" onClick={() => { if (fileRef.current) fileRef.current.value = ""; setFile(null); }} data-testid="memory-upload-remove">Remove</button>
+              </div>
+            ) : (
+              <>
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="mx-auto h-6 w-6 text-ink-2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+                <p className="mt-1.5 text-[14px] text-ink">Drop a file here</p>
+                <div className="mt-2.5"><Button variant="primary" onClick={() => fileRef.current?.click()} data-testid="memory-upload-choose">Choose file</Button></div>
+                <p className="mt-2.5 text-[12px] text-ink-2">CSV, TXT or text-based PDF</p>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <div className="flex-1 border-t border-line" />
+            <span className="text-[12px] text-muted">or paste it</span>
+            <div className="flex-1 border-t border-line" />
+          </div>
+          <textarea id="memory-upload-text" aria-label="Paste the document here" className={`${inputClass} !mt-0 min-h-24 font-mono text-[12px] disabled:bg-surface-muted disabled:text-muted`} value={pasted} maxLength={40000} disabled={!!file} onChange={(e) => setPasted(e.target.value)} placeholder={file ? "A file is chosen. Remove it to paste instead." : "Service,Price\nWebsite fixes,26000"} data-testid="memory-upload-text" />
+          <label className="flex items-center gap-2 text-[12px] text-ink-2">Format
+            <select className="rounded-md border border-line-strong bg-surface px-2 py-1 text-[12px] text-ink" value={pastedFormat} disabled={!!file} onChange={(e) => setPastedFormat(e.target.value as typeof pastedFormat)} aria-label="Format of the pasted text" data-testid="memory-upload-format">
               <option value="csv">CSV</option>
               <option value="text">Plain text</option>
             </select>
-          </div>
-          <textarea id="memory-upload-text" className={`${inputClass} min-h-24 font-mono text-[12px]`} value={pasted} maxLength={40000} onChange={(e) => setPasted(e.target.value)} placeholder={"Service,Price\nWebsite fixes,26000"} data-testid="memory-upload-text" />
-        </div>
+          </label>
+        </section>
         {sample ? (
           <label className="flex items-start gap-2 text-[13px] text-ink">
             <input type="checkbox" className="mt-0.5" checked={replace} onChange={(e) => setReplace(e.target.checked)} data-testid="memory-upload-replace" />
