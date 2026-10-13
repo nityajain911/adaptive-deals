@@ -484,7 +484,9 @@ export async function listDeals(): Promise<DealListing[]> {
       continue;
     }
     const saved = await readVaultedDeal<DemoState>(item.id);
-    out.push({ caseId: item.id, open: false, started: !!saved, progress: saved ? await progressOf(migrateState(saved)).catch(() => null) : null });
+    // A deal that was on screen but never started is set aside like any other; it still counts as not started.
+    const started = !!saved && saved.events.some((e) => e.kind === "case_started");
+    out.push({ caseId: item.id, open: false, started, progress: started ? await progressOf(migrateState(saved)).catch(() => null) : null });
   }
   return out;
 }
