@@ -27,8 +27,8 @@ const currentHero = () => read("run-case-reduced-scope-4e94d36d.json") as RunRec
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
     // preserve-scope is Zephyr Logistics since 13 October 2026; the Northstar runs are evidence only.
-    // no-fit is Lotus Row Interiors since 13 October 2026 and is mapped only once it has its own recording; the Blue Harbor run is evidence only.
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b" });
+    // no-fit is Lotus Row Interiors since 13 October 2026 (its second recording is mapped; the first, which missed, and the Blue Harbor run are evidence only).
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b", "no-fit": "run-case-no-fit-ef989704" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
@@ -38,6 +38,8 @@ describe("the committed case recordings", () => {
       "run-case-no-fit-6fb4027d.json",
       // Lotus Row Interiors, recorded 13 October 2026: it missed the case's offer (the model read "We pay by UPI" as an unsupported request), so it is kept as evidence and not mapped.
       "run-case-no-fit-aed19b82.json",
+      // Lotus Row Interiors, second recording on the reworded message: reached the offer, mapped.
+      "run-case-no-fit-ef989704.json",
       // Recorded and kept as evidence, but not mapped: see the report for why.
       "run-case-preserve-scope-fcc306d2.json",
       "run-case-preserve-scope-ff0d6acf.json",
@@ -50,6 +52,7 @@ describe("the committed case recordings", () => {
       "cerebras-reduced-scope-harbour-fresh-recording-report.json",
       "cerebras-no-fit-recording-report.json",
       "cerebras-no-fit-lotus-recording-report.json",
+      "cerebras-no-fit-lotus-attempt2-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
       "cerebras-preserve-scope-attempt2-recording-report.json",
       "cerebras-preserve-scope-attempt3-recording-report.json",
@@ -104,7 +107,7 @@ describe("the second Cerebras recording batch", () => {
   const preserve = () => read("run-case-preserve-scope-fcc306d2.json") as RunRecord;
 
   it("no-fit, Blue Harbor: one request, kept as it came, and the engine reached that case's outcome; no longer mapped", () => {
-    expect(mappedCaseRun("no-fit")).toBeNull();
+    expect(mappedCaseRun("no-fit")!.runId).not.toBe("run-case-no-fit-6fb4027d");
     const loaded = noFit();
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
     expect(loaded.inputs.messages).not.toEqual(demoCase("no-fit")!.deal.messages);
@@ -198,7 +201,7 @@ describe("the Lotus Row Interiors recording", () => {
     expect(demoCase("no-fit")!.expected.engineState).toBe("options_ready");
   });
 
-  it("followed a pass rule written first: one request, no retry, kept whatever it was, and the labelled sample stays in use", () => {
+  it("followed a pass rule written first: one request, no retry, kept whatever it was, and the case then waited for a decision", () => {
     const report = read("cerebras-no-fit-lotus-recording-report.json");
     expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
     expect(report.requests).toHaveLength(1);
@@ -206,8 +209,47 @@ describe("the Lotus Row Interiors recording", () => {
     const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8"));
     expect(freeze).toMatchObject({ scope: ["no-fit"], maximumProviderRequests: 7, networkCallsMade: 0 });
     expect(freeze.resultRule).toMatch(/otherwise the hand-written sample stays in use and says so; no further attempt/);
+    expect(freeze.attempt).toBe("third-case-replacement");
     expect(freeze.authorisedBy).toMatch(/Nitya Jain/);
     expect(Date.parse(freeze.frozenAt)).toBeLessThan(Date.parse(report.recordedAt));
+  });
+});
+
+describe("the Lotus Row Interiors second recording", () => {
+  it("is one Cerebras run of the reworded conversation, under a pass rule written first, that reaches the case's offer", () => {
+    const loaded = mappedCaseRun("no-fit")!;
+    expect(loaded).toEqual(read("run-case-no-fit-ef989704.json"));
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
+    expect(modelProvenance(loaded).label).toBe("Recorded Cerebras output");
+    expect(loaded.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
+      ["extract", "cerebras", "accepted"],
+      ["clarify", "cerebras", "accepted"],
+      ["explain", "cerebras", "accepted_with_corrections"],
+    ]);
+    // Ambiguous until the buyer says whether the ₹80,000 includes GST, then the five-month commitment first.
+    expect(loaded.engine.initial.state).toBe("ambiguous");
+    expect(loaded.engine.final!.state).toBe("options_ready");
+    expect(loaded.engine.final!.feasibleOrder[0]).toBe("shorter_commitment:term_months=5,plan=upfront");
+    expect(loaded.displayed.questions.map((q) => q.id)).toEqual(["clar-gst"]);
+    // The model's two explanation notes carried figures; code kept the order and replaced the notes.
+    expect(loaded.steps[2]!.issues).toEqual(["note for A rejected: contains a literal figure, date or percentage", "note for B rejected: contains a literal figure, date or percentage"]);
+  });
+
+  it("used three provider requests, no retry, on the applicant's instruction after the first attempt missed", () => {
+    const report = read("cerebras-no-fit-lotus-attempt2-recording-report.json");
+    expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
+    expect(report.requests).toHaveLength(3);
+    expect(report.summaries[0]).toMatchObject({ caseId: "no-fit", runId: "run-case-no-fit-ef989704", status: "complete", caseCard: { agrees: true } });
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH11.json"), "utf8"));
+    expect(freeze).toMatchObject({ scope: ["no-fit"], maximumProviderRequests: 7, networkCallsMade: 0, attempt: "second-attempt-on-reworded-text" });
+    expect(freeze.earlierAttempt).toMatchObject({ run: "run-case-no-fit-aed19b82" });
+    expect(freeze.authorisedBy).toMatch(/Nitya Jain/);
+    expect(Date.parse(freeze.frozenAt)).toBeLessThan(Date.parse(report.recordedAt));
+  });
+
+  it("replays exactly, so the stored evidence reproduces the engine's result", async () => {
+    await expect(replayRun(mappedCaseRun("no-fit")!, demoCase("no-fit")!.deal, new FixedClock())).resolves.toBeTruthy();
   });
 });
 

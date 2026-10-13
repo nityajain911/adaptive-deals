@@ -6,7 +6,7 @@ import { heroPackages } from "@/data/synthetic/hero";
 import { dealSituation } from "@/lib/deal-situation";
 
 const NAMES = Object.fromEntries(heroPackages.map((pkg) => [pkg.id, pkg.name]));
-const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/case-recorded-runs/run-case-preserve-scope-9fe9e42b.json", "no-fit": "data/synthetic/replay/no-fit-synthetic-run.json" };
+const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/case-recorded-runs/run-case-preserve-scope-9fe9e42b.json", "no-fit": "data/case-recorded-runs/run-case-no-fit-ef989704.json" };
 const tiles = (id: CaseId) => {
   const run = JSON.parse(readFileSync(RUNS[id], "utf8")) as RunRecord;
   const t = dealSituation({ quotePrePaise: demoCase(id)!.quote.prePaise, profile: run.engine.profile, rejectedFields: run.engine.rejectedFields, packageNames: NAMES });

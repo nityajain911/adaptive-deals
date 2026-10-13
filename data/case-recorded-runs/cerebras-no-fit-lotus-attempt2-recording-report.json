@@ -1,0 +1,215 @@
+{
+  "recordedAt": "2026-10-13T12:50:03.911Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "no-fit",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    },
+    {
+      "n": 2,
+      "caseId": "no-fit",
+      "task": "clarify",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24981,
+      "retryOf": null
+    },
+    {
+      "n": 3,
+      "caseId": "no-fit",
+      "task": "explain",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24985,
+      "retryOf": null
+    }
+  ],
+  "retries": [],
+  "rejectedAttempts": [],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "no-fit",
+      "runId": "run-case-no-fit-ef989704",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "2caea17111b0f2c4",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "clarify",
+          "promptVersion": "clarify.v1",
+          "promptHash": "0e6eec01fb70482e",
+          "inputHash": "e397f1455549df60",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e",
+          "inputHash": "2cd7cba7fedab5c1",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "note for A rejected: contains a literal figure, date or percentage",
+            "note for B rejected: contains a literal figure, date or percentage"
+          ]
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹80,000",
+          "evidence_quote": "₹80,000 is what is approved for us this quarter",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "₹80,000 is what is approved for us this quarter",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "required_package",
+          "raw_text": "website fixes, search marketing, social media and monthly reporting",
+          "evidence_quote": "We need website fixes, search marketing, social media and monthly reporting.",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "please send a payment link, not a long contract",
+          "evidence_quote": "please send a payment link, not a long contract.",
+          "message_id": "lotus-10",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "Even if it is less than a full year, we can look at it",
+          "evidence_quote": "Even if it is less than a full year, we can look at it.",
+          "message_id": "lotus-9",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [
+        "approval_limit_scope"
+      ],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹80,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "lotus-6: “₹80,000 is what is approved for us this quarter”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "stated",
+          "value": "Amounts include GST",
+          "evidence": [
+            "lotus-6: “₹80,000 is what is approved for us this quarter”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Required packages",
+          "status": "stated",
+          "value": "website-fixes, search-marketing, social-media, monthly-reporting",
+          "evidence": [
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "please send a payment link, not a long contract",
+          "evidence": [
+            "lotus-10: “please send a payment link, not a long contract.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "Even if it is less than a full year, we can look at it",
+          "evidence": [
+            "lotus-9: “Even if it is less than a full year, we can look at it.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [],
+      "engine": {
+        "initial": "ambiguous",
+        "final": "options_ready",
+        "feasible": [
+          "5-month commitment · single payment at start [shorter_commitment; within_limit]",
+          "3-month commitment · single payment at start [shorter_commitment; within_limit]"
+        ]
+      },
+      "questions": [
+        {
+          "id": "clar-gst",
+          "wording": "ai",
+          "question": "Do the amounts of ₹80,000 include GST?"
+        }
+      ],
+      "answeredWithScriptedBuyerReply": [
+        "clar-gst"
+      ],
+      "explanation": {
+        "source": {
+          "ranking": "ai",
+          "text": "ai"
+        },
+        "issues": [
+          "note for A rejected: contains a literal figure, date or percentage",
+          "note for B rejected: contains a literal figure, date or percentage"
+        ],
+        "rankedFirst": "5-month commitment · single payment at start [shorter_commitment]",
+        "notes": []
+      },
+      "caseCard": {
+        "expectedState": "options_ready",
+        "expectedTemplate": "shorter_commitment",
+        "actualState": "options_ready",
+        "actualTemplate": "shorter_commitment",
+        "agrees": true
+      }
+    }
+  ],
+  "stopped": null
+}

@@ -1,0 +1,642 @@
+{
+  "schema": "adaptive-deals.run.v1",
+  "runId": "run-case-no-fit-ef989704",
+  "kind": "live",
+  "status": "complete",
+  "createdAt": "2026-10-01T09:00:00+05:30",
+  "recordedAtWall": "2026-10-13T12:49:11.588Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v3"
+  },
+  "inputs": {
+    "dealId": "case-no-fit",
+    "messages": [
+      {
+        "id": "lotus-1",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Hi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+        "timestamp": "2026-09-28T16:00:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-2",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: Thanks Meera. We love the reporting format you showed us. The team is keen.",
+        "timestamp": "2026-10-01T08:40:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-3",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.",
+        "timestamp": "2026-10-01T08:44:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-4",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Could you share what it covers? I'd like to compare like for like.",
+        "timestamp": "2026-10-01T08:47:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-5",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.",
+        "timestamp": "2026-10-01T08:50:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-6",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.",
+        "timestamp": "2026-10-01T08:52:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-7",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: If you can come to ₹80,000, I can sign today.",
+        "timestamp": "2026-10-01T08:55:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-8",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Let me check what is possible and come back to you.",
+        "timestamp": "2026-10-01T08:58:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-9",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+        "timestamp": "2026-10-01T09:02:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-10",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: And please send a payment link, not a long contract.",
+        "timestamp": "2026-10-01T09:04:00+05:30",
+        "source": "whatsapp"
+      }
+    ],
+    "packageIds": [
+      "website-fixes",
+      "search-marketing",
+      "social-media",
+      "monthly-reporting"
+    ],
+    "policy": {
+      "gstRateBps": 1800,
+      "contributionFloor": {
+        "minPercentBps": 3500,
+        "minPaise": null,
+        "combine": "both"
+      },
+      "cashAtRiskLimitPaise": 1000000,
+      "maxTenureMonths": 12,
+      "smallestInstalmentPaise": 1000000,
+      "discountLimitBps": 0,
+      "paymentFeeBps": 200,
+      "advanceNoticeDays": 3,
+      "internalRetryAfterDays": 3,
+      "mandateEndBufferMonths": 1
+    },
+    "answers": [
+      {
+        "questionId": "clar-gst",
+        "value": "yes",
+        "answerText": "Yes, ₹80,000 includes GST.",
+        "recordedBy": "Merchant (Pinecone Media Works)",
+        "confirmedByBuyerVia": "whatsapp",
+        "answeredAt": "2026-10-01T09:12:00+05:30"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "task": "extract",
+      "promptVersion": "extract.v2",
+      "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+      "inputHash": "2caea17111b0f2c455f60325d63432912e5cecc02659fafd1fbf9978ce9a3145",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"lotus-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-28T16:00:00+05:30\">\nHi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"lotus-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:40:00+05:30\">\nRitu: Thanks Meera. We love the reporting format you showed us. The team is keen.\n</message>\n<message id=\"lotus-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:44:00+05:30\">\nSandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.\n</message>\n<message id=\"lotus-4\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nCould you share what it covers? I'd like to compare like for like.\n</message>\n<message id=\"lotus-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nSandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.\n</message>\n<message id=\"lotus-6\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nRitu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.\n</message>\n<message id=\"lotus-7\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nSandeep: If you can come to ₹80,000, I can sign today.\n</message>\n<message id=\"lotus-8\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:58:00+05:30\">\nLet me check what is possible and come back to you.\n</message>\n<message id=\"lotus-9\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:02:00+05:30\">\nRitu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.\n</message>\n<message id=\"lotus-10\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:04:00+05:30\">\nSandeep: And please send a payment link, not a long contract.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "temperature": "0",
+      "rawOutput": {
+        "fields": [
+          {
+            "key": "budget_now_amount",
+            "raw_text": "₹80,000",
+            "evidence_quote": "₹80,000 is what is approved for us this quarter",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "budget_now_period",
+            "raw_text": "this quarter",
+            "evidence_quote": "₹80,000 is what is approved for us this quarter",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "required_package",
+            "raw_text": "website fixes, search marketing, social media and monthly reporting",
+            "evidence_quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "please send a payment link, not a long contract",
+            "evidence_quote": "please send a payment link, not a long contract.",
+            "message_id": "lotus-10",
+            "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "Even if it is less than a full year, we can look at it",
+            "evidence_quote": "Even if it is less than a full year, we can look at it.",
+            "message_id": "lotus-9",
+            "confidence": "high"
+          }
+        ],
+        "ambiguities": [
+          {
+            "field_key": "approval_limit_scope",
+            "reason": "buyer did not specify if the ₹80,000 limit applies per payment or per contract"
+          }
+        ],
+        "missing_required": [],
+        "unsupported_requests": [
+          {
+            "raw_text": "please send a payment link, not a long contract",
+            "evidence_quote": "please send a payment link, not a long contract.",
+            "message_id": "lotus-10",
+            "kind": "shorter_commitment"
+          }
+        ],
+        "suspected_instructions": []
+      },
+      "outcome": "accepted",
+      "failure": null,
+      "issues": []
+    },
+    {
+      "task": "clarify",
+      "promptVersion": "clarify.v1",
+      "promptHash": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e",
+      "inputHash": "e397f1455549df6059b17eb38ff3988d908180a2d9252d8a038ec01e378bc16d",
+      "userContent": "Unresolved facts that change the deal options:\n- fact: amountsIncludeGst\n  about: Whether these amounts include GST: ₹80,000\n  readings: includes GST | excludes GST\n  engine comparison: If it includes GST, 2 options are feasible (2 within the approval limit); if it excludes GST, 3 options are feasible (3 within the approval limit). 1 option changes outcome. For example, “6-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.\n\nWrite one question per fact.",
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "temperature": "0",
+      "rawOutput": {
+        "questions": [
+          {
+            "field": "amountsIncludeGst",
+            "question": "Do the amounts of ₹80,000 include GST?"
+          }
+        ]
+      },
+      "outcome": "accepted",
+      "failure": null,
+      "issues": []
+    },
+    {
+      "task": "explain",
+      "promptVersion": "explain.v3",
+      "promptHash": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14",
+      "inputHash": "2cd7cba7fedab5c14f40a4e320c7e63ecb3e6c8b0c550d29e59d8f4bd3ddff92",
+      "userContent": "Engine-feasible options (already checked against buyer constraints and seller policy):\n\nOption A: 5-month commitment · single payment at start\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {A.label} = 5-month commitment · single payment at start\n    {A.approval} = Within buyer's approval limit\n    {A.total} = ₹75,520\n    {A.price_excl_gst} = ₹64,000\n    {A.payment_count} = 1\n    {A.largest_payment} = ₹75,520\n    {A.first_payment_date} = 1 Nov 2026\n    {A.last_payment_date} = 1 Nov 2026\n    {A.start_date} = 1 Nov 2026\n    {A.net_contribution} = ₹31,739.60\n    {A.net_contribution_pct} = 49.59%\n    {A.peak_funding} = ₹0\n    {A.peak_unpaid_value} = ₹0\n    {A.payment_1.total} = ₹75,520\n    {A.payment_1.date} = 1 Nov 2026\n\nOption B: 3-month commitment · single payment at start\n  approval: within buyer's approval limit\n  placeholders (use these, never the values):\n    {B.label} = 3-month commitment · single payment at start\n    {B.approval} = Within buyer's approval limit\n    {B.total} = ₹56,640\n    {B.price_excl_gst} = ₹48,000\n    {B.payment_count} = 1\n    {B.largest_payment} = ₹56,640\n    {B.first_payment_date} = 1 Nov 2026\n    {B.last_payment_date} = 1 Nov 2026\n    {B.start_date} = 1 Nov 2026\n    {B.net_contribution} = ₹23,617.20\n    {B.net_contribution_pct} = 49.20%\n    {B.peak_funding} = ₹0\n    {B.peak_unpaid_value} = ₹0\n    {B.payment_1.total} = ₹56,640\n    {B.payment_1.date} = 1 Nov 2026\n\nRank them for the merchant and explain the trade-offs.",
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "temperature": "0",
+      "rawOutput": {
+        "ranking": [
+          "A",
+          "B"
+        ],
+        "comparison": "Option {A.label} delivers a total of {A.total} with a net contribution of {A.net_contribution} ({A.net_contribution_pct}) on a single payment scheduled for {A.first_payment_date}. It is {A.approval}. Option {B.label} delivers a total of {B.total} with a net contribution of {B.net_contribution} ({B.net_contribution_pct}) on a single payment scheduled for {B.first_payment_date}. It is {B.approval}. The main trade‑off is the higher total and net contribution of {A.label} versus the shorter commitment period of {B.label}.",
+        "option_notes": [
+          {
+            "option": "A",
+            "note": "Higher total ({A.total}) and net contribution ({A.net_contribution}) but requires a 5‑month commitment."
+          },
+          {
+            "option": "B",
+            "note": "Lower total ({B.total}) and net contribution ({B.net_contribution}) with a shorter 3‑month commitment."
+          }
+        ]
+      },
+      "outcome": "accepted_with_corrections",
+      "failure": null,
+      "issues": [
+        "note for A rejected: contains a literal figure, date or percentage",
+        "note for B rejected: contains a literal figure, date or percentage"
+      ]
+    }
+  ],
+  "engine": {
+    "profile": [
+      {
+        "key": "budgetNow",
+        "label": "Budget available now",
+        "status": "stated",
+        "display": "₹80,000 available 1 Oct 2026 – 31 Dec 2026",
+        "rawText": "₹80,000 · this quarter",
+        "evidence": [
+          {
+            "quote": "₹80,000 is what is approved for us this quarter",
+            "messageId": "lotus-6",
+            "start": 50,
+            "end": 97
+          }
+        ],
+        "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "nextBudget",
+        "label": "Next budget",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalLimit",
+        "label": "Buyer approval limit",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalScope",
+        "label": "Approval limit applies",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "amountsIncludeGst",
+        "label": "Amounts include GST",
+        "status": "stated",
+        "display": "Amounts include GST",
+        "rawText": null,
+        "evidence": [
+          {
+            "quote": "₹80,000 is what is approved for us this quarter",
+            "messageId": "lotus-6",
+            "start": 50,
+            "end": 97
+          }
+        ],
+        "transformation": "clarification answer",
+        "confidence": "high",
+        "note": "Amounts are stated without saying whether GST is included",
+        "confirmedBy": {
+          "questionId": "clar-gst",
+          "via": "whatsapp",
+          "answeredAt": "2026-10-01T09:12:00+05:30"
+        }
+      },
+      {
+        "key": "latestStart",
+        "label": "Latest start date",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "requiredPackages",
+        "label": "Required packages",
+        "status": "stated",
+        "display": "website-fixes, search-marketing, social-media, monthly-reporting",
+        "rawText": null,
+        "evidence": [
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          }
+        ],
+        "transformation": "matched to deal packages",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "optionalPackages",
+        "label": "Optional packages",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "other_0",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "please send a payment link, not a long contract",
+        "rawText": "please send a payment link, not a long contract",
+        "evidence": [
+          {
+            "quote": "please send a payment link, not a long contract.",
+            "messageId": "lotus-10",
+            "start": 13,
+            "end": 61
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "other_1",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "Even if it is less than a full year, we can look at it",
+        "rawText": "Even if it is less than a full year, we can look at it",
+        "evidence": [
+          {
+            "quote": "Even if it is less than a full year, we can look at it.",
+            "messageId": "lotus-9",
+            "start": 6,
+            "end": 61
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      }
+    ],
+    "derivedBudgetGap": null,
+    "rejectedFields": [],
+    "suspectedInstructions": [],
+    "initial": {
+      "state": "ambiguous",
+      "missingRequired": [],
+      "outsideTemplates": [],
+      "ambiguities": [
+        {
+          "field": "amountsIncludeGst",
+          "decisionRelevant": true,
+          "readings": [
+            "yes",
+            "no"
+          ],
+          "differingStructures": [
+            "shorter_commitment:term_months=6,plan=upfront"
+          ],
+          "feasibleCountByReading": {
+            "yes": 2,
+            "no": 3
+          },
+          "withinLimitCountByReading": {
+            "yes": 2,
+            "no": 3
+          }
+        }
+      ],
+      "templatesEvaluated": [],
+      "structures": [],
+      "feasibleOrder": [],
+      "featured": {
+        "buyer": null,
+        "seller": null
+      }
+    },
+    "final": {
+      "state": "options_ready",
+      "missingRequired": [],
+      "outsideTemplates": [],
+      "ambiguities": [],
+      "templatesEvaluated": [
+        "split_payment",
+        "shorter_commitment"
+      ],
+      "structures": [
+        {
+          "id": "split_payment:plan=upfront",
+          "label": "Full annual scope · single payment at start",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "BUDGET_EXCEEDS_CURRENT_PERIOD"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 12000000,
+          "totalPaise": 14160000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 14160000
+            }
+          ],
+          "netContributionPaise": 6016800,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=3,plan=upfront",
+          "label": "3-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "feasible",
+          "approval": "within_limit",
+          "approvable": true,
+          "failingCodes": [],
+          "needsInformationCodes": [],
+          "prePaise": 4800000,
+          "totalPaise": 5664000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 5664000
+            }
+          ],
+          "netContributionPaise": 2361720,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=5,plan=upfront",
+          "label": "5-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "feasible",
+          "approval": "within_limit",
+          "approvable": true,
+          "failingCodes": [],
+          "needsInformationCodes": [],
+          "prePaise": 6400000,
+          "totalPaise": 7552000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 7552000
+            }
+          ],
+          "netContributionPaise": 3173960,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "shorter_commitment:term_months=6,plan=upfront",
+          "label": "6-month commitment · single payment at start",
+          "template": "shorter_commitment",
+          "scopeKind": "shorter_term",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "BUDGET_EXCEEDS_CURRENT_PERIOD"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 7200000,
+          "totalPaise": 8496000,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 8496000
+            }
+          ],
+          "netContributionPaise": 3580080,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        },
+        {
+          "id": "split_payment:plan=upfront,discount_bps=4400",
+          "label": "Full annual scope · single payment at start · 44% discount",
+          "template": "split_payment",
+          "scopeKind": "full",
+          "verdict": "rejected",
+          "approval": "within_limit",
+          "approvable": false,
+          "failingCodes": [
+            "CONTRIBUTION_BELOW_FLOOR",
+            "DISCOUNT_ABOVE_LIMIT"
+          ],
+          "needsInformationCodes": [],
+          "prePaise": 6720000,
+          "totalPaise": 7929600,
+          "payments": [
+            {
+              "dueDate": "2026-11-01",
+              "totalPaise": 7929600
+            }
+          ],
+          "netContributionPaise": 861408,
+          "peakFundingPaise": 0,
+          "peakUnpaidServiceValuePaise": 0
+        }
+      ],
+      "feasibleOrder": [
+        "shorter_commitment:term_months=5,plan=upfront",
+        "shorter_commitment:term_months=3,plan=upfront"
+      ],
+      "featured": {
+        "buyer": "split_payment:plan=upfront",
+        "seller": "split_payment:plan=upfront,discount_bps=4400"
+      }
+    }
+  },
+  "displayed": {
+    "questions": [
+      {
+        "id": "clar-gst",
+        "field": "amountsIncludeGst",
+        "question": "Do the amounts of ₹80,000 include GST?",
+        "whyItMatters": "If it includes GST, 2 options are feasible (2 within the approval limit); if it excludes GST, 3 options are feasible (3 within the approval limit). 1 option changes outcome. For example, “6-month commitment · single payment at start” is rejected when it includes GST but feasible within the limit when it excludes GST.",
+        "wording": "ai",
+        "covers": [
+          "budgetNow"
+        ]
+      }
+    ],
+    "explanation": {
+      "order": [
+        "shorter_commitment:term_months=5,plan=upfront",
+        "shorter_commitment:term_months=3,plan=upfront"
+      ],
+      "comparisonTemplate": "Option {A.label} delivers a total of {A.total} with a net contribution of {A.net_contribution} ({A.net_contribution_pct}) on a single payment scheduled for {A.first_payment_date}. It is {A.approval}. Option {B.label} delivers a total of {B.total} with a net contribution of {B.net_contribution} ({B.net_contribution_pct}) on a single payment scheduled for {B.first_payment_date}. It is {B.approval}. The main trade‑off is the higher total and net contribution of {A.label} versus the shorter commitment period of {B.label}.",
+      "comparison": "Option 5-month commitment · single payment at start delivers a total of ₹75,520 with a net contribution of ₹31,739.60 (49.59%) on a single payment scheduled for 1 Nov 2026. It is Within buyer's approval limit. Option 3-month commitment · single payment at start delivers a total of ₹56,640 with a net contribution of ₹23,617.20 (49.20%) on a single payment scheduled for 1 Nov 2026. It is Within buyer's approval limit. The main trade‑off is the higher total and net contribution of 5-month commitment · single payment at start versus the shorter commitment period of 3-month commitment · single payment at start.",
+      "notes": [],
+      "source": {
+        "ranking": "ai",
+        "text": "ai"
+      },
+      "issues": [
+        "note for A rejected: contains a literal figure, date or percentage",
+        "note for B rejected: contains a literal figure, date or percentage"
+      ]
+    }
+  },
+  "clockAdvances": []
+}
