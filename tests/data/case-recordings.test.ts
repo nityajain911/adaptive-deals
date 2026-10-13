@@ -36,6 +36,8 @@ describe("the committed case recordings", () => {
       "run-case-reduced-scope-ed5442a3.json",
       "run-case-reduced-scope-4e94d36d.json",
       "run-case-no-fit-6fb4027d.json",
+      // Lotus Row Interiors, recorded 13 October 2026: it missed the case's offer (the model read "We pay by UPI" as an unsupported request), so it is kept as evidence and not mapped.
+      "run-case-no-fit-aed19b82.json",
       // Recorded and kept as evidence, but not mapped: see the report for why.
       "run-case-preserve-scope-fcc306d2.json",
       "run-case-preserve-scope-ff0d6acf.json",
@@ -47,6 +49,7 @@ describe("the committed case recordings", () => {
       "cerebras-reduced-scope-recording-report.json",
       "cerebras-reduced-scope-harbour-fresh-recording-report.json",
       "cerebras-no-fit-recording-report.json",
+      "cerebras-no-fit-lotus-recording-report.json",
       "cerebras-preserve-scope-recording-report.json",
       "cerebras-preserve-scope-attempt2-recording-report.json",
       "cerebras-preserve-scope-attempt3-recording-report.json",
@@ -175,6 +178,34 @@ describe("the second Cerebras recording batch", () => {
     const report = read("cerebras-preserve-scope-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", caseCard: { agrees: false } });
+  });
+});
+
+describe("the Lotus Row Interiors recording", () => {
+  it("is one Cerebras run of the exact conversation that missed the case's offer, and was kept as it came and not mapped", () => {
+    expect(mappedCaseRun("no-fit")).toBeNull();
+    const loaded = read("run-case-no-fit-aed19b82.json") as RunRecord;
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
+    expect(loaded.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([["extract", "cerebras", "accepted_with_corrections"]]);
+    // The model read the budget, the period and the four services, and wrote the approval limit from a sentence that is not one (code rejected it).
+    expect(loaded.steps[0]!.issues).toEqual(["field approval_limit_amount rejected: evidence quote not found verbatim in message lotus-9"]);
+    // It also called "We pay by UPI" an unsupported request, so the engine stopped at "outside templates" and never reached the offer the case demonstrates.
+    expect(loaded.engine.initial.state).toBe("outside_templates");
+    expect(loaded.engine.initial.outsideTemplates).toEqual([expect.objectContaining({ kind: "other", rawText: "We pay by UPI." })]);
+    expect(demoCase("no-fit")!.expected.engineState).toBe("options_ready");
+  });
+
+  it("followed a pass rule written first: one request, no retry, kept whatever it was, and the labelled sample stays in use", () => {
+    const report = read("cerebras-no-fit-lotus-recording-report.json");
+    expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", retries: [], rejectedAttempts: [], stopped: null });
+    expect(report.requests).toHaveLength(1);
+    expect(report.summaries[0]).toMatchObject({ caseId: "no-fit", runId: "run-case-no-fit-aed19b82", caseCard: { agrees: false } });
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8"));
+    expect(freeze).toMatchObject({ scope: ["no-fit"], maximumProviderRequests: 7, networkCallsMade: 0 });
+    expect(freeze.resultRule).toMatch(/otherwise the hand-written sample stays in use and says so; no further attempt/);
+    expect(freeze.authorisedBy).toMatch(/Nitya Jain/);
+    expect(Date.parse(freeze.frozenAt)).toBeLessThan(Date.parse(report.recordedAt));
   });
 });
 

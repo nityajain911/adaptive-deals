@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-10-13T12:14:03.965Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "no-fit",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    }
+  ],
+  "retries": [],
+  "rejectedAttempts": [],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "no-fit",
+      "runId": "run-case-no-fit-aed19b82",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "bdb92ea0e5c0b13f",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "field approval_limit_amount rejected: evidence quote not found verbatim in message lotus-9"
+          ]
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹80,000",
+          "evidence_quote": "₹80,000 is what is approved for us this quarter.",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "₹80,000 is what is approved for us this quarter.",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "approval_limit_amount",
+          "raw_text": "₹80,000",
+          "evidence_quote": "we just can't go above ₹80,000 this quarter.",
+          "message_id": "lotus-9",
+          "confidence": "high"
+        },
+        {
+          "key": "required_package",
+          "raw_text": "website fixes, search marketing, social media and monthly reporting",
+          "evidence_quote": "We need website fixes, search marketing, social media and monthly reporting.",
+          "message_id": "lotus-6",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "please send a payment link, not a long contract. We pay by UPI.",
+          "evidence_quote": "And please send a payment link, not a long contract. We pay by UPI.",
+          "message_id": "lotus-10",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "Even if it is less than a full year, we can look at it.",
+          "evidence_quote": "Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+          "message_id": "lotus-9",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [
+        "approval_limit_scope"
+      ],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹80,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "lotus-6: “₹80,000 is what is approved for us this quarter.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "ambiguous",
+          "value": null,
+          "evidence": [
+            "lotus-6: “₹80,000 is what is approved for us this quarter.”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Required packages",
+          "status": "stated",
+          "value": "website-fixes, search-marketing, social-media, monthly-reporting",
+          "evidence": [
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”",
+            "lotus-6: “We need website fixes, search marketing, social media and monthly reporting.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "please send a payment link, not a long contract. We pay by UPI.",
+          "evidence": [
+            "lotus-10: “And please send a payment link, not a long contract. We pay by UPI.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "Even if it is less than a full year, we can look at it.",
+          "evidence": [
+            "lotus-9: “Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [
+        {
+          "key": "approval_limit_amount",
+          "reason": "evidence quote not found verbatim in message lotus-9",
+          "rawText": "₹80,000"
+        }
+      ],
+      "engine": {
+        "initial": "outside_templates",
+        "final": "outside_templates",
+        "feasible": []
+      },
+      "questions": [],
+      "answeredWithScriptedBuyerReply": [],
+      "explanation": null,
+      "caseCard": {
+        "expectedState": "options_ready",
+        "expectedTemplate": "shorter_commitment",
+        "actualState": "outside_templates",
+        "actualTemplate": null,
+        "agrees": false
+      }
+    }
+  ],
+  "stopped": null
+}

@@ -1,0 +1,437 @@
+{
+  "schema": "adaptive-deals.run.v1",
+  "runId": "run-case-no-fit-aed19b82",
+  "kind": "live",
+  "status": "complete",
+  "createdAt": "2026-10-01T09:00:00+05:30",
+  "recordedAtWall": "2026-10-13T12:14:02.613Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "promptVersions": {
+    "extract": "extract.v2",
+    "clarify": "clarify.v1",
+    "explain": "explain.v3"
+  },
+  "inputs": {
+    "dealId": "case-no-fit",
+    "messages": [
+      {
+        "id": "lotus-1",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Hi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.",
+        "timestamp": "2026-09-28T16:00:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-2",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: Thanks Meera. We love the reporting format you showed us. The team is keen.",
+        "timestamp": "2026-10-01T08:40:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-3",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.",
+        "timestamp": "2026-10-01T08:44:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-4",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Could you share what it covers? I'd like to compare like for like.",
+        "timestamp": "2026-10-01T08:47:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-5",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.",
+        "timestamp": "2026-10-01T08:50:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-6",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.",
+        "timestamp": "2026-10-01T08:52:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-7",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: If you can come to ₹80,000, I can sign today.",
+        "timestamp": "2026-10-01T08:55:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-8",
+        "dealId": "case-no-fit",
+        "author": "merchant",
+        "text": "Let me check what is possible and come back to you.",
+        "timestamp": "2026-10-01T08:58:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-9",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Ritu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+        "timestamp": "2026-10-01T09:02:00+05:30",
+        "source": "whatsapp"
+      },
+      {
+        "id": "lotus-10",
+        "dealId": "case-no-fit",
+        "author": "buyer",
+        "text": "Sandeep: And please send a payment link, not a long contract. We pay by UPI.",
+        "timestamp": "2026-10-01T09:04:00+05:30",
+        "source": "whatsapp"
+      }
+    ],
+    "packageIds": [
+      "website-fixes",
+      "search-marketing",
+      "social-media",
+      "monthly-reporting"
+    ],
+    "policy": {
+      "gstRateBps": 1800,
+      "contributionFloor": {
+        "minPercentBps": 3500,
+        "minPaise": null,
+        "combine": "both"
+      },
+      "cashAtRiskLimitPaise": 1000000,
+      "maxTenureMonths": 12,
+      "smallestInstalmentPaise": 1000000,
+      "discountLimitBps": 0,
+      "paymentFeeBps": 200,
+      "advanceNoticeDays": 3,
+      "internalRetryAfterDays": 3,
+      "mandateEndBufferMonths": 1
+    },
+    "answers": []
+  },
+  "steps": [
+    {
+      "task": "extract",
+      "promptVersion": "extract.v2",
+      "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
+      "inputHash": "bdb92ea0e5c0b13fbc1992f1f53e4706a4d46f088c7f198befa09d684e340449",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"lotus-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-28T16:00:00+05:30\">\nHi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"lotus-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:40:00+05:30\">\nRitu: Thanks Meera. We love the reporting format you showed us. The team is keen.\n</message>\n<message id=\"lotus-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:44:00+05:30\">\nSandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.\n</message>\n<message id=\"lotus-4\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nCould you share what it covers? I'd like to compare like for like.\n</message>\n<message id=\"lotus-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nSandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.\n</message>\n<message id=\"lotus-6\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nRitu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.\n</message>\n<message id=\"lotus-7\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nSandeep: If you can come to ₹80,000, I can sign today.\n</message>\n<message id=\"lotus-8\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:58:00+05:30\">\nLet me check what is possible and come back to you.\n</message>\n<message id=\"lotus-9\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:02:00+05:30\">\nRitu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.\n</message>\n<message id=\"lotus-10\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:04:00+05:30\">\nSandeep: And please send a payment link, not a long contract. We pay by UPI.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "provider": "cerebras",
+      "model": "gpt-oss-120b",
+      "temperature": "0",
+      "rawOutput": {
+        "fields": [
+          {
+            "key": "budget_now_amount",
+            "raw_text": "₹80,000",
+            "evidence_quote": "₹80,000 is what is approved for us this quarter.",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "budget_now_period",
+            "raw_text": "this quarter",
+            "evidence_quote": "₹80,000 is what is approved for us this quarter.",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "approval_limit_amount",
+            "raw_text": "₹80,000",
+            "evidence_quote": "we just can't go above ₹80,000 this quarter.",
+            "message_id": "lotus-9",
+            "confidence": "high"
+          },
+          {
+            "key": "required_package",
+            "raw_text": "website fixes, search marketing, social media and monthly reporting",
+            "evidence_quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "message_id": "lotus-6",
+            "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "please send a payment link, not a long contract. We pay by UPI.",
+            "evidence_quote": "And please send a payment link, not a long contract. We pay by UPI.",
+            "message_id": "lotus-10",
+            "confidence": "high"
+          },
+          {
+            "key": "other_constraint",
+            "raw_text": "Even if it is less than a full year, we can look at it.",
+            "evidence_quote": "Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+            "message_id": "lotus-9",
+            "confidence": "high"
+          }
+        ],
+        "ambiguities": [
+          {
+            "field_key": "approval_limit_scope",
+            "reason": "Buyer does not specify whether the ₹80,000 limit is per payment or per contract"
+          }
+        ],
+        "missing_required": [],
+        "unsupported_requests": [
+          {
+            "raw_text": "Even if it is less than a full year, we can look at it.",
+            "evidence_quote": "Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+            "message_id": "lotus-9",
+            "kind": "shorter_commitment"
+          },
+          {
+            "raw_text": "We pay by UPI.",
+            "evidence_quote": "We pay by UPI.",
+            "message_id": "lotus-10",
+            "kind": "other"
+          }
+        ],
+        "suspected_instructions": []
+      },
+      "outcome": "accepted_with_corrections",
+      "failure": null,
+      "issues": [
+        "field approval_limit_amount rejected: evidence quote not found verbatim in message lotus-9"
+      ]
+    }
+  ],
+  "engine": {
+    "profile": [
+      {
+        "key": "budgetNow",
+        "label": "Budget available now",
+        "status": "stated",
+        "display": "₹80,000 available 1 Oct 2026 – 31 Dec 2026",
+        "rawText": "₹80,000 · this quarter",
+        "evidence": [
+          {
+            "quote": "₹80,000 is what is approved for us this quarter.",
+            "messageId": "lotus-6",
+            "start": 50,
+            "end": 98
+          }
+        ],
+        "transformation": "numeric rupees; calendar quarter containing message date 2026-10-01 (2026-10-01 to 2026-12-31); from message date",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "nextBudget",
+        "label": "Next budget",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalLimit",
+        "label": "Buyer approval limit",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "approvalScope",
+        "label": "Approval limit applies",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "amountsIncludeGst",
+        "label": "Amounts include GST",
+        "status": "ambiguous",
+        "display": null,
+        "rawText": null,
+        "evidence": [
+          {
+            "quote": "₹80,000 is what is approved for us this quarter.",
+            "messageId": "lotus-6",
+            "start": 50,
+            "end": 98
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": "Amounts are stated without saying whether GST is included",
+        "confirmedBy": null
+      },
+      {
+        "key": "latestStart",
+        "label": "Latest start date",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "requiredPackages",
+        "label": "Required packages",
+        "status": "stated",
+        "display": "website-fixes, search-marketing, social-media, monthly-reporting",
+        "rawText": null,
+        "evidence": [
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          },
+          {
+            "quote": "We need website fixes, search marketing, social media and monthly reporting.",
+            "messageId": "lotus-6",
+            "start": 99,
+            "end": 175
+          }
+        ],
+        "transformation": "matched to deal packages",
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "optionalPackages",
+        "label": "Optional packages",
+        "status": "missing",
+        "display": null,
+        "rawText": null,
+        "evidence": [],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "other_0",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "please send a payment link, not a long contract. We pay by UPI.",
+        "rawText": "please send a payment link, not a long contract. We pay by UPI.",
+        "evidence": [
+          {
+            "quote": "And please send a payment link, not a long contract. We pay by UPI.",
+            "messageId": "lotus-10",
+            "start": 9,
+            "end": 76
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      },
+      {
+        "key": "other_1",
+        "label": "Other constraint",
+        "status": "stated",
+        "display": "Even if it is less than a full year, we can look at it.",
+        "rawText": "Even if it is less than a full year, we can look at it.",
+        "evidence": [
+          {
+            "quote": "Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
+            "messageId": "lotus-9",
+            "start": 6,
+            "end": 106
+          }
+        ],
+        "transformation": null,
+        "confidence": "high",
+        "note": null,
+        "confirmedBy": null
+      }
+    ],
+    "derivedBudgetGap": null,
+    "rejectedFields": [
+      {
+        "key": "approval_limit_amount",
+        "reason": "evidence quote not found verbatim in message lotus-9",
+        "rawText": "₹80,000"
+      }
+    ],
+    "suspectedInstructions": [],
+    "initial": {
+      "state": "outside_templates",
+      "missingRequired": [],
+      "outsideTemplates": [
+        {
+          "kind": "other",
+          "rawText": "We pay by UPI.",
+          "reason": "\"other\" cannot be represented by split payment, phased scope, deferred start, or shorter commitment"
+        }
+      ],
+      "ambiguities": [],
+      "templatesEvaluated": [],
+      "structures": [],
+      "feasibleOrder": [],
+      "featured": {
+        "buyer": null,
+        "seller": null
+      }
+    },
+    "final": {
+      "state": "outside_templates",
+      "missingRequired": [],
+      "outsideTemplates": [
+        {
+          "kind": "other",
+          "rawText": "We pay by UPI.",
+          "reason": "\"other\" cannot be represented by split payment, phased scope, deferred start, or shorter commitment"
+        }
+      ],
+      "ambiguities": [],
+      "templatesEvaluated": [],
+      "structures": [],
+      "feasibleOrder": [],
+      "featured": {
+        "buyer": null,
+        "seller": null
+      }
+    }
+  },
+  "displayed": {
+    "questions": [],
+    "explanation": null
+  },
+  "clockAdvances": []
+}
