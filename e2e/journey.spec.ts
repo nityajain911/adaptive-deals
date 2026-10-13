@@ -1196,6 +1196,7 @@ test("counter-offer · the offer screen compares the answer with the offer that 
   await page.getByTestId("path-scope-change").getByRole("button").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer/);
   const card = page.getByTestId("deal-transformation");
+  await expect(page.getByTestId("buyer-request")).toContainText("Could you do a lower total: 40000?");
   // What was sent is the "was": ₹46,020 struck through, never the ₹1,41,600 quote.
   await expect(page.getByTestId("offer-total")).toHaveText("₹42,480");
   await expect(page.getByTestId("offer-was")).toHaveText("₹46,020");

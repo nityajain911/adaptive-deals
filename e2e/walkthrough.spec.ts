@@ -485,7 +485,7 @@ test("after the pilot the buyer's own reply decides the merchant's action: stop 
   await openGuide(page);
   const finish = guide(page).getByTestId("walkthrough-finish");
   await expect(finish).toContainText("Walkthrough ended");
-  await expect(finish).toContainText("After the pilot the buyer said they wanted to stop, and you closed the deal after the first phase.");
+  await expect(finish).toContainText("The buyer chose to stop after the pilot, and you closed the deal. Nothing more is due.");
   expect(state().agreements).toHaveLength(1);
 });
 
@@ -517,6 +517,7 @@ test("after the pilot the buyer can carry on with a change: the presenter picks 
   await expect(page.getByTestId("primary-action")).toHaveText("Review the change");
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/deals\/hero\/offer/);
+  await expect(page.getByTestId("buyer-request")).toHaveText("They want the rest of the year at ₹60,000 or less.");
   await expect(page.getByTestId("offer-headline")).toHaveText("The rest of the year · without Social media");
   await expect(page.getByTestId("offer-total")).toHaveText("₹53,100");
   await expect(page.getByTestId("offer-was")).toHaveText("₹84,960");

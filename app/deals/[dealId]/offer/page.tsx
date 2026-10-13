@@ -60,7 +60,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
       return (
         <StageShell dealId={dealId} viewing="offer">
           <div className="space-y-4">
-            <FollowOnOffer dealId={dealId} held={heldTerms} candidates={candidates} selectedId={picked} packages={deal.packages} />
+            <FollowOnOffer dealId={dealId} request={offer.request} held={heldTerms} candidates={candidates} selectedId={picked} packages={deal.packages} />
           </div>
         </StageShell>
       );
@@ -237,6 +237,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   const withdrawn = liveCounter ? s.agreements.find((v) => v.version === liveCounter.fromVersion && v.status === "superseded") : undefined;
   const revising = withdrawn && (s.status === "options_ready" || s.status === "approved") ? withdrawn : null;
   const heldNow = deriveFollowOn(x, interpretations(p)[0].constraints, deal) ?? (isCounterStructureId(x.structure.id) ? revising?.terms.followOn ?? null : null);
+  const requestText = revising && liveCounter ? s.conversation.find((m) => m.id === liveCounter.requestMessageId)?.text ?? null : null;
   const sentStructure = revising ? evaluatedForVersion(s, revising, out) : null;
   const transformation = revising
     ? revisionTransformation({
@@ -285,7 +286,8 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
       <div className="space-y-4">
         {primaryId === "review_new_evidence" ? <EvidenceReview s={s} /> : null}
         {primaryId === "review_updated_proposal" ? <Notice tone="amber" title="The offer changed since you reviewed it.">Review the updated proposal before sending.</Notice> : null}
-        {buyerSaid ? (
+        {revising && requestText ? <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[15px] text-ink" data-testid="buyer-request">The buyer asked: “{requestText}”</p> : null}
+        {buyerSaid && !revising ? (
           <figure className="rounded-lg rounded-tl-none bg-[#efeae2] p-3" data-testid="buyer-said">
             <div className="max-w-[90%] rounded-lg rounded-tl-none bg-white px-3 py-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
               <figcaption className="text-[13px] font-semibold text-ink-2">{activeCase.buyer.name} said</figcaption>

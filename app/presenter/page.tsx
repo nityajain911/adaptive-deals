@@ -78,7 +78,7 @@ export default async function PresenterPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Scenarios" meta={<span>Pick a situation. Every control is labelled and simulated; the guided demo follows the preventive path.</span>} />
+        <CardHeader title="Scenarios" meta={<span>Pick a situation. Every control is labelled and simulated; the guided demo pays the first phase in one go, then holds the month-three review.</span>} />
         <div className="space-y-4 p-5 text-[13px]">
           <ScenarioCards />
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">

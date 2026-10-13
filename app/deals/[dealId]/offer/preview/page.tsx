@@ -28,7 +28,7 @@ export default async function PreviewPage(props: PageProps<"/deals/[dealId]/offe
   const view = proposalView(v, deal.packages, deal.merchant.policy);
   const buyerMessage = proposalMessageText(v.terms, v.version, proposalLinkOf(v));
   const x = out.evaluation.result?.structures.find((e) => e.structure.id === v.structureId) ?? s.counterOffers.find((c) => c.evaluated.structure.id === v.structureId)?.evaluated ?? null;
-  const lastBuyerMessage = [...s.conversation].reverse().find((i) => i.direction === "inbound" && i.kind === "buyer_reply");
+  const lastBuyerMessage = [...s.conversation].reverse().find((i) => i.direction === "inbound" && (i.kind === "buyer_reply" || i.kind === "change_request"));
   const rows: [string, string][] = [
     ["Included", `${view.included.map((i) => i.name).join(", ")}`],
     ["Buyer pays", `${formatINR(view.totalPaise)} incl. GST · ${view.payments.length === 1 ? "one payment" : `${view.payments.length} × ${formatINR(view.payments[0]!.totalPaise)}`}`],

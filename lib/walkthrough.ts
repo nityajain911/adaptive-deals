@@ -193,7 +193,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     pitch: "Your margin holds under pressure",
     watch: "A price request is answered from your own limits; a smaller scope is offered only if it passes every rule.",
     architecture: "The rules engine works out the lowest price and the smaller scope. No model writes a figure, and you approve and send.",
-    instruction: "Before a fresh deal, open Deal settings, try the example that allows discounts, then check and save it yourself. When the buyer asks for a lower price, choose how to answer.",
+    instruction: "The buyer asked for a lower price. Choose how to answer: hold firm, offer a smaller scope that passes every rule, or set your own amount.",
     notice: "The lowest price and the discounts come from your own limits. The guide never saves your prices or sends an offer for you.",
     href: "/deals/:dealId/track",
     anchorId: "negotiation-corridor",
@@ -210,14 +210,15 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
 const PRODUCT_LABEL: Record<string, string> = {
   approve_and_send_draft: "Send offer",
   buyer_accept: "Accept and pay",
-  buyer_decide: "Accept and pay, or Stop here",
+  buyer_decide: "Accept and pay",
   buyer_setup: "Pay and set up auto-pay",
   buyer_accept_revision: "Accept revised proposal",
 };
 
 function action(step: DemoStep | null, dealId: string, progress: DealProgress): WalkthroughAction | null {
   if (!step) return null;
-  const productLabel = PRODUCT_LABEL[step.id] ?? (step.type === "merchant" ? (progress.primaryAction?.label ?? null) : null);
+  // A change at the review is answered on the offer screen, where the button is "Send to the buyer".
+  const productLabel = (progress.rule === "track.follow_on_changes" && step.id === "send_follow_on" ? "Send to the buyer" : null) ?? PRODUCT_LABEL[step.id] ?? (step.type === "merchant" ? (progress.primaryAction?.label ?? null) : null);
   return { ...step, actor: step.type, href: step.href.replace(":dealId", dealId), consequence: demoStepConsequence(step), productLabel };
 }
 
@@ -265,8 +266,13 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
   if (decisions.length) lines.push(`Your decisions: ${decisions.join(", ")}.`);
   if (terminal) lines.push(terminal);
   else if (amended?.state === "active") lines.push(`A payment was moved to a later date after both sides approved version ${amended.toVersion}.`);
-  else lines.push("Every scheduled payment was collected.");
-  if (state.followOnClosed) lines.push(state.followOnClosed.reason === "buyer_stopped" ? "After the pilot the buyer said they wanted to stop, and you closed the deal after the first phase." : "After the review you did not send the rest of the year, because their condition was not met. The deal closes after the first phase.");
+  else {
+    // The rest of the year is paid in three; the guide ends when it is accepted, so say what is still to come rather than that all is collected.
+    const sold = state.followOnSale ? state.agreements.find((v) => v.version === state.followOnSale!.version) : null;
+    const remaining = sold?.status === "active" ? state.attempts.filter((a) => a.agreementVersion === sold.version && a.status === "scheduled") : [];
+    lines.push(remaining.length ? `The first payment of the rest of the year was collected; the other ${remaining.length === 1 ? "payment is" : `${remaining.length} payments are`} taken automatically on ${remaining.length === 1 ? "its date" : "their dates"}.` : "Every scheduled payment was collected.");
+  }
+  if (state.followOnClosed && state.followOnClosed.reason !== "buyer_stopped") lines.push("After the review you did not send the rest of the year, because their condition was not met. The deal closes after the first phase.");
   if (state.followOnSale) {
     const sold = state.agreements.find((v) => v.version === state.followOnSale!.version);
     lines.push(sold?.status === "buyer_rejected"

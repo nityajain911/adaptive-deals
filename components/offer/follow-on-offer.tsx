@@ -34,7 +34,7 @@ const sideOf = (h: CanonicalFollowOn, e: EvaluatedStructure) => ({ scope: h.scop
  * any offer, with what is committed (the held rest of the year) on one side and what would replace it on the other.
  * The best fit is suggested; the others are one step away. Nothing here lets the owner back out: the buyer said they want to carry on.
  */
-export function FollowOnOffer({ dealId, held, candidates, selectedId, packages }: { dealId: string; held: CanonicalFollowOn; candidates: FollowOnCandidate[]; selectedId: string; packages: Pick<ServicePackage, "id" | "name">[] }) {
+export function FollowOnOffer({ dealId, request, held, candidates, selectedId, packages }: { dealId: string; request: string; held: CanonicalFollowOn; candidates: FollowOnCandidate[]; selectedId: string; packages: Pick<ServicePackage, "id" | "name">[] }) {
   const heldCandidate = candidates.find((c) => c.id === "held")!;
   const chosen = candidates.find((c) => c.id === selectedId) ?? candidates[0];
   const others = candidates.filter((c) => c.id !== chosen.id).slice(0, 2);
@@ -44,7 +44,9 @@ export function FollowOnOffer({ dealId, held, candidates, selectedId, packages }
   const first = chosen.evaluated.structure.payments[0]?.dueDate;
   const body = chosen.id === "held" ? { action: "send_follow_on", conditionMet: true } : { action: "send_follow_on", optionId: chosen.id };
   return (
-    <div className={`grid grid-cols-1 items-start gap-4 ${others.length ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`} data-testid="follow-on-offer">
+    <div className="space-y-4" data-testid="follow-on-offer">
+    <p className="rounded-xl border border-line bg-surface px-4 py-3 text-[15px] text-ink" data-testid="buyer-request">{request}</p>
+    <div className={`grid grid-cols-1 items-start gap-4 ${others.length ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
       <article className="overflow-hidden rounded-[var(--radius-card)] border border-[#c7d3ff] bg-surface shadow-[0_0_0_3px_var(--blue-weak)]" data-testid="recommendation">
         <div className="border-b border-line px-5 py-4">
           <Badge tone="blue">{chosen.id === candidates[0].id ? "Suggested offer" : "You chose this"}</Badge>
@@ -84,6 +86,7 @@ export function FollowOnOffer({ dealId, held, candidates, selectedId, packages }
           </ul>
         </section>
       ) : null}
+    </div>
     </div>
   );
 }

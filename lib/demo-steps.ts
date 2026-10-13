@@ -85,6 +85,8 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       const v = progress.version ?? 2;
       return nav("buyer_accept_revision", "buyer", "Next: the buyer accepts the revised terms", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", v));
     }
+    case "track.buyer_request":
+      return nav("review_buyer_request", "merchant", "Next: answer the buyer's request", at("track"));
     case "track.attention":
       return nav("review_buyer_message", "merchant", "Next: review the buyer's message", at("track"));
     case "track.follow_on_waiting": {
