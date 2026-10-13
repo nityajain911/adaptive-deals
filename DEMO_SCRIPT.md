@@ -48,7 +48,7 @@ Say “in my merchant interviews…” in the opening only if the one-pager stat
 
 > “The buyer asked for 15% and 45-day terms. The app won't discount on its own and won't take net-45: it gives 10%, but only against 40% on signing, and every refusal names the rule.”
 
-**They found a cheaper quote (about 45 s) — Lotus Row Interiors.** A rival quoted ₹80,000 for the year, and the buyer will not go above it this quarter. They need all four services, would take less than a full year, and want one UPI link. One question is asked, *does the ₹80,000 include GST?*, and the guide offers only the answers that keep the deal as the chat describes it.
+**They found a cheaper quote (about 45 s) — Lotus Row Interiors.** A rival quoted ₹80,000 for the year, and the buyer will not go above it this quarter. They need all four services, would take less than a full year, and want one payment link. One question is asked, *does the ₹80,000 include GST?*, and the guide offers only the answers that keep the deal as the chat describes it.
 
 - **The product does not match the rival.** The suggested offer is the longest commitment of the same four services that fits the cap: **five months, ₹75,520 including GST, one payment**, and you keep about ₹31,740 (50%). Search, social and reporting show *12 months → 5 months* struck through; nothing is discounted. The three-month commitment (₹56,640) is the other offer.
 - **What it refused, by name** (in the audit drawer, under "Offers ruled out"): the full year and six months (over the ₹80,000 cap), and **matching ₹80,000 for the year, which would take 44% off**, against a limit of no discount and a profit of 13% under your 35% floor.

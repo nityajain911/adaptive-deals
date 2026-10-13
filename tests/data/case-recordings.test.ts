@@ -183,10 +183,12 @@ describe("the second Cerebras recording batch", () => {
 
 describe("the Lotus Row Interiors recording", () => {
   it("is one Cerebras run of the exact conversation that missed the case's offer, and was kept as it came and not mapped", () => {
-    expect(mappedCaseRun("no-fit")).toBeNull();
     const loaded = read("run-case-no-fit-aed19b82.json") as RunRecord;
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
-    expect(loaded.inputs.messages).toEqual(demoCase("no-fit")!.deal.messages);
+    // Made on the earlier wording of the buyer's last message (the case has been reworded since, see its second freeze).
+    expect(loaded.inputs.messages.slice(0, 9)).toEqual(demoCase("no-fit")!.deal.messages.slice(0, 9));
+    expect(loaded.inputs.messages[9]!.text).toBe("Sandeep: And please send a payment link, not a long contract. We pay by UPI.");
+    expect(loaded.inputs.messages).not.toEqual(demoCase("no-fit")!.deal.messages);
     expect(loaded.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([["extract", "cerebras", "accepted_with_corrections"]]);
     // The model read the budget, the period and the four services, and wrote the approval limit from a sentence that is not one (code rejected it).
     expect(loaded.steps[0]!.issues).toEqual(["field approval_limit_amount rejected: evidence quote not found verbatim in message lotus-9"]);

@@ -1,0 +1,41 @@
+{
+  "schema": "adaptive-deals.case-recording-freeze.v1",
+  "frozenAt": "2026-10-13T12:42:06.615Z",
+  "authoredBy": "Claude Code (Claude Sonnet 5.5), directed by Nitya Jain",
+  "cases": {
+    "no-fit": {
+      "messagesSha256": "7b9c47c848781ff716a2ef311c2ce3a7a5cc843a5ad3594d42685998f8f729bb"
+    }
+  },
+  "prompts": {
+    "extract": {
+      "version": "extract.v2",
+      "sha256": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a"
+    },
+    "clarify": {
+      "version": "clarify.v1",
+      "sha256": "0e6eec01fb70482e8d1eb500fec664837f4d3929d42091a31c22d492acfd318e"
+    },
+    "explain": {
+      "version": "explain.v3",
+      "sha256": "746a4d939d9be36e366a93bcee16628d338993ed0ce59f8a13afac4b4ae4bc14"
+    }
+  },
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "scope": [
+    "no-fit"
+  ],
+  "maximumProviderRequests": 7,
+  "retryRule": "technical failures only",
+  "resultRule": "one Cerebras run of the Lotus Row Interiors conversation with its last message reworded; its first technically valid output at each step is final, whatever it is; it is kept either way; the product maps it only if it reaches the case's expected engine state and offer family (options_ready, shorter_commitment: the five-month commitment); otherwise the hand-written sample stays in use and says so; no further attempt on any provider; this is the second and last attempt on the instruction given",
+  "networkCallsMade": 0,
+  "batch": "Eleventh recording batch: the second attempt for the third case. The first attempt (batch 10, run aed19b82) read the conversation but called \"We pay by UPI\" an unsupported request and never reached the offer, so it was kept as evidence and not mapped. On the applicant's instruction the one message was reworded to \"And please send a payment link, not a long contract.\" Prompts are unchanged.",
+  "authorisedBy": "Nitya Jain, \"Your decision. go ahead with 2\" in chat on 13 October 2026, choosing to reword the one message and record Lotus Row Interiors again",
+  "attempt": "second-attempt-on-reworded-text",
+  "earlierAttempt": {
+    "freeze": "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json",
+    "messagesSha256": "b3a9113e5f1d8892d1a1c90354c577ba15ec49d0c5de3aed009002909d708ec3",
+    "run": "run-case-no-fit-aed19b82"
+  }
+}

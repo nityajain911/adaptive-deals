@@ -7,7 +7,7 @@ import type { TemplateConfig } from "@/domain/types";
 import type { DealTerms } from "@/lib/deal-economics";
 import { heroMerchant } from "./hero";
 
-/** The buyer pays by UPI link in one go: that is the only way to pay offered. */
+/** The buyer pays by payment link in one go: that is the only way to pay offered. */
 const upfront = [{ id: "upfront", label: "single payment at start", offsetsMonths: [0] }];
 
 /** The annual plan Meera quoted: ₹1,20,000 before GST. Pinecone does not discount, so the commitments are shorter, never cheaper. */

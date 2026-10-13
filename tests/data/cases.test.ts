@@ -42,7 +42,7 @@ const NO_FIT_MESSAGES = [
   "Sandeep: If you can come to ₹80,000, I can sign today.",
   "Let me check what is possible and come back to you.",
   "Ritu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.",
-  "Sandeep: And please send a payment link, not a long contract. We pay by UPI.",
+  "Sandeep: And please send a payment link, not a long contract.",
 ] as const;
 
 function storedRun(file: string): RunRecord {
@@ -125,7 +125,7 @@ describe("commercial demo case catalog", () => {
     expect(item.hiddenReplies).toEqual(["clar-gst-no"]);
   });
 
-  it("uses the ten-message competitor conversation: a rival's ₹80,000 for the year, a cap, and one UPI link", () => {
+  it("uses the ten-message competitor conversation: a rival's ₹80,000 for the year, a cap, and one payment link", () => {
     const item = demoCase("no-fit")!;
     expect(item.deal.messages.map((message) => message.text)).toEqual(NO_FIT_MESSAGES);
     expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "merchant", "buyer", "buyer", "buyer", "merchant", "buyer", "buyer"]);

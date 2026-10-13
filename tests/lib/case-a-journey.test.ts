@@ -8,7 +8,7 @@ import { headlineFor } from "@/lib/offer-copy";
 /**
  * Case A, Lotus Row Interiors: a buyer holds a rival's quote of ₹80,000 for the year. The product does not match it (that would take
  * 44% off, with no discount allowed and a profit far under the floor); it offers the longest commitment of the same four services
- * that fits the cap, paid by one UPI link.
+ * that fits the cap, paid by one payment link.
  */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-case-a-"));
 process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";

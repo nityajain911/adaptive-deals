@@ -41,7 +41,11 @@ describe("the pre-call case recording freeze", () => {
     // The second case was replaced on 13 October 2026 (Zephyr Logistics); its own freeze pins the new text.
     const zephyr = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH9.json"), "utf8")) as CaseRecordingFreeze;
     // The third case was replaced on 13 October 2026 (Lotus Row Interiors); its own freeze pins the new text.
-    const lotus = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8")) as CaseRecordingFreeze;
+    const lotus = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH11.json"), "utf8")) as CaseRecordingFreeze;
+    // The first attempt on the earlier wording is pinned by its own freeze, which keeps the earlier hash.
+    const firstLotus = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH10.json"), "utf8")) as CaseRecordingFreeze;
+    expect(firstLotus.cases["no-fit"].messagesSha256).toBe("b3a9113e5f1d8892d1a1c90354c577ba15ec49d0c5de3aed009002909d708ec3");
+    expect(firstLotus.cases["no-fit"].messagesSha256).not.toBe(lotus.cases["no-fit"].messagesSha256);
     for (const id of CASE_IDS) {
       const pinned = id === "preserve-scope" ? zephyr : id === "reduced-scope" ? hero : id === "no-fit" ? lotus : freeze;
       expect(pinned.cases[id].messagesSha256).toBe(sha256(canonicalJson(demoCase(id)!.deal.messages)));

@@ -91,7 +91,7 @@
         "id": "lotus-10",
         "dealId": "case-no-fit",
         "author": "buyer",
-        "text": "Sandeep: And please send a payment link, not a long contract. We pay by UPI.",
+        "text": "Sandeep: And please send a payment link, not a long contract.",
         "timestamp": "2026-10-01T09:04:00+05:30",
         "source": "whatsapp"
       }
@@ -134,8 +134,8 @@
       "task": "extract",
       "promptVersion": "extract.v2",
       "promptHash": "22db759c4d03c686edfdbd46f70d53da4effb328f8850353c0dbde9629b8759a",
-      "inputHash": "bdb92ea0e5c0b13fbc1992f1f53e4706a4d46f088c7f198befa09d684e340449",
-      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"lotus-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-28T16:00:00+05:30\">\nHi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"lotus-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:40:00+05:30\">\nRitu: Thanks Meera. We love the reporting format you showed us. The team is keen.\n</message>\n<message id=\"lotus-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:44:00+05:30\">\nSandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.\n</message>\n<message id=\"lotus-4\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nCould you share what it covers? I'd like to compare like for like.\n</message>\n<message id=\"lotus-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nSandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.\n</message>\n<message id=\"lotus-6\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nRitu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.\n</message>\n<message id=\"lotus-7\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nSandeep: If you can come to ₹80,000, I can sign today.\n</message>\n<message id=\"lotus-8\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:58:00+05:30\">\nLet me check what is possible and come back to you.\n</message>\n<message id=\"lotus-9\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:02:00+05:30\">\nRitu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.\n</message>\n<message id=\"lotus-10\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:04:00+05:30\">\nSandeep: And please send a payment link, not a long contract. We pay by UPI.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
+      "inputHash": "2caea17111b0f2c455f60325d63432912e5cecc02659fafd1fbf9978ce9a3145",
+      "userContent": "Seller's packages in this deal:\n- Website fixes (id website-fixes)\n- Search marketing (id search-marketing)\n- Social media (id social-media)\n- Monthly reporting (id monthly-reporting)\n\nConversation (untrusted data):\n<messages>\n<message id=\"lotus-1\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-09-28T16:00:00+05:30\">\nHi Ritu, Sandeep, here is our annual plan: website fixes, search marketing, social media and monthly reporting. It comes to ₹1,20,000 plus GST for the year.\n</message>\n<message id=\"lotus-2\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:40:00+05:30\">\nRitu: Thanks Meera. We love the reporting format you showed us. The team is keen.\n</message>\n<message id=\"lotus-3\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:44:00+05:30\">\nSandeep: Honestly, we have another quote. ₹80,000 for the whole year, same deliverables.\n</message>\n<message id=\"lotus-4\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:47:00+05:30\">\nCould you share what it covers? I'd like to compare like for like.\n</message>\n<message id=\"lotus-5\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:50:00+05:30\">\nSandeep: Website, SEO and social posts. Not sure about reporting, they said it is basic updates.\n</message>\n<message id=\"lotus-6\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:52:00+05:30\">\nRitu: We don't want to switch only for price, but ₹80,000 is what is approved for us this quarter. We need website fixes, search marketing, social media and monthly reporting.\n</message>\n<message id=\"lotus-7\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T08:55:00+05:30\">\nSandeep: If you can come to ₹80,000, I can sign today.\n</message>\n<message id=\"lotus-8\" author=\"merchant\" source=\"whatsapp\" sent_at=\"2026-10-01T08:58:00+05:30\">\nLet me check what is possible and come back to you.\n</message>\n<message id=\"lotus-9\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:02:00+05:30\">\nRitu: Even if it is less than a full year, we can look at it. We just can't go above ₹80,000 this quarter.\n</message>\n<message id=\"lotus-10\" author=\"buyer\" source=\"whatsapp\" sent_at=\"2026-10-01T09:04:00+05:30\">\nSandeep: And please send a payment link, not a long contract.\n</message>\n</messages>\n\nExtract the buyer's constraints.",
       "provider": "synthetic_replay",
       "model": "none (synthetic outputs written by hand)",
       "temperature": "not applicable: synthetic",
@@ -185,8 +185,8 @@
           },
           {
             "key": "other_constraint",
-            "raw_text": "pay by UPI",
-            "evidence_quote": "We pay by UPI",
+            "raw_text": "send a payment link, not a long contract",
+            "evidence_quote": "please send a payment link, not a long contract",
             "message_id": "lotus-10",
             "confidence": "high"
           }
@@ -395,14 +395,14 @@
         "key": "other_0",
         "label": "Other constraint",
         "status": "stated",
-        "display": "pay by UPI",
-        "rawText": "pay by UPI",
+        "display": "send a payment link, not a long contract",
+        "rawText": "send a payment link, not a long contract",
         "evidence": [
           {
-            "quote": "We pay by UPI",
+            "quote": "please send a payment link, not a long contract",
             "messageId": "lotus-10",
-            "start": 62,
-            "end": 75
+            "start": 13,
+            "end": 60
           }
         ],
         "transformation": null,
