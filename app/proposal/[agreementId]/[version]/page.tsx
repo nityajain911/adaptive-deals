@@ -137,6 +137,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
         {lifecycle.showResponseActions ? (
           <section aria-label="Your response" className="space-y-2 border-t border-line pt-4" data-testid="buyer-actions">
             <AcceptForm action={amendment ? "accept_amendment" : "accept_agreement"} submitLabel={amendment && differences.every((difference) => !difference.changed || difference.category === "payment_date" || difference.category === "planned_invoice_date") ? "Accept new date" : undefined} version={v.version} termsHash={v.termsHash} authorityReason={view.authorityReason} totalPaise={view.totalPaise} oneTap={oneTap} />
+            {v.continuesFrom ? <DeclineButton version={v.version} stop /> : null}
             <RequestChangeForm version={v.version} merchantName={deal.merchant.name} context={requestContext} label={amendment ? "Request another change" : undefined} kinds={amendment ? ["date", "other"] : undefined} />
             {amendment ? <p className="text-center text-[13px] text-muted">To decline this revision, request a change. Your current agreement stays in place until you accept a revision.</p> : null}
           </section>
@@ -211,7 +212,7 @@ export default async function ProposalPage(props: PageProps<"/proposal/[agreemen
             </div>
           </dl>
         </details>
-        {lifecycle.showResponseActions && !amendment ? <div className="pt-2"><DeclineButton version={v.version} /></div> : null}
+        {lifecycle.showResponseActions && !amendment && !v.continuesFrom ? <div className="pt-2"><DeclineButton version={v.version} /></div> : null}
         <p className="text-center text-[12px] text-muted">Fictional merchant and buyer · synthetic figures · no real payment is taken</p>
       </div>
     </article>

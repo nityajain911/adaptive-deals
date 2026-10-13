@@ -391,7 +391,8 @@ test("preset · restoring the defaults after the example says the values match v
 test("strategies · rows that lead with the same offer say so", async ({ page }) => {
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("strategy-some-same")).toContainText("choosing between them changes nothing");
-  await expect(page.getByTestId("strategy-same-lower_buyer_commitment")).toContainText("Same offer as Earn the most");
+  // Earn the most now leads with the single payment; smaller payments lead with the two-payment offer, so they no longer share one.
+  await expect(page.getByTestId("strategy-same-lower_buyer_commitment")).toHaveCount(0);
   await expect(page.getByTestId("strategy-same-minimise_cash_exposure")).toContainText("Same offer as Keep the full project");
   await expect(page.getByTestId("strategy-same-protect_contribution")).toHaveCount(0);
 });

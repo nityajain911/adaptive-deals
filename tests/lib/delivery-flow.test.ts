@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { termsHash } from "@/domain/agreement";
 import { isDelivered } from "@/lib/deal-records";
-import { driveTo } from "../helpers/drive";
+import { driveTo, reviewTwoPayments } from "../helpers/drive";
 
 /** Spec §3.3 and §5.5: select → draft → approve → send, delivery gate, idempotent retry. No network. */
 process.env.ADAPTIVE_DEALS_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "adaptive-deals-delivery-"));
@@ -30,25 +30,25 @@ async function toOptions() {
 describe("select → draft → approve → send", () => {
   it("blocks a stale offer until the merchant reviews newer buyer evidence, then requires a fresh preview", async () => {
     await toOptions();
-    const original = await svc.reviewBuyerProposal();
+    const original = await reviewTwoPayments(svc);
     const q = (await svc.getState()).conversation.find((m) => m.kind === "clarification" && m.refs.questionId === "clar-gst")!;
     const withCorrection = await svc.buyerReply({ inReplyTo: q.id, text: "Correction: our available budget is now only ₹20,000 including GST. Please do not send the ₹46,020 proposal." });
     const correction = withCorrection.conversation.at(-1)!;
     expect((await svc.progressOf(withCorrection))).toMatchObject({ rule: "offer.new_evidence", headline: "Review newer buyer evidence before sending this offer." });
-    await expect(svc.reviewBuyerProposal()).rejects.toThrow(/newer buyer evidence/);
+    await expect(reviewTwoPayments(svc)).rejects.toThrow(/newer buyer evidence/);
     await expect(svc.approveDraft(original.version, original.termsHash)).rejects.toThrow(/newer buyer evidence/);
 
     const reviewed = await svc.reviewWork("message", correction.id, "keep_current_terms", "Buyer confirmed the original ₹50,000 budget on a call");
     expect(reviewed.deliveries).toEqual([]);
     await expect(svc.approveDraft(original.version, original.termsHash)).rejects.toThrow(/stale draft|review the updated proposal/i);
-    const refreshed = await svc.reviewBuyerProposal();
+    const refreshed = await reviewTwoPayments(svc);
     expect(refreshed.termsHash).toBe(original.termsHash);
     expect((await svc.getState()).selectedOption!.evidenceMessageIds).toContain(correction.id);
   });
 
   it("handling newer evidence outside Adaptive Deals changes no terms, collections or delivery", async () => {
     await toOptions();
-    const original = await svc.reviewBuyerProposal();
+    const original = await reviewTwoPayments(svc);
     const before = await svc.getState();
     const q = before.conversation.find((m) => m.kind === "clarification" && m.refs.questionId === "clar-gst")!;
     const withCorrection = await svc.buyerReply({ inReplyTo: q.id, text: "Correction: please do not send this proposal." });
@@ -63,10 +63,10 @@ describe("select → draft → approve → send", () => {
 
   it("preview and approval use the same canonical hash; approval sends nothing", async () => {
     await toOptions();
-    const v = await svc.reviewBuyerProposal();
+    const v = await reviewTwoPayments(svc);
     expect(v.status).toBe("draft");
     expect(v.termsHash).toBe(termsHash(v.terms));
-    expect((await svc.reviewBuyerProposal()).version).toBe(v.version); // idempotent
+    expect((await reviewTwoPayments(svc)).version).toBe(v.version); // idempotent
     await expect(svc.approveDraft(v.version, "0".repeat(64))).rejects.toThrow(/does not match/);
     const s = await svc.approveDraft(v.version, v.termsHash);
     expect([s.status, s.agreements[0].status]).toEqual(["approved", "merchant_approved"]);
@@ -95,7 +95,7 @@ describe("select → draft → approve → send", () => {
 
   it("opening the recommended option is not a merchant choice; explicit selection is recorded once", async () => {
     await toOptions();
-    await svc.reviewBuyerProposal();
+    await svc.reviewBuyerProposal(); // the recommendation, not a choice
     expect((await svc.getState()).outcomes.filter((o) => o.type === "option_selected")).toEqual([]);
     const out = await svc.currentOutcome(await svc.getState());
     const alt = out.explanation!.order[1];
@@ -110,7 +110,7 @@ describe("select → draft → approve → send", () => {
     const out = await svc.currentOutcome(await svc.getState());
     const failing = out.evaluation.result!.rejected[0].structure.id;
     await expect(svc.selectOption(failing)).rejects.toThrow(/cannot be selected/);
-    const v = await svc.reviewBuyerProposal();
+    const v = await reviewTwoPayments(svc);
     const other = out.explanation!.order[1];
     await svc.selectOption(other);
     const s = await svc.getState();
@@ -122,7 +122,7 @@ describe("select → draft → approve → send", () => {
 
   it("an old retry cannot send after the merchant reselects", async () => {
     await toOptions();
-    const v = await svc.reviewBuyerProposal();
+    const v = await reviewTwoPayments(svc);
     await svc.approveDraft(v.version, v.termsHash);
     await presenter.setFailNextSend(true);
     await svc.sendProposal(v.version);
@@ -170,7 +170,7 @@ describe("select → draft → approve → send", () => {
 
   it("an unresolved proposal-page change request blocks initial buyer acceptance", async () => {
     await toOptions();
-    const draft = await svc.reviewBuyerProposal();
+    const draft = await reviewTwoPayments(svc);
     await svc.approveDraft(draft.version, draft.termsHash);
     await svc.sendProposal(draft.version);
     await svc.requestChange(draft.version, "Please reduce the scope before I accept.");

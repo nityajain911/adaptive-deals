@@ -45,6 +45,7 @@ async function prepareSent(page: Page) {
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await api(page, { action: "adopt_replies" });
+  await api(page, { action: "select_option", structureId: "phased_scope:scope=web-search-report-3m,plan=two_monthly" });
   await api(page, { action: "review_buyer_proposal" });
   const draft = state().agreements.find((agreement) => agreement.status === "draft")!;
   await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
@@ -350,12 +351,73 @@ test("the walkthrough goes on past the moved payment to the month-three review a
   const finish = guide(page).getByTestId("walkthrough-finish");
   await expect(finish).toContainText("Walkthrough complete");
   await expect(finish).toContainText("You walked through: They want to start small and see results first.");
-  await expect(finish).toContainText("Your decisions: approved version 1, approved version 2, approved version 3.");
+  await expect(finish).toContainText("Your decisions: chose your own offer, approved version 1, approved version 2, approved version 3.");
   await expect(finish).toContainText("A payment was moved to a later date after both sides approved version 2.");
   await expect(finish).toContainText("After the review, the rest of the year went out as version 3 and the buyer accepted it. It is the second and last phase.");
   await expect(guide(page).getByTestId("walkthrough-your-turn")).toHaveCount(0);
   await finish.getByTestId("walkthrough-try-another").click();
   await expect(page).toHaveURL(/\/deals$/);
+});
+
+test("the walkthrough on the recommended single payment ends when the buyer carries on, and when the buyer stops", async ({ page }) => {
+  await reset(page);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  // One payment, so the guide goes straight to the review: no notice, no moved payment.
+  await expect(guide(page)).toContainText("Advance simulated date to 1 Feb 2027");
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  await api(page, { action: "send_follow_on" });
+  await page.goto("/deals/hero/track");
+  await expect(guide(page)).toContainText("the buyer chooses on the proposal page: accept and pay, or stop here");
+  const v2 = state().agreements.at(-1)!;
+
+  // The buyer stops here.
+  await page.goto("/proposal/agr-hero/v2");
+  await page.getByTestId("decline").click();
+  await page.getByTestId("confirm-decline").click();
+  await expect(page.getByTestId("buyer-status")).toBeVisible();
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  const stopped = guide(page).getByTestId("walkthrough-finish");
+  await expect(stopped).toContainText("Walkthrough ended");
+  await expect(stopped).toContainText("The buyer chose to stop after the first phase. Nothing more is due.");
+  await expect(stopped).toContainText("Your decisions: approved version 1, approved version 2.");
+  await expect(stopped).toContainText("the buyer chose to stop here. The deal closes after the first phase.");
+  await expect(stopped).not.toContainText("the buyer accepted it");
+
+  // The same deal again, where the buyer carries on.
+  await reset(page);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const again = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: again.version, termsHash: again.termsHash });
+  await api(page, { action: "accept_agreement", version: again.version, termsHash: again.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  await api(page, { action: "send_follow_on" });
+  const next = state().agreements.at(-1)!;
+  expect(next.version).toBe(v2.version);
+  await api(page, { action: "accept_agreement", version: next.version, termsHash: next.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await page.goto("/deals/hero/track");
+  await openGuide(page);
+  const carried = guide(page).getByTestId("walkthrough-finish");
+  await expect(carried).toContainText("Walkthrough complete");
+  await expect(carried).toContainText("After the review, the rest of the year went out as version 2 and the buyer accepted it. It is the second and last phase.");
 });
 
 test("the first screen opens with the problem, not the product", async ({ page }) => {

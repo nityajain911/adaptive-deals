@@ -56,12 +56,16 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       return nav("close_offer", "merchant", "Next: decide how to close this deal", at("offer"));
     case "track.sent_awaiting_buyer": {
       const v = progress.version ?? 1;
+      // At the review the buyer has two ways to go; the guide sends the presenter to the page where both are.
+      if (s.agreements.find((a) => a.version === v)?.continuesFrom) return nav("buyer_decide", "buyer", "Next: the buyer chooses on the proposal page: accept and pay, or stop here", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", v));
       return nav("buyer_accept", "buyer", "Next: the buyer accepts on the proposal page", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", v));
     }
     case "track.buyer_setup":
       // The buyer pays and sets up automatic payment in one step on their proposal page.
       return nav("buyer_setup", "buyer", "Next: the buyer pays on the proposal page", proposalHref(s.agreements[0]?.agreementId ?? "agr-hero", progress.version ?? 1));
     case "track.next_payment": {
+      // The story ends when the buyer has taken the rest of the year: two phases, and the deal closes in the second.
+      if (s.agreements.some((v) => v.continuesFrom && v.status === "active")) return null;
       if (s.amendments.at(-1)?.state === "active") return afterStoryboard(s, at("track"));
       // Complete the current notice exchange before jumping to a later instalment.
       if (replyContext(s)) return nav("buyer_reply", "buyer", "Next: simulated buyer reply to the notice", at("track"), true);

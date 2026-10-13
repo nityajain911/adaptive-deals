@@ -101,7 +101,8 @@ const info = (stage: StageId, rule: string, kind: Exclude<ProgressKind, "action_
 
 export function dealProgress(s: ProgressState, f: ProgressFacts): DealProgress {
   const r = resolve(s, f);
-  const end = r.kind !== "terminal" ? null : s.status === "completed" ? "completed" : "closed";
+  // Stopping after the first phase is a finished deal, not a lost one: the first phase was sold and paid.
+  const end = r.kind !== "terminal" ? null : s.status === "completed" || r.rule === "track.stopped_after_first" ? "completed" : "closed";
   return { ...r, stages: stagesFor(r.stage, end) };
 }
 
@@ -121,6 +122,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
   // 1. A proposal was ever delivered → Track, whatever historical fields say.
   if (!countering && s.deliveries.some((d) => d.deliveredAt !== null)) {
     const a = s.amendments.at(-1);
+    if (s.status === "buyer_rejected" && s.agreements.find((v) => v.version === latest)?.continuesFrom) return info("track", "track.stopped_after_first", "terminal", null, "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here.", latest);
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);
     const buyerRequest = f.workItems.find((w) => w.kind === "buyer_request");

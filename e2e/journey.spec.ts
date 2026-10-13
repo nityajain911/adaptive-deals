@@ -77,23 +77,27 @@ async function prepareClarificationCombination(page: Page, gstScript: "clar-gst-
   expect(state().status).toBe("options_ready");
 }
 
-async function prepareDraft(page: Page) {
+/** The merchant's own choice of the two-payment first phase, for the journeys that exercise instalments, notices and revisions. */
+const TWO_PAYMENTS = "phased_scope:scope=web-search-report-3m,plan=two_monthly";
+
+async function prepareDraft(page: Page, offer: "two_payments" | "recommended" = "two_payments") {
   await prepareOptions(page);
+  if (offer === "two_payments") await api(page, { action: "select_option", structureId: TWO_PAYMENTS });
   await api(page, { action: "review_buyer_proposal" });
   const draft = state().agreements.find((a) => a.status === "draft")!;
   expect(draft).toBeTruthy();
   return draft;
 }
 
-async function prepareSent(page: Page) {
-  const draft = await prepareDraft(page);
+async function prepareSent(page: Page, offer: "two_payments" | "recommended" = "two_payments") {
+  const draft = await prepareDraft(page, offer);
   await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
   expect(state().status).toBe("sent");
   return state().agreements.find((a) => a.version === draft.version)!;
 }
 
-async function prepareAccepted(page: Page) {
-  const agreement = await prepareSent(page);
+async function prepareAccepted(page: Page, offer: "two_payments" | "recommended" = "two_payments") {
+  const agreement = await prepareSent(page, offer);
   await api(page, { action: "accept_agreement", version: agreement.version, termsHash: agreement.termsHash, authorityConfirmed: true });
   expect(state().status).toBe("active");
   return state().agreements.find((a) => a.version === agreement.version)!;
@@ -136,7 +140,7 @@ test.describe.configure({ mode: "serial" });
 
 test("P0 · every clarification combination produces its engine decision and truthful provenance after reload", async ({ page }) => {
   const cases = [
-    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=two_monthly", recorded: true },
+    { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=upfront", recorded: true },
     { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", recorded: false },
     { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
     { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
@@ -201,7 +205,99 @@ test("P0 · mixed and unsure clarification replies stay unresolved until the mer
   }
 });
 
-test("90-second storyboard follows the three-stage preventive journey", async ({ page }) => {
+test("90-second storyboard · one payment, then the review, and the buyer chooses to carry on", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await startCase(page);
+  await page.goto("/deals/hero");
+  await openWalkthrough(page);
+
+  await expectStage(page, "understand", "Confirm two details", "Send 2 questions to buyer");
+  await clickPrimary(page);
+  await page.getByTestId("walkthrough-reply-clar-gst-yes").check();
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("walkthrough-reply-choice")).toHaveAttribute("data-value", "clar-approval-contract");
+  await walkthroughPrimary(page).click();
+  await page.getByTestId("primary-action").click();
+
+  await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
+  await expect(page.getByTestId("recommendation")).toContainText("Suggested offer");
+  // The recommendation is the single payment: the first phase is paid in one go.
+  await expect(page.getByTestId("recommendation")).toContainText("paid upfront");
+  await expect(page.getByTestId("offer-total")).toContainText("₹46,020");
+  await expect(page.getByTestId("transformation-rows")).toContainText("1 payment");
+  await expect(page.getByTestId("transformation-rows")).toContainText("Rest of the year₹84,960 held until 18 Mar 2027");
+  await clickPrimary(page);
+  await expect(page.getByTestId("buyer-message-preview")).toContainText("₹46,020 including GST, paid as ₹46,020 on 1 Nov 2026.");
+  await page.getByTestId("primary-action").click();
+  await expect(page).toHaveURL(/\/deals(\?sent=1)?$/);
+  await page.goto("/deals/hero/track");
+  await expectStage(page, "track", "Waiting for the buyer to review offer version 1", undefined);
+  await page.getByTestId("open-buyer-proposal").click();
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹46,020");
+  await expect(page.getByTestId("recurring")).toHaveCount(0); // no automatic payments in the first phase
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+  await page.getByTestId("back-to-merchant").click();
+
+  // Paid in full, so the next date that matters is the review.
+  await expectStage(page, "track", "First phase paid. The review is on 1 Feb 2027.", undefined);
+  await expect(walkthroughPrimary(page)).toContainText("Advance simulated date to 1 Feb 2027");
+  await walkthroughPrimary(page).click();
+  await expectStage(page, "track", "Send the rest of the year (₹84,960), held until 18 Mar 2027.", "Send the rest of the year");
+  await shot(page, "desktop-6-review");
+  await page.getByTestId("primary-action").click();
+  await expectStage(page, "track", "Waiting for the buyer to review offer version 2.", undefined);
+
+  // The buyer has two ways to go, both on their own page.
+  await expect(page.getByTestId("walkthrough")).toContainText("the buyer chooses on the proposal page: accept and pay, or stop here");
+  await page.getByTestId("open-buyer-proposal").click();
+  await expect(page.getByTestId("buyer-view")).toContainText("The rest of the year");
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹28,320");
+  await expect(page.getByTestId("decline")).toHaveText("Stop here");
+  await shot(page, "desktop-4-buyer-choice");
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+  await page.getByTestId("back-to-merchant").click();
+  await expectStage(page, "track", /next payment ₹28,320 on 1 May 2027/, undefined);
+  await shot(page, "desktop-7-both-phases");
+});
+
+test("90-second storyboard · one payment, then the review, and the buyer chooses to stop", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await reset(page);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  await api(page, { action: "send_follow_on" });
+
+  await page.goto("/proposal/agr-hero/v2");
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹28,320");
+  await page.getByTestId("decline").click();
+  await expect(page.getByTestId("buyer-view")).toContainText("Stop after the first phase? Nothing more will be charged.");
+  await page.getByTestId("confirm-decline").click();
+  await expect(page.getByTestId("buyer-status")).toBeVisible();
+
+  await page.goto("/deals/hero/track");
+  await expectStage(page, "track", "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here.", undefined);
+  await expect(page.getByTestId("stage-tracker").locator('[data-stage="track"]')).toHaveAttribute("aria-current", "step");
+  // The first phase stays paid, and nothing was set up for the rest of the year.
+  expect(state().attempts.filter((a) => a.status === "succeeded")).toHaveLength(1);
+  expect(state().mandate).toBeNull();
+  await page.goto("/deals");
+  await expect(page.getByTestId("select-case-reduced-scope")).toContainText("Completed");
+  await shot(page, "desktop-7-stopped");
+});
+
+test("two-payment path · the preventive journey: a notice, a buyer who needs time, and a moved payment", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await reset(page);
   await startCase(page);
@@ -230,10 +326,11 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await expect(page.getByTestId("answer-clar-gst")).toContainText("Includes GST");
   await expect(page.getByTestId("answer-clar-approval")).toContainText("Whole deal");
   await expect(page.getByTestId("primary-action")).toHaveText("Review offer");
+  // The merchant chooses the two-payment first phase over the recommended single payment.
+  await api(page, { action: "select_option", structureId: TWO_PAYMENTS });
   await page.getByTestId("primary-action").click();
 
   await expectStage(page, "offer", "Review this offer", "Review buyer proposal");
-  await expect(page.getByTestId("recommendation")).toContainText("Suggested offer");
   // The first phase is the sale; the rest of the year is held at today's rates, as one more line of the same comparison.
   await expect(page.getByTestId("transformation-rows")).toContainText("Rest of the year₹84,960 held until 18 Mar 2027");
   await shot(page, "desktop-2-offer");
@@ -263,7 +360,7 @@ test("90-second storyboard follows the three-stage preventive journey", async ({
   await page.getByTestId("back-to-merchant").click();
 
   await expect(page.getByTestId("payment-timeline")).toContainText("Buyer accepted the deal");
-  await expect(walkthroughPrimary(page)).toContainText("Advance simulated date");
+  await expect(walkthroughPrimary(page)).toContainText("Advance simulated date to 28 Nov 2026");
   await walkthroughPrimary(page).click();
   await expect(walkthroughPrimary(page)).toContainText("Send scheduled advance notice");
   await walkthroughPrimary(page).click();
@@ -300,6 +397,7 @@ test("the complete journey works with demo controls hidden", async ({ page }) =>
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
   await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
   await page.reload();
+  await api(page, { action: "select_option", structureId: TWO_PAYMENTS });
   await page.getByTestId("primary-action").click();
   await expect(page).toHaveURL(/\/offer$/);
   await clickPrimary(page);
@@ -563,7 +661,7 @@ test("initial Offer viewport keeps rejections and funding detail collapsed", asy
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("recommendation")).toBeVisible();
-  await expect(page.getByTestId("recommendation")).toContainText("two monthly payments");
+  await expect(page.getByTestId("recommendation")).toContainText("paid upfront");
   await expect(page.getByText(/structures across .* templates evaluated/i)).toHaveCount(0);
   await expect(page.getByTestId("featured-buyer-rejection")).toBeHidden();
   await expect(page.getByTestId("featured-seller-rejection")).toBeHidden();
@@ -1230,7 +1328,7 @@ test("step 5 · the Offer screen leads with the merchant's strategy, and each st
   await prepareOptions(page);
   await page.goto("/deals/hero/offer");
   await expect(page.getByTestId("strategy-control")).toHaveAttribute("data-value", "protect_contribution");
-  await expect(page.getByTestId("offer-headline")).toContainText("two monthly payments");
+  await expect(page.getByTestId("offer-headline")).toContainText("paid upfront");
   await expect(page.getByTestId("attribution")).toHaveText("Suggested for the default priority: earning the most.");
   await expect(page.getByTestId("offer-rules")).toContainText("your prices & costs");
   await expect(page.getByTestId("offer-cash")).toContainText("₹0");
@@ -1238,7 +1336,7 @@ test("step 5 · the Offer screen leads with the merchant's strategy, and each st
 
   // What each strategy would recommend, one row each, from the same feasible offers.
   const rows = page.getByTestId("strategy-comparison");
-  await expect(rows.getByTestId("strategy-row-protect_contribution")).toContainText("two monthly payments");
+  await expect(rows.getByTestId("strategy-row-protect_contribution")).toContainText("paid upfront");
   await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Keep the full project and split the payments");
   await expect(rows.getByTestId("strategy-row-preserve_scope")).toContainText("Needs their MD");
   await expect(rows.getByTestId("strategy-row-minimise_cash_exposure")).toContainText("Needs their MD");
@@ -1362,7 +1460,7 @@ test("a new deal opens on Understand even when nothing needs asking, and the off
 
 
 test("the outcome card records what the deal taught, and proposes nothing from a single deal", async ({ page }) => {
-  await prepareAccepted(page);
+  await prepareAccepted(page, "recommended");
   await page.goto("/deals/hero/track");
   await page.getByTestId("track-outcome-link").click();
   await expect(page).toHaveURL(/\/deals\/hero\/performance$/);

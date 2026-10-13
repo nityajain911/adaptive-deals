@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { driveTo } from "../helpers/drive";
+import { driveTo, reviewTwoPayments } from "../helpers/drive";
 
 /**
  * When a buyer asks for a lower price, the merchant sees what the request does to their economics:
@@ -47,7 +47,7 @@ async function sentWithRequest(topic: "price" | "date" = "price") {
   await svc.resetToSeed();
   await presenter.setFailNextSend(false);
   await driveTo(svc, (s) => s.status === "options_ready");
-  const d = await svc.reviewBuyerProposal();
+  const d = await reviewTwoPayments(svc);
   await svc.approveDraft(d.version, d.termsHash);
   await svc.sendProposal(d.version);
   await svc.requestChange(d.version, topic === "price" ? "Could you do a lower total?" : "Could we pay on 15 November?", topic);
@@ -167,7 +167,7 @@ describe("answering with an offer the engine already approved", () => {
     expect(s.selectedOption).toMatchObject({ structureId: five.structureId, explicit: true });
     expect(s.counterOffers.at(-1)).toMatchObject({ source: "listed_offer", override: null, fromVersion: sent.version });
     expect(await svc.progressOf(s)).toMatchObject({ stage: "offer", rule: "offer.review" });
-    const draft = await svc.reviewBuyerProposal();
+    const draft = await reviewTwoPayments(svc);
     expect(draft).toMatchObject({ version: sent.version + 1, supersedes: sent.version, structureId: five.structureId });
     expect(draft.terms.pricing.totalPaise).toBe(five.totalPaise);
   });
@@ -179,7 +179,7 @@ describe("answering with an offer the engine already approved", () => {
     const prepared = await svc.answerWithOffer(ten.structureId);
     const requestId = prepared.counterOffers.at(-1)!.requestMessageId;
     expect(prepared.workDispositions.some((d) => d.sourceId === requestId)).toBe(false);
-    const draft = await svc.reviewBuyerProposal();
+    const draft = await reviewTwoPayments(svc);
     await svc.approveDraft(draft.version, draft.termsHash);
     await svc.sendProposal(draft.version);
     const s = await svc.getState();
@@ -193,7 +193,7 @@ describe("answering with an offer the engine already approved", () => {
     const s = await svc.answerWithOffer(ten.structureId);
     const view = svc.strategyViewOf(s, await svc.currentOutcome(s));
     expect(view.ranked.map((x) => x.structure.id)).not.toContain(ten.structureId);
-    expect(view.leader!.structure.id).toBe(TWO_PAYMENTS);
+    expect(view.leader!.structure.id).toBe(UPFRONT);
   });
 
   it("offers a timing alternative the same way", async () => {

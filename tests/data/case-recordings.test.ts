@@ -212,12 +212,12 @@ describe("what each recording actually contains", () => {
     expect(out.explanation!.source).toEqual({ ranking: "ai", text: "code_fallback" });
   });
 
-  it("reduced scope: code's recommendation under the default strategy is the two-payment offer, not the order the model recorded", async () => {
+  it("reduced scope: code's recommendation under the default strategy is the single payment, which is also what the model ranked first; the engine's own order is not the recommendation", async () => {
     const r = record("reduced-scope");
     const out = await replayRun(r, recordedDeal("reduced-scope"), new FixedClock());
     const view = strategyView(out.evaluation.result!.feasible, "protect_contribution", heroBaseline());
-    expect(view.leader!.structure.id).toBe("phased_scope:scope=web-search-report-3m,plan=two_monthly");
-    expect(view.leader!.structure.id).not.toBe(out.explanation!.order[0]);
+    expect(view.leader!.structure.id).toBe("phased_scope:scope=web-search-report-3m,plan=upfront");
+    expect(out.explanation!.order[0]).toBe(view.leader!.structure.id);
     // Same offers either way: the model's recorded order is a permutation of what code ranks.
     expect([...out.explanation!.order].sort()).toEqual(view.ranked.map((x) => x.structure.id).sort());
   });

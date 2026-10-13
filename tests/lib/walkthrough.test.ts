@@ -113,8 +113,9 @@ describe("walkthrough state comes from the deal", () => {
   it("keeps only optional explorations outside the six-step core", () => {
     const view = resolve(started(), progress("track.next_payment", "track", null, "informational"));
     expect(view.currentObjectiveId).toBe("preventive_restructure");
-    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["month_three_review", "no_fit", "negotiate_price"]);
-    expect(view.stepLabel).toBe("Step 6 of 6");
+    expect(view.objectives.filter((x) => x.optional).map((x) => x.id)).toEqual(["preventive_restructure", "no_fit", "negotiate_price"]);
+    expect(view.objectives.filter((x) => !x.optional).map((x) => x.id).at(-1)).toBe("month_three_review");
+    expect(view.stepLabel).toBe("Optional exploration");
   });
 
   it("keeps migration review at the last stage supported by the records", () => {

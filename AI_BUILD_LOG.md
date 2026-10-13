@@ -1269,3 +1269,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **Where the code surprised me, and what I changed:** payments of the rest of the year first collided with the first phase's line ids and with the "fully paid" cap, which compared everything ever collected with one phase's total; both fixed. A payment-date revision of the rest of the year was rejected because the buyer's first-phase required services were asked of it; it is now checked against what it sells. The Performance figure was misleading after day 90, so it now says "collected in the first 90 days".
 
 **Not done:** the product does not judge the buyer's go-ahead test; the hold period is a code default; the second phase's last two payments are not walked through in the guide (they use the same steps as the first phase).
+
+### 2026-10-13 — [Claude Code] One payment, and the buyer's choice at the review
+
+**Asked by the applicant:** send the whole ₹46,000 in one go; after simulating to the date the buyer has to commit, give the buyer two flows: get out, or carry on.
+
+**What I did:** made the single payment the suggested first phase (a tie-break in the strategy layer, so the engine's recorded rankings and every recorded run still replay), added a *Stop here* option beside *Accept and pay* on the rest of the year's page, and made stopping a finished deal rather than a lost one (Track, the inbox, the guide's ending and Performance). The guide now goes from the payment straight to the review and ends at the buyer's choice. Tests: the default path, both endings (service and end-to-end), the strategy leaders, and the guide's step sequence.
+
+**Where I departed from the brief:** I kept the merchant's own step between the review date and the buyer's choice (the merchant sends the rest of the year), because that is where the buyer's condition is judged. The two-payment path and its moved payment stay as an optional exploration; most existing tests now select that offer explicitly, so their coverage is unchanged.

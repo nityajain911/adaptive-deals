@@ -2134,7 +2134,8 @@ export async function declineAgreement(version: number, reason?: BuyerDeclineRea
     const item = proposal ? applyBuyerReply(s, { inReplyTo: proposal.id, text: "Declined the proposal", at: clockOf(s).now(), scripted: false, kind: "decline", source: "buyer_proposal_page" }) : null;
     outcome(s, { type: "buyer_declined", reasonCode: reason ?? null, note: null, actor: "buyer", version, source: item ? { kind: "message", id: item.id } : null });
     setStatus(s, "buyer_rejected", `Buyer declined version ${version}`);
-    event(s, "buyer_declined", `Buyer declined version ${version}`, "buyer_demo", "No payment setup was created.");
+    const stopped = !!s.agreements[i].continuesFrom;
+    event(s, "buyer_declined", stopped ? `The buyer chose to stop after the first phase (version ${version})` : `Buyer declined version ${version}`, "buyer_demo", stopped ? "The rest of the year was not taken. Nothing more is due." : "No payment setup was created.");
   });
 }
 

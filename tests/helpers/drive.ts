@@ -9,11 +9,14 @@ type Stop = (s: S) => boolean;
  */
 export type HeroPath = "preventive" | "failed_debit";
 
+/** The merchant's own choice of the two-payment first phase: the default recommendation is now the single payment, and most journeys exercise instalments. */
+export const TWO_PAYMENT_PHASE = "phased_scope:scope=web-search-report-3m,plan=two_monthly";
+
 /**
  * Advance the hero story with the real merchant, buyer and system actions until `stop` holds.
  * Replaces loops over the guided demo step, which no longer performs merchant decisions.
  */
-export async function driveTo(svc: typeof Svc, stop: Stop, max = 30, path: HeroPath = "preventive"): Promise<S> {
+export async function driveTo(svc: typeof Svc, stop: Stop, max = 30, path: HeroPath = "preventive", opts: { offer?: "two_payments" | "recommended" } = {}): Promise<S> {
   for (let i = 0; i < max; i++) {
     const s = await svc.getState();
     if (stop(s)) return s;
@@ -25,6 +28,7 @@ export async function driveTo(svc: typeof Svc, stop: Stop, max = 30, path: HeroP
       for (const d of unanswered) await svc.buyerReply({ inReplyTo: d.id, scriptId: d.refs.questionId === "clar-gst" ? "clar-gst-yes" : "clar-approval-contract" });
     } else if (s.status === "clarifying") await svc.adoptRepliesAsAnswers();
     else if (s.status === "options_ready") {
+      if (!s.selectedOption && opts.offer !== "recommended") await svc.selectOption(TWO_PAYMENT_PHASE);
       const v = await svc.reviewBuyerProposal();
       await svc.approveDraft(v.version, v.termsHash);
       await svc.sendProposal(v.version);
@@ -47,4 +51,11 @@ export async function driveTo(svc: typeof Svc, stop: Stop, max = 30, path: HeroP
     else return s;
   }
   return svc.getState();
+}
+
+/** Review the buyer proposal for the two-payment first phase, as a merchant who chose it over the recommended single payment. */
+export async function reviewTwoPayments(svc: typeof Svc) {
+  const s = await svc.getState();
+  if (!s.selectedOption) await svc.selectOption(TWO_PAYMENT_PHASE);
+  return svc.reviewBuyerProposal();
 }

@@ -227,23 +227,27 @@ export function DeclineReasonSelect({ value, onChange, disabled = false }: { val
   );
 }
 
-export function DeclineButton({ version }: { version: number }) {
+export function DeclineButton({ version, stop = false }: { version: number; stop?: boolean }) {
   const { run, pending, error } = useAction();
   const [confirming, setConfirming] = useState(false);
   const [reason, setReason] = useState<BuyerDeclineReason | "">("");
   if (!confirming)
-    return (
+    return stop ? (
+      <Button className="w-full" onClick={() => setConfirming(true)} data-testid="decline">
+        Stop here
+      </Button>
+    ) : (
       <button type="button" className="mx-auto block rounded px-2 py-1 text-[14px] text-muted underline underline-offset-2 hover:text-ink" onClick={() => setConfirming(true)} data-testid="decline">
         I&apos;m no longer interested
       </button>
     );
   return (
     <div role="group" aria-label="Confirm decline" className="space-y-2 rounded-xl border border-[#f6cfc9] bg-red-weak p-3 text-[13px]">
-      <div className="font-semibold text-ink">Decline version {version}? No payment will be set up.</div>
+      <div className="font-semibold text-ink">{stop ? "Stop after the first phase? Nothing more will be charged." : `Decline version ${version}? No payment will be set up.`}</div>
       <DeclineReasonSelect value={reason} onChange={setReason} disabled={pending} />
       <div className="flex gap-2">
         <Button variant="danger" onClick={() => run({ action: "decline", version, reason: reason || undefined })} disabled={pending} data-testid="confirm-decline">
-          {pending ? "Declining…" : "Yes, decline"}
+          {pending ? (stop ? "Stopping…" : "Declining…") : stop ? "Yes, stop here" : "Yes, decline"}
         </Button>
         <Button onClick={() => setConfirming(false)} disabled={pending}>
           Keep reviewing

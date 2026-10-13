@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { driveTo } from "../helpers/drive";
+import { driveTo, reviewTwoPayments } from "../helpers/drive";
 
 /**
  * A failed-rule exception is the merchant sending an amount the engine reported as failing a rule.
@@ -37,7 +37,7 @@ async function sentWithRequest() {
   await svc.resetToSeed();
   await presenter.setFailNextSend(false);
   await driveTo(svc, (s) => s.status === "options_ready");
-  const d = await svc.reviewBuyerProposal();
+  const d = await reviewTwoPayments(svc);
   await svc.approveDraft(d.version, d.termsHash);
   await svc.sendProposal(d.version);
   await svc.requestChange(d.version, "Could you do a lower total?", "price");
@@ -118,7 +118,7 @@ describe("the audit of the merchant's exceptions and overrides", () => {
     await presenter.setFailNextSend(false);
     await driveTo(svc, (s) => s.status === "options_ready");
     await svc.addInputOverride({ field: "cash_exposure", value: 2_000_000, reason: "Client pays a deposit first" });
-    const d = await svc.reviewBuyerProposal();
+    const d = await reviewTwoPayments(svc);
     await svc.approveDraft(d.version, d.termsHash);
     await svc.sendProposal(d.version);
     await svc.requestChange(d.version, "Could you do a lower total?", "price");

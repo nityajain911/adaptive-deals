@@ -119,3 +119,53 @@ describe("the month-three review", () => {
     expect((await svc.progressOf(s)).headline).toBe("Both phases collected. This deal is complete.");
   });
 });
+
+/** The hero path: the first phase is paid in one go, and at the review the buyer either carries on or stops. */
+describe("one payment, then the buyer's choice at the review", () => {
+  async function paidInOneGo() {
+    await driveTo(svc, (x) => x.status === "active", 30, "preventive", { offer: "recommended" });
+    await svc.buyerCompleteSetup();
+  }
+
+  it("recommends the single payment, with no automatic payment in the first phase", async () => {
+    await driveTo(svc, (x) => x.status === "options_ready");
+    const s = await svc.getState();
+    expect(svc.strategyViewOf(s, await svc.currentOutcome(s)).leader!.structure.id).toBe("phased_scope:scope=web-search-report-3m,plan=upfront");
+    await paidInOneGo();
+    const v1 = (await svc.getState()).agreements[0];
+    expect(v1.terms.paymentSchedule.map((p) => [p.method, p.totalPaise])).toEqual([["payment_link", 4_602_000]]);
+    expect(v1.terms.mandate).toBeNull();
+    expect(v1.terms.followOn).toMatchObject({ heldUntil: "2027-03-18" });
+    expect((await progress()).rule).toBe("track.follow_on_waiting");
+  });
+
+  it("lets the buyer stop here: the deal closes after the first phase, which stays paid, and nothing more can be sent", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    await svc.sendFollowOn();
+    const v3 = (await svc.getState()).agreements.at(-1)!;
+    await svc.declineAgreement(v3.version, "budget");
+    const s = await svc.getState();
+    expect(s.status).toBe("buyer_rejected");
+    expect(s.attempts.filter((a) => a.status === "succeeded")).toHaveLength(1);
+    expect(s.mandate).toBeNull();
+    const p = await progress();
+    expect(p).toMatchObject({ rule: "track.stopped_after_first", kind: "terminal", headline: "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here." });
+    expect(p.stages.track).toBe("completed");
+    expect(s.events.at(-1)?.title).toBe(`The buyer chose to stop after the first phase (version ${v3.version})`);
+    await expect(svc.sendFollowOn()).rejects.toThrow();
+  });
+
+  it("lets the buyer carry on: accept and pay, a setup of its own, and the deal closes in the second phase", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    await svc.sendFollowOn();
+    const v3 = (await svc.getState()).agreements.at(-1)!;
+    await svc.acceptAgreement(v3.version, v3.termsHash, true);
+    await svc.buyerCompleteSetup();
+    expect((await progress()).rule).toBe("track.next_payment");
+    await svc.simulate("debit_succeeded");
+    await svc.simulate("debit_succeeded");
+    expect(await progress()).toMatchObject({ rule: "track.fully_paid", headline: "Both phases collected. This deal is complete." });
+  });
+});

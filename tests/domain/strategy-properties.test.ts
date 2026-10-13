@@ -47,7 +47,14 @@ describe("strategy properties over generated merchant economics", () => {
           expect([...ids(first)].sort(), `seed ${seed}, ${scenario.id}, ${strategy}`).toEqual([...ids(feasible)].sort());
           expect(ids(second)).toEqual(ids(first));
           expect(ids(reversed)).toEqual(ids(first));
-          if (strategy === "protect_contribution") expect(first).toEqual(rankFeasible(feasible));
+          if (strategy === "protect_contribution" && feasible.length) {
+            // Only the tie-break differs from the engine's recorded order: the same approval, profit and cash exposure lead, and among equals fewer payments come first.
+            const engine = rankFeasible(feasible)[0];
+            const key = (o: (typeof feasible)[number]) => [o.approval, o.economics.netContributionPaise, o.economics.peakFundingPaise];
+            expect(key(first[0])).toEqual(key(engine));
+            const tied = feasible.filter((o) => JSON.stringify(key(o)) === JSON.stringify(key(engine)));
+            expect(first[0].structure.payments.length).toBe(Math.min(...tied.map((o) => o.structure.payments.length)));
+          }
 
           const view = strategyView(feasible, strategy, heroBaseline());
           if (feasible.some((offer) => offer.structure.discountBps === 0)) {

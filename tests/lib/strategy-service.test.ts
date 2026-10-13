@@ -38,19 +38,19 @@ const view = async () => {
 };
 
 describe("the default strategy", () => {
-  it("is Protect contribution, and its leader is set by code: the two-payment phase", async () => {
+  it("is Protect contribution, and its leader is set by code: the single-payment phase", async () => {
     const s = await svc.getState();
     expect(s.economics.strategy).toBe("protect_contribution");
     const v = await view();
     expect(v.strategy).toBe("protect_contribution");
-    expect(v.leader!.structure.id).toBe(TWO_PAYMENTS);
+    expect(v.leader!.structure.id).toBe(UPFRONT);
     expect(v.withinApprovalAlternative).toBeNull();
   });
 
   it("is what an unselected deal drafts, not the order a model suggested", async () => {
     const draft = await svc.reviewBuyerProposal();
-    expect(draft.structureId).toBe(TWO_PAYMENTS);
-    expect((await svc.getState()).selectedOption).toMatchObject({ structureId: TWO_PAYMENTS, explicit: false });
+    expect(draft.structureId).toBe(UPFRONT);
+    expect((await svc.getState()).selectedOption).toMatchObject({ structureId: UPFRONT, explicit: false });
   });
 });
 

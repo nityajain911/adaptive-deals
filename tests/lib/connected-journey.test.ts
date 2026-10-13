@@ -5,7 +5,7 @@ import path from "node:path";
 import { assertBuyerSafe } from "@/domain/conversation";
 import { formatINR } from "@/domain/money";
 import { localDateOf } from "@/domain/dates";
-import { driveTo } from "../helpers/drive";
+import { driveTo, reviewTwoPayments } from "../helpers/drive";
 
 /**
  * Connected buyer journey through the service and real store. Until additive per-case live runs
@@ -76,7 +76,7 @@ describe("connected buyer journey (selected-case application state)", () => {
   it("a proposal link exists only after a successful delivery; “Okay” accepts nothing", async () => {
     // Updated for the split approval flow (spec §3.3, §5.5): the gate moved from approval to delivery.
     expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false);
-    const draft = await svc.reviewBuyerProposal();
+    const draft = await reviewTwoPayments(svc);
     expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false);
     await svc.approveDraft(draft.version, draft.termsHash);
     expect((await S()).conversation.some((i) => i.kind === "proposal")).toBe(false); // approved, not yet delivered

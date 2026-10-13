@@ -30,7 +30,7 @@ export const MCP_CAPABILITY_MAP: McpCapabilityRow[] = [
     tools: ["create_payment_link", "fetch_payment_link", "fetch_all_payment_links", "update_payment_link", "payment_link_notify"],
     status: "implemented",
     today: "After the buyer accepts and you approve the exact link, creates one test Payment Link for the first payment (notifications always off). It can call only create_payment_link and fetch_all_payment_links, and reads a link's status with fetch_payment_link.",
-    limit: "Test mode only. Razorpay's test account refused links of ₹20,000 and above, including the ₹23,010 hero payment, so that payment stays simulated.",
+    limit: "Test mode only. Razorpay's test account refused links of ₹20,000 and above, including the ₹46,020 first payment, so that payment stays simulated.",
   },
   {
     id: "mandate",

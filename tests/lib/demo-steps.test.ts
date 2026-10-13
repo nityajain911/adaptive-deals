@@ -182,18 +182,45 @@ describe("simulated buyer reply control", () => {
         const before = (await svc.getState()).events.length;
         const state = await svc.getState();
         if (st.id === "send_follow_on") await svc.sendFollowOn();
-        else if (st.id === "buyer_accept" && state.status === "sent" && state.agreements.at(-1)!.continuesFrom) {
+        else if (st.id === "buyer_decide") {
           const v = state.agreements.at(-1)!;
           await svc.acceptAgreement(v.version, v.termsHash, true);
           await svc.buyerCompleteSetup();
         } else await driveTo(svc, (x) => x.events.length !== before, 2, "preventive");
       }
     }
-    expect(ids.slice(-4)).toEqual(["collect_payment", "advance_to_review", "send_follow_on", "buyer_accept"]);
+    expect(ids.slice(-4)).toEqual(["collect_payment", "advance_to_review", "send_follow_on", "buyer_decide"]);
     const s = await svc.getState();
     expect(s.agreements.at(-1)).toMatchObject({ version: 3, status: "active", continuesFrom: 2 });
     expect(s.mandate).toMatchObject({ agreementVersion: 3, status: "confirmed" });
     expect((await svc.progressOf(s)).headline).toBe("Up to date · next payment ₹28,320 on 1 May 2027.");
     expect(await step()).toBeNull();
+  });
+
+  it("on the recommended single payment, goes from the payment straight to the review and ends at the buyer's choice", async () => {
+    await svc.resetToSeed();
+    const ids: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const st = await step();
+      if (!st) break;
+      if (ids.at(-1) !== st.id) ids.push(st.id);
+      const state = await svc.getState();
+      if (st.systemAction) await svc.runSystemStep(st.systemAction);
+      else if (st.id === "send_follow_on") await svc.sendFollowOn();
+      else if (st.id === "buyer_accept" || st.id === "buyer_decide") {
+        const v = state.agreements.find((a) => a.status === "sent")!;
+        await svc.acceptAgreement(v.version, v.termsHash, true);
+        await svc.buyerCompleteSetup();
+      } else if (st.id === "buyer_setup") await svc.buyerCompleteSetup();
+      else {
+        const before = state.events.length;
+        await driveTo(svc, (x) => x.events.length !== before, 2, "preventive", { offer: "recommended" });
+      }
+      if (st.id === "buyer_decide") break;
+    }
+    expect(ids).toEqual(["send_questions", "buyer_reply", "use_answers", "review_buyer_proposal", "buyer_accept", "advance_to_review", "send_follow_on", "buyer_decide"]);
+    const s = await svc.getState();
+    expect(s.attempts.filter((a) => a.agreementVersion === 1).map((a) => a.status)).toEqual(["succeeded"]);
+    expect(s.agreements.at(-1)).toMatchObject({ version: 2, status: "active", continuesFrom: 1 });
   });
 });

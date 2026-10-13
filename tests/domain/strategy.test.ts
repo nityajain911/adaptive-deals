@@ -18,8 +18,8 @@ const largest = (offer: ReturnType<typeof feasible>[number]) => Math.max(...offe
 const total = (offer: ReturnType<typeof feasible>[number]) => sum(offer.structure.payments.map((payment) => payment.totalPaise));
 
 describe("deterministic recommendation strategies", () => {
-  it("recommends the two-payment phase for Protect contribution and Lower buyer commitment", () => {
-    expect(top("protect_contribution")).toBe("phased_scope:scope=web-search-report-3m,plan=two_monthly");
+  it("recommends the single-payment phase for Protect contribution (fewest payments when profit and cash are equal) and the two-payment phase for Lower buyer commitment", () => {
+    expect(top("protect_contribution")).toBe("phased_scope:scope=web-search-report-3m,plan=upfront");
     expect(top("lower_buyer_commitment")).toBe("phased_scope:scope=web-search-report-3m,plan=two_monthly");
   });
 

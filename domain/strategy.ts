@@ -74,7 +74,17 @@ function compareWith(comparators: Compare[]): Compare {
 }
 
 export function rankByStrategy(offers: EvaluatedStructure[], strategy: StrategyId, baseline: DealBaseline): EvaluatedStructure[] {
-  if (strategy === "protect_contribution") return rankFeasible(offers);
+  // The engine's own order (recorded with every run) is kept as it is. For the merchant's default priority, offers equal on profit and cash
+  // exposure are told apart by how many payments they need: every later collection is a collection risk, so fewer comes first.
+  if (strategy === "protect_contribution") {
+    return [...rankFeasible(offers)].sort((a, b) =>
+      approval(a) - approval(b) ||
+      b.economics.netContributionPaise - a.economics.netContributionPaise ||
+      a.economics.peakFundingPaise - b.economics.peakFundingPaise ||
+      a.structure.payments.length - b.structure.payments.length ||
+      largest(a) - largest(b) ||
+      a.structure.id.localeCompare(b.structure.id));
+  }
   return [...offers].sort(compareWith(strategyComparators(strategy, baseline)));
 }
 
