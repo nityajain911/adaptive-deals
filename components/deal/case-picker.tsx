@@ -52,9 +52,8 @@ export function CasePicker({ cards, activeCaseId, sentTo = null }: { cards: Case
                 >
                   <span className="flex items-start justify-between gap-2">
                     <span className="text-[15px] font-semibold text-ink">{item.buyer}</span>
-                    <span data-testid={`deal-status-${item.id}`} className="flex shrink-0 flex-col items-end gap-0.5">
+                    <span data-testid={`deal-status-${item.id}`} className="flex shrink-0 items-start">
                       <Badge tone={item.status.tone}>{item.status.label}</Badge>
-                      {item.current ? <span className="text-[11px] text-muted">Open now</span> : null}
                     </span>
                   </span>
                   <span className="text-[13px] text-muted">{item.title}</span>

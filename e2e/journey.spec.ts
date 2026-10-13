@@ -985,7 +985,8 @@ test("active deals · all three deals are held at once, each with its own progre
   expect(state().caseId).toBe("no-fit");
   await page.goto("/deals");
   await expect(page.getByTestId("deal-status-reduced-scope")).toContainText("Waiting on buyer");
-  await expect(page.getByTestId("deal-status-no-fit")).toContainText("Open now");
+  // Every row is the same height: the deal that is open is not marked in its row (the selected row is highlighted).
+  await expect(page.getByTestId("deal-status-no-fit")).not.toContainText("Open now");
   // Coming back finds exactly where it was.
   await page.getByTestId("select-case-reduced-scope").click();
   await expect(page.getByTestId("start-selected-case")).toHaveText(/Open deal/);
