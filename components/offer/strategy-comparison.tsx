@@ -19,8 +19,8 @@ export function sameLeaderNotes(rows: { id: StrategyId; leaderId: string | null 
 }
 
 /** What each strategy would recommend for this deal, computed by code from the same feasible offers. */
-export function StrategyComparison({ feasible, baseline, current }: { feasible: EvaluatedStructure[]; baseline: DealBaseline; current: StrategyId }) {
-  const rows = STRATEGY_IDS.map((id) => ({ id, view: strategyView(feasible, id, baseline) }));
+export function StrategyComparison({ feasible, baseline, current, canWait = [] }: { feasible: EvaluatedStructure[]; baseline: DealBaseline; current: StrategyId; canWait?: readonly string[] }) {
+  const rows = STRATEGY_IDS.map((id) => ({ id, view: strategyView(feasible, id, baseline, canWait) }));
   const notes = sameLeaderNotes(rows.map(({ id, view }) => ({ id, leaderId: view.leader?.structure.id ?? null })));
   const distinct = new Set(rows.map(({ view }) => view.leader?.structure.id).filter(Boolean)).size;
   return (

@@ -66,11 +66,13 @@ export function buildReevaluationPreview(args: {
   /** The deal's own strategy decides what 'the recommendation' is. */
   strategy: StrategyId;
   baseline: DealBaseline;
+  /** Services the buyer said can wait; an offer that leaves them out is the recommendation, as on the offer screen. */
+  canWait?: readonly string[];
 }): ReevaluationPreview {
   const inputChanges = args.afterInput ? changedInputs(args.beforeInput, args.afterInput) : [];
   const before = feasibleIds(args.beforeEvaluation);
   const after = args.afterEvaluation ? feasibleIds(args.afterEvaluation) : null;
-  const topOf = (evaluation: DealEvaluation | null) => (evaluation?.result ? strategyView(evaluation.result.feasible, args.strategy, args.baseline).leader?.structure.id ?? null : null);
+  const topOf = (evaluation: DealEvaluation | null) => (evaluation?.result ? strategyView(evaluation.result.feasible, args.strategy, args.baseline, args.canWait).leader?.structure.id ?? null : null);
   const beforeTop = topOf(args.beforeEvaluation);
   const afterTop = topOf(args.afterEvaluation);
   return {

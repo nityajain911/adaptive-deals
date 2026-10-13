@@ -42,8 +42,13 @@ const scope = (offer: EvaluatedStructure, baseline: DealBaseline) => listValueOf
 
 type Compare = (a: EvaluatedStructure, b: EvaluatedStructure) => number;
 
-function strategyComparators(strategy: StrategyId, baseline: DealBaseline): Compare[] {
+/** How many of the services the buyer said can wait an offer would start now. */
+const startsWaiting = (offer: EvaluatedStructure, canWait: readonly string[]) => offer.structure.scope.filter((item) => canWait.includes(item.packageId)).length;
+
+function strategyComparators(strategy: StrategyId, baseline: DealBaseline, canWait: readonly string[] = []): Compare[] {
   const keys: Record<string, Compare> = {
+    // A service the buyer said can wait is not what they asked to start with: offers that leave it out come first under the default priority (earn the most) and under smaller payments. The owner's two explicit choices, keeping the full project and spending the least up front, are theirs and may include it.
+    waiting: (a, b) => startsWaiting(a, canWait) - startsWaiting(b, canWait),
     approval: (a, b) => approval(a) - approval(b),
     contribution: (a, b) => b.economics.netContributionPaise - a.economics.netContributionPaise,
     cash: (a, b) => a.economics.peakFundingPaise - b.economics.peakFundingPaise,
@@ -55,10 +60,10 @@ function strategyComparators(strategy: StrategyId, baseline: DealBaseline): Comp
     id: (a, b) => a.structure.id.localeCompare(b.structure.id),
   };
   const order: Record<StrategyId, string[]> = {
-    protect_contribution: ["approval", "contribution", "cash", "largest", "id"],
+    protect_contribution: ["approval", "waiting", "contribution", "cash", "largest", "id"],
     preserve_scope: ["scope", "contribution", "cash", "largest", "id"],
     minimise_cash_exposure: ["cash", "contribution", "largest", "id"],
-    lower_buyer_commitment: ["approval", "discount", "largest", "total", "start", "id"],
+    lower_buyer_commitment: ["approval", "waiting", "discount", "largest", "total", "start", "id"],
   };
   return order[strategy].map((key) => keys[key]!);
 }
@@ -73,19 +78,20 @@ function compareWith(comparators: Compare[]): Compare {
   };
 }
 
-export function rankByStrategy(offers: EvaluatedStructure[], strategy: StrategyId, baseline: DealBaseline): EvaluatedStructure[] {
+export function rankByStrategy(offers: EvaluatedStructure[], strategy: StrategyId, baseline: DealBaseline, canWait: readonly string[] = []): EvaluatedStructure[] {
   // The engine's own order (recorded with every run) is kept as it is. For the merchant's default priority, offers equal on profit and cash
   // exposure are told apart by how many payments they need: every later collection is a collection risk, so fewer comes first.
   if (strategy === "protect_contribution") {
     return [...rankFeasible(offers)].sort((a, b) =>
       approval(a) - approval(b) ||
+      startsWaiting(a, canWait) - startsWaiting(b, canWait) ||
       b.economics.netContributionPaise - a.economics.netContributionPaise ||
       a.economics.peakFundingPaise - b.economics.peakFundingPaise ||
       a.structure.payments.length - b.structure.payments.length ||
       largest(a) - largest(b) ||
       a.structure.id.localeCompare(b.structure.id));
   }
-  return [...offers].sort(compareWith(strategyComparators(strategy, baseline)));
+  return [...offers].sort(compareWith(strategyComparators(strategy, baseline, canWait)));
 }
 
 function addExtremum(args: {
@@ -124,13 +130,13 @@ export function factsFor(offer: EvaluatedStructure, among: EvaluatedStructure[],
   return facts;
 }
 
-export function strategyView(feasible: EvaluatedStructure[], strategy: StrategyId, baseline: DealBaseline): StrategyView {
+export function strategyView(feasible: EvaluatedStructure[], strategy: StrategyId, baseline: DealBaseline, canWait: readonly string[] = []): StrategyView {
   const undiscounted = feasible.filter((offer) => offer.structure.discountBps === 0);
   const discounted = feasible
     .filter((offer) => offer.structure.discountBps > 0)
-    .sort(compareWith([(a, b) => a.structure.discountBps - b.structure.discountBps, ...strategyComparators(strategy, baseline)]));
+    .sort(compareWith([(a, b) => a.structure.discountBps - b.structure.discountBps, ...strategyComparators(strategy, baseline, canWait)]));
   const mode: StrategyView["mode"] = undiscounted.length ? "standard" : feasible.length ? "discount_only" : "none";
-  const ranked = mode === "standard" ? rankByStrategy(undiscounted, strategy, baseline) : [];
+  const ranked = mode === "standard" ? rankByStrategy(undiscounted, strategy, baseline, canWait) : [];
   const leader = ranked[0] ?? null;
   const comparisonSet = mode === "standard" ? ranked : discounted;
   return {

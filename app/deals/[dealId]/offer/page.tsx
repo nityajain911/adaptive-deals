@@ -199,14 +199,15 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
   // Recommendation (current): review or review-updated. Code ranks the feasible offers by the deal's strategy.
   const eligible = r ? eligibleStructures(s, r.structures) : [];
   const feasible = strategyFeasibleOf(s, out);
-  const view = strategyView(feasible, s.economics.strategy, baseline);
+  const canWait = out.profile.optionalPackages.value ?? [];
+  const view = strategyView(feasible, s.economics.strategy, baseline, canWait);
   // The merchant's live counter-offer is theirs, shown first and never part of the ranked list.
   const liveCounter = s.counterOffers.at(-1) ?? null;
   // Only a total the merchant typed is "your counter-offer"; an offer the engine listed is shown as the merchant's selection.
   const activeCounter = liveCounter && liveCounter.source !== "listed_offer" && liveCounter.source !== "scope_change" && s.selectedOption?.structureId === liveCounter.evaluated.structure.id ? liveCounter : null;
   const selectedId = s.selectedOption && eligible.some((e) => e.structure.id === s.selectedOption!.structureId) ? s.selectedOption.structureId : view.leader?.structure.id;
   const x = eligible.find((e) => e.structure.id === selectedId);
-  const priorityRows = STRATEGY_IDS.map((id) => ({ id, leaderId: strategyView(feasible, id, baseline).leader?.structure.id ?? null }));
+  const priorityRows = STRATEGY_IDS.map((id) => ({ id, leaderId: strategyView(feasible, id, baseline, canWait).leader?.structure.id ?? null }));
   const control = <StrategyControl key={s.economics.strategy} current={s.economics.strategy} resultNote={selectedId === view.leader?.structure.id ? priorityResultNote(priorityRows, s.economics.strategy) : null} />;
   if (!x && view.mode === "discount_only" && r) {
     // Nothing fits at the quoted prices. A discount is permitted, never recommended, so none is called recommended.
@@ -345,7 +346,7 @@ export default async function OfferPage(props: PageProps<"/deals/[dealId]/offer"
             {standard ? (
               <details className="rounded-[var(--radius-card)] border border-line bg-surface" data-testid="other-options">
                 <summary className="cursor-pointer px-4 py-3 text-[13px] font-semibold text-ink">What each priority would suggest</summary>
-                <div className="border-t border-line px-1 py-3 sm:px-3"><StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} /></div>
+                <div className="border-t border-line px-1 py-3 sm:px-3"><StrategyComparison feasible={feasible} baseline={baseline} current={s.economics.strategy} canWait={canWait} /></div>
               </details>
             ) : null}
           </div>

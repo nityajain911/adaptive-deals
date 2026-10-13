@@ -141,9 +141,10 @@ test.describe.configure({ mode: "serial" });
 test("P0 · every clarification combination produces its engine decision and truthful provenance after reload", async ({ page }) => {
   const cases = [
     { gst: "clar-gst-yes", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=upfront", recorded: true },
-    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "shorter_commitment:term_months=3,plan=upfront", recorded: false },
-    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
-    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "split_payment:plan=quarterly_4", recorded: false },
+    // Whatever the answers, the pilot the chat describes stays the suggestion: social media was said to wait.
+    { gst: "clar-gst-no", approval: "clar-approval-contract", expected: "phased_scope:scope=web-search-report-3m,plan=upfront", recorded: false },
+    { gst: "clar-gst-yes", approval: "clar-approval-payment", expected: "phased_scope:scope=web-search-report-3m,plan=upfront", recorded: false },
+    { gst: "clar-gst-no", approval: "clar-approval-payment", expected: "phased_scope:scope=web-search-report-3m,plan=upfront", recorded: false },
   ] as const;
 
   for (const c of cases) {

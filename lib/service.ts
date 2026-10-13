@@ -582,6 +582,7 @@ async function reevaluationParts(s: DemoState, toVersion?: number, candidate?: B
       : null,
     strategy: s.economics.strategy,
     baseline: s.baseline,
+    canWait: beforeOutcome.profile.optionalPackages.value ?? [],
   });
   return { target, afterDeal, afterEvaluation, prospectiveHash, preview };
 }
@@ -920,7 +921,7 @@ async function applySelection(s: DemoState, structureId: string, opts: { explici
  * counter-offer is never part of it: it is the merchant's own choice, shown apart.
  */
 export function strategyViewOf(s: DemoState, out: RunOutcome): StrategyView {
-  return strategyView(strategyFeasibleOf(s, out), s.economics.strategy, s.baseline);
+  return strategyView(strategyFeasibleOf(s, out), s.economics.strategy, s.baseline, out.profile.optionalPackages.value ?? []);
 }
 
 /** The feasible offers every strategy ranks: the engine's approvable offers, without any counter-offer. */
