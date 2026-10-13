@@ -184,7 +184,7 @@
           },
           {
             "key": "other_constraint",
-            "raw_text": "we'll go ahead with the rest of the year",
+            "raw_text": "enquiries are up by about 20 a month by month three",
             "evidence_quote": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year",
             "message_id": "reduced-7",
             "confidence": "high"
@@ -427,8 +427,8 @@
         "key": "other_0",
         "label": "Other constraint",
         "status": "stated",
-        "display": "we'll go ahead with the rest of the year",
-        "rawText": "we'll go ahead with the rest of the year",
+        "display": "enquiries are up by about 20 a month by month three",
+        "rawText": "enquiries are up by about 20 a month by month three",
         "evidence": [
           {
             "quote": "If enquiries are up by about 20 a month by month three, we'll go ahead with the rest of the year",

@@ -6,7 +6,7 @@ import { interpretExtraction } from "@/ai/extract";
 import type { RunRecord } from "@/ai/run-record";
 import { FixedClock } from "@/domain/clock";
 import { canonicalJson } from "@/domain/agreement";
-import { allDemoCases, demoCase, type CaseId } from "@/data/synthetic/cases";
+import { allDemoCases, demoCase, scriptedReplyText, type CaseId } from "@/data/synthetic/cases";
 import { heroMessages } from "@/data/synthetic/hero";
 
 const CASE_IDS: CaseId[] = ["reduced-scope", "preserve-scope", "no-fit"];
@@ -116,6 +116,16 @@ describe("commercial demo case catalog", () => {
     }).profile;
     expect(profile.latestStart).toMatchObject({ status: "stated", value: { value: "2026-10-15", precision: "day" }, unit: "day" });
     expect(profile.requiredPackages.value).toEqual(["website-fixes", "search-marketing", "social-media", "monthly-reporting"]);
+  });
+
+  it("gives the simulated buyer this case's own words, each carrying the recorded answer verbatim so the recorded run still continues", () => {
+    const item = demoCase("reduced-scope")!;
+    const answers = item.expected.recordedAnswers;
+    expect(Object.keys(item.replyScripts!)).toEqual(expect.arrayContaining(["clar-gst-yes", "clar-approval-contract"]));
+    expect(item.replyScripts!["clar-gst-yes"]).toContain(answers.find((a) => a.questionId === "clar-gst")!.answerText);
+    expect(item.replyScripts!["clar-approval-contract"]).toContain(answers.find((a) => a.questionId === "clar-approval")!.answerText);
+    expect(scriptedReplyText("reduced-scope", { id: "clar-gst-yes", text: "shared" })).toMatch(/^Divya:/);
+    expect(scriptedReplyText("no-fit", { id: "clar-gst-yes", text: "shared" })).toBe("shared");
   });
 
   it("matches required and optional package evidence to the shared catalog", () => {

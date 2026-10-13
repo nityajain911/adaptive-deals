@@ -376,7 +376,7 @@ test("the walkthrough on the recommended single payment ends when the buyer carr
   // One payment, so the guide goes straight to the review: no notice, no moved payment.
   await expect(guide(page)).toContainText("Advance simulated date to 1 Feb 2027");
   await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
-  await api(page, { action: "send_follow_on" });
+  await api(page, { action: "send_follow_on", conditionMet: true });
   await page.goto("/deals/hero/track");
   await expect(guide(page)).toContainText("the buyer chooses on the proposal page: accept and pay, or stop here");
   const v2 = state().agreements.at(-1)!;
@@ -408,7 +408,7 @@ test("the walkthrough on the recommended single payment ends when the buyer carr
   await api(page, { action: "accept_agreement", version: again.version, termsHash: again.termsHash, authorityConfirmed: true });
   await api(page, { action: "buyer_complete_setup" });
   await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
-  await api(page, { action: "send_follow_on" });
+  await api(page, { action: "send_follow_on", conditionMet: true });
   const next = state().agreements.at(-1)!;
   expect(next.version).toBe(v2.version);
   await api(page, { action: "accept_agreement", version: next.version, termsHash: next.termsHash, authorityConfirmed: true });
@@ -418,6 +418,34 @@ test("the walkthrough on the recommended single payment ends when the buyer carr
   const carried = guide(page).getByTestId("walkthrough-finish");
   await expect(carried).toContainText("Walkthrough complete");
   await expect(carried).toContainText("After the review, the rest of the year went out as version 2 and the buyer accepted it. It is the second and last phase.");
+});
+
+test("the owner can find the buyer's condition not met at the review, and close after the first phase", async ({ page }) => {
+  await reset(page);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  // Sending needs the owner's confirmation; the product does not decide whether the condition was met.
+  const refused = await page.request.post("/api/actions", { data: { action: "send_follow_on" } });
+  expect((await refused.json()).ok).toBe(false);
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("follow-on-condition")).toBeVisible();
+  await page.getByTestId("close-follow-on").click();
+  await expect(page.getByTestId("status-headline")).toContainText("You chose not to send the rest of the year because their condition was not met.");
+  await openGuide(page);
+  const finish = guide(page).getByTestId("walkthrough-finish");
+  await expect(finish).toContainText("Walkthrough ended");
+  await expect(finish).toContainText("After the review you did not send the rest of the year, because their condition was not met.");
+  expect(state().agreements).toHaveLength(1);
+  expect(state().attempts.filter((a) => a.status === "succeeded")).toHaveLength(1);
 });
 
 test("the first screen opens with the problem, not the product", async ({ page }) => {

@@ -22,6 +22,8 @@ export interface DemoCase {
   bundledRunPath: string;
   deal: DealContext;
   quote: { prePaise: number };
+  /** The simulated buyer's replies in this case's own voices. Only the words change: the meaning each reply carries (its answer value) does not. */
+  replyScripts?: Partial<Record<string, string>>;
   expected: {
     extraction: ExtractionOutput;
     engineState: "options_ready" | "no_feasible_deal";
@@ -123,6 +125,14 @@ const catalog: Record<CaseId, DemoCase> = {
     provenance: "Synthetic scenario",
     bundledRunPath: "data/synthetic/replay/reduced-scope-synthetic-run.json",
     quote: { prePaise: 12_000_000 },
+    replyScripts: {
+      "clar-gst-yes": "Divya: Yes, both amounts include GST. Finance confirmed it this morning.",
+      "clar-gst-no": "Divya: No, both amounts exclude GST. Those are the pre-GST figures.",
+      "clar-gst-unclear": "Divya: The ₹50,000 includes GST, but I'm not sure about the ₹60,000 limit. Let me check.",
+      "clar-approval-contract": "Kabir: ₹60,000 is per contract. Above that, our MD signs.",
+      "clar-approval-payment": "Kabir: ₹60,000 is per payment. Anything bigger needs our MD each time.",
+      "clar-approval-unclear": "Kabir: I'm not sure yet whether the ₹60,000 is per payment or for the whole contract.",
+    },
     deal: sharedDeal("case-reduced-scope", [
       {
         id: "reduced-1",
@@ -307,4 +317,9 @@ export function demoCase(id: string): DemoCase | null {
 
 export function allDemoCases(): DemoCase[] {
   return CASE_IDS.map((id) => demoCase(id)!);
+}
+
+/** What the simulated buyer says for a scripted reply in this case: the case's own words when it has them, otherwise the shared script. */
+export function scriptedReplyText(caseId: string, script: { id: string; text: string }): string {
+  return catalog[caseId as CaseId]?.replyScripts?.[script.id] ?? script.text;
 }

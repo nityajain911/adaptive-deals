@@ -1,7 +1,7 @@
 import { DEMO_ANCHOR, SimulatedClock } from "@/domain/clock";
 import { compareDates, formatDate, localDateOf } from "@/domain/dates";
 import { heroScriptedReplies } from "@/data/synthetic/hero";
-import { demoCase } from "@/data/synthetic/cases";
+import { demoCase, scriptedReplyText } from "@/data/synthetic/cases";
 import { isDelivered } from "./deal-records";
 import type { DealProgress } from "./progress";
 import type { DemoState } from "./service";
@@ -117,7 +117,7 @@ export function replyContext(s: DemoState): { inReplyTo: string; label: string; 
   if (s.status === "clarifying") {
     const q = s.conversation.find((i) => i.kind === "clarification" && i.sentAt && !replied(i.id));
     if (!q) return null;
-    return { inReplyTo: q.id, label: q.text, scripts: heroScriptedReplies.filter((r) => r.context === "clarification" && "questionId" in r && r.questionId === q.refs.questionId).map((r) => ({ id: r.id, text: r.text })) };
+    return { inReplyTo: q.id, label: q.text, scripts: heroScriptedReplies.filter((r) => r.context === "clarification" && "questionId" in r && r.questionId === q.refs.questionId).map((r) => ({ id: r.id, text: scriptedReplyText(s.caseId, r) })) };
   }
   const notice = [...s.conversation].reverse().find((i) => i.kind === "notice" && i.sentAt);
   if (!notice || replied(notice.id)) return null;

@@ -42,6 +42,7 @@ export function performanceView(args: { s: DemoState; out: Outcome; deal: DealCo
     else if (o.type === "buyer_requested_change") label = `Buyer requested a change to version ${o.version}`;
     else if (o.type === "buyer_declined" && s.agreements.find((v) => v.version === o.version)?.continuesFrom) label = `Buyer chose to stop after the first phase${o.reasonCode ? ` · ${BUYER_DECLINE_REASONS[o.reasonCode as BuyerDeclineReason]}` : ""}`;
     else if (o.type === "buyer_declined") label = `Buyer declined${o.reasonCode ? ` · ${BUYER_DECLINE_REASONS[o.reasonCode as BuyerDeclineReason]}` : ""}`;
+    else if (o.type === "merchant_closed" && s.followOnClosed) label = "You closed after the first phase: their condition was not met";
     else if (o.type === "merchant_closed") label = `Merchant closed the deal${o.reasonCode ? ` · ${MERCHANT_CLOSE_REASONS[o.reasonCode as MerchantCloseReason]}` : ""}`;
     else label = "Merchant selected an alternative offer";
     return { id: o.id, label, at: o.at };

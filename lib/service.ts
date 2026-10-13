@@ -36,7 +36,7 @@ import type { RecordedAnswer, RunRecord } from "@/ai/run-record";
 import { SyntheticAuthoredProvider } from "@/ai/synthetic-provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
 import { heroClarificationAnswers, heroDemoEvents, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
-import { allDemoCases, DEFAULT_CASE_ID, demoCase, type CaseId, type DemoCase } from "@/data/synthetic/cases";
+import { allDemoCases, DEFAULT_CASE_ID, demoCase, scriptedReplyText, type CaseId, type DemoCase } from "@/data/synthetic/cases";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
@@ -140,6 +140,8 @@ export interface DemoState {
   replySuggestions?: ReplySuggestion[];
   /** The rest of the year, once the merchant has sent it after the review: the version and the structure the engine checked. */
   followOnSale?: { version: number; evaluated: EvaluatedStructure; sentAt: string };
+  /** The merchant chose not to send the rest of the year because the buyer's condition was not met. The deal closes after the first phase. */
+  followOnClosed?: { at: string; reason: "condition_not_met" };
   interpretations: Interpretation[];
   /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
   decisionBranch: DecisionBranch | null;
@@ -1191,7 +1193,7 @@ export type FollowOnStanding = { state: "waiting_review" | "due" | "lapsed"; rev
 
 async function followOnStandingOf(s: DemoState, active: AgreementVersion | null, deal: ReturnType<typeof dealContextFor>, paid: boolean): Promise<FollowOnStanding | null> {
   const held = active?.terms.followOn;
-  if (!active || !held || s.followOnSale || s.status !== "active" || !paid) return null;
+  if (!active || !held || s.followOnSale || s.followOnClosed || s.status !== "active" || !paid) return null;
   const today = localDateOf(clockOf(s).now(), deal.merchant.timeZone);
   return { state: followOnStandingOn(held, today), reviewDate: held.reviewDate, heldUntil: held.heldUntil, totalPaise: held.pricing.totalPaise };
 }
@@ -1201,7 +1203,7 @@ async function followOnStandingOf(s: DemoState, active: AgreementVersion | null,
  * as it was held. It is checked by the same engine again, against today's rate card; if the held price no longer matches, it is
  * not sent. The buyer then accepts and pays on their own page, with a payment setup of its own.
  */
-export async function sendFollowOn(): Promise<DemoState> {
+export async function sendFollowOn(opts: { conditionMet?: boolean } = {}): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
@@ -1217,6 +1219,9 @@ export async function sendFollowOn(): Promise<DemoState> {
     if (standing.state === "lapsed") throw new ActionError(`The held price ran out on ${formatDate(standing.heldUntil)}`);
 
     const out = await currentOutcome(s, deal);
+    // The buyer's own go-ahead test is the merchant's to judge. The product shows it, asks, and records the answer; it never decides.
+    const condition = buyerConditionOf(out);
+    if (condition && opts.conditionMet !== true) throw new ActionError("Confirm that their condition was met before sending the rest of the year");
     const evaluated = evaluateFollowOn(held, constraintsOf(out), deal);
     if (!evaluated.approvable) throw new ActionError("The rest of the year no longer passes your rules at today's prices");
     if (evaluated.structure.pricePaise !== held.pricing.prePaise) throw new ActionError("Your prices changed since this was held, so it no longer matches what you offered");
@@ -1232,7 +1237,36 @@ export async function sendFollowOn(): Promise<DemoState> {
     const msg = sendCode(s, "proposal", proposalMessageText(v.terms, version, proposalLink(v)), { agreementVersion: version });
     s.deliveries.push({ version, idempotencyKey: key, kind: "proposal", attempts: [{ attemptId: `${key}_a1`, at: clockOf(s).now(), status: "sent", failureReason: null }], deliveredAt: clockOf(s).now(), reference: msg.id });
     setStatus(s, "sent", "The rest of the year was sent after the review");
-    event(s, "follow_on_sent", `The rest of the year sent as version ${version}`, "merchant", `Held until ${held.heldUntil} · ${formatINR(held.pricing.totalPaise)} including GST · terms hash ${v.termsHash}`);
+    event(s, "follow_on_sent", `The rest of the year sent as version ${version}`, "merchant", `Held until ${held.heldUntil} · ${formatINR(held.pricing.totalPaise)} including GST · terms hash ${v.termsHash}${condition ? ` · the merchant confirmed their condition was met: “${condition}”` : ""}`);
+  });
+}
+
+/** The buyer's own go-ahead condition, in their words, when they set one. */
+export function buyerConditionOf(out: Pick<RunOutcome, "profile">): string | null {
+  return out.profile.otherConstraints.find((field) => field.status === "stated" && field.rawText)?.rawText ?? null;
+}
+
+/**
+ * The review, the other way: their condition was not met, so the merchant does not send the rest of the year. The held price is
+ * let go, nothing more is due, and the deal closes after the first phase, which stays sold and paid.
+ */
+export async function closeFollowOn(): Promise<DemoState> {
+  const before = await getState();
+  const deal = dealContextFor(before, await pinnedEconomicsOf(before));
+  return mutate(async (s) => {
+    assertNoReview(s);
+    const active = activeVersion(s);
+    const held = active?.terms.followOn;
+    if (!active || !held) throw new ActionError("There is no held offer to close");
+    if (s.followOnSale) throw new ActionError("The rest of the year has already been sent");
+    if (s.followOnClosed) throw new ActionError("The rest of the year is already closed");
+    const standing = await followOnStandingOf(s, active, deal, await fullyPaidOf(s, active, deal));
+    if (!standing) throw new ActionError("The first phase must be paid in full before the review");
+    if (standing.state === "waiting_review") throw new ActionError(`The review is on ${formatDate(standing.reviewDate)}`);
+    const condition = buyerConditionOf(await currentOutcome(s, deal));
+    s.followOnClosed = { at: clockOf(s).now(), reason: "condition_not_met" };
+    outcome(s, { type: "merchant_closed", reasonCode: "other", note: condition ? `Their condition was not met: ${condition}` : "Their condition was not met", actor: "merchant", version: active.version, source: null });
+    event(s, "follow_on_closed", "The rest of the year was not sent: their condition was not met", "merchant", `The first phase stays paid and the deal closes after it${condition ? ` · their condition: “${condition}”` : ""}`);
   });
 }
 
@@ -1604,7 +1638,7 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
  * Record a simulated buyer reply and act on code's classification. Used identically for
  * pre-scripted and typed replies, and for replay and live-run states: no model is called.
  */
-function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
+function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; answerQuote?: string; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
   if (Date.parse(args.at) > Date.parse(clockOf(s).now())) advanceTo(s, args.at, "Simulated: buyer reply arrives");
   const at = Date.parse(args.at) < Date.parse(clockOf(s).now()) ? clockOf(s).now() : args.at;
   let reply: ConversationItem;
@@ -1614,7 +1648,7 @@ function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; 
     if (e instanceof ConversationError) throw new ActionError(e.message);
     throw e;
   }
-  if (args.answerValue) reply = { ...reply, refs: { ...reply.refs, answerValue: args.answerValue } };
+  if (args.answerValue) reply = { ...reply, refs: { ...reply.refs, answerValue: args.answerValue, ...(args.answerQuote && reply.text.includes(args.answerQuote) ? { answerQuote: args.answerQuote } : {}) } };
   s.conversation.push(reply);
   const target = s.conversation.find((i) => i.id === reply.inReplyTo)!;
   s.extraMessages.push({ id: reply.id, dealId: s.dealId, author: "buyer", text: reply.text, timestamp: reply.createdAt, source: "whatsapp", inReplyTo: target.refs.noticeId ?? target.id });
@@ -1720,7 +1754,7 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
       if ("questionId" in sc && sc.questionId !== target.refs.questionId) throw new ActionError("That scripted reply answers a different question");
       const recorded =
         sc.context === "clarification" && "answerValue" in sc
-          ? sourceRecord(s).inputs.answers.find((answer) => answer.questionId === target.refs.questionId && answer.value === sc.answerValue && answer.answerText === sc.text)
+          ? sourceRecord(s).inputs.answers.find((answer) => answer.questionId === target.refs.questionId && answer.value === sc.answerValue)
           : null;
       const at =
         sc.context === "clarification"
@@ -1728,7 +1762,7 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
           : sc.context === "notice"
             ? heroDemoEvents.preventiveReplyAt
             : clockOf(s).now();
-      applyBuyerReply(s, { inReplyTo: target.id, text: sc.text, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined });
+      applyBuyerReply(s, { inReplyTo: target.id, text: scriptedReplyText(s.caseId, sc), at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text });
       return;
     }
     if (!args.text?.trim()) throw new ActionError("Choose a scripted reply or type one");
@@ -1773,7 +1807,7 @@ export async function adoptRepliesAsAnswers(): Promise<DemoState> {
     if (!reply.refs.answerValue) throw new ActionError(`Record the answer to “${q.question}” manually: typed replies are not interpreted`);
     // An interpreted reply is recorded with the merchant-selected verbatim quote (merchant judgement).
     const quote = s.interpretations.find((x) => x.messageId === reply.id)?.quote;
-    return { questionId: q.id, value: reply.refs.answerValue, answerText: quote ?? reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
+    return { questionId: q.id, value: reply.refs.answerValue, answerText: quote ?? reply.refs.answerQuote ?? reply.text, confirmedByBuyerVia: "whatsapp", answeredAt: reply.createdAt };
   });
   return recordAnswers(inputs);
 }
@@ -2328,7 +2362,7 @@ export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
     return mutate(async (s) => {
       const active = activeVersion(s);
       const held = active?.terms.followOn;
-      if (!active || !held || s.followOnSale) throw new ActionError("There is no review to move to");
+      if (!active || !held || s.followOnSale || s.followOnClosed) throw new ActionError("There is no review to move to");
       if (!(await fullyPaidOf(s, active, deal))) throw new ActionError("Collect every payment of the first phase before the review");
       advanceTo(s, at10(held.reviewDate), "Simulated: the month-three review date");
     });

@@ -38,7 +38,7 @@ describe("the month-three review", () => {
   it("waits for the review, and refuses to send before it", async () => {
     await firstPhasePaid();
     expect((await progress()).rule).toBe("track.follow_on_waiting");
-    await expect(svc.sendFollowOn()).rejects.toThrow(/The review is on 1 Feb 2027/);
+    await expect(svc.sendFollowOn({ conditionMet: true })).rejects.toThrow(/The review is on 1 Feb 2027/);
   });
 
   it("is due on the review date, with one action for the merchant", async () => {
@@ -55,7 +55,7 @@ describe("the month-three review", () => {
     await firstPhasePaid();
     await svc.runSystemStep("advance_to_review");
     const held = (await svc.getState()).agreements.find((v) => v.status === "active" && v.terms.followOn)!.terms.followOn!;
-    const s = await svc.sendFollowOn();
+    const s = await svc.sendFollowOn({ conditionMet: true });
     const v3 = s.agreements.at(-1)!;
     expect(v3).toMatchObject({ version: 3, status: "sent", continuesFrom: 2 });
     expect(v3.terms.followOn).toBeUndefined(); // two phases only: nothing is held after this
@@ -71,13 +71,13 @@ describe("the month-three review", () => {
     expect(v3.merchantApproval?.termsHash).toBe(v3.termsHash);
     expect(s.status).toBe("sent");
     expect((await progress()).rule).toBe("track.sent_awaiting_buyer");
-    await expect(svc.sendFollowOn()).rejects.toThrow(/already been sent/);
+    await expect(svc.sendFollowOn({ conditionMet: true })).rejects.toThrow(/already been sent/);
   });
 
   it("is accepted and paid on the buyer's page, then collected on its own dates, and the deal closes in the second phase", async () => {
     await firstPhasePaid();
     await svc.runSystemStep("advance_to_review");
-    await svc.sendFollowOn();
+    await svc.sendFollowOn({ conditionMet: true });
     let s = await svc.getState();
     const v3 = s.agreements.at(-1)!;
     // The attestation of internal approval is part of accepting, because the rest of the year is above the buyer's approval limit.
@@ -100,7 +100,7 @@ describe("the month-three review", () => {
   it("moves a payment of the rest of the year the same way as the first phase's, and still closes when both phases are collected", async () => {
     await firstPhasePaid();
     await svc.runSystemStep("advance_to_review");
-    await svc.sendFollowOn();
+    await svc.sendFollowOn({ conditionMet: true });
     const v3 = (await svc.getState()).agreements.at(-1)!;
     await svc.acceptAgreement(v3.version, v3.termsHash, true);
     await svc.buyerCompleteSetup();
@@ -142,7 +142,7 @@ describe("one payment, then the buyer's choice at the review", () => {
   it("lets the buyer stop here: the deal closes after the first phase, which stays paid, and nothing more can be sent", async () => {
     await paidInOneGo();
     await svc.runSystemStep("advance_to_review");
-    await svc.sendFollowOn();
+    await svc.sendFollowOn({ conditionMet: true });
     const v3 = (await svc.getState()).agreements.at(-1)!;
     await svc.declineAgreement(v3.version, "budget");
     const s = await svc.getState();
@@ -153,13 +153,13 @@ describe("one payment, then the buyer's choice at the review", () => {
     expect(p).toMatchObject({ rule: "track.stopped_after_first", kind: "terminal", headline: "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here." });
     expect(p.stages.track).toBe("completed");
     expect(s.events.at(-1)?.title).toBe(`The buyer chose to stop after the first phase (version ${v3.version})`);
-    await expect(svc.sendFollowOn()).rejects.toThrow();
+    await expect(svc.sendFollowOn({ conditionMet: true })).rejects.toThrow();
   });
 
   it("lets the buyer carry on: accept and pay, a setup of its own, and the deal closes in the second phase", async () => {
     await paidInOneGo();
     await svc.runSystemStep("advance_to_review");
-    await svc.sendFollowOn();
+    await svc.sendFollowOn({ conditionMet: true });
     const v3 = (await svc.getState()).agreements.at(-1)!;
     await svc.acceptAgreement(v3.version, v3.termsHash, true);
     await svc.buyerCompleteSetup();
@@ -167,5 +167,35 @@ describe("one payment, then the buyer's choice at the review", () => {
     await svc.simulate("debit_succeeded");
     await svc.simulate("debit_succeeded");
     expect(await progress()).toMatchObject({ rule: "track.fully_paid", headline: "Both phases collected. This deal is complete." });
+  });
+
+  it("asks the owner about the buyer's own condition: sending needs the confirmation, and 'not met' closes after the first phase", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    const s0 = await svc.getState();
+    const out = await svc.currentOutcome(s0);
+    expect(svc.buyerConditionOf(out)).toContain("enquiries are up by about 20 a month by month three");
+    // The product shows the condition and asks; it never decides, and it will not send on its own reading.
+    await expect(svc.sendFollowOn()).rejects.toThrow(/Confirm that their condition was met/);
+    await expect(svc.sendFollowOn({ conditionMet: false })).rejects.toThrow(/Confirm that their condition was met/);
+    expect((await svc.getState()).agreements).toHaveLength(1);
+
+    const s = await svc.closeFollowOn();
+    expect(s.followOnClosed).toMatchObject({ reason: "condition_not_met" });
+    expect(s.agreements).toHaveLength(1);
+    expect(s.attempts.filter((a) => a.status === "succeeded")).toHaveLength(1);
+    const p = await progress();
+    expect(p).toMatchObject({ rule: "track.follow_on_closed", kind: "terminal" });
+    expect(p.headline).toBe("You chose not to send the rest of the year because their condition was not met. Nothing more is due, and the deal closes after the first phase.");
+    expect(p.stages.track).toBe("completed");
+    await expect(svc.sendFollowOn({ conditionMet: true })).rejects.toThrow();
+    await expect(svc.closeFollowOn()).rejects.toThrow(/already closed/);
+  });
+
+  it("records, with their words, that the owner confirmed the condition when sending", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    const s = await svc.sendFollowOn({ conditionMet: true });
+    expect(s.events.find((e) => e.kind === "follow_on_sent")?.detail).toContain("the merchant confirmed their condition was met: “");
   });
 });

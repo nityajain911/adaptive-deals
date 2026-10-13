@@ -245,6 +245,9 @@ test("90-second storyboard · one payment, then the review, and the buyer choose
   await expect(walkthroughPrimary(page)).toContainText("Advance simulated date to 1 Feb 2027");
   await walkthroughPrimary(page).click();
   await expectStage(page, "track", "Send the rest of the year (₹84,960), held until 18 Mar 2027.", "Send the rest of the year");
+  // The buyer's own condition is shown in their words; sending confirms the owner checked it was met.
+  await expect(page.getByTestId("follow-on-condition")).toContainText("enquiries are up by about 20 a month by month three");
+  await expect(page.getByTestId("close-follow-on")).toHaveText("Not met · close after the first phase");
   await shot(page, "desktop-6-review");
   await page.getByTestId("primary-action").click();
   await expectStage(page, "track", "Waiting for the buyer to review offer version 2.", undefined);
@@ -277,7 +280,7 @@ test("90-second storyboard · one payment, then the review, and the buyer choose
   await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
   await api(page, { action: "buyer_complete_setup" });
   await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
-  await api(page, { action: "send_follow_on" });
+  await api(page, { action: "send_follow_on", conditionMet: true });
 
   await page.goto("/proposal/agr-hero/v2");
   await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹28,320");

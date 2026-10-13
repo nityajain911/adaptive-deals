@@ -1277,3 +1277,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **What I did:** made the single payment the suggested first phase (a tie-break in the strategy layer, so the engine's recorded rankings and every recorded run still replay), added a *Stop here* option beside *Accept and pay* on the rest of the year's page, and made stopping a finished deal rather than a lost one (Track, the inbox, the guide's ending and Performance). The guide now goes from the payment straight to the review and ends at the buyer's choice. Tests: the default path, both endings (service and end-to-end), the strategy leaders, and the guide's step sequence.
 
 **Where I departed from the brief:** I kept the merchant's own step between the review date and the buyer's choice (the merchant sends the rest of the year), because that is where the buyer's condition is judged. The two-payment path and its moved payment stay as an optional exploration; most existing tests now select that offer explicitly, so their coverage is unchanged.
+
+### 2026-10-13 — [Claude Code] The owner's check at the review, and the buyer's own voices
+
+**Asked by the applicant:** both of the offered options: case-specific buyer replies, and the owner confirming Kabir's condition at the review.
+
+**What I did:** the review card shows the condition and offers *Send the rest of the year* (confirms it was met) or *Not met · close after the first phase*; the server refuses to send unconfirmed; closing ends the deal as completed after the first phase. The simulated buyer replies in Divya's and Kabir's words, each carrying the recorded answer verbatim as its recorded answer text, so no re-recording was needed. Tests: service (refusal, confirmation recorded, closing), the case catalog, and end-to-end (the card, both buttons, the guide's ending).
+
+**Where I held back:** the extra questions I had sketched earlier (the MD's approval for phase two, the enquiry baseline) are still not asked, because the engine only asks what changes an offer. I also rebuilt the hand-written fallback replay, which was stale against the case file.

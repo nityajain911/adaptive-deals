@@ -181,7 +181,7 @@ describe("simulated buyer reply control", () => {
       else {
         const before = (await svc.getState()).events.length;
         const state = await svc.getState();
-        if (st.id === "send_follow_on") await svc.sendFollowOn();
+        if (st.id === "send_follow_on") await svc.sendFollowOn({ conditionMet: true });
         else if (st.id === "buyer_decide") {
           const v = state.agreements.at(-1)!;
           await svc.acceptAgreement(v.version, v.termsHash, true);
@@ -206,7 +206,7 @@ describe("simulated buyer reply control", () => {
       if (ids.at(-1) !== st.id) ids.push(st.id);
       const state = await svc.getState();
       if (st.systemAction) await svc.runSystemStep(st.systemAction);
-      else if (st.id === "send_follow_on") await svc.sendFollowOn();
+      else if (st.id === "send_follow_on") await svc.sendFollowOn({ conditionMet: true });
       else if (st.id === "buyer_accept" || st.id === "buyer_decide") {
         const v = state.agreements.find((a) => a.status === "sent")!;
         await svc.acceptAgreement(v.version, v.termsHash, true);

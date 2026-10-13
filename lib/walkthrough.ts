@@ -266,6 +266,7 @@ function finish(state: DemoState, progress: DealProgress, hasAction: boolean, te
   if (terminal) lines.push(terminal);
   else if (amended?.state === "active") lines.push(`A payment was moved to a later date after both sides approved version ${amended.toVersion}.`);
   else lines.push("Every scheduled payment was collected.");
+  if (state.followOnClosed) lines.push("After the review you did not send the rest of the year, because their condition was not met. The deal closes after the first phase.");
   if (state.followOnSale) {
     const sold = state.agreements.find((v) => v.version === state.followOnSale!.version);
     lines.push(sold?.status === "buyer_rejected"
@@ -293,6 +294,7 @@ function outcome(state: DemoState, progress: DealProgress): string | null {
   if (progress.rule === "offer.outside_templates") return "This request needs a custom arrangement outside your approved offer types.";
   if (progress.rule === "offer.closed" || state.status === "merchant_rejected") return "Closed in Adaptive Deals by the merchant.";
   if (progress.rule === "track.stopped_after_first") return "The buyer chose to stop after the first phase. Nothing more is due.";
+  if (progress.rule === "track.follow_on_closed") return "You chose not to send the rest of the year because their condition was not met. Nothing more is due.";
   if (progress.rule === "track.terminal" && state.status === "buyer_rejected") return "Buyer declined the offer.";
   if (progress.rule === "track.terminal") return progress.headline;
   return null;

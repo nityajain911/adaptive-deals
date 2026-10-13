@@ -46,7 +46,7 @@ export interface ConversationItem {
   provenance: "simulated";
   /** Selected from the demo operator's pre-scripted replies (false = typed). */
   scripted: boolean | null;
-  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
+  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; answerQuote?: string; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
   /** Code's classification of an inbound reply (never an AI interpretation). */
   classification: ReplyClassification | null;
 }

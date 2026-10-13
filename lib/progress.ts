@@ -66,7 +66,7 @@ export interface ProgressFacts {
   lastFailure: string | null;
 }
 
-export type ProgressState = Pick<DemoState, "status" | "deliveries" | "agreements" | "amendments" | "changeRequests" | "reviewRequired" | "selectedOption"> & { counterOffers?: DemoState["counterOffers"] };
+export type ProgressState = Pick<DemoState, "status" | "deliveries" | "agreements" | "amendments" | "changeRequests" | "reviewRequired" | "selectedOption"> & { followOnClosed?: DemoState["followOnClosed"] } & { counterOffers?: DemoState["counterOffers"] };
 
 const ORDER: StageId[] = ["understand", "offer", "track"];
 const COUNT_WORD = ["no", "one", "two", "three", "four", "five", "six"];
@@ -102,7 +102,7 @@ const info = (stage: StageId, rule: string, kind: Exclude<ProgressKind, "action_
 export function dealProgress(s: ProgressState, f: ProgressFacts): DealProgress {
   const r = resolve(s, f);
   // Stopping after the first phase is a finished deal, not a lost one: the first phase was sold and paid.
-  const end = r.kind !== "terminal" ? null : s.status === "completed" || r.rule === "track.stopped_after_first" ? "completed" : "closed";
+  const end = r.kind !== "terminal" ? null : s.status === "completed" || r.rule === "track.stopped_after_first" || r.rule === "track.follow_on_closed" ? "completed" : "closed";
   return { ...r, stages: stagesFor(r.stage, end) };
 }
 
@@ -122,6 +122,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
   // 1. A proposal was ever delivered → Track, whatever historical fields say.
   if (!countering && s.deliveries.some((d) => d.deliveredAt !== null)) {
     const a = s.amendments.at(-1);
+    if (s.followOnClosed) return info("track", "track.follow_on_closed", "terminal", null, "You chose not to send the rest of the year because their condition was not met. Nothing more is due, and the deal closes after the first phase.", latest);
     if (s.status === "buyer_rejected" && s.agreements.find((v) => v.version === latest)?.continuesFrom) return info("track", "track.stopped_after_first", "terminal", null, "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here.", latest);
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);
