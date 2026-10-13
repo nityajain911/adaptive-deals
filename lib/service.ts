@@ -350,12 +350,27 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
 
 const itemId = (s: DemoState, prefix: string) => `${prefix}-${s.conversation.length + 1}`;
 
+/** A question is never stamped before the message it follows: at least three minutes after the last message in the thread. */
+function afterThread(s: DemoState): string {
+  const now = clockOf(s).now();
+  const last = Math.max(...dealForState(s).messages.map((m) => Date.parse(m.timestamp)));
+  if (!Number.isFinite(last) || Date.parse(now) >= last + 180_000) return now;
+  return afterInstant(now, last + 180_000);
+}
+
+/** The instant `ms` (epoch) written with the same UTC offset as `like`. */
+function afterInstant(like: string, ms: number): string {
+  const off = like.slice(-6);
+  const minutes = (off.startsWith("-") ? -1 : 1) * (Number(off.slice(1, 3)) * 60 + Number(off.slice(4, 6)));
+  return `${new Date(ms + minutes * 60_000).toISOString().slice(0, 19)}${off}`;
+}
+
 /** One draft per clarification question not yet drafted. AI drafts are skipped while paused. */
 function draftMissingClarifications(s: DemoState) {
   if (s.status !== "clarifying") return;
   for (const q of s.run.record.displayed.questions) {
     if (s.conversation.some((i) => i.kind === "clarification" && i.refs.questionId === q.id)) continue;
-    const d = draftClarification({ id: itemId(s, "conv"), dealId: s.dealId, questionId: q.id, text: q.question, wording: q.wording, at: clockOf(s).now(), paused: s.suggestionsPaused });
+    const d = draftClarification({ id: itemId(s, "conv"), dealId: s.dealId, questionId: q.id, text: q.question, wording: q.wording, at: afterThread(s), paused: s.suggestionsPaused });
     if (d) s.conversation.push(d);
   }
 }
@@ -808,10 +823,10 @@ function draftFor(s: DemoState, x: EvaluatedStructure, deal: ReturnType<typeof d
   // A draft follows the last version that is not itself a draft; a withdrawn version that a counter-offer answers is the one it supersedes.
   const prior = s.agreements.filter((v) => v.status !== "draft").at(-1);
   const supersedes = prior && prior.status === "superseded" && s.counterOffers.some((c) => c.fromVersion === prior.version) ? prior.version : null;
-  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null, economics: economicsRef(s), followOn: heldFollowOn(x, constraints, deal) });
+  return createAgreementVersion({ agreementId: AGREEMENT_ID, version: prior ? prior.version + 1 : 1, supersedes, evaluated: x, dealId: s.dealId, merchantId: deal.merchant.id, buyerId: item.buyer.id, policy: deal.merchant.policy, clock: clockOf(s), merchantOverride: s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.override ? { by: "Merchant (Pinecone Media Works)" } : null, economics: economicsRef(s), followOn: heldFollowOn(x, constraints, deal) ?? (isCounterStructureId(x.structure.id) ? (s.agreements.find((v) => v.version === s.counterOffers.find((c) => c.evaluated.structure.id === x.structure.id)?.fromVersion)?.terms.followOn ?? null) : null) });
 }
 
-/** The rest of the year held for a first-phase offer, from the same engine; null for every other offer. */
+/** The rest of the year held for a first-phase offer, from the same engine; null for every other offer. A counter to a request (a lower price, a smaller scope) keeps what the withdrawn offer held, unchanged, in draftFor. */
 function heldFollowOn(x: EvaluatedStructure, constraints: BuyerConstraints, deal: ReturnType<typeof dealContextFor>) {
   const held = deriveFollowOn(x, constraints, deal);
   return held ? canonicalFollowOn(held) : null;
@@ -1327,7 +1342,7 @@ export async function sendQuestions(edits: Record<string, string> = {}): Promise
   return mutate((s) => {
     const drafts = s.conversation.filter((i) => i.kind === "clarification" && !i.sentAt);
     if (!drafts.length) throw new ActionError("No questions to send");
-    const at = clockOf(s).now();
+    const at = afterThread(s);
     const sent = drafts.map((original) => {
       try {
         // The merchant's own wording, when they changed it; the question it answers does not change.
@@ -1691,6 +1706,10 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
  * pre-scripted and typed replies, and for replay and live-run states: no model is called.
  */
 function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; answerQuote?: string; refs?: ConversationItem["refs"]; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
+  // A reply arrives after the message it answers (a question can be stamped after the demo clock's start).
+  const asked = s.conversation.find((i) => i.id === args.inReplyTo);
+  const askedAt = asked ? Date.parse(asked.sentAt ?? asked.createdAt) : NaN;
+  if (Number.isFinite(askedAt) && Date.parse(args.at) <= askedAt) args = { ...args, at: afterInstant(args.at, askedAt + 300_000) };
   if (Date.parse(args.at) > Date.parse(clockOf(s).now())) advanceTo(s, args.at, "Simulated: buyer reply arrives");
   const at = Date.parse(args.at) < Date.parse(clockOf(s).now()) ? clockOf(s).now() : args.at;
   let reply: ConversationItem;
