@@ -17,15 +17,21 @@ const reducedExplanation: ExplanationOutput = {
   option_notes: [],
 };
 
-const preserveExplanation: ExplanationOutput = {
+const discountClarification: ClarificationOutput = {
+  questions: [
+    { field: "amountsIncludeGst", question: "Do both ₹30,000 and ₹75,000 include GST?" },
+  ],
+};
+
+const discountExplanation: ExplanationOutput = {
   ranking: ["A"],
-  comparison: "Option A preserves the requested scope and starts when the buyer's stated budget is available.",
+  comparison: "Option A gives the discount only against part of the payment on signing, and keeps the buyer within their stated budget and approval limit.",
   option_notes: [],
 };
 
 export const caseAuthoredOutputs: Record<CaseId, Partial<Record<AiTask, unknown>>> = {
   "reduced-scope": { extract: extraction["reduced-scope"], clarify: reducedClarification, explain: reducedExplanation },
-  "preserve-scope": { extract: extraction["preserve-scope"], explain: preserveExplanation },
+  "preserve-scope": { extract: extraction["preserve-scope"], clarify: discountClarification, explain: discountExplanation },
   "no-fit": { extract: extraction["no-fit"] },
 };
 

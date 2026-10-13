@@ -26,7 +26,8 @@ const currentHero = () => read("run-case-reduced-scope-4e94d36d.json") as RunRec
 
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" });
+    // preserve-scope is Zephyr Logistics since 13 October 2026 and is mapped only once it has its own recording; the Northstar runs are evidence.
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "no-fit": "run-case-no-fit-6fb4027d" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
@@ -116,8 +117,8 @@ describe("the second Cerebras recording batch", () => {
     expect(second.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
     expect(second.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(second.engine.initial.state).toBe("insufficient_information");
-    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
-    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
+    // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
     const report = read("cerebras-preserve-scope-attempt2-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ runId: "run-case-preserve-scope-ff0d6acf", caseCard: { agrees: false } });
@@ -132,25 +133,23 @@ describe("the second Cerebras recording batch", () => {
     expect(third.steps[0]!.inputHash).toBe(preserve().steps[0]!.inputHash);
     expect(third.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(third.engine.initial.state).toBe("insufficient_information");
-    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
-    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
+    // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
     const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH4.json"), "utf8"));
     expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 3 });
     expect(freeze.resultRule).toMatch(/exactly one Groq attempt follows/);
   });
 
-  it("preserve-scope on the revised text: one valid Cerebras run that reaches the case's expected offer, mapped", () => {
-    const loaded = mappedCaseRun("preserve-scope");
-    expect(loaded).toEqual(read("run-case-preserve-scope-1ec088fa.json"));
+  it("preserve-scope, Northstar on the revised text: one valid Cerebras run that reached that case's offer, kept as evidence and no longer mapped", () => {
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    const loaded = read("run-case-preserve-scope-1ec088fa.json") as RunRecord;
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
-    expect(loaded!.inputs.messages).toEqual(demoCase("preserve-scope")!.deal.messages);
-    expect(loaded!.inputs.messages.find((m) => m.id === "preserve-3")!.text).toBe("I can release only ₹10,000 right now, as this quarter is tight.");
-    expect(modelProvenance(loaded!).label).toBe("Recorded Cerebras output");
-    const expected = demoCase("preserve-scope")!.expected;
-    expect(loaded!.engine.initial.state).toBe(expected.engineState);
-    expect(loaded!.engine.initial.structures.find((s) => s.id === loaded!.engine.initial.feasibleOrder[0])!.template).toBe(expected.recommendedTemplate);
+    expect(loaded.inputs.messages.find((m) => m.id === "preserve-3")!.text).toBe("I can release only ₹10,000 right now, as this quarter is tight.");
+    expect(loaded.inputs.messages).not.toEqual(demoCase("preserve-scope")!.deal.messages);
+    expect(loaded.engine.initial.state).toBe("options_ready");
+    expect(loaded.engine.initial.structures.find((s) => s.id === loaded.engine.initial.feasibleOrder[0])!.template).toBe("deferred_start");
     // The model's misses are kept: the required-services phrase matches no package (the merchant confirms it) and the GST statement was rejected as conflicting.
-    expect(loaded!.engine.rejectedFields.map((f) => f.key).sort()).toEqual(["amounts_include_gst", "required_package"]);
+    expect(loaded.engine.rejectedFields.map((f) => f.key).sort()).toEqual(["amounts_include_gst", "required_package"]);
     const report = read("cerebras-preserve-scope-text2-recording-report.json");
     expect(report.requests.map((r: { task: string }) => r.task)).toEqual(["extract", "explain"]);
     expect(report).toMatchObject({ retries: [], rejectedAttempts: [], stopped: null });
@@ -167,8 +166,8 @@ describe("the second Cerebras recording batch", () => {
     // The engine could not reach the offer family this case demonstrates, so the product keeps the labelled sample for it.
     expect(loaded.engine.initial.state).toBe("insufficient_information");
     expect(demoCase("preserve-scope")!.expected.engineState).toBe("options_ready");
-    // The earlier attempts were made on the earlier text, so they can never be mapped to the revised case.
-    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-1ec088fa");
+    // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
+    expect(mappedCaseRun("preserve-scope")).toBeNull();
     const report = read("cerebras-preserve-scope-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", caseCard: { agrees: false } });

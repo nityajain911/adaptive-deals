@@ -28,7 +28,15 @@ export async function driveTo(svc: typeof Svc, stop: Stop, max = 30, path: HeroP
       for (const d of unanswered) await svc.buyerReply({ inReplyTo: d.id, scriptId: d.refs.questionId === "clar-gst" ? "clar-gst-yes" : "clar-approval-contract" });
     } else if (s.status === "clarifying") await svc.adoptRepliesAsAnswers();
     else if (s.status === "options_ready") {
-      if (!s.selectedOption && opts.offer !== "recommended") await svc.selectOption(TWO_PAYMENT_PHASE);
+      if (!s.selectedOption && opts.offer !== "recommended") {
+        if (s.caseId === "reduced-scope") await svc.selectOption(TWO_PAYMENT_PHASE);
+        else {
+          // Another case: the offer it recommends, or, when nothing fits at the normal prices, the smallest discount the merchant allows.
+          const view = svc.strategyViewOf(s, await svc.currentOutcome(s));
+          const pick = view.leader ?? view.discounted[0];
+          if (pick && view.mode === "discount_only") await svc.selectOption(pick.structure.id);
+        }
+      }
       const v = await svc.reviewBuyerProposal();
       await svc.approveDraft(v.version, v.termsHash);
       await svc.sendProposal(v.version);

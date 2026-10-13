@@ -46,6 +46,8 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       if (s.selectedOption?.draftVersion && s.agreements.some((agreement) => agreement.version === s.selectedOption?.draftVersion && agreement.status === "draft")) {
         return nav("approve_and_send_draft", "merchant", "Next: approve and send the exact buyer proposal", `${at("offer")}/preview`);
       }
+      // When nothing fits at the normal prices, the product recommends no discount: the owner picks the one they are willing to give first.
+      if (!s.selectedOption && onlyDiscounted(s)) return nav("select_discounted_offer", "merchant", "Next: choose the discount you are willing to give", at("offer"));
       return nav("review_buyer_proposal", "merchant", "Next: review the buyer proposal", at("offer"));
     case "offer.stale":
       return nav("review_buyer_proposal", "merchant", "Next: review the buyer proposal", at("offer"));
@@ -107,6 +109,12 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
   }
 }
 
+/** Every offer the engine found feasible carries a discount. */
+const onlyDiscounted = (s: DemoState): boolean => {
+  const run = s.run.record.engine.final ?? s.run.record.engine.initial;
+  return run.feasibleOrder.length > 0 && run.feasibleOrder.every((id) => id.includes("discount_bps="));
+};
+
 const heldOf = (s: DemoState) => [...s.agreements].reverse().find((v) => v.status === "active")?.terms.followOn ?? null;
 
 /**
@@ -125,7 +133,7 @@ export function replyContext(s: DemoState): ReplyContext | null {
   if (s.status === "clarifying") {
     const q = s.conversation.find((i) => i.kind === "clarification" && i.sentAt && !replied(i.id));
     if (!q) return null;
-    return { inReplyTo: q.id, label: q.text, scripts: heroScriptedReplies.filter((r) => r.context === "clarification" && "questionId" in r && r.questionId === q.refs.questionId).map((r) => ({ id: r.id, text: scriptedReplyText(s.caseId, r) })) };
+    return { inReplyTo: q.id, label: q.text, scripts: heroScriptedReplies.filter((r) => r.context === "clarification" && "questionId" in r && r.questionId === q.refs.questionId && !demoCase(s.caseId)?.hiddenReplies?.includes(r.id)).map((r) => ({ id: r.id, text: scriptedReplyText(s.caseId, r) })) };
   }
   // After the pilot, the buyer's decision: carry on, ask for a change, or stop.
   const review = [...s.conversation].reverse().find((i) => i.kind === "review" && i.sentAt);
@@ -146,5 +154,5 @@ export function replyContext(s: DemoState): ReplyContext | null {
   if (!notice || replied(notice.id)) return null;
   const attempt = s.attempts.find((a) => a.id === notice.refs.attemptId);
   if (attempt?.status !== "scheduled" || !s.deliveries.some((d) => isDelivered(s.deliveries, d.version))) return null;
-  return { inReplyTo: notice.id, label: notice.text, scripts: heroScriptedReplies.filter((r) => r.context === "notice").map((r) => ({ id: r.id, text: r.text })) };
+  return { inReplyTo: notice.id, label: notice.text, scripts: heroScriptedReplies.filter((r) => r.context === "notice").map((r) => ({ id: r.id, text: scriptedReplyText(s.caseId, r) })) };
 }

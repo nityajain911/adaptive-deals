@@ -6,6 +6,7 @@
  */
 import type { DealContext } from "@/ai/orchestrator";
 import { demoCase, type CaseId } from "./cases";
+import { heroMerchant, heroTemplates } from "./hero";
 
 export const RECORDED_CASE_MESSAGES: Record<CaseId, DealContext["messages"]> = {
   "reduced-scope": [
@@ -65,4 +66,5 @@ export const RECORDED_CASE_MESSAGES: Record<CaseId, DealContext["messages"]> = {
 };
 
 /** The case's deal as it was when the recording was made. */
-export const recordedDeal = (id: CaseId): DealContext => ({ ...demoCase(id)!.deal, messages: structuredClone(RECORDED_CASE_MESSAGES[id]) });
+// The recordings were made with the merchant's own terms, before any case had terms of its own.
+export const recordedDeal = (id: CaseId): DealContext => ({ ...demoCase(id)!.deal, merchant: heroMerchant, templates: heroTemplates, messages: structuredClone(RECORDED_CASE_MESSAGES[id]) });

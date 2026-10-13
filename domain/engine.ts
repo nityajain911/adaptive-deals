@@ -206,7 +206,9 @@ export interface DealEvaluation {
 }
 
 export function evaluateDeal(profile: ConstraintProfile, input: EngineInput): DealEvaluation {
-  const outside = profile.outsideTemplateRequests.filter((r) => !r.representable);
+  // A discount is something the merchant can offer when their own offer types include one; with none, a request for it is outside what they approve.
+  const canDiscount = input.templates.discountsBps.some((level) => level > 0);
+  const outside = profile.outsideTemplateRequests.filter((r) => !r.representable && !(r.kind === "discount" && canDiscount));
   const missingRequired = missingRequiredFields(profile);
   const base = { missingRequired, outsideTemplates: outside, assumedReadings: {} as Record<string, string> };
 

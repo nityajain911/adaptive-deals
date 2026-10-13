@@ -19,7 +19,7 @@ Immutable model runs for the commercial cases (`run-case-<case id>-<8 hex>.json`
   evidence and no longer maps to any case.
 - `no-fit` → `run-case-no-fit-6fb4027d`: **Recorded Cerebras output**, one extraction request, kept as it came.
   The engine reaches the case's expected outcome (no approved offer fits).
-- `preserve-scope` → `run-case-preserve-scope-1ec088fa`: **Recorded Cerebras output** on the case's revised text. Three
+- `preserve-scope` is Zephyr Logistics since 13 October 2026 and is mapped only once it has a recording of its own (until then it uses its labelled hand-written sample). The Northstar Learning Centres runs below are kept as evidence and no longer map to any case. Before then, `run-case-preserve-scope-1ec088fa` was **Recorded Cerebras output** on the case's revised text. Three
   earlier attempts on the earlier text (`fcc306d2`, `ff0d6acf`, `9a841334`) all missed identically, and are kept as
   evidence but never mapped (their conversation no longer matches the case). The cause was the capitalised, sentence-initial
   "This quarter is tight": the model returned "this quarter", and the exact, case-sensitive quote check rejected it, so the

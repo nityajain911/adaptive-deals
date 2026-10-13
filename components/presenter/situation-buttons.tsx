@@ -6,7 +6,7 @@ import type { CaseId } from "@/data/synthetic/cases";
 
 const SITUATIONS: { id: CaseId; label: string; sub: string; testId: string }[] = [
   { id: "reduced-scope", label: "Start small", sub: "Pilot first, rest of the year held", testId: "situation-reduced-scope" },
-  { id: "preserve-scope", label: "Wants everything", sub: "Keep scope, split the cost", testId: "situation-preserve-scope" },
+  { id: "preserve-scope", label: "Asks for a discount", sub: "Only for something in return", testId: "situation-preserve-scope" },
   { id: "no-fit", label: "No fit", sub: "Nothing works, and says why", testId: "situation-no-fit" },
 ];
 

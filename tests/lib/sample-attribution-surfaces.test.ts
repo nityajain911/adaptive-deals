@@ -44,8 +44,9 @@ async function surfaces(s: DemoState): Promise<Record<string, string>> {
   const view = walkthroughView({ state: s, progress, dealId: "hero", capabilities: walkthroughCapabilities() });
   const noop = () => undefined;
   const strategy = svc.strategyViewOf(s, out);
-  const top = strategy.leader;
   const eligible = svc.strategyFeasibleOf(s, out);
+  // With no offer fitting at the normal prices there is no recommendation: the offer shown is the one the merchant chose.
+  const top = strategy.leader ?? eligible.find((x) => x.structure.id === s.selectedOption?.structureId) ?? null;
   const { offerNarrative } = await import("@/lib/offer-narrative");
   const narrative = top ? offerNarrative({ s, out, x: top, view: strategy, eligible }) : null;
   const rendered: Record<string, string> = {

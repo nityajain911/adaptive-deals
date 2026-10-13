@@ -39,9 +39,14 @@ Say “in my merchant interviews…” in the opening only if the one-pager stat
 
 ## Two more cases to show on request
 
-**They want everything, but can't pay until May (about 40 s) — Northstar.** The buyer asks for “the complete annual package” without naming services. **Which services do they need?** appears and the offer waits: tick all four and select **Confirm these services**. The offer then starts in May, and a line under it says why: any earlier start asks at least what the buyer does not have this quarter.
+**They want 15% off and 45-day terms (about 60 s) — Zephyr Logistics.** A procurement team: the ops head approves up to ₹75,000, their finance lead has ₹30,000 this quarter and fresh budget on 1 January, their policy asks for 15% off, and their terms are net-45. Only one question is asked, *do both amounts include GST?* The guide offers the answers that keep the deal as the chat describes it (**Yes, both include GST**, or **not sure**).
 
-> “They said the whole programme but not which services, so the app refuses to guess. I confirm, and only then does it work out the offers.”
+- **No discount is recommended.** Nothing fits at the normal prices (the full price does not fit ₹30,000 on signing), so the screen says so and lists the discounts that would work: *10% off, six months of website, search and social, 40% on signing and the rest a month later*, **₹70,092** including GST. The guide asks you to click **Use this instead**; the product never picks a discount for you.
+- **What the engine refused, by name** (under "why each was ruled out"): **15% off** (your limit is 10%, although the margin would hold: *discount above limit*), **net-45** (*cash at risk above limit*), and the same 10% without an advance (*over the budget on signing*).
+- **The offer card** shows what changed from the quote: monthly reporting left out (*They said it can wait*), **Discount · 10% off**, two payments, the buyer can approve it on their own, and you keep about ₹24,998 (42%).
+- **The story ends with a balance that moves before it is late** (step 6 of 6): advance the date to 29 Dec, send the notice, and the buyer's reply is *“Invoice approval is delayed. Please hold the payment till the 12th.”* Code reads it, the balance moves to 13 Jan, you draft and approve the revised terms, and the buyer accepts.
+
+> “The buyer asked for 15% and 45-day terms. The app won't discount on its own and won't take net-45: it gives 10%, but only against 40% on signing, and every refusal names the rule.”
 
 **They want to start in two weeks (about 20 s) — Blue Harbor.** No offer fits, and the app says why instead of inventing one, with the limits you could change.
 
@@ -75,7 +80,7 @@ Why the default is one payment: with equal profit and equal cash exposure, the s
 
 - Keep the main story on the preventive path. The failed-payment path belongs on the presenter page for questions.
 - Say that the merchant approves anything that moves money. The merchant's screens never name a model: which one answered, and what was tried first, are on the presenter page and in the audit trail.
-- The hero replays **Recorded Cerebras output** from the exact current conversation; the other two cases (**preserve-scope** and **no-fit**) replay their own **Recorded Cerebras output** too. Every case keeps a labelled hand-written sample as its fallback if a recording ever stops matching its conversation. The three earlier Groq runs are historical evidence only. None of these is an independent evaluation.
+- The hero replays **Recorded Cerebras output** from the exact current conversation; **no-fit** replays its own **Recorded Cerebras output** too, and the discount case (**preserve-scope**, Zephyr Logistics) starts from its labelled hand-written sample until it has a recording of its own. Every case keeps a labelled hand-written sample as its fallback if a recording ever stops matching its conversation. The three earlier Groq runs are historical evidence only. None of these is an independent evaluation.
 - Live models run only for a rate card that is not a bundled sample and for a payment reply the rules cannot read. Do not say AI read a payment reply the rules could read, and do not say a model chose a price or a date: a model suggests, code checks, the merchant decides.
 - Do not claim a mandate guarantees payment, that the prototype measures actual delivery, or that the frozen evaluation is independent.
 - If a step is out of sequence, choose **Restart** in the walkthrough and confirm. The guide returns to case selection and the guided path starts cleanly.

@@ -15,6 +15,8 @@ const word = (n: number) => WORD[n] ?? String(n);
 const phaseMonths = (x: EvaluatedStructure) => Math.max(...x.structure.scope.map((i) => i.months));
 const paymentChoice = (x: EvaluatedStructure) => {
   if (x.structure.payments.length === 1) return "paid upfront";
+  // An advance and a balance: say what is paid when, not how many payments.
+  if (x.structure.params.plan === "advance_40") return "40% on signing, the rest a month later";
   if (x.structure.payments.length === 2) return "two monthly payments";
   return `${word(x.structure.payments.length)} payments`;
 };
@@ -34,6 +36,11 @@ export const headlineFor = (x: EvaluatedStructure): string => {
 
 /** Accurate code fallback when validated AI wording is unavailable for this exact option. */
 export function whyOffer(x: EvaluatedStructure): string {
+  if (x.structure.discountBps > 0) {
+    const first = x.structure.payments[0];
+    const total = sum(x.structure.payments.map((payment) => payment.totalPaise));
+    return `It gives ${x.structure.discountBps / 100}% off only against part of the payment on signing (${formatINR(first.totalPaise)} of ${formatINR(total)}), and still keeps your profit limit.`;
+  }
   const payments = x.structure.payments.length === 1 ? "one payment" : `${x.structure.payments.length} payments`;
   const largestPayment = Math.max(...x.structure.payments.map((payment) => payment.totalPaise));
   if (x.structure.template === "phased_scope" && x.structure.payments.length > 1)

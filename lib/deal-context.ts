@@ -17,6 +17,7 @@ export function dealContextFor(s: DemoState, version: BusinessEconomics): DealCo
     baseline: s.baseline,
     version,
     overrides: s.economics.overrides,
+    terms: item.terms ?? null,
   });
   return {
     dealId: item.deal.dealId,

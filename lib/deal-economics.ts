@@ -4,7 +4,7 @@ import type { BusinessEconomics } from "@/domain/business-economics";
 import type { DealBaseline } from "@/domain/deal-baseline";
 import type { EngineInput } from "@/domain/engine";
 import type { StrategyId } from "@/domain/strategy-id";
-import type { ContributionFloor, Merchant, ScopeItem } from "@/domain/types";
+import type { ContributionFloor, Merchant, ScopeItem, TemplateConfig } from "@/domain/types";
 
 export type OverrideField = "direct_cost" | "contribution_floor" | "cash_exposure" | "discount_limit";
 
@@ -67,11 +67,21 @@ const numberOverride = (overrides: InputOverride[], field: OverrideField, fallba
   return typeof match?.value === "number" ? match.value : fallback;
 };
 
+/**
+ * Terms the merchant agreed for one buyer, on top of the account's own: how far they will discount and the ways to pay they offer this
+ * buyer. The account is unchanged, and no other deal sees them. A case that has none is worked out from the account alone.
+ */
+export interface DealTerms {
+  discountLimitBps: number;
+  templates: Omit<TemplateConfig, "fullScope">;
+}
+
 export function engineInputFor(args: {
   merchant: Merchant;
   baseline: DealBaseline;
   version: BusinessEconomics;
   overrides: InputOverride[];
+  terms?: DealTerms | null;
 }): EngineInput {
   const conflicts = pinConflicts(args.baseline, args.version);
   if (conflicts.length) throw new EconomicsConflictError(conflicts.join(" "));
@@ -91,7 +101,7 @@ export function engineInputFor(args: {
   const contributionFloor = contributionOverride && typeof contributionOverride.value !== "number"
     ? structuredClone(contributionOverride.value)
     : structuredClone(args.version.guardrails.contributionFloor);
-  const discountLimitBps = numberOverride(args.overrides, "discount_limit", args.version.guardrails.discountLimitBps);
+  const discountLimitBps = numberOverride(args.overrides, "discount_limit", args.terms?.discountLimitBps ?? args.version.guardrails.discountLimitBps);
   const policy = {
     gstRateBps: args.baseline.gstRateBps,
     contributionFloor,
@@ -104,11 +114,14 @@ export function engineInputFor(args: {
     internalRetryAfterDays: args.version.fixed.internalRetryAfterDays,
     mandateEndBufferMonths: args.version.fixed.mandateEndBufferMonths,
   };
-  const templates = {
-    ...structuredClone(args.version.fixed.offerTypes),
-    fullScope: structuredClone(args.baseline.quotedScope),
-    discountsBps: [...args.version.discountLadderBps].filter((level) => level <= discountLimitBps).sort((a, b) => a - b),
-  };
+  // A buyer's own terms name every discount level they asked about, including those above the limit: the engine then refuses them, by name.
+  const templates = args.terms
+    ? { ...structuredClone(args.terms.templates), fullScope: structuredClone(args.baseline.quotedScope) }
+    : {
+        ...structuredClone(args.version.fixed.offerTypes),
+        fullScope: structuredClone(args.baseline.quotedScope),
+        discountsBps: [...args.version.discountLadderBps].filter((level) => level <= discountLimitBps).sort((a, b) => a - b),
+      };
   return { merchant: { ...structuredClone(args.merchant), policy }, packages, templates };
 }
 

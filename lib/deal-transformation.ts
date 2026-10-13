@@ -72,6 +72,7 @@ export function dealTransformation(args: {
     if (!args.baseline.quotedScope.some((x) => x.packageId === item.packageId)) rows.push({ id: item.packageId, label: name(item.packageId), was: null, now: monthLabel(item.months), note: "Added" });
   }
   if (args.originalStartDate && args.originalStartDate !== args.offer.structure.startDate) rows.push({ id: "start", label: "Starts", was: formatDate(args.originalStartDate), now: formatDate(args.offer.structure.startDate), note: null });
+  if (args.offer.structure.discountBps > 0) rows.push({ id: "discount", label: "Discount", was: null, now: `${args.offer.structure.discountBps / 100}% off`, note: null });
   rows.push({ id: "payments", label: "Payments", was: `${originalPayments} payment${originalPayments === 1 ? "" : "s"}`, now: `${adaptivePayments} payment${adaptivePayments === 1 ? "" : "s"}`, note: null });
   if (args.followOn) rows.push({ id: "follow_on", label: "Rest of the year", was: null, now: `${formatINR(args.followOn.totalPaise)} held until ${formatDate(args.followOn.heldUntil)}`, note: null });
   rows.push({ id: "approval", label: "Approval", was: original.approvalLabel, now: adaptive.approvalLabel, note: null });

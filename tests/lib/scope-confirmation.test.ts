@@ -1,3 +1,9 @@
+import { vi } from "vitest";
+vi.mock("@/data/synthetic/cases", async (importOriginal) => {
+  const { northstarCatalog } = await import("../fixtures/northstar-case");
+  return northstarCatalog(importOriginal as never);
+});
+// The second demo case is now Zephyr Logistics; the unmapped-required-scope journey is tested on the retained Northstar fixture.
 import { beforeAll, describe, expect, it } from "vitest";
 import { interpretExtraction } from "@/ai/extract";
 import type { RunStep } from "@/ai/run-record";

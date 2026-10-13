@@ -36,7 +36,10 @@ function servicePeriod(v: AgreementVersion): string {
 
 function titleFor(v: AgreementVersion): string {
   if (v.terms.structure.params.follow_on) return "The rest of the year";
-  if (v.terms.structure.template === "phased_scope") return "Standalone three-month package";
+  if (v.terms.structure.template === "phased_scope") {
+    const months = Math.max(...v.terms.scope.map((item) => item.months));
+    return `Standalone ${["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"][months] ?? months}-month package`;
+  }
   if (v.terms.structure.template === "deferred_start") {
     const firstMonth = v.terms.deliverySchedule.map((line) => line.month.value).sort()[0];
     return `Annual digital marketing from ${monthLabel(firstMonth)}`;

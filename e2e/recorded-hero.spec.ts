@@ -50,17 +50,15 @@ test("the default hero replays the exact Cerebras recording without a provider c
   expect(state().status).toBe("options_ready");
 });
 
-test("the preserve-scope case replays its own recorded Cerebras extraction and asks the merchant to confirm which services", async ({ page }) => {
+test("the discount case starts from the labelled hand-written sample until it has a recording of its own", async ({ page }) => {
   await action(page, { action: "start_case", caseId: "preserve-scope" });
-  expect(state().run.record.runId).toBe("run-case-preserve-scope-1ec088fa");
-  expect(state().run.record.kind).toBe("live");
-  expect(state().run.record.steps.every((step) => step.provider === "cerebras")).toBe(true);
-  // "The complete annual package" names no service: the app refuses to guess and asks.
+  expect(state().run.record.kind).toBe("synthetic_replay");
+  expect(state().run.record.runId).toBe("run-synthetic-preserve-scope-0001");
+  expect(state().status).toBe("clarifying");
   await page.goto("/deals/hero/understand");
-  await expect(page.getByTestId("status-headline")).toContainText("Tell us which services they need");
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
-  await expect(page.getByTestId("audit-model-header")).toHaveText("Recorded Cerebras output · cerebras / gpt-oss-120b");
+  await expect(page.getByTestId("audit-drawer")).toContainText("Sample output written by hand · no model ran");
 });
 
 test("the no-fit case replays its own recorded Cerebras extraction and the engine says no approved offer fits", async ({ page }) => {

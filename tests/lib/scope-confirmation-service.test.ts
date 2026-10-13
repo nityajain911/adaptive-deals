@@ -1,3 +1,9 @@
+import { vi } from "vitest";
+vi.mock("@/data/synthetic/cases", async (importOriginal) => {
+  const { northstarCatalog } = await import("../fixtures/northstar-case");
+  return northstarCatalog(importOriginal as never);
+});
+// The second demo case is now Zephyr Logistics; the unmapped-required-scope journey is tested on the retained Northstar fixture.
 import { beforeAll, describe, expect, it } from "vitest";
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
@@ -211,19 +217,6 @@ describe("the confirmation together with clarification answers", () => {
 });
 
 describe("a recorded run is separate from the sample", () => {
-  it("gates the hand-written preserve-scope sample too, because its buyer names the package without naming the services", async () => {
-    process.env.ADAPTIVE_DEALS_DEMO_RUN = "synthetic";
-    try {
-      const s = await svc.startCase("preserve-scope");
-      expect(s.run.record.kind).toBe("synthetic_replay");
-      expect((await svc.progressOf(s)).rule).toBe("understand.scope");
-      const clear = await svc.startCase("no-fit");
-      expect((await svc.progressOf(clear)).rule).not.toBe("understand.scope");
-    } finally {
-      delete process.env.ADAPTIVE_DEALS_DEMO_RUN;
-    }
-  });
-
   it("is built from the same real extraction as the fixture", async () => {
     const record = await recordedPreserveScope();
     expect(record.steps.map((x) => [x.task, x.provider, x.outcome])).toEqual([["extract", "groq", "accepted_with_corrections"], ["explain", "groq", "rejected"]]);

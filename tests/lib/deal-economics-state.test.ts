@@ -18,7 +18,8 @@ describe("a new deal", () => {
   it.each(CASE_IDS)("%s: pins version 1, snapshots prices, and starts on Protect contribution", async (id) => {
     const state = await service.startCase(id);
     expect(state.economics).toMatchObject({ pinned: { version: 1 }, overrides: [], strategy: "protect_contribution" });
-    expect(state.baseline.quotedTotalPaise).toBe(14_160_000);
+    // The discount case quotes a six-month retainer (₹72,000 + GST); the others quote the year (₹1,20,000 + GST).
+    expect(state.baseline.quotedTotalPaise).toBe(id === "preserve-scope" ? 8_496_000 : 14_160_000);
     expect(state.baseline.servicePrices).toHaveLength(4);
     expect(state.economics.effectiveHash).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -38,9 +39,10 @@ describe("a new deal", () => {
     await economics.resetEconomicsStore();
   });
 
-  it("has the same effective hash in every case, because they share one merchant, services and offer types", async () => {
-    const hashes = [];
-    for (const id of CASE_IDS) hashes.push((await service.startCase(id)).economics.effectiveHash);
-    expect(new Set(hashes).size).toBe(1);
+  it("has the same effective hash in every case that shares the merchant's offer types, and its own for the buyer with agreed terms", async () => {
+    const hashes: Record<string, string> = {};
+    for (const id of CASE_IDS) hashes[id] = (await service.startCase(id)).economics.effectiveHash;
+    expect(hashes["reduced-scope"]).toBe(hashes["no-fit"]);
+    expect(hashes["preserve-scope"]).not.toBe(hashes["reduced-scope"]);
   });
 });

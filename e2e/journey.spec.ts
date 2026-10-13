@@ -846,9 +846,9 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     },
     {
       id: "preserve-scope",
-      buyer: "Northstar Learning Centres",
-      message: "We need the complete annual package",
-      status: "options_ready",
+      buyer: "Zephyr Logistics",
+      message: "Our vendor policy expects 15% off",
+      status: "clarifying",
     },
     {
       id: "no-fit",
@@ -871,7 +871,7 @@ test("commercial case picker starts all three cases and isolates their buyer, ru
     expect(state().agreements).toHaveLength(0);
     expect(state().outcomes).toHaveLength(0);
 
-    if (item.id === "reduced-scope") {
+    if (item.id !== "no-fit") {
       await expect(page.getByTestId("thread-understand")).toContainText(item.message);
       await api(page, { action: "send_questions" });
       expect(state().conversation.length).toBeGreaterThan(0);
@@ -954,7 +954,11 @@ test("active deals · an inbox: the deals on the left, and what is in the way, i
   await expect(panel.getByTestId("tile-budget")).toContainText("Covers your quote");
   await expect(panel.getByTestId("deal-conversation")).toContainText("The issue is timing");
   await page.getByTestId("select-case-preserve-scope").click();
-  await expect(panel.getByTestId("tile-scope")).toContainText("Services to confirm");
+  await expect(panel.getByTestId("deal-panel-buyer")).toHaveText("Zephyr Logistics");
+  await expect(panel.getByTestId("tile-budget")).toContainText("₹30,000 available now");
+  await expect(panel.getByTestId("tile-budget")).toContainText("I only have ₹30,000 left in this quarter");
+  await expect(panel.getByTestId("tile-scope")).toContainText("Website fixes, Search marketing");
+  await expect(panel.getByTestId("deal-conversation")).toContainText("Our vendor policy expects 15% off");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);

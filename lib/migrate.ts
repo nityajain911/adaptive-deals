@@ -62,7 +62,7 @@ export function migrateState(raw: unknown): DemoState {
       pinned: { version: version.version, hash: version.hash },
       overrides: [],
       strategy: "protect_contribution",
-      effectiveHash: effectiveHashOf(engineInputFor({ merchant: item.deal.merchant, baseline: s.baseline, version, overrides: [] })),
+      effectiveHash: effectiveHashOf(engineInputFor({ merchant: item.deal.merchant, baseline: s.baseline, version, overrides: [], terms: item.terms ?? null })),
     };
     if (!s.events.some((existing) => existing.kind === "economics_defaulted")) {
       s.events.push({

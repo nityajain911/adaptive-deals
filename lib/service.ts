@@ -37,7 +37,7 @@ import type { RecordedAnswer, RunRecord } from "@/ai/run-record";
 import { SyntheticAuthoredProvider } from "@/ai/synthetic-provider";
 import { heroDeal } from "@/data/synthetic/hero-run";
 import { heroClarificationAnswers, heroDemoEvents, heroScriptedReplies, HERO_DEAL_ID } from "@/data/synthetic/hero";
-import { allDemoCases, DEFAULT_CASE_ID, demoCase, scriptedReplyText, type CaseId, type DemoCase } from "@/data/synthetic/cases";
+import { allDemoCases, DEFAULT_CASE_ID, demoCase, scriptedAnswerQuote, scriptedReplyText, type CaseId, type DemoCase } from "@/data/synthetic/cases";
 import { SCENARIOS } from "@/data/synthetic/scenarios";
 import { paymentAdapters, type PaymentLinkState } from "@/integrations/razorpay";
 import { DATA_DIR, readJson, serialised, writeJsonAtomic } from "./store";
@@ -294,7 +294,7 @@ export async function seedState(record?: RunRecord, viewing: "replay" | "fresh" 
     gstRateBps: item.deal.merchant.policy.gstRateBps,
     economicsVersion: selectedEconomics.version,
   });
-  const effectiveInput = engineInputFor({ merchant: item.deal.merchant, baseline, version: selectedEconomics, overrides: [] });
+  const effectiveInput = engineInputFor({ merchant: item.deal.merchant, baseline, version: selectedEconomics, overrides: [], terms: item.terms ?? null });
   const deal = selectedRecord.inputs.dealId === HERO_DEAL_ID ? heroDeal() : item.deal;
   if (selectedRecord.inputs.dealId !== deal.dealId) throw new ActionError("The selected run does not belong to this case");
   const provider = new ReplayProvider(selectedRecord.kind === "live" ? "recorded_replay" : "synthetic_replay", selectedRecord.model, selectedRecord.steps);
@@ -1846,7 +1846,7 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
       const replyText = scriptedReplyText(s.caseId, sc);
       const reading = sc.context === "review" ? readReviewReply(replyText, at, activeCase(s).deal.merchant.timeZone, activeCase(s).deal.packages) : null;
       const refs = reading?.read ? { reviewDecision: reading.verdict.reading.decision, ...(reading.verdict.reading.change ? { reviewChange: reading.verdict.reading.change } : {}) } : undefined;
-      applyBuyerReply(s, { inReplyTo: target.id, text: replyText, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text, refs });
+      applyBuyerReply(s, { inReplyTo: target.id, text: replyText, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: scriptedAnswerQuote(s.caseId, sc), refs });
       if (reading?.read) event(s, "review_reply_read", "The buyer's answer was read", "live_model", `${reading.line} · Recorded ${reading.provider} reading (${reading.model}), phrase, amount, date and service checked by code`);
       else if (reading) event(s, "review_reply_unread", "The buyer's answer was left for you to read", "engine", reading.why);
       return;

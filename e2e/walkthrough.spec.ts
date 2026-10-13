@@ -736,3 +736,62 @@ test("presenter evidence · raw records are dark JSON blocks with a Copy JSON bu
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(() => JSON.parse(copied)).not.toThrow();
 });
+
+test("the discount case: no discount is recommended, the owner chooses the one against an advance, and the balance moves before it is late", async ({ page }) => {
+  await reset(page);
+  await startCase(page, "preserve-scope");
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  // One question only: whether the amounts include GST. The "excludes GST" answer would undo the case, so it is not offered.
+  await api(page, { action: "send_questions" });
+  await page.goto("/deals/hero/understand");
+  await openGuide(page);
+  const choices = guide(page).getByTestId("walkthrough-reply-choice");
+  await expect(choices).toContainText("Priya: Yes, both amounts include GST.");
+  await expect(choices).toContainText("Priya: The ₹30,000 includes GST, but I'm not sure");
+  await expect(choices).not.toContainText("exclude GST");
+  await expect(guide(page).getByTestId("walkthrough-reply-clar-gst-no")).toHaveCount(0);
+  await guide(page).getByTestId("walkthrough-reply-clar-gst-yes").check();
+  await walkthroughPrimary(page).click();
+  await expect(page.getByTestId("status-headline")).toContainText("Review this offer before sending it.");
+
+  // Nothing fits at the normal prices, so nothing is recommended: the owner picks the discount they are willing to give.
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("no-standard-offer")).toContainText("No offer fits at your normal prices.");
+  await expect(page.getByTestId("recommendation")).toHaveCount(0);
+  await openGuide(page);
+  await expect(guide(page)).toContainText("Click “Use this instead”");
+  await page.getByTestId("discount-only-offers").getByText("Use this instead").first().click();
+  await expect(page.getByTestId("offer-headline")).toHaveText("Start with a six-month package · 40% on signing, the rest a month later");
+  await expect(page.getByTestId("offer-total")).toHaveText("₹70,092");
+  await expect(page.getByTestId("offer-was")).toHaveText("₹84,960");
+  await expect(page.locator('[data-row="monthly-reporting"]')).toHaveAttribute("data-change", "removed");
+  await expect(page.locator('[data-row="discount"]')).toContainText("10% off");
+  await expect(page.getByTestId("why-offer")).toContainText("10% off only against part of the payment on signing");
+  await expect(page.getByTestId("offer-payments")).toContainText("₹28,036.80 on 1 Dec 2026");
+
+  // Send it, and the buyer pays the advance and sets up the balance.
+  await productPrimary(page);
+  await expect(page).toHaveURL(/\/offer\/preview$/);
+  await page.getByTestId("primary-action").click();
+  await expect.poll(() => state().agreements.some((a) => a.status === "sent")).toBe(true);
+  const sent = state().agreements.find((a) => a.status === "sent")!;
+  expect(sent.terms.pricing.totalPaise).toBe(7_009_200);
+  await page.goto(`/proposal/${sent.agreementId}/v${sent.version}`);
+  await expect(page.getByTestId("buyer-total")).toHaveText("₹70,092");
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹28,036.80");
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+
+  // The walkthrough ends this case with the balance moved: the notice, the buyer's request, the revised terms.
+  await page.goto("/deals/hero/track");
+  await expect(guide(page)).toContainText(/step 6 of 6/i);
+  await expect(guide(page)).toContainText("Fix a late payment before it happens");
+  await api(page, { action: "demo_system_step", stepId: "advance_to_notice" });
+  await api(page, { action: "demo_system_step", stepId: "send_notice" });
+  const notice = state().conversation.findLast((m) => m.kind === "notice")!;
+  await api(page, { action: "buyer_reply", inReplyTo: notice.id, scriptId: "notice-cash-tight" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("The buyer can't pay until after 12 Jan 2027.");
+  expect(state().conversation.findLast((m) => m.kind === "buyer_reply")!.text).toBe("Priya: Invoice approval is delayed. Please hold the payment till the 12th.");
+});

@@ -6,9 +6,10 @@ import { heroPackages } from "@/data/synthetic/hero";
 import { dealSituation } from "@/lib/deal-situation";
 
 const NAMES = Object.fromEntries(heroPackages.map((pkg) => [pkg.id, pkg.name]));
-const RUNS: Record<CaseId, string> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-1ec088fa", "no-fit": "run-case-no-fit-6fb4027d" };
+// The discount case has no recorded model run yet: it reads the hand-written sample, which holds the same facts.
+const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/synthetic/replay/preserve-scope-synthetic-run.json", "no-fit": "data/case-recorded-runs/run-case-no-fit-6fb4027d.json" };
 const tiles = (id: CaseId) => {
-  const run = JSON.parse(readFileSync(`data/case-recorded-runs/${RUNS[id]}.json`, "utf8")) as RunRecord;
+  const run = JSON.parse(readFileSync(RUNS[id], "utf8")) as RunRecord;
   const t = dealSituation({ quotePrePaise: demoCase(id)!.quote.prePaise, profile: run.engine.profile, rejectedFields: run.engine.rejectedFields, packageNames: NAMES });
   return Object.fromEntries(t.map((tile) => [tile.id, tile]));
 };
@@ -22,12 +23,12 @@ describe("a buyer's situation as scannable facts", () => {
     expect(t.approval!.value).toBe("Above ₹60,000 needs MD approval");
   });
 
-  it("preserve scope: a short budget, a start that can wait, and services the merchant must confirm", () => {
+  it("discount ask: a short budget, no start date, the services they need named and reporting able to wait", () => {
     const t = tiles("preserve-scope");
-    expect(t.budget).toMatchObject({ value: "Short of your quote", tone: "red", detail: "₹10,000 available now · more from 1 May 2027" });
-    expect(t.timeline).toMatchObject({ value: "Start can wait a while", tone: "amber", detail: "Start by 1 May 2027" });
-    expect(t.scope).toMatchObject({ value: "Services to confirm", tone: "amber" });
-    expect(t.scope!.detail).toBe("They said “complete annual package” without naming services");
+    expect(t.budget).toMatchObject({ value: "Short of your quote", tone: "red", detail: "₹30,000 available now · more from 1 Jan 2027" });
+    expect(t.timeline).toMatchObject({ value: "No start date stated", tone: "neutral" });
+    expect(t.scope).toMatchObject({ value: "Website fixes, Search marketing", tone: "neutral" });
+    expect(t.approval!.value).toBe("Above ₹75,000 needs MD approval");
   });
 
   it("no fit: the money is there, but the start is too soon", () => {

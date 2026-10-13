@@ -93,7 +93,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     actor: "merchant",
     title: "Choose a buyer situation",
     pitch: "Every buyer needs a different answer",
-    watch: "Three situations: a buyer who wants to start small, a request for everything, and one with no fit.",
+    watch: "Three situations: a buyer who wants to start small, one who asks for a discount, and one with no fit.",
     architecture: "Each situation replays a recorded model reading of its own conversation, with a labelled hand-written sample as the fallback.",
     instruction: "Pick a buyer situation to start.",
     notice: "Different customers need different answers.",
@@ -165,7 +165,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     pitch: "Fix a late payment before it happens",
     watch: "When the buyer asks for time, the schedule, profit and mandate are rechecked before either side agrees.",
     architecture: "A fixed set of date phrases is read by rules; anything else needs you. A change is a new version both sides accept.",
-    instruction: "See what happens when the buyer asks to move a payment.",
+    instruction: "Move to the advance-notice date, let the buyer ask for more time, then draft, approve and send the revised terms and let them accept.",
     notice: "The app checks the new schedule before either side agrees.",
     href: "/deals/:dealId/track",
     anchorId: "collection-setup",
@@ -209,6 +209,7 @@ export function walkthroughCapabilities(): ReadonlySet<WalkthroughCapability> {
 /** Buttons the progress derivation does not name: the buyer's own page and the preview. */
 const PRODUCT_LABEL: Record<string, string> = {
   approve_and_send_draft: "Send offer",
+  select_discounted_offer: "Use this instead",
   buyer_accept: "Accept and pay",
   buyer_decide: "Accept and pay",
   buyer_setup: "Pay and set up auto-pay",
@@ -331,6 +332,10 @@ function provenanceLabel(provenance: WalkthroughProvenance | null, state: DemoSt
 
 /** Model-task steps are described by who actually produced this run's outputs. */
 function attributed(item: WalkthroughObjective, state: DemoState): WalkthroughObjective {
+  // Each case ends its story differently: the pilot with its month-three review, the discount with a balance that moves before it is late.
+  // The one that ends this case's story is a step of the walkthrough; the other is optional exploration.
+  const ending = demoCase(state.caseId)?.journeyEnd ?? "month_three_review";
+  if (item.id === "month_three_review" || item.id === "preventive_restructure") item = { ...item, optional: item.id !== ending };
   if (item.id === "understand_buyer") {
     const source = taskSource(state, "extract");
     return source.modelMade

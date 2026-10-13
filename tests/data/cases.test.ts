@@ -21,11 +21,16 @@ const REDUCED_SCOPE_MESSAGES = [
   "Divya: Sounds good. Send the offer across when it is ready.",
 ] as const;
 const PRESERVE_SCOPE_MESSAGES = [
-  "Hi, sharing the annual admissions plan again. It is ₹1,20,000 plus GST for the full year.",
-  "Thanks. We need the complete annual package for the admissions season, so please don’t remove anything.",
-  "I can release only ₹10,000 right now, as this quarter is tight.",
-  "Our next campaign budget opens on 1 May. Starting then is fine as long as the full plan stays intact.",
-  "Finance lets me approve up to ₹15,000 per payment without escalating it. Both the ₹10,000 and ₹15,000 figures are before GST.",
+  "Hi Aarav, Priya, here is the six-month retainer we discussed: website fixes, search marketing, social media and monthly reporting. It comes to ₹72,000 plus GST.",
+  "Aarav: Thanks Meera. Our vendor policy expects 15% off any retainer above ₹75,000.",
+  "We don't usually discount, but I'm open to talking it through. What does approval look like on your side?",
+  "Aarav: Our ops head can approve up to ₹75,000. Anything above that goes to our MD, and that takes about three weeks.",
+  "Aarav: Our standard payment terms are net-45 from the invoice.",
+  "Aarav: We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.",
+  "Net-45 is hard for us, we pay our contractors at the start of every month. I can only look at a discount if you give something in return, like part of the payment on signing.",
+  "Priya: I only have ₹30,000 left in this quarter. Our fresh budget opens on 1 January.",
+  "Priya: If the total comes to ₹75,000 or less, we can pay ₹30,000 on signing and the balance in January. We would also look at a longer term if the rate is better.",
+  "Aarav: Sounds good. Send one clear offer when it is ready.",
 ] as const;
 const NO_FIT_MESSAGES = [
   "Hi, sharing the launch proposal. It is ₹1,20,000 plus GST for website fixes, search marketing, social media and monthly reporting. We currently have delivery starting in November.",
@@ -49,8 +54,15 @@ describe("commercial demo case catalog", () => {
     const cases = allDemoCases();
     const first = cases[0].deal;
     for (const item of cases.slice(1)) {
-      expect(canonicalJson(item.deal.merchant)).toBe(canonicalJson(first.merchant));
       expect(canonicalJson(item.deal.packages)).toBe(canonicalJson(first.packages));
+      // The discount case carries the terms agreed for its buyer (a discount limit and its ways to pay); every other case shares the account's.
+      if (item.id === "preserve-scope") {
+        expect(item.terms).toBeTruthy();
+        expect(canonicalJson({ ...item.deal.merchant, policy: { ...item.deal.merchant.policy, discountLimitBps: 0 } })).toBe(canonicalJson(first.merchant));
+        continue;
+      }
+      expect(item.terms).toBeUndefined();
+      expect(canonicalJson(item.deal.merchant)).toBe(canonicalJson(first.merchant));
       expect(canonicalJson(item.deal.templates)).toBe(canonicalJson(first.templates));
     }
   });
@@ -91,14 +103,19 @@ describe("commercial demo case catalog", () => {
     expect(messages.map((message) => message.text).join(" ")).not.toMatch(/both amounts include GST|per contract/i);
   });
 
-  it("uses the approved five-message preserve-scope opening with an explicit pre-GST basis", () => {
+  it("uses the ten-message discount conversation: a 15% ask, net-45, and ₹30,000 on signing", () => {
     const item = demoCase("preserve-scope")!;
     expect(item.deal.messages.map((message) => message.text)).toEqual(PRESERVE_SCOPE_MESSAGES);
-    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "buyer", "buyer", "buyer"]);
-    expect(item.deal.messages.map((message) => message.id)).toEqual(["preserve-1", "preserve-2", "preserve-3", "preserve-4", "preserve-5"]);
-    const gst = item.expected.extraction.fields.find((field) => field.key === "amounts_include_gst");
-    expect(gst).toMatchObject({ raw_text: "before GST", message_id: "preserve-5" });
-    expect(gst!.evidence_quote).toContain("₹10,000 and ₹15,000");
+    expect(item.deal.messages.map((message) => message.author)).toEqual(["merchant", "buyer", "merchant", "buyer", "buyer", "buyer", "merchant", "buyer", "buyer", "buyer"]);
+    expect(item.deal.messages.map((message) => message.id)).toEqual(Array.from({ length: 10 }, (_, i) => `discount-${i + 1}`));
+    // The conversation asks for the discount and the terms but does not pre-answer either question: the GST basis is for the buyer to say.
+    const keys = item.expected.extraction.fields.map((field) => field.key);
+    expect(keys).not.toContain("amounts_include_gst");
+    expect(item.expected.extraction.ambiguities.map((a) => a.field_key)).toEqual(["amounts_include_gst", "approval_limit_scope"]);
+    expect(item.expected.extraction.unsupported_requests).toEqual([expect.objectContaining({ kind: "discount", message_id: "discount-2" })]);
+    expect(item.terms).toMatchObject({ discountLimitBps: 1000 });
+    expect(item.terms!.templates.discountsBps).toEqual([0, 1000, 1500]);
+    expect(item.hiddenReplies).toEqual(["clar-gst-no"]);
   });
 
   it("uses the approved no-fit opening and normalises its exact deadline", () => {
@@ -143,7 +160,7 @@ describe("commercial demo case catalog", () => {
   it("replays to three distinct commercial decisions", async () => {
     const expected = {
       "reduced-scope": { state: "options_ready", template: "phased_scope" },
-      "preserve-scope": { state: "options_ready", template: "deferred_start" },
+      "preserve-scope": { state: "options_ready", template: "phased_scope" },
       "no-fit": { state: "no_feasible_deal", template: null },
     } as const;
 
