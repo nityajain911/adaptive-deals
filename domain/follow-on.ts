@@ -4,6 +4,7 @@ import { isCounterStructureId } from "./counter";
 import { formatINR, sum, type Paise } from "./money";
 import { buildStructure, type Structure } from "./structures";
 import type { BuyerConstraints, PaymentPlan, ScopeItem } from "./types";
+import type { ReviewChange } from "./conversation";
 
 /**
  * The rest of the year, held at today's rates after a smaller first phase.
@@ -165,29 +166,68 @@ export function evaluateFollowOn(held: CanonicalFollowOn, constraints: BuyerCons
   return evaluateStructure(followOnStructure(held, input), remaining, input);
 }
 
-/**
- * The rest of the year without one service the buyer asked to leave out, at the same rates, checked by the same engine.
- * Null when the service cannot be removed, nothing would be left, or the smaller offer would not pass the rules.
- */
-export function reducedFollowOn(held: CanonicalFollowOn, removePackageId: string, constraints: BuyerConstraints, input: EngineInput): { held: CanonicalFollowOn; evaluated: EvaluatedStructure; removedName: string } | null {
-  const removed = input.packages.find((p) => p.id === removePackageId);
-  if (!removed || !removed.removable || !held.scope.some((item) => item.packageId === removePackageId)) return null;
-  const scope = held.scope.filter((item) => item.packageId !== removePackageId);
+/** One way to answer a buyer who wants to carry on with a change: worked out from the held terms, and checked by the same engine. */
+type ReviewChangeRequest = ReviewChange;
+
+export interface FollowOnOption {
+  /** Stable, so the merchant's choice names exactly this option: `remove:<ids>` or `start:<date>`. */
+  id: string;
+  label: string;
+  held: CanonicalFollowOn;
+  evaluated: EvaluatedStructure;
+  totalPaise: Paise;
+  instalments: number;
+  within: boolean;
+}
+
+const nameOf = (input: EngineInput, id: string) => input.packages.find((p) => p.id === id)?.name ?? id;
+const joinNames = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
+
+/** The held rest of the year with some services left out and/or a later start, at the same rates; null unless it passes every rule. */
+function variantOf(held: CanonicalFollowOn, change: { remove?: string[]; startDate?: CalendarDate }, constraints: BuyerConstraints, input: EngineInput): { held: CanonicalFollowOn; evaluated: EvaluatedStructure } | null {
+  const remove = change.remove ?? [];
+  for (const id of remove) {
+    const p = input.packages.find((x) => x.id === id);
+    // A service the buyer needs, or one that cannot be sold apart, is not something to leave out.
+    if (!p || !p.removable || constraints.requiredPackages.includes(id) || !held.scope.some((item) => item.packageId === id)) return null;
+  }
+  const scope = held.scope.filter((item) => !remove.includes(item.packageId));
   if (!scope.length) return null;
+  const startDate = change.startDate ?? held.startDate;
   const months = Math.max(...scope.map((item) => (input.packages.find((p) => p.id === item.packageId)?.kind === "monthly" ? item.months : 1)));
   const covered = new Set(scope.map((item) => item.packageId));
   const remaining: BuyerConstraints = { ...constraints, requiredPackages: constraints.requiredPackages.filter((id) => covered.has(id)) };
   const offsets = [equalMonths(months, 1), ...(months >= 6 ? [equalMonths(Math.ceil(months / 3), 3)] : [])];
   for (const paymentOffsetsMonths of offsets) {
-    const candidate: CanonicalFollowOn = { ...held, scope, paymentOffsetsMonths, instalments: paymentOffsetsMonths.length };
-    const structure = followOnStructure(candidate, input, [removePackageId]);
+    const candidate: CanonicalFollowOn = { ...held, scope, startDate, paymentOffsetsMonths, instalments: paymentOffsetsMonths.length };
+    const structure = followOnStructure(candidate, input, remove);
     const evaluated = evaluateStructure(structure, remaining, input);
     if (evaluated.verdict !== "feasible") continue;
     return {
       held: { ...candidate, approval: evaluated.approval, pricing: { prePaise: structure.pricePaise, gstPaise: sum(structure.payments.map((p) => p.gstPaise)), totalPaise: sum(structure.payments.map((p) => p.totalPaise)) } },
       evaluated,
-      removedName: removed.name,
     };
   }
   return null;
+}
+
+/**
+ * What the merchant can offer a buyer who wants to carry on, with the change they asked for. Every option is worked out from the held
+ * terms at the same rates and passes the same rules; a change the rules cannot meet yields no option. Only the buyer's request is read,
+ * as the structured change their reply carries.
+ */
+export function followOnOptionsFor(held: CanonicalFollowOn, change: ReviewChangeRequest, constraints: BuyerConstraints, input: EngineInput): FollowOnOption[] {
+  const make = (id: string, label: string, v: { held: CanonicalFollowOn; evaluated: EvaluatedStructure } | null): FollowOnOption[] =>
+    v ? [{ id, label, held: v.held, evaluated: v.evaluated, totalPaise: v.held.pricing.totalPaise, instalments: v.held.instalments, within: v.held.approval === "within_limit" }] : [];
+  if (change.kind === "leave_out") return make(`remove:${change.removePackageId}`, `Without ${nameOf(input, change.removePackageId)}`, variantOf(held, { remove: [change.removePackageId] }, constraints, input));
+  if (change.kind === "later_start") {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(change.startDate) || compareDates(change.startDate, held.startDate) <= 0) return [];
+    return make(`start:${change.startDate}`, `Start ${formatDate(change.startDate)}`, variantOf(held, { startDate: change.startDate }, constraints, input));
+  }
+  // A lower price: the same rates cannot go lower, so the way down is a smaller scope. Offer those that reach the target, nearest first.
+  const leaveable = held.scope.map((item) => item.packageId).filter((id) => input.packages.find((p) => p.id === id)?.removable && !constraints.requiredPackages.includes(id));
+  const subsets: string[][] = [];
+  for (let mask = 1; mask < 1 << leaveable.length; mask++) subsets.push(leaveable.filter((_, i) => mask & (1 << i)));
+  const found = subsets.flatMap((ids) => make(`remove:${ids.join("+")}`, `Without ${joinNames(ids.map((id) => nameOf(input, id)))}`, variantOf(held, { remove: ids }, constraints, input))).filter((o) => o.totalPaise <= change.targetPaise);
+  return found.sort((a, b) => b.totalPaise - a.totalPaise).slice(0, 3);
 }

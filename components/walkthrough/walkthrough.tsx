@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Compass } from "lucide-react";
 import type { WalkthroughView } from "@/lib/walkthrough";
+import type { ReplyChoice, ReplyContext } from "@/lib/demo-step-types";
 import { confirmedRestartCommand, walkthroughCommand, type WalkthroughCommand } from "@/lib/walkthrough-actions";
 import { Button, useAction } from "@/components/client";
 import { cx } from "@/components/ui";
@@ -21,21 +22,30 @@ function focusTarget(anchorId: string) {
   return true;
 }
 
-function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo: string; label: string; scripts: { id: string; text: string }[] }; pending: boolean; error: string | null; send: (command: WalkthroughCommand) => void }) {
+function BuyerReplyControl({ reply, pending, error, send }: { reply: ReplyContext; pending: boolean; error: string | null; send: (command: WalkthroughCommand) => void }) {
   const [choice, setChoice] = useState(reply.scripts[0]?.id ?? "__typed");
   const [typed, setTyped] = useState("");
+  // A choice that needs a follow-up (which change?) is a first step only; the second list holds the complete replies.
+  const [group, setGroup] = useState<ReplyChoice | null>(null);
   const custom = choice === "__typed";
+  const chosen = reply.scripts.find((script) => script.id === choice);
+  const goesOn = !group && !!chosen?.followUp;
   return (
     <form
       className="mt-4 space-y-2 rounded-xl border border-[#ddd5ff] bg-violet-weak p-3"
       onSubmit={(event) => {
         event.preventDefault();
+        if (goesOn && chosen?.followUp) {
+          setGroup(chosen);
+          setChoice(chosen.followUp.scripts[0]?.id ?? "");
+          return;
+        }
         send(walkthroughCommand(custom ? { action: "buyer_reply", inReplyTo: reply.inReplyTo, text: typed } : { action: "buyer_reply", inReplyTo: reply.inReplyTo, scriptId: choice }));
       }}
     >
       <fieldset className="space-y-1.5" data-testid="walkthrough-reply-choice" data-value={choice}>
-        <legend className="text-[12px] font-semibold text-ink">The buyer replies</legend>
-        {[...reply.scripts, { id: "__typed", text: "Type another reply" }].map((script) => (
+        <legend className="text-[12px] font-semibold text-ink">{group?.followUp ? group.followUp.legend : "The buyer replies"}</legend>
+        {(group?.followUp ? group.followUp.scripts : [...reply.scripts, { id: "__typed", text: "Type another reply" }]).map((script) => (
           <label key={script.id} className={cx("flex w-full cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-left text-[13px] leading-5", choice === script.id ? "border-violet bg-surface font-medium text-ink ring-1 ring-violet" : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted")}>
             <input type="radio" name={`reply-${reply.inReplyTo}`} className="mt-1 accent-[var(--violet)]" checked={choice === script.id} onChange={() => setChoice(script.id)} data-testid={`walkthrough-reply-${script.id}`} />
             <span>{script.text}</span>
@@ -43,14 +53,15 @@ function BuyerReplyControl({ reply, pending, error, send }: { reply: { inReplyTo
         ))}
       </fieldset>
       {custom ? <textarea aria-label="Another simulated buyer reply" className="min-h-20 w-full rounded-lg border border-line-strong bg-surface px-2 py-2 text-[12px]" value={typed} maxLength={500} onChange={(event) => setTyped(event.target.value)} /> : null}
-      <p className="text-[12px] text-ink-2">Sends the selected text as the demo buyer replying to “{reply.label}”.</p>
-      <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : "Send simulated buyer response"}</Button>
+      {group ? <button type="button" className="text-[12px] text-ink-2 underline underline-offset-2" data-testid="walkthrough-reply-back" onClick={() => { setChoice(group.id); setGroup(null); }}>Back to the other replies</button> : null}
+      <p className="text-[12px] text-ink-2">{goesOn ? "Next, choose which change the buyer asks for. Nothing is sent yet." : `Sends the selected text as the demo buyer replying to “${reply.label}”.`}</p>
+      <Button type="submit" variant="sim" className="w-full" disabled={pending || (custom && !typed.trim())} data-walkthrough-primary="true">{pending ? "Sending…" : goesOn ? "Next: choose the change" : "Send simulated buyer response"}</Button>
       {error ? <p role="alert" className="text-[12px] text-red">{error}</p> : null}
     </form>
   );
 }
 
-export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; reply: { inReplyTo: string; label: string; scripts: { id: string; text: string }[] } | null; backHref?: string }) {
+export function Walkthrough({ view, reply, backHref }: { view: WalkthroughView; reply: ReplyContext | null; backHref?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const { run, pending, error } = useAction();

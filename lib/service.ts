@@ -10,7 +10,7 @@ import { interpretations } from "@/domain/constraints";
 import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
 import { compareDates, formatDate, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
-import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnStandingOn, reducedFollowOn } from "@/domain/follow-on";
+import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnOptionsFor, followOnStandingOn } from "@/domain/follow-on";
 import { evaluatedForVersion } from "./version-structure";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
@@ -1223,7 +1223,7 @@ async function followOnStandingOf(s: DemoState, active: AgreementVersion | null,
  * as it was held. It is checked by the same engine again, against today's rate card; if the held price no longer matches, it is
  * not sent. The buyer then accepts and pays on their own page, with a payment setup of its own.
  */
-export async function sendFollowOn(opts: { conditionMet?: boolean; applyChange?: boolean } = {}): Promise<DemoState> {
+export async function sendFollowOn(opts: { conditionMet?: boolean; optionId?: string } = {}): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
@@ -1250,13 +1250,13 @@ export async function sendFollowOn(opts: { conditionMet?: boolean; applyChange?:
     if (full.structure.pricePaise !== held.pricing.prePaise) throw new ActionError("Your prices changed since this was held, so it no longer matches what you offered");
     let evaluated = full;
     let changeNote = "";
-    if (opts.applyChange) {
+    if (opts.optionId) {
       const change = review.reply?.refs.reviewChange;
       if (!change) throw new ActionError("The buyer has not asked for a change");
-      const reduced = reducedFollowOn(held, change.removePackageId, constraints, deal);
-      if (!reduced) throw new ActionError("That change does not pass your rules");
-      evaluated = reduced.evaluated;
-      changeNote = ` · without ${reduced.removedName}, at the buyer's request`;
+      const option = followOnOptionsFor(held, change, constraints, deal).find((o) => o.id === opts.optionId);
+      if (!option) throw new ActionError("That option is not available: it does not pass your rules, or it is not what the buyer asked for");
+      evaluated = option.evaluated;
+      changeNote = ` · ${option.label.charAt(0).toLowerCase()}${option.label.slice(1)}, at the buyer's request`;
     }
     const r = await attemptDelivery("proposal");
     if (!r.ok) throw new ActionError(r.reason);
@@ -1274,14 +1274,18 @@ export async function sendFollowOn(opts: { conditionMet?: boolean; applyChange?:
   });
 }
 
-/** What leaving out the service the buyer named would come to, for the merchant's card; null unless the buyer asked for such a change. */
-export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ removedName: string; totalPaise: number; instalments: number; approval: "within_limit" | "requires_approval" | "unknown" } | null> {
+/** What the buyer asked for and the options that meet it, for the merchant's card; null unless the buyer asked to carry on with a change. */
+export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ request: string; options: { id: string; label: string; totalPaise: number; instalments: number; within: boolean; firstPaymentDate: string }[] } | null> {
   const held = activeVersion(s)?.terms.followOn;
   const change = reviewOf(s).reply?.refs.reviewChange;
   if (!held || !change) return null;
   const out = await currentOutcome(s, deal);
-  const reduced = reducedFollowOn(held, change.removePackageId, constraintsOf(out), deal);
-  return reduced ? { removedName: reduced.removedName, totalPaise: reduced.held.pricing.totalPaise, instalments: reduced.held.instalments, approval: reduced.held.approval } : null;
+  const options = followOnOptionsFor(held, change, constraintsOf(out), deal);
+  const request =
+    change.kind === "lower_price" ? `They want the rest of the year at ${formatINR(change.targetPaise)} or less.`
+    : change.kind === "later_start" ? `They ask to start on ${formatDate(change.startDate)} instead of ${formatDate(held.startDate)}.`
+    : `They ask to leave out ${deal.packages.find((p) => p.id === change.removePackageId)?.name ?? change.removePackageId}.`;
+  return { request, options: options.map((o) => ({ id: o.id, label: o.label, totalPaise: o.totalPaise, instalments: o.instalments, within: o.within, firstPaymentDate: o.held.startDate })) };
 }
 
 /** The buyer's own go-ahead condition, in their words, when they set one. */
@@ -1303,6 +1307,9 @@ export async function closeFollowOn(): Promise<DemoState> {
     if (!active || !held) throw new ActionError("There is no held offer to close");
     if (s.followOnSale) throw new ActionError("The rest of the year has already been sent");
     if (s.followOnClosed) throw new ActionError("The rest of the year is already closed");
+    // A buyer who has said they want to carry on is never closed on: only an answer to stop, or no answer, leaves the merchant a way out.
+    const said = reviewOf(s).state;
+    if (said === "proceed" || said === "changes") throw new ActionError("The buyer wants to carry on, so there is nothing to close");
     const standing = await followOnStandingOf(s, active, deal, await fullyPaidOf(s, active, deal));
     if (!standing) throw new ActionError("The first phase must be paid in full before the review");
     if (standing.state === "waiting_review") throw new ActionError(`The review is on ${formatDate(standing.reviewDate)}`);

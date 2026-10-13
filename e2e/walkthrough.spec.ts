@@ -22,6 +22,7 @@ async function api(page: Page, data: Record<string, unknown>) {
 }
 
 const reset = (page: Page) => api(page, { action: "reset" });
+const walkthroughPrimary = (page: Page) => page.getByTestId("walkthrough").locator("[data-walkthrough-primary]");
 const startCase = (page: Page, caseId = "reduced-scope") => api(page, { action: "start_case", caseId });
 const guide = (page: Page) => page.getByTestId("walkthrough");
 
@@ -488,16 +489,39 @@ test("after the pilot the buyer's own reply decides the merchant's action: stop 
   expect(state().agreements).toHaveLength(1);
 });
 
-test("after the pilot the buyer can ask for a change: the merchant sees what it comes to and sends it, and the buyer accepts it", async ({ page }) => {
+test("after the pilot the buyer can carry on with a change: the presenter picks which, and the merchant gets only the options that meet it", async ({ page }) => {
   const review = await atReview(page);
-  await api(page, { action: "buyer_reply", inReplyTo: review.id, scriptId: "review-changes" });
   await page.goto("/deals/hero/track");
+  await openGuide(page);
+  // First step: carry on with some changes. Nothing is sent yet.
+  await page.getByTestId("walkthrough-reply-review-changes").check();
+  await expect(walkthroughPrimary(page)).toContainText("Next: choose the change");
+  await walkthroughPrimary(page).click();
+  await expect(guide(page)).toContainText("Which change does the buyer want?");
+  await expect(guide(page).getByTestId("walkthrough-reply-review-change-price")).toBeVisible();
+  await expect(guide(page).getByTestId("walkthrough-reply-review-change-date")).toBeVisible();
+  await expect(guide(page).getByTestId("walkthrough-reply-review-change-scope")).toBeVisible();
+  expect(state().conversation.filter((m) => m.inReplyTo === review.id)).toHaveLength(0);
+  // Back goes to the first list, and the choice is still not sent.
+  await guide(page).getByTestId("walkthrough-reply-back").click();
+  await expect(guide(page).getByTestId("walkthrough-reply-review-stop")).toBeVisible();
+  await guide(page).getByTestId("walkthrough-reply-review-changes").check();
+  await walkthroughPrimary(page).click();
+  await guide(page).getByTestId("walkthrough-reply-review-change-price").check();
+  await walkthroughPrimary(page).click();
+
   await expect(page.getByTestId("status-headline")).toContainText("The buyer wants to go ahead, with a change. Decide how to answer.");
-  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("leave out social media");
-  await expect(page.getByTestId("follow-on-change")).toHaveText("Without Social media, the rest of the year is ₹53,100 including GST, within their approval limit.");
+  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("₹60,000 or less");
+  await expect(page.getByTestId("follow-on-change")).toContainText("They want the rest of the year at ₹60,000 or less. These meet it:");
+  const options = page.getByTestId("follow-on-options");
+  await expect(options).toContainText("Send · Without Social media · ₹53,100");
+  await expect(options).toContainText("3 payments from 1 Feb 2027 · within their approval limit");
+  await expect(options).toContainText("Send · Without Social media and Monthly reporting · ₹42,480");
   await expect(page.getByTestId("send-as-held")).toHaveText("Send as held · ₹84,960");
-  await expect(page.getByTestId("close-follow-on")).toBeVisible();
-  await expect(page.getByTestId("primary-action")).toHaveText("Send without Social media · ₹53,100");
+  // A buyer who wants to carry on is never shown a way to back out.
+  await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
+  await expect(page.getByText(/Close after the first phase/)).toHaveCount(0);
+  await expect(page.getByTestId("primary-action")).toHaveText("Send · Without Social media · ₹53,100");
   await page.getByTestId("primary-action").click();
   await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 2.");
 
@@ -505,11 +529,34 @@ test("after the pilot the buyer can ask for a change: the merchant sees what it 
   await expect(page.getByTestId("buyer-total")).toHaveText("₹53,100");
   await expect(page.getByTestId("excluded")).toHaveText("Social media");
   await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹17,700");
-  // Within the buyer's own limit: no attestation of an MD's approval is asked.
   await expect(page.getByTestId("buyer-view")).not.toContainText("your company has approved");
   await page.getByTestId("accept").click();
   await expect(page.getByTestId("setup-done")).toBeVisible();
-  expect(state().attempts.filter((a) => a.agreementVersion === 2).map((a) => a.amountPaise)).toEqual([1_770_000, 1_770_000, 1_770_000]);
+});
+
+test("after the pilot a buyer who carries on with a later start gets that start, and a buyer who carries on as offered gets no way out either", async ({ page }) => {
+  const review = await atReview(page);
+  await api(page, { action: "buyer_reply", inReplyTo: review.id, scriptId: "review-change-date" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("follow-on-change")).toContainText("They ask to start on 1 Apr 2027 instead of 1 Feb 2027.");
+  await expect(page.getByTestId("follow-on-options")).toContainText("Send · Start 1 Apr 2027 · ₹84,960");
+  await expect(page.getByTestId("follow-on-options")).toContainText("3 payments from 1 Apr 2027");
+  await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 2.");
+  await page.goto("/proposal/agr-hero/v2");
+  await expect(page.getByTestId("buyer-payments")).toContainText("1 Apr 2027");
+  await expect(page.getByTestId("buyer-payments")).toContainText("1 Oct 2027");
+
+  const again = await atReview(page);
+  await api(page, { action: "buyer_reply", inReplyTo: again.id, scriptId: "review-proceed" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("primary-action")).toHaveText("Send the rest of the year");
+  await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
+  await expect(page.getByText(/Close after the first phase/)).toHaveCount(0);
+  const refused = await (await page.request.post("/api/actions", { data: { action: "close_follow_on" } })).json();
+  expect(refused.ok).toBe(false);
+  expect(state().followOnClosed).toBeUndefined();
 });
 
 test("the first screen opens with the problem, not the product", async ({ page }) => {

@@ -727,3 +727,17 @@ After the hero changed to Harbour Fresh Foods, the Presenter page still offered 
 **How it is simulated.** The three answers are scripted replies the presenter chooses in the guide, each carrying its decision as metadata exactly like a clarification's answer value; nothing in a reply is interpreted.
 
 **What is not built.** Changes to price, dates or start (only leaving out a service), a counter-offer on the held price, and the buyer's reply arriving without the product's message first.
+
+## Carry on with a change, and only the relevant options (13 October 2026)
+
+**The buyer's three answers** are now: continue as offered, stop here, or proceed with some changes. The last is a two-step choice in the guide: first the presenter picks "proceed with some changes", then which change (a price of ₹60,000 or less, a start on 1 April, or leaving out social media). Only the complete reply is sent, so the merchant sees one message.
+
+**The merchant is offered what meets the change, and only that.** Every option is worked out from the held terms at the same rates and passes the same rules; a change the rules cannot meet yields no option.
+- *A lower price* cannot be met by discounting (this merchant allows none), so the options are smaller scopes that reach the target, nearest first: leaving out social media (₹53,100), or social media and reporting (₹42,480). Services the buyer needs are never left out.
+- *A later start* keeps the price and counts the payments from the new date.
+- *Leaving out a service* is one option.
+A "send as held" stays available.
+
+**No way out for a buyer who wants to carry on.** If the buyer said to continue, or to continue with a change, the card shows no close option and the server refuses to close (only a buyer who said stop, or no readable answer, leaves the merchant a way out).
+
+**Not built:** changes the engine cannot express (a lower price at the same scope, a smaller instalment than the merchant's minimum), and counter-offers on price.

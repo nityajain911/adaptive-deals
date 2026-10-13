@@ -160,7 +160,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
       // The buyer's own answer to the review message decides what the merchant is asked to do.
       if (review === "awaiting") return info("track", "track.follow_on_awaiting_buyer", "waiting_on_buyer", "buyer", "Waiting for the buyer's decision on the rest of the year.", activeV);
       if (review === "stop") return act("track", "track.follow_on_buyer_stop", "The buyer wants to stop after the pilot. Close the deal after the first phase.", "close_follow_on", "Close after the first phase", activeV);
-      if (review === "changes") return act("track", "track.follow_on_changes", "The buyer wants to go ahead, with a change. Decide how to answer.", "send_follow_on", "Send the rest of the year", activeV);
+      if (review === "changes") return act("track", "track.follow_on_changes", "The buyer wants to go ahead, with a change. Decide how to answer.", "send_follow_on", "Send an option that meets it", activeV);
       if (review === "proceed") return act("track", "track.follow_on_due", `The buyer wants to go ahead. Send the rest of the year (${held}).`, "send_follow_on", "Send the rest of the year", activeV);
       if (review === "unclear") return act("track", "track.follow_on_due", `The buyer replied. Read it, then send the rest of the year (${held}) or close the deal.`, "send_follow_on", "Send the rest of the year", activeV);
       return act("track", "track.follow_on_due", `The first phase is paid. Send the rest of the year (${held}).`, "send_follow_on", "Send the rest of the year", activeV);

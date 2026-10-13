@@ -1293,3 +1293,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **What I did:** the product sends a review message on the review date; three scripted buyer answers (proceed, change, stop) are chosen in the guide; the Track card changes with the answer (send, send with their change / as held / close, or close). The change built is leaving out one removable service, worked out and checked by the engine (₹53,100, within the buyer's limit). Tests: service (each answer, the typed reply, the change sent and accepted), the guide's step sequence, and end-to-end for all three.
 
 **Where I limited it:** only "leave out a service" is a supported change; price, date and start changes are not, and the product says nothing about them. When the buyer has said to go ahead, the owner is no longer asked to confirm the condition (the buyer judged their own test); the earlier confirmation remains for a typed reply.
+
+### 2026-10-13 — [Claude Code] Carry on with a change, and only the relevant options
+
+**Asked by the applicant:** rephrase the buyer's answers (continue with the current scope, stop here, proceed with some changes); after "changes", let the demo buyer pick which change (lower price, new date, and so on); show the merchant the options that meet it; and never show a way out to a merchant whose buyer said they want to continue.
+
+**What I did:** a two-step reply control in the guide (the second list holds the complete replies; Back returns), three change kinds carried as metadata on the scripted reply, an option generator in the engine layer (smaller scopes that reach a price, a later start, leaving a service out), a merchant card that lists only those options plus send-as-held, and a server refusal to close for a buyer who wants to continue. Tests: each change kind through to acceptance, the refusal, the guide's two steps (including Back) and the card, end to end.
+
+**Where I limited it:** a lower price is met only by a smaller scope, since this merchant allows no discount; changes the engine cannot express are not offered, and the card says so rather than inventing one.

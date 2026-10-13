@@ -29,6 +29,12 @@ export const STATE_LABEL: Record<ConversationState, string> = {
   received_from_buyer: "Received from buyer",
 };
 
+/** What a buyer who wants to carry on asks to be different, as the simulated reply carries it. Nothing in a reply's words is interpreted. */
+export type ReviewChange =
+  | { kind: "lower_price"; targetPaise: number }
+  | { kind: "later_start"; startDate: string }
+  | { kind: "leave_out"; removePackageId: string };
+
 export type ConversationKind = "clarification" | "proposal" | "notice" | "payment" | "amendment" | "review" | "buyer_reply" | "change_request" | "decline";
 
 export interface ConversationItem {
@@ -46,7 +52,7 @@ export interface ConversationItem {
   provenance: "simulated";
   /** Selected from the demo operator's pre-scripted replies (false = typed). */
   scripted: boolean | null;
-  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; answerQuote?: string; reviewDecision?: "proceed" | "stop" | "changes"; reviewChange?: { removePackageId: string }; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
+  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; answerQuote?: string; reviewDecision?: "proceed" | "stop" | "changes"; reviewChange?: ReviewChange; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
   /** Code's classification of an inbound reply (never an AI interpretation). */
   classification: ReplyClassification | null;
 }

@@ -236,9 +236,12 @@ export const heroScriptedReplies = [
   { id: "notice-next-week", context: "notice" as const, text: "Cash tight till next week" },
   { id: "proposal-okay", context: "proposal" as const, text: "Okay" },
   // The buyer's decision when the pilot ends. The decision rides on the script as metadata, exactly like a clarification's answer value; nothing is interpreted.
-  { id: "review-proceed", context: "review" as const, text: "Kabir: The pilot went well and enquiries are up. Let's go ahead with the rest of the year.", reviewDecision: "proceed" as const },
-  { id: "review-changes", context: "review" as const, text: "Kabir: We want to continue, but could the rest of the year leave out social media for now? That keeps us under our ₹60,000 limit.", reviewDecision: "changes" as const, reviewChange: { removePackageId: "social-media" } },
-  { id: "review-stop", context: "review" as const, text: "Kabir: Thanks, the pilot was useful, but we'd like to stop here.", reviewDecision: "stop" as const },
+  { id: "review-proceed", context: "review" as const, text: "Kabir: The pilot went well and enquiries are up. We'll continue with the rest of the year as offered.", reviewDecision: "proceed" as const },
+  { id: "review-stop", context: "review" as const, text: "Kabir: Thanks, the pilot was useful, but we'd like to stop here. No need to proceed further.", reviewDecision: "stop" as const },
+  // Continue, with a change. The guide asks the presenter which change first; only the complete reply is sent.
+  { id: "review-change-price", context: "review" as const, text: "Kabir: We want to continue, but we need the rest of the year to come to ₹60,000 or less.", reviewDecision: "changes" as const, reviewChange: { kind: "lower_price" as const, targetPaise: 6_000_000 } },
+  { id: "review-change-date", context: "review" as const, text: "Kabir: We want to continue, but could the rest of the year start on 1 April instead?", reviewDecision: "changes" as const, reviewChange: { kind: "later_start" as const, startDate: "2027-04-01" } },
+  { id: "review-change-scope", context: "review" as const, text: "Kabir: We want to continue, but could the rest of the year leave out social media for now?", reviewDecision: "changes" as const, reviewChange: { kind: "leave_out" as const, removePackageId: "social-media" } },
 ];
 
 /** Staged later events. Each one is a simulated demo action with an explicit simulated date. */

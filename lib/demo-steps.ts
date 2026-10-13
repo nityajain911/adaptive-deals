@@ -5,7 +5,7 @@ import { demoCase, scriptedReplyText } from "@/data/synthetic/cases";
 import { isDelivered } from "./deal-records";
 import type { DealProgress } from "./progress";
 import type { DemoState } from "./service";
-import type { DemoStepShape, SystemStepId } from "./demo-step-types";
+import type { DemoStepShape, ReplyContext, SystemStepId } from "./demo-step-types";
 export { demoStepConsequence, SYSTEM_STEPS, type DemoStepType, type SystemStepId } from "./demo-step-types";
 
 /**
@@ -117,7 +117,7 @@ function afterStoryboard(s: DemoState, href: string): DemoStep | null {
 }
 
 /** The message a simulated buyer reply is expected for, with its pre-scripted replies; null if none. */
-export function replyContext(s: DemoState): { inReplyTo: string; label: string; scripts: { id: string; text: string }[] } | null {
+export function replyContext(s: DemoState): ReplyContext | null {
   const replied = (id: string) => s.conversation.some((r) => r.inReplyTo === id);
   if (s.status === "clarifying") {
     const q = s.conversation.find((i) => i.kind === "clarification" && i.sentAt && !replied(i.id));
@@ -126,7 +126,19 @@ export function replyContext(s: DemoState): { inReplyTo: string; label: string; 
   }
   // After the pilot, the buyer's decision: carry on, ask for a change, or stop.
   const review = [...s.conversation].reverse().find((i) => i.kind === "review" && i.sentAt);
-  if (review && !replied(review.id)) return { inReplyTo: review.id, label: review.text, scripts: heroScriptedReplies.filter((r) => r.context === "review").map((r) => ({ id: r.id, text: r.text })) };
+  if (review && !replied(review.id)) {
+    const say = (id: string) => heroScriptedReplies.find((r) => r.id === id)!;
+    const change = ["review-change-price", "review-change-date", "review-change-scope"].map((id) => ({ id, text: say(id).text }));
+    return {
+      inReplyTo: review.id,
+      label: review.text,
+      scripts: [
+        { id: "review-proceed", text: say("review-proceed").text },
+        { id: "review-stop", text: say("review-stop").text },
+        { id: "review-changes", text: "Proceed with some changes", followUp: { legend: "Which change does the buyer want?", scripts: change } },
+      ],
+    };
+  }
   const notice = [...s.conversation].reverse().find((i) => i.kind === "notice" && i.sentAt);
   if (!notice || replied(notice.id)) return null;
   const attempt = s.attempts.find((a) => a.id === notice.refs.attemptId);

@@ -74,8 +74,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   // What the buyer said when the pilot ended, and what a change they asked for would come to.
   const review = reviewOf(s);
   const followOnBuyer = review.reply && review.state !== "none" && review.state !== "awaiting" ? { decision: review.state as "proceed" | "stop" | "changes" | "unclear", text: review.reply.text } : null;
-  const preview = primary?.id === "send_follow_on" && review.state === "changes" ? await followOnChangePreview(s, deal) : null;
-  const followOnChange = preview ? { removedName: preview.removedName, totalPaise: preview.totalPaise, within: preview.approval === "within_limit" } : null;
+  const followOnChange = primary?.id === "send_follow_on" && review.state === "changes" ? await followOnChangePreview(s, deal) : null;
   const outcomeLine = performanceLine(performanceView({ s, out, deal, now }).summary);
   const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
   const agreementSummary = shown && financial

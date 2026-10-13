@@ -243,31 +243,74 @@ describe("one payment, then the buyer's choice at the review", () => {
     expect(closed.agreements).toHaveLength(1);
   });
 
-  it("if the buyer asks for a change, the merchant sees what it would come to and can send it, send as held, or close", async () => {
-    const s = await reviewReply("review-changes");
+  async function previewOf(s: Awaited<ReturnType<typeof svc.getState>>) {
+    const ctx = await import("@/lib/deal-context");
+    return svc.followOnChangePreview(s, ctx.dealContextFor(s, await ctx.pinnedEconomicsOf(s)));
+  }
+
+  it("a buyer who carries on with a LOWER PRICE gets the options that reach it, nearest first, and each passes the rules", async () => {
+    const s = await reviewReply("review-change-price");
     expect(svc.reviewOf(s).state).toBe("changes");
-    expect(svc.reviewOf(s).reply?.refs.reviewChange).toEqual({ removePackageId: "social-media" });
+    expect(svc.reviewOf(s).reply?.refs.reviewChange).toEqual({ kind: "lower_price", targetPaise: 6_000_000 });
     expect(await progress()).toMatchObject({ rule: "track.follow_on_changes", primaryAction: { id: "send_follow_on" } });
-    const deal = (await import("@/lib/deal-context")).dealContextFor(s, await (await import("@/lib/deal-context")).pinnedEconomicsOf(s));
-    expect(await svc.followOnChangePreview(s, deal)).toEqual({ removedName: "Social media", totalPaise: 5_310_000, instalments: 3, approval: "within_limit" });
-    const sent = await svc.sendFollowOn({ applyChange: true });
+    const preview = (await previewOf(s))!;
+    expect(preview.request).toBe("They want the rest of the year at ₹60,000 or less.");
+    expect(preview.options.map((o) => [o.id, o.label, o.totalPaise, o.within])).toEqual([
+      ["remove:social-media", "Without Social media", 5_310_000, true],
+      ["remove:social-media+monthly-reporting", "Without Social media and Monthly reporting", 4_248_000, true],
+    ]);
+    const sent = await svc.sendFollowOn({ optionId: "remove:social-media" });
     const v = sent.agreements.at(-1)!;
     expect(v).toMatchObject({ status: "sent", continuesFrom: 1 });
     expect(v.terms.scope.map((x) => x.packageId)).toEqual(["search-marketing", "monthly-reporting"]);
     expect(v.terms.excludedPackageIds).toEqual(["social-media"]);
     expect(v.terms.pricing.totalPaise).toBe(5_310_000);
-    // Within the buyer's own ₹60,000 approval limit, so no MD attestation is asked of them.
+    // Within the buyer's own ₹60,000 limit, so no MD attestation is asked of them.
     expect(v.terms.conditions).not.toContain("buyer_attests_required_approval");
     expect(sent.events.find((e) => e.kind === "follow_on_sent")?.title).toBe(`The rest of the year sent as version ${v.version} · without Social media, at the buyer's request`);
     await svc.acceptAgreement(v.version, v.termsHash, false);
     await svc.buyerCompleteSetup();
-    const done = await svc.getState();
-    expect(done.attempts.filter((a) => a.agreementVersion === v.version).map((a) => a.amountPaise)).toEqual([1_770_000, 1_770_000, 1_770_000]);
+    expect((await svc.getState()).attempts.filter((a) => a.agreementVersion === v.version).map((a) => a.amountPaise)).toEqual([1_770_000, 1_770_000, 1_770_000]);
+  });
+
+  it("a buyer who carries on with a LATER START gets the same price from the date they asked for, in payments counted from it", async () => {
+    const s = await reviewReply("review-change-date");
+    expect(svc.reviewOf(s).reply?.refs.reviewChange).toEqual({ kind: "later_start", startDate: "2027-04-01" });
+    const preview = (await previewOf(s))!;
+    expect(preview.request).toBe("They ask to start on 1 Apr 2027 instead of 1 Feb 2027.");
+    expect(preview.options).toEqual([{ id: "start:2027-04-01", label: "Start 1 Apr 2027", totalPaise: 8_496_000, instalments: 3, within: false, firstPaymentDate: "2027-04-01" }]);
+    const v = (await svc.sendFollowOn({ optionId: "start:2027-04-01" })).agreements.at(-1)!;
+    expect(v.terms.paymentSchedule.map((p) => p.dueDate.value)).toEqual(["2027-04-01", "2027-07-01", "2027-10-01"]);
+    expect(v.terms.deliverySchedule[0].month.value).toBe("2027-04");
+    expect(v.terms.pricing.totalPaise).toBe(8_496_000);
+    // Still above their limit, so the attestation of their MD's approval is part of accepting.
+    expect(v.terms.conditions).toContain("buyer_attests_required_approval");
+  });
+
+  it("a buyer who carries on leaving out a SERVICE gets exactly that, and sending something else is refused", async () => {
+    const s = await reviewReply("review-change-scope");
+    expect((await previewOf(s))!.options.map((o) => o.id)).toEqual(["remove:social-media"]);
+    await expect(svc.sendFollowOn({ optionId: "remove:monthly-reporting" })).rejects.toThrow(/not available/);
+    await expect(svc.sendFollowOn({ optionId: "remove:social-media" })).resolves.toBeTruthy();
+  });
+
+  it("sending as held is still possible after a change request", async () => {
+    await reviewReply("review-change-price");
+    const sent = await svc.sendFollowOn();
+    expect(sent.agreements.at(-1)!.terms.pricing.totalPaise).toBe(8_496_000);
+  });
+
+  it("offers a buyer who wants to carry on no way to back out: closing is refused unless they said stop (or said nothing the product can read)", async () => {
+    await reviewReply("review-proceed");
+    await expect(svc.closeFollowOn()).rejects.toThrow(/nothing to close/);
+    await svc.resetToSeed();
+    await reviewReply("review-change-scope");
+    await expect(svc.closeFollowOn()).rejects.toThrow(/nothing to close/);
   });
 
   it("refuses a change the buyer did not ask for", async () => {
     await reviewReply("review-proceed");
-    await expect(svc.sendFollowOn({ applyChange: true })).rejects.toThrow(/has not asked for a change/);
+    await expect(svc.sendFollowOn({ optionId: "remove:social-media" })).rejects.toThrow(/has not asked for a change/);
   });
 
   it("a typed reply is read by the owner: no decision is guessed, and the owner confirms the condition before sending", async () => {

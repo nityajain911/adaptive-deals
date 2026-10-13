@@ -247,12 +247,12 @@ test("90-second storyboard · one payment, then the review, and the buyer choose
   // The review message has gone out, and the buyer's decision is a simulated reply the presenter chooses.
   await expectStage(page, "track", "Waiting for the buyer's decision on the rest of the year.", undefined);
   await expect(page.getByTestId("walkthrough-reply-review-proceed")).toBeVisible();
-  await expect(page.getByTestId("walkthrough-reply-review-changes")).toBeVisible();
   await expect(page.getByTestId("walkthrough-reply-review-stop")).toBeVisible();
+  await expect(page.getByTestId("walkthrough-reply-review-changes")).toBeVisible();
   await page.getByTestId("walkthrough-reply-review-proceed").check();
   await walkthroughPrimary(page).click();
   await expectStage(page, "track", "The buyer wants to go ahead. Send the rest of the year (₹84,960, held until 18 Mar 2027).", "Send the rest of the year");
-  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("Let's go ahead with the rest of the year.");
+  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("We'll continue with the rest of the year as offered.");
   // The buyer has judged their own test, so the owner is not asked to; there is nothing to close.
   await expect(page.getByTestId("follow-on-condition")).toHaveCount(0);
   await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
