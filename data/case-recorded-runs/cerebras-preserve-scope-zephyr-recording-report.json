@@ -1,0 +1,337 @@
+{
+  "recordedAt": "2026-10-13T11:18:14.977Z",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "requestCap": 7,
+  "requests": [
+    {
+      "n": 1,
+      "caseId": "preserve-scope",
+      "task": "extract",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 0,
+      "retryOf": null
+    },
+    {
+      "n": 2,
+      "caseId": "preserve-scope",
+      "task": "clarify",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24966,
+      "retryOf": null
+    },
+    {
+      "n": 3,
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "ok": true,
+      "schemaValid": false,
+      "failure": null,
+      "waitedMsBefore": 24970,
+      "retryOf": null
+    },
+    {
+      "n": 4,
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "ok": true,
+      "schemaValid": true,
+      "failure": null,
+      "waitedMsBefore": 24997,
+      "retryOf": 3
+    }
+  ],
+  "retries": [
+    {
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "why": "schema",
+      "reason": "schema: Too big: expected string to have <=240 characters"
+    }
+  ],
+  "rejectedAttempts": [
+    {
+      "caseId": "preserve-scope",
+      "task": "explain",
+      "inputHash": "39957e801db6ac915a4804eed545640c827ee551209f6bf03fcb0aa5a70f034b",
+      "supersededRunId": null,
+      "reason": "schema: Too big: expected string to have <=240 characters",
+      "rawOutput": {
+        "ranking": [
+          "A"
+        ],
+        "comparison": "The merchant would receive {A.label}, with a total of {A.total} payable in {A.payment_count} installments. The first payment of {A.payment_1.total} is due on {A.payment_1.date} and the second of {A.payment_2.total} on {A.payment_2.date}. The net contribution is {A.net_contribution} ({A.net_contribution_pct}) and the option is {A.approval}.",
+        "option_notes": [
+          {
+            "option": "A",
+            "note": "Two‑payment schedule places 40 % at signing and the balance a month later, providing early cash flow but requiring the buyer to commit {A.largest_payment} on {A.last_payment_date}. The 10 % discount reduces the price to {A.price_excl_gst} before GST. No peak funding is required ({A.peak_funding}) and the unpaid value at peak is {A.peak_unpaid_value}. The project starts on {A.start_date}."
+          }
+        ]
+      }
+    }
+  ],
+  "supersedes": null,
+  "summaries": [
+    {
+      "caseId": "preserve-scope",
+      "runId": "run-case-preserve-scope-9fe9e42b",
+      "status": "complete",
+      "steps": [
+        {
+          "task": "extract",
+          "promptVersion": "extract.v2",
+          "promptHash": "22db759c4d03c686",
+          "inputHash": "3856b1c992307f4f",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "clarify",
+          "promptVersion": "clarify.v1",
+          "promptHash": "0e6eec01fb70482e",
+          "inputHash": "577e96d32d523492",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted",
+          "failure": null,
+          "issues": []
+        },
+        {
+          "task": "explain",
+          "promptVersion": "explain.v3",
+          "promptHash": "746a4d939d9be36e",
+          "inputHash": "39957e801db6ac91",
+          "provider": "cerebras",
+          "model": "gpt-oss-120b",
+          "outcome": "accepted_with_corrections",
+          "failure": null,
+          "issues": [
+            "note for A rejected: contains a literal figure, date or percentage"
+          ]
+        }
+      ],
+      "rawFields": [
+        {
+          "key": "budget_now_amount",
+          "raw_text": "₹30,000",
+          "evidence_quote": "I only have ₹30,000 left in this quarter.",
+          "message_id": "discount-8",
+          "confidence": "high"
+        },
+        {
+          "key": "budget_now_period",
+          "raw_text": "this quarter",
+          "evidence_quote": "I only have ₹30,000 left in this quarter.",
+          "message_id": "discount-8",
+          "confidence": "high"
+        },
+        {
+          "key": "next_budget_date",
+          "raw_text": "1 January",
+          "evidence_quote": "Our fresh budget opens on 1 January.",
+          "message_id": "discount-8",
+          "confidence": "high"
+        },
+        {
+          "key": "approval_limit_amount",
+          "raw_text": "₹75,000",
+          "evidence_quote": "Our ops head can approve up to ₹75,000.",
+          "message_id": "discount-4",
+          "confidence": "high"
+        },
+        {
+          "key": "required_package",
+          "raw_text": "website fixes and search marketing",
+          "evidence_quote": "We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.",
+          "message_id": "discount-6",
+          "confidence": "high"
+        },
+        {
+          "key": "optional_package",
+          "raw_text": "Monthly reporting",
+          "evidence_quote": "We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.",
+          "message_id": "discount-6",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "net-45 from the invoice",
+          "evidence_quote": "Our standard payment terms are net-45 from the invoice.",
+          "message_id": "discount-5",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "Net-45 is hard for us, we pay our contractors at the start of every month",
+          "evidence_quote": "Net-45 is hard for us, we pay our contractors at the start of every month. I can only look at a discount if you give something in return, like part of the payment on signing.",
+          "message_id": "discount-7",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "expects 15% off any retainer above ₹75,000",
+          "evidence_quote": "Our vendor policy expects 15% off any retainer above ₹75,000.",
+          "message_id": "discount-2",
+          "confidence": "high"
+        },
+        {
+          "key": "other_constraint",
+          "raw_text": "pay ₹30,000 on signing and the balance in January",
+          "evidence_quote": "If the total comes to ₹75,000 or less, we can pay ₹30,000 on signing and the balance in January. We would also look at a longer term if the rate is better.",
+          "message_id": "discount-9",
+          "confidence": "high"
+        }
+      ],
+      "rawAmbiguities": [
+        "approval_limit_scope"
+      ],
+      "profile": [
+        {
+          "field": "Budget available now",
+          "status": "stated",
+          "value": "₹30,000 available 1 Oct 2026 – 31 Dec 2026",
+          "evidence": [
+            "discount-8: “I only have ₹30,000 left in this quarter.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Next budget",
+          "status": "stated",
+          "value": "Available from 1 Jan 2027 (day precision); amount not stated",
+          "evidence": [
+            "discount-8: “Our fresh budget opens on 1 January.”"
+          ],
+          "note": "Next budget amount not stated; engine checks timing only for payments after it"
+        },
+        {
+          "field": "Buyer approval limit",
+          "status": "stated",
+          "value": "Above ₹75,000 needs MD approval",
+          "evidence": [
+            "discount-4: “Our ops head can approve up to ₹75,000.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Approval limit applies",
+          "status": "ambiguous",
+          "value": null,
+          "evidence": [
+            "discount-4: “Our ops head can approve up to ₹75,000.”"
+          ],
+          "note": "Buyer did not specify whether the ₹75,000 limit applies per payment or per contract."
+        },
+        {
+          "field": "Amounts include GST",
+          "status": "stated",
+          "value": "Amounts include GST",
+          "evidence": [
+            "discount-8: “I only have ₹30,000 left in this quarter.”",
+            "discount-4: “Our ops head can approve up to ₹75,000.”"
+          ],
+          "note": "Amounts are stated without saying whether GST is included"
+        },
+        {
+          "field": "Required packages",
+          "status": "stated",
+          "value": "website-fixes, search-marketing",
+          "evidence": [
+            "discount-6: “We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.”",
+            "discount-6: “We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Optional packages",
+          "status": "stated",
+          "value": "monthly-reporting",
+          "evidence": [
+            "discount-6: “We mostly need the website fixes and search marketing. Monthly reporting is nice to have, but it can wait.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "net-45 from the invoice",
+          "evidence": [
+            "discount-5: “Our standard payment terms are net-45 from the invoice.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "Net-45 is hard for us, we pay our contractors at the start of every month",
+          "evidence": [
+            "discount-7: “Net-45 is hard for us, we pay our contractors at the start of every month. I can only look at a discount if you give something in return, like part of the payment on signing.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "expects 15% off any retainer above ₹75,000",
+          "evidence": [
+            "discount-2: “Our vendor policy expects 15% off any retainer above ₹75,000.”"
+          ],
+          "note": null
+        },
+        {
+          "field": "Other constraint",
+          "status": "stated",
+          "value": "pay ₹30,000 on signing and the balance in January",
+          "evidence": [
+            "discount-9: “If the total comes to ₹75,000 or less, we can pay ₹30,000 on signing and the balance in January. We would also look at a longer term if the rate is better.”"
+          ],
+          "note": null
+        }
+      ],
+      "rejectedFields": [],
+      "engine": {
+        "initial": "ambiguous",
+        "final": "options_ready",
+        "feasible": [
+          "Phase 1: Website fixes + 6 months of search marketing and social media · 40% on signing, the rest a month later · 10% discount [phased_scope; within_limit]"
+        ]
+      },
+      "questions": [
+        {
+          "id": "clar-gst",
+          "wording": "ai",
+          "question": "Do the amounts ₹30,000 and ₹75,000 include GST?"
+        }
+      ],
+      "answeredWithScriptedBuyerReply": [
+        "clar-gst"
+      ],
+      "explanation": {
+        "source": {
+          "ranking": "ai",
+          "text": "ai"
+        },
+        "issues": [
+          "note for A rejected: contains a literal figure, date or percentage"
+        ],
+        "rankedFirst": "Phase 1: Website fixes + 6 months of search marketing and social media · 40% on signing, the rest a month later · 10% discount [phased_scope]",
+        "notes": []
+      },
+      "caseCard": {
+        "expectedState": "options_ready",
+        "expectedTemplate": "phased_scope",
+        "actualState": "options_ready",
+        "actualTemplate": "phased_scope",
+        "agrees": true
+      }
+    }
+  ],
+  "stopped": null
+}

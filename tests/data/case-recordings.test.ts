@@ -26,8 +26,8 @@ const currentHero = () => read("run-case-reduced-scope-4e94d36d.json") as RunRec
 
 describe("the committed case recordings", () => {
   it("maps only the exact-match Cerebras recordings and keeps historical evidence separately", () => {
-    // preserve-scope is Zephyr Logistics since 13 October 2026 and is mapped only once it has its own recording; the Northstar runs are evidence.
-    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "no-fit": "run-case-no-fit-6fb4027d" });
+    // preserve-scope is Zephyr Logistics since 13 October 2026; the Northstar runs are evidence only.
+    expect(mapping).toEqual({ "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b", "no-fit": "run-case-no-fit-6fb4027d" });
     expect(readdirSync(dir).sort()).toEqual([
       "README.md",
       ...Object.values(historical).map((id) => `${id}.json`),
@@ -40,6 +40,8 @@ describe("the committed case recordings", () => {
       "run-case-preserve-scope-ff0d6acf.json",
       "run-case-preserve-scope-9a841334.json",
       "run-case-preserve-scope-1ec088fa.json",
+      // Zephyr Logistics, recorded 13 October 2026.
+      "run-case-preserve-scope-9fe9e42b.json",
       "recording-report.json",
       "cerebras-reduced-scope-recording-report.json",
       "cerebras-reduced-scope-harbour-fresh-recording-report.json",
@@ -48,6 +50,7 @@ describe("the committed case recordings", () => {
       "cerebras-preserve-scope-attempt2-recording-report.json",
       "cerebras-preserve-scope-attempt3-recording-report.json",
       "cerebras-preserve-scope-text2-recording-report.json",
+      "cerebras-preserve-scope-zephyr-recording-report.json",
     ].sort());
   });
 
@@ -118,7 +121,7 @@ describe("the second Cerebras recording batch", () => {
     expect(second.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(second.engine.initial.state).toBe("insufficient_information");
     // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-9fe9e42b");
     const report = read("cerebras-preserve-scope-attempt2-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ runId: "run-case-preserve-scope-ff0d6acf", caseCard: { agrees: false } });
@@ -134,14 +137,14 @@ describe("the second Cerebras recording batch", () => {
     expect(third.engine.rejectedFields.map((f) => f.key)).toEqual(["budget_now_period"]);
     expect(third.engine.initial.state).toBe("insufficient_information");
     // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-9fe9e42b");
     const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH4.json"), "utf8"));
     expect(freeze).toMatchObject({ scope: ["preserve-scope"], attempt: 3 });
     expect(freeze.resultRule).toMatch(/exactly one Groq attempt follows/);
   });
 
   it("preserve-scope, Northstar on the revised text: one valid Cerebras run that reached that case's offer, kept as evidence and no longer mapped", () => {
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-9fe9e42b");
     const loaded = read("run-case-preserve-scope-1ec088fa.json") as RunRecord;
     expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
     expect(loaded.inputs.messages.find((m) => m.id === "preserve-3")!.text).toBe("I can release only ₹10,000 right now, as this quarter is tight.");
@@ -167,10 +170,50 @@ describe("the second Cerebras recording batch", () => {
     expect(loaded.engine.initial.state).toBe("insufficient_information");
     expect(demoCase("preserve-scope")!.expected.engineState).toBe("options_ready");
     // The Northstar case was replaced by Zephyr Logistics, so no Northstar run is mapped any more.
-    expect(mappedCaseRun("preserve-scope")).toBeNull();
+    expect(mappedCaseRun("preserve-scope")!.runId).toBe("run-case-preserve-scope-9fe9e42b");
     const report = read("cerebras-preserve-scope-recording-report.json");
     expect(report.requests).toHaveLength(1);
     expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", caseCard: { agrees: false } });
+  });
+});
+
+describe("the Zephyr Logistics recording", () => {
+  it("is one Cerebras run of the exact conversation, under a pass rule written first, that reaches the case's offer", () => {
+    const loaded = mappedCaseRun("preserve-scope")!;
+    expect(loaded).toEqual(read("run-case-preserve-scope-9fe9e42b.json"));
+    expect(loaded).toMatchObject({ kind: "live", status: "complete", provider: "cerebras", model: "gpt-oss-120b" });
+    expect(loaded.inputs.messages).toEqual(demoCase("preserve-scope")!.deal.messages);
+    expect(modelProvenance(loaded).label).toBe("Recorded Cerebras output");
+    expect(loaded.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
+      ["extract", "cerebras", "accepted"],
+      ["clarify", "cerebras", "accepted"],
+      ["explain", "cerebras", "accepted_with_corrections"],
+    ]);
+    // The state the case expects: ambiguous until the buyer says whether the amounts include GST, then the one discounted offer.
+    expect(loaded.engine.initial.state).toBe("ambiguous");
+    expect(loaded.engine.final!.state).toBe("options_ready");
+    expect(loaded.engine.final!.feasibleOrder).toEqual(["phased_scope:scope=web-search-social-6m,plan=advance_40,discount_bps=1000"]);
+    expect(loaded.displayed.questions.map((q) => q.id)).toEqual(["clar-gst"]);
+    // The model's explanation note had a figure in it; code kept the order and replaced the note.
+    expect(loaded.steps[2]!.issues).toEqual(["note for A rejected: contains a literal figure, date or percentage"]);
+  });
+
+  it("kept its one rejected attempt, and used four provider requests of the seven it was allowed", () => {
+    const report = read("cerebras-preserve-scope-zephyr-recording-report.json");
+    expect(report).toMatchObject({ provider: "cerebras", model: "gpt-oss-120b", stopped: null });
+    expect(report.requests).toHaveLength(4);
+    expect(report.retries).toEqual([expect.objectContaining({ caseId: "preserve-scope", task: "explain", why: "schema" })]);
+    expect(report.rejectedAttempts).toHaveLength(1);
+    expect(report.summaries[0]).toMatchObject({ caseId: "preserve-scope", runId: "run-case-preserve-scope-9fe9e42b", status: "complete", caseCard: { agrees: true } });
+    const freeze = JSON.parse(readFileSync(path.join(process.cwd(), "data/synthetic/CASE_RECORDING_FREEZE_BATCH9.json"), "utf8"));
+    expect(freeze).toMatchObject({ scope: ["preserve-scope"], maximumProviderRequests: 7, networkCallsMade: 0 });
+    expect(freeze.authorisedBy).toMatch(/Nitya Jain/);
+    expect(Date.parse(freeze.frozenAt)).toBeLessThan(Date.parse(report.recordedAt));
+  });
+
+  it("replays exactly, so the stored evidence reproduces the engine's result", async () => {
+    const loaded = mappedCaseRun("preserve-scope")!;
+    await expect(replayRun(loaded, demoCase("preserve-scope")!.deal, new FixedClock())).resolves.toBeTruthy();
   });
 });
 

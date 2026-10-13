@@ -50,15 +50,35 @@ test("the default hero replays the exact Cerebras recording without a provider c
   expect(state().status).toBe("options_ready");
 });
 
-test("the discount case starts from the labelled hand-written sample until it has a recording of its own", async ({ page }) => {
+test("the discount case replays its own recorded Cerebras run, asks one question, and offers only the discount against an advance", async ({ page }) => {
   await action(page, { action: "start_case", caseId: "preserve-scope" });
-  expect(state().run.record.kind).toBe("synthetic_replay");
-  expect(state().run.record.runId).toBe("run-synthetic-preserve-scope-0001");
+  expect(state().run.record).toMatchObject({ runId: "run-case-preserve-scope-9fe9e42b", kind: "live", provider: "cerebras", model: "gpt-oss-120b" });
+  expect(state().run.record.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
+    ["extract", "cerebras", "accepted"],
+    ["clarify", "cerebras", "accepted"],
+  ]);
   expect(state().status).toBe("clarifying");
-  await page.goto("/deals/hero/understand");
+  await action(page, { action: "send_questions" });
+  const questions = state().conversation.filter((message) => message.kind === "clarification");
+  expect(questions.map((q) => q.refs.questionId)).toEqual(["clar-gst"]);
+  await action(page, { action: "buyer_reply", inReplyTo: questions[0].id, scriptId: "clar-gst-yes" });
+  await action(page, { action: "adopt_replies" });
+  // The answer is the one the recording was made with, so nothing is worked out again.
+  expect(state().decisionBranch).toBeNull();
+  expect(state().run.record.steps.map((step) => [step.task, step.provider, step.outcome])).toEqual([
+    ["extract", "cerebras", "accepted"],
+    ["clarify", "cerebras", "accepted"],
+    ["explain", "cerebras", "accepted_with_corrections"],
+  ]);
+  expect(state().status).toBe("options_ready");
+  await page.goto("/deals/hero/offer");
+  await expect(page.getByTestId("no-standard-offer")).toContainText("No offer fits at your normal prices.");
+  await expect(page.getByTestId("discount-only-offers")).toContainText("40% on signing, the rest a month later");
+  await expect(page.getByTestId("discount-only-offers")).toContainText("₹70,092");
   await page.getByTestId("presenter-frame-toggle").click();
   await page.getByTestId("audit-details").click();
-  await expect(page.getByTestId("audit-drawer")).toContainText("Sample output written by hand · no model ran");
+  await expect(page.getByTestId("audit-model-header")).toHaveText("Recorded Cerebras output · cerebras / gpt-oss-120b");
+  await expect(page.getByTestId("reproduced-badge")).toContainText("Reproduced");
 });
 
 test("the no-fit case replays its own recorded Cerebras extraction and the engine says no approved offer fits", async ({ page }) => {

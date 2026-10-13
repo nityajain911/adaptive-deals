@@ -6,8 +6,7 @@ import { heroPackages } from "@/data/synthetic/hero";
 import { dealSituation } from "@/lib/deal-situation";
 
 const NAMES = Object.fromEntries(heroPackages.map((pkg) => [pkg.id, pkg.name]));
-// The discount case has no recorded model run yet: it reads the hand-written sample, which holds the same facts.
-const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/synthetic/replay/preserve-scope-synthetic-run.json", "no-fit": "data/case-recorded-runs/run-case-no-fit-6fb4027d.json" };
+const RUNS: Record<CaseId, string> = { "reduced-scope": "data/case-recorded-runs/run-case-reduced-scope-4e94d36d.json", "preserve-scope": "data/case-recorded-runs/run-case-preserve-scope-9fe9e42b.json", "no-fit": "data/case-recorded-runs/run-case-no-fit-6fb4027d.json" };
 const tiles = (id: CaseId) => {
   const run = JSON.parse(readFileSync(RUNS[id], "utf8")) as RunRecord;
   const t = dealSituation({ quotePrePaise: demoCase(id)!.quote.prePaise, profile: run.engine.profile, rejectedFields: run.engine.rejectedFields, packageNames: NAMES });

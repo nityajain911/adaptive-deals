@@ -65,7 +65,7 @@ describe("the pre-call case recording freeze", () => {
   });
 
   it("keeps historical Groq inputs separate and maps only exact frozen Cerebras recordings", () => {
-    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "no-fit": "run-case-no-fit-6fb4027d" };
+    const mapped: Partial<Record<CaseId, string>> = { "reduced-scope": "run-case-reduced-scope-4e94d36d", "preserve-scope": "run-case-preserve-scope-9fe9e42b", "no-fit": "run-case-no-fit-6fb4027d" };
     for (const id of CASE_IDS) {
       expect(RECORDED_CASE_MESSAGES[id]).not.toEqual(demoCase(id)!.deal.messages);
       const runId = mapped[id];
