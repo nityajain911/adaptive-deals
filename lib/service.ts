@@ -441,8 +441,11 @@ export async function openDeal(caseId: string): Promise<DemoState> {
   if (!item) throw new ActionError("Unknown case", 404);
   const saved = await readVaultedDeal<DemoState>(item.id);
   let replacement: DemoState;
-  if (saved) replacement = migrateState(saved);
-  else {
+  if (saved) {
+    replacement = migrateState(saved);
+    // A deal that was set aside before the merchant started it is started now.
+    if (!replacement.events.some((e) => e.kind === "case_started")) event(replacement, "case_started", `Case started: ${item.title}`, "merchant", item.id);
+  } else {
     replacement = await seedState(undefined, "replay", item.id);
     event(replacement, "case_started", `Case started: ${item.title}`, "merchant", item.id);
   }

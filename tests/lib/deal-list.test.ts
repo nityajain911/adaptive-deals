@@ -25,4 +25,12 @@ describe("the list of deals", () => {
     expect(list.find((d) => d.caseId === "reduced-scope")).toMatchObject({ open: false, started: true });
     expect(list.find((d) => d.caseId === "reduced-scope")!.progress).not.toBeNull();
   });
+
+  it("starts a deal that was set aside unstarted when the merchant opens it", async () => {
+    const fresh = await service.resetToSeed();
+    const other = fresh.caseId === "preserve-scope" ? "no-fit" : "preserve-scope";
+    await service.openDeal(other);
+    const reopened = await service.openDeal(fresh.caseId);
+    expect(reopened.events.some((e) => e.kind === "case_started")).toBe(true);
+  });
 });
