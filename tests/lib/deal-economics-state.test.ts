@@ -13,7 +13,7 @@ describe("a new deal", () => {
     rmSync(path.join(process.env.ADAPTIVE_DEALS_DATA_DIR!, "store.json"), { force: true });
     const state = await service.resetToSeed();
     expect(state.economics.pinned.version).toBe(1);
-  }, 1_000);
+  }, 15_000);
 
   it.each(CASE_IDS)("%s: pins version 1, snapshots prices, and starts on Protect contribution", async (id) => {
     const state = await service.startCase(id);

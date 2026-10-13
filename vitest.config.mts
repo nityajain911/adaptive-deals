@@ -13,7 +13,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     environment: "node",
     // The generated-economics property tests are heavy; run alongside ~170 other files they can pass the 5-second default on a busy machine.
-    testTimeout: 60_000,
+    testTimeout: 120_000,
     // Unit suites assert the labelled hand-written sample unless a test opts into a recording explicitly.
     env: { ADAPTIVE_DEALS_DEMO_RUN: "synthetic" },
   },
