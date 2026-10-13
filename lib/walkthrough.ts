@@ -150,7 +150,7 @@ const REGISTRY: readonly WalkthroughObjective[] = [
     title: "The month-three review",
     pitch: "Two phases, and the deal closes in the second",
     watch: "The rest of the year was held in the terms both sides approved. It is sent only after the first phase is paid, and only while the held price is open.",
-    architecture: "The held offer is part of the terms hash. At the review the same engine checks it again, and it goes out as its own version with its own payment setup.",
+    architecture: "The held offer is part of the terms hash. The buyer's answer is read by Cerebras (recorded once) and checked by code against their own words: the amount, the date and the service. At the review the same engine checks the held offer again, and it goes out as its own version with its own payment setup.",
     instruction: "Move to the review date, let the buyer say what they want (carry on, ask for a change, or stop), act on their answer, then let them accept and pay or stop here.",
     notice: "The buyer can stop here at no cost. Nothing is collected for the rest of the year unless they accept it. There is no third phase.",
     href: "/deals/:dealId/track",

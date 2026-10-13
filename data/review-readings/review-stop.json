@@ -1,0 +1,24 @@
+{
+  "id": "review-stop",
+  "case": "reduced-scope",
+  "replyText": "Kabir: Thanks, the pilot was useful, but we'd like to stop here. No need to proceed further.",
+  "inputHash": "8eb3675aaf367299a490ab58256a832ed20b0121a0ab12ea035b83d831c7b498",
+  "promptVersion": "read_review.v1",
+  "promptHash": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 825,
+    "outputTokens": 275
+  },
+  "recordedAt": "2026-10-13T09:01:43.117Z",
+  "rawOutput": {
+    "decision": "stop",
+    "phrase": "we'd like to stop here",
+    "change_kind": null,
+    "amount_text": null,
+    "date_text": null,
+    "service_text": null
+  }
+}

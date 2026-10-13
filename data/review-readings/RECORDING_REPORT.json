@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-13T09:01:45.776Z",
+  "requestsMade": 5,
+  "maximumRequests": 8,
+  "replies": [
+    {
+      "id": "review-proceed",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ],
+      "codeVerdict": "accepted",
+      "matchesPassRule": true
+    },
+    {
+      "id": "review-stop",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ],
+      "codeVerdict": "accepted",
+      "matchesPassRule": true
+    },
+    {
+      "id": "review-change-price",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ],
+      "codeVerdict": "accepted",
+      "matchesPassRule": true
+    },
+    {
+      "id": "review-change-date",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ],
+      "codeVerdict": "accepted",
+      "matchesPassRule": true
+    },
+    {
+      "id": "review-change-scope",
+      "attempts": [
+        {
+          "failure": null,
+          "schema": null
+        }
+      ],
+      "codeVerdict": "accepted",
+      "matchesPassRule": true
+    }
+  ]
+}

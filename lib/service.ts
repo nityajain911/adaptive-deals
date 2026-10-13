@@ -16,6 +16,7 @@ import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
 import { createLiveChain, generateWithFallback } from "@/ai/live";
 import { buildReplyReadRequest, verifyReplyReading, type ReplySuggestion } from "./reply-reading";
+import { readReviewReply } from "./review-readings";
 import { CounterError, counterStructure, failingCounterChecks, isCounterStructureId, scopeReducedStructure } from "@/domain/counter";
 import { lowestCompliantTotal } from "@/domain/corridor";
 import { listValueOf } from "@/domain/deal-baseline";
@@ -1839,7 +1840,14 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
           : sc.context === "notice"
             ? heroDemoEvents.preventiveReplyAt
             : clockOf(s).now();
-      applyBuyerReply(s, { inReplyTo: target.id, text: scriptedReplyText(s.caseId, sc), at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text, refs: sc.context === "review" ? { reviewDecision: sc.reviewDecision, ...("reviewChange" in sc ? { reviewChange: sc.reviewChange } : {}) } : undefined });
+      // A buyer's answer at the review is read by the model that recorded it for exactly these words, and checked by code; the script's own
+      // metadata is only the expected reading, used by tests. A reply that is not read is left for the merchant.
+      const replyText = scriptedReplyText(s.caseId, sc);
+      const reading = sc.context === "review" ? readReviewReply(replyText, at, activeCase(s).deal.merchant.timeZone, activeCase(s).deal.packages) : null;
+      const refs = reading?.read ? { reviewDecision: reading.verdict.reading.decision, ...(reading.verdict.reading.change ? { reviewChange: reading.verdict.reading.change } : {}) } : undefined;
+      applyBuyerReply(s, { inReplyTo: target.id, text: replyText, at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text, refs });
+      if (reading?.read) event(s, "review_reply_read", "The buyer's answer was read", "live_model", `${reading.line} · Recorded ${reading.provider} reading (${reading.model}), phrase, amount, date and service checked by code`);
+      else if (reading) event(s, "review_reply_unread", "The buyer's answer was left for you to read", "engine", reading.why);
       return;
     }
     if (!args.text?.trim()) throw new ActionError("Choose a scripted reply or type one");

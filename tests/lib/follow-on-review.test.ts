@@ -324,3 +324,29 @@ describe("one payment, then the buyer's choice at the review", () => {
     await expect(svc.sendFollowOn({ conditionMet: true })).resolves.toBeTruthy();
   });
 });
+
+describe("the buyer's answer at the review is read by the recorded model reading", () => {
+  it("shows in the record how it was read, and the engine is given the change the reading found", async () => {
+    await driveTo(svc, (x) => x.status === "active", 30, "preventive", { offer: "recommended" });
+    await svc.buyerCompleteSetup();
+    await svc.runSystemStep("advance_to_review");
+    const review = (await svc.getState()).conversation.findLast((m) => m.kind === "review")!;
+    const s = await svc.buyerReply({ inReplyTo: review.id, scriptId: "review-change-price" });
+    const reply = s.conversation.findLast((m) => m.kind === "buyer_reply")!;
+    expect(reply.refs.reviewDecision).toBe("changes");
+    expect(reply.refs.reviewChange).toEqual({ kind: "lower_price", targetPaise: 6_000_000 });
+    const read = s.events.findLast((e) => e.kind === "review_reply_read")!;
+    expect(read.detail).toContain("carry on, at ₹60,000 or less");
+    expect(read.detail).toContain("Recorded cerebras reading");
+  });
+
+  it("leaves a typed answer for the merchant to read, and says so", async () => {
+    await driveTo(svc, (x) => x.status === "active", 30, "preventive", { offer: "recommended" });
+    await svc.buyerCompleteSetup();
+    await svc.runSystemStep("advance_to_review");
+    const review = (await svc.getState()).conversation.findLast((m) => m.kind === "review")!;
+    const s = await svc.buyerReply({ inReplyTo: review.id, text: "Kabir: Let us think about it and come back." });
+    expect(s.conversation.findLast((m) => m.kind === "buyer_reply")!.refs.reviewDecision).toBeUndefined();
+    expect((await svc.progressOf(s)).rule).toBe("track.follow_on_due");
+  });
+});

@@ -1,0 +1,24 @@
+{
+  "id": "review-proceed",
+  "case": "reduced-scope",
+  "replyText": "Kabir: The pilot went well and enquiries are up. We'll continue with the rest of the year as offered.",
+  "inputHash": "90d8561624544de3c8a8fc55c86a93b4a1d53fa7573e40a815d0356a505a64cd",
+  "promptVersion": "read_review.v1",
+  "promptHash": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 825,
+    "outputTokens": 173
+  },
+  "recordedAt": "2026-10-13T09:01:42.669Z",
+  "rawOutput": {
+    "decision": "proceed",
+    "phrase": "We'll continue with the rest of the year as offered.",
+    "change_kind": null,
+    "amount_text": null,
+    "date_text": null,
+    "service_text": null
+  }
+}

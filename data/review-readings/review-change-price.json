@@ -1,0 +1,24 @@
+{
+  "id": "review-change-price",
+  "case": "reduced-scope",
+  "replyText": "Kabir: We want to continue, but we need the rest of the year to come to ₹60,000 or less.",
+  "inputHash": "2fd510cb70bdd4cf0454eaa721fd6f3d4d06c673e07b1b9830e9f3a8433ab7e0",
+  "promptVersion": "read_review.v1",
+  "promptHash": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 828,
+    "outputTokens": 310
+  },
+  "recordedAt": "2026-10-13T09:01:44.627Z",
+  "rawOutput": {
+    "decision": "changes",
+    "phrase": "We want to continue, but we need the rest of the year to come to ₹60,000 or less.",
+    "change_kind": "lower_price",
+    "amount_text": "₹60,000",
+    "date_text": null,
+    "service_text": null
+  }
+}

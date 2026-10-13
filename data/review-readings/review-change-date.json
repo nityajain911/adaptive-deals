@@ -1,0 +1,24 @@
+{
+  "id": "review-change-date",
+  "case": "reduced-scope",
+  "replyText": "Kabir: We want to continue, but could the rest of the year start on 1 April instead?",
+  "inputHash": "72d2e5f5b60e7a9e22ad3fa825728595d4c829f35496a9276f09cb37ee56a1aa",
+  "promptVersion": "read_review.v1",
+  "promptHash": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 824,
+    "outputTokens": 375
+  },
+  "recordedAt": "2026-10-13T09:01:45.137Z",
+  "rawOutput": {
+    "decision": "changes",
+    "phrase": "We want to continue, but could the rest of the year start on 1 April instead?",
+    "change_kind": "later_start",
+    "amount_text": null,
+    "date_text": "1 April",
+    "service_text": null
+  }
+}

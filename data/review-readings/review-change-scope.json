@@ -1,0 +1,24 @@
+{
+  "id": "review-change-scope",
+  "case": "reduced-scope",
+  "replyText": "Kabir: We want to continue, but could the rest of the year leave out social media for now?",
+  "inputHash": "0c56ea145665298cbb8be844f3526bc0ff1f047af566e0dfb9d94871b181b4b5",
+  "promptVersion": "read_review.v1",
+  "promptHash": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "temperature": "0",
+  "usage": {
+    "inputTokens": 824,
+    "outputTokens": 399
+  },
+  "recordedAt": "2026-10-13T09:01:45.775Z",
+  "rawOutput": {
+    "decision": "changes",
+    "phrase": "We want to continue, but could the rest of the year leave out social media for now?",
+    "change_kind": "leave_out",
+    "amount_text": null,
+    "date_text": null,
+    "service_text": "social media"
+  }
+}
