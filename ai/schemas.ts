@@ -139,12 +139,29 @@ export const PaymentReplyReadingSchema = z
   .strict();
 export type PaymentReplyReading = z.infer<typeof PaymentReplyReadingSchema>;
 
+/**
+ * What a buyer wants after the pilot, in the words of their reply. Words only: the model copies what the reply says, and code finds
+ * each phrase in the reply, turns the amount, the date and the service into values, and checks them.
+ */
+export const ReviewReadingSchema = z
+  .object({
+    decision: z.enum(["proceed", "stop", "changes", "unclear"]).describe("proceed: carry on as offered; stop: do not go on; changes: carry on, but with a change they name; unclear: the reply does not say"),
+    phrase: z.string().min(1).max(160).describe("Words copied exactly from the reply that state the decision"),
+    change_kind: z.enum(["lower_price", "later_start", "leave_out"]).nullable().describe("Only when decision is changes: the one change they ask for; otherwise null"),
+    amount_text: z.string().min(1).max(30).nullable().describe("lower_price only: the amount exactly as the reply writes it, e.g. ₹60,000; otherwise null"),
+    date_text: z.string().min(1).max(30).nullable().describe("later_start only: the date exactly as the reply writes it, e.g. 1 April; otherwise null"),
+    service_text: z.string().min(1).max(40).nullable().describe("leave_out only: the service exactly as the reply names it, e.g. social media; otherwise null"),
+  })
+  .strict();
+export type ReviewReading = z.infer<typeof ReviewReadingSchema>;
+
 export const TASK_SCHEMAS = {
   extract: ExtractionOutputSchema,
   clarify: ClarificationOutputSchema,
   explain: ExplanationOutputSchema,
   read_document: DocumentReadingSchema,
   read_reply: PaymentReplyReadingSchema,
+  read_review: ReviewReadingSchema,
 } as const;
 export type AiTask = keyof typeof TASK_SCHEMAS;
 export type TaskOutput<T extends AiTask> = z.infer<(typeof TASK_SCHEMAS)[T]>;

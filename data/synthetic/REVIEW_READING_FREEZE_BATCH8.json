@@ -1,0 +1,64 @@
+{
+  "schema": "adaptive-deals.review-reading-freeze.v1",
+  "frozenAt": "2026-10-13T09:01:28.924Z",
+  "authoredBy": "Claude Code (Claude Sonnet 5.5), directed by Nitya Jain",
+  "authorisedBy": "Nitya Jain, \"yes go ahead\" in chat on 13 October 2026, answering the offer to have the buyer's answers at the month-three review read by Cerebras and recorded",
+  "provider": "cerebras",
+  "model": "gpt-oss-120b",
+  "prompt": {
+    "task": "read_review",
+    "version": "read_review.v1",
+    "sha256": "4786d2d5bacaadf521126d0c4662e3762c843d122c4ef1784670680787096f02"
+  },
+  "case": "reduced-scope",
+  "replies": {
+    "review-proceed": {
+      "textSha256": "6c7fc6e5c7c22426fb2789f033443ef172636de99d3755cfb7d3e45782125efd",
+      "expected": {
+        "decision": "proceed",
+        "change": null
+      }
+    },
+    "review-stop": {
+      "textSha256": "fd6c3bd2ac9fb0bd97539c47f5455c6d7028858d15d025b44e6039a2f6877cd6",
+      "expected": {
+        "decision": "stop",
+        "change": null
+      }
+    },
+    "review-change-price": {
+      "textSha256": "5c94c5ba18f86e99e453c81e92eb697eba0b626478ecfca05531352c8d228665",
+      "expected": {
+        "decision": "changes",
+        "change": {
+          "kind": "lower_price",
+          "targetPaise": 6000000
+        }
+      }
+    },
+    "review-change-date": {
+      "textSha256": "f00089be8c87eef21a87c5f2fe9ae943d15b24136f2c5769ef1d4432e740ae99",
+      "expected": {
+        "decision": "changes",
+        "change": {
+          "kind": "later_start",
+          "startDate": "2027-04-01"
+        }
+      }
+    },
+    "review-change-scope": {
+      "textSha256": "fd94966d52ec1d858c97b2020c85fea25cf19b7a8fee3b5ffc2d61d34c16f05a",
+      "expected": {
+        "decision": "changes",
+        "change": {
+          "kind": "leave_out",
+          "removePackageId": "social-media"
+        }
+      }
+    }
+  },
+  "maximumProviderRequests": 8,
+  "retryRule": "technical failures only",
+  "resultRule": "one Cerebras reading per reply; its first technically valid output is final and is kept whatever it is; the product uses a reading only after code has found its phrase, amount, date and service in the reply and turned them into values; a reading that does not match the expected decision and change is kept and reported, and that reply is then not read by the model in the product; no further attempt on any provider",
+  "networkCallsMade": 0
+}

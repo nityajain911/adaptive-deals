@@ -9,7 +9,7 @@ import type { ProviderFailureKind, ProviderName } from "./provider";
 import type { AiTask } from "./schemas";
 
 /** The tasks a deal run is made of. Reading a rate card is a separate task with its own record. */
-export type RunTask = Exclude<AiTask, "read_document" | "read_reply">;
+export type RunTask = Exclude<AiTask, "read_document" | "read_reply" | "read_review">;
 
 export const RUN_RECORD_SCHEMA = "adaptive-deals.run.v1";
 
