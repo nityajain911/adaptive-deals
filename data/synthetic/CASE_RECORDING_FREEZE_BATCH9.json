@@ -31,6 +31,6 @@
   "resultRule": "one Cerebras run of the new Zephyr Logistics conversation; its first technically valid output at each step is final, whatever it is; it is kept either way; the product maps it only if it reaches the case's expected engine state and offer family (options_ready, phased_scope, the discounted offer with an advance); otherwise the hand-written sample stays in use and says so; no further attempt on any provider",
   "networkCallsMade": 0,
   "batch": "Ninth recording batch: the second case is replaced. Northstar Learning Centres (preserve-scope) becomes Zephyr Logistics, a buyer who asks for 15% off and net-45 terms and can pay ₹30,000 on signing. Prompts are unchanged. The earlier preserve-scope recordings are kept as evidence and no longer map to any case.",
-  "authorisedBy": "PENDING: the applicant is asked before the call is made",
+  "authorisedBy": "Nitya Jain, \"yes, make the cerebras recordings\" in chat on 13 October 2026, answering the request to make the one Cerebras recording (three requests, technical retries only) for the Zephyr Logistics case",
   "attempt": "second-case-replacement"
 }
