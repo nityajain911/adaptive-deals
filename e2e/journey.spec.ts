@@ -244,10 +244,18 @@ test("90-second storyboard · one payment, then the review, and the buyer choose
   await expectStage(page, "track", "First phase paid. The review is on 1 Feb 2027.", undefined);
   await expect(walkthroughPrimary(page)).toContainText("Advance simulated date to 1 Feb 2027");
   await walkthroughPrimary(page).click();
-  await expectStage(page, "track", "Send the rest of the year (₹84,960), held until 18 Mar 2027.", "Send the rest of the year");
-  // The buyer's own condition is shown in their words; sending confirms the owner checked it was met.
-  await expect(page.getByTestId("follow-on-condition")).toContainText("enquiries are up by about 20 a month by month three");
-  await expect(page.getByTestId("close-follow-on")).toHaveText("Not met · close after the first phase");
+  // The review message has gone out, and the buyer's decision is a simulated reply the presenter chooses.
+  await expectStage(page, "track", "Waiting for the buyer's decision on the rest of the year.", undefined);
+  await expect(page.getByTestId("walkthrough-reply-review-proceed")).toBeVisible();
+  await expect(page.getByTestId("walkthrough-reply-review-changes")).toBeVisible();
+  await expect(page.getByTestId("walkthrough-reply-review-stop")).toBeVisible();
+  await page.getByTestId("walkthrough-reply-review-proceed").check();
+  await walkthroughPrimary(page).click();
+  await expectStage(page, "track", "The buyer wants to go ahead. Send the rest of the year (₹84,960, held until 18 Mar 2027).", "Send the rest of the year");
+  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("Let's go ahead with the rest of the year.");
+  // The buyer has judged their own test, so the owner is not asked to; there is nothing to close.
+  await expect(page.getByTestId("follow-on-condition")).toHaveCount(0);
+  await expect(page.getByTestId("close-follow-on")).toHaveCount(0);
   await shot(page, "desktop-6-review");
   await page.getByTestId("primary-action").click();
   await expectStage(page, "track", "Waiting for the buyer to review offer version 2.", undefined);

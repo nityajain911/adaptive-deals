@@ -337,8 +337,10 @@ test("the walkthrough goes on past the moved payment to the month-three review a
   await page.goto("/deals/hero/track");
   await expect(page.getByTestId("status-headline")).toContainText("First phase paid. The review is on 1 Feb 2027.");
   await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  const reviewMessage = state().conversation.findLast((m) => m.kind === "review")!;
+  await api(page, { action: "buyer_reply", inReplyTo: reviewMessage.id, scriptId: "review-proceed" });
   await page.goto("/deals/hero/track");
-  await expect(page.getByTestId("status-headline")).toContainText("Send the rest of the year (₹84,960), held until 18 Mar 2027.");
+  await expect(page.getByTestId("status-headline")).toContainText("The buyer wants to go ahead. Send the rest of the year (₹84,960, held until 18 Mar 2027).");
   await page.getByTestId("primary-action").click();
   await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 3.");
   await page.goto("/proposal/agr-hero/v3");
@@ -433,6 +435,9 @@ test("the owner can find the buyer's condition not met at the review, and close 
   await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
   await api(page, { action: "buyer_complete_setup" });
   await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  // The buyer answers in their own words, which the product does not interpret: the owner reads it and judges their condition.
+  const review = state().conversation.findLast((m) => m.kind === "review")!;
+  await api(page, { action: "buyer_reply", inReplyTo: review.id, text: "Let me talk to my MD and get back to you." });
   // Sending needs the owner's confirmation; the product does not decide whether the condition was met.
   const refused = await page.request.post("/api/actions", { data: { action: "send_follow_on" } });
   expect((await refused.json()).ok).toBe(false);
@@ -446,6 +451,65 @@ test("the owner can find the buyer's condition not met at the review, and close 
   await expect(finish).toContainText("After the review you did not send the rest of the year, because their condition was not met.");
   expect(state().agreements).toHaveLength(1);
   expect(state().attempts.filter((a) => a.status === "succeeded")).toHaveLength(1);
+});
+
+async function atReview(page: Page) {
+  await reset(page);
+  await startCase(page);
+  await api(page, { action: "send_questions" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-gst").id, scriptId: "clar-gst-yes" });
+  await api(page, { action: "buyer_reply", inReplyTo: clarification("clar-approval").id, scriptId: "clar-approval-contract" });
+  await api(page, { action: "adopt_replies" });
+  await api(page, { action: "review_buyer_proposal" });
+  const draft = state().agreements.find((a) => a.status === "draft")!;
+  await api(page, { action: "approve_and_send_draft", version: draft.version, termsHash: draft.termsHash });
+  await api(page, { action: "accept_agreement", version: draft.version, termsHash: draft.termsHash, authorityConfirmed: true });
+  await api(page, { action: "buyer_complete_setup" });
+  await api(page, { action: "demo_system_step", stepId: "advance_to_review" });
+  return state().conversation.findLast((m) => m.kind === "review")!;
+}
+
+test("after the pilot the buyer's own reply decides the merchant's action: stop means close", async ({ page }) => {
+  const review = await atReview(page);
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer's decision on the rest of the year.");
+  await expect(page.getByTestId("thread-track")).toContainText("Would you like to go ahead with the rest of the year?");
+  await api(page, { action: "buyer_reply", inReplyTo: review.id, scriptId: "review-stop" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("The buyer wants to stop after the pilot. Close the deal after the first phase.");
+  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("we'd like to stop here");
+  await expect(page.getByTestId("primary-action")).toHaveText("Close after the first phase");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("status-headline")).toContainText("The buyer chose to stop after the pilot, and you closed the deal.");
+  await openGuide(page);
+  const finish = guide(page).getByTestId("walkthrough-finish");
+  await expect(finish).toContainText("Walkthrough ended");
+  await expect(finish).toContainText("After the pilot the buyer said they wanted to stop, and you closed the deal after the first phase.");
+  expect(state().agreements).toHaveLength(1);
+});
+
+test("after the pilot the buyer can ask for a change: the merchant sees what it comes to and sends it, and the buyer accepts it", async ({ page }) => {
+  const review = await atReview(page);
+  await api(page, { action: "buyer_reply", inReplyTo: review.id, scriptId: "review-changes" });
+  await page.goto("/deals/hero/track");
+  await expect(page.getByTestId("status-headline")).toContainText("The buyer wants to go ahead, with a change. Decide how to answer.");
+  await expect(page.getByTestId("follow-on-buyer-reply")).toContainText("leave out social media");
+  await expect(page.getByTestId("follow-on-change")).toHaveText("Without Social media, the rest of the year is ₹53,100 including GST, within their approval limit.");
+  await expect(page.getByTestId("send-as-held")).toHaveText("Send as held · ₹84,960");
+  await expect(page.getByTestId("close-follow-on")).toBeVisible();
+  await expect(page.getByTestId("primary-action")).toHaveText("Send without Social media · ₹53,100");
+  await page.getByTestId("primary-action").click();
+  await expect(page.getByTestId("status-headline")).toContainText("Waiting for the buyer to review offer version 2.");
+
+  await page.goto("/proposal/agr-hero/v2");
+  await expect(page.getByTestId("buyer-total")).toHaveText("₹53,100");
+  await expect(page.getByTestId("excluded")).toHaveText("Social media");
+  await expect(page.getByTestId("accept")).toHaveText("Accept and pay ₹17,700");
+  // Within the buyer's own limit: no attestation of an MD's approval is asked.
+  await expect(page.getByTestId("buyer-view")).not.toContainText("your company has approved");
+  await page.getByTestId("accept").click();
+  await expect(page.getByTestId("setup-done")).toBeVisible();
+  expect(state().attempts.filter((a) => a.agreementVersion === 2).map((a) => a.amountPaise)).toEqual([1_770_000, 1_770_000, 1_770_000]);
 });
 
 test("the first screen opens with the problem, not the product", async ({ page }) => {

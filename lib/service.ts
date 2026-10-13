@@ -10,7 +10,7 @@ import { interpretations } from "@/domain/constraints";
 import { describeChangeRequest, validateChangeRequest, type ChangeRequestContext, type ChangeRequestDetail } from "@/domain/change-request";
 import { compareDates, formatDate, localDateOf } from "@/domain/dates";
 import { evaluateDeal, evaluateStructure, type EvaluatedStructure } from "@/domain/engine";
-import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnStandingOn } from "@/domain/follow-on";
+import { canonicalFollowOn, deriveFollowOn, evaluateFollowOn, followOnStandingOn, reducedFollowOn } from "@/domain/follow-on";
 import { evaluatedForVersion } from "./version-structure";
 import { eligibleStructures } from "./counter-eligibility";
 import { STRATEGY_IDS, STRATEGY_LABEL, strategyView, type StrategyId, type StrategyView } from "@/domain/strategy";
@@ -56,6 +56,7 @@ import {
   merchantSend,
   editClarificationDraft,
   noticeMessageText,
+  reviewMessageText,
   paymentLinkMessageText,
   proposalMessageText,
   receiveBuyerReply,
@@ -141,7 +142,7 @@ export interface DemoState {
   /** The rest of the year, once the merchant has sent it after the review: the version and the structure the engine checked. */
   followOnSale?: { version: number; evaluated: EvaluatedStructure; sentAt: string };
   /** The merchant chose not to send the rest of the year because the buyer's condition was not met. The deal closes after the first phase. */
-  followOnClosed?: { at: string; reason: "condition_not_met" };
+  followOnClosed?: { at: string; reason: "condition_not_met" | "buyer_stopped" };
   interpretations: Interpretation[];
   /** Changed clarification answers, recomputed from the immutable parent run by code and engine. */
   decisionBranch: DecisionBranch | null;
@@ -1189,13 +1190,32 @@ async function fullyPaidOf(s: DemoState, v: AgreementVersion, deal: ReturnType<t
  * Where the rest of the year stands: not yet due (the review has not come), due (the review has come and the held price is open),
  * or lapsed (the held price ran out unused). Null when nothing is held, or the first phase is not yet paid in full.
  */
-export type FollowOnStanding = { state: "waiting_review" | "due" | "lapsed"; reviewDate: string; heldUntil: string; totalPaise: number };
+export type FollowOnStanding = {
+  state: "waiting_review" | "due" | "lapsed";
+  reviewDate: string;
+  heldUntil: string;
+  totalPaise: number;
+  /** What the buyer has said since the review message went out. */
+  review: { state: ReviewState["state"]; replyText: string | null };
+};
+
+/** The review message the product sent on the review date, and what the buyer said back. A decision is script metadata, never interpreted. */
+export type ReviewState = { state: "none" | "awaiting" | "proceed" | "stop" | "changes" | "unclear"; messageId: string | null; reply: ConversationItem | null };
+
+export function reviewOf(s: Pick<DemoState, "conversation">): ReviewState {
+  const message = [...s.conversation].reverse().find((i) => i.kind === "review");
+  if (!message) return { state: "none", messageId: null, reply: null };
+  const reply = [...s.conversation].reverse().find((i) => i.inReplyTo === message.id) ?? null;
+  if (!reply) return { state: "awaiting", messageId: message.id, reply: null };
+  return { state: reply.refs.reviewDecision ?? "unclear", messageId: message.id, reply };
+}
 
 async function followOnStandingOf(s: DemoState, active: AgreementVersion | null, deal: ReturnType<typeof dealContextFor>, paid: boolean): Promise<FollowOnStanding | null> {
   const held = active?.terms.followOn;
   if (!active || !held || s.followOnSale || s.followOnClosed || s.status !== "active" || !paid) return null;
   const today = localDateOf(clockOf(s).now(), deal.merchant.timeZone);
-  return { state: followOnStandingOn(held, today), reviewDate: held.reviewDate, heldUntil: held.heldUntil, totalPaise: held.pricing.totalPaise };
+  const review = reviewOf(s);
+  return { state: followOnStandingOn(held, today), reviewDate: held.reviewDate, heldUntil: held.heldUntil, totalPaise: held.pricing.totalPaise, review: { state: review.state, replyText: review.reply?.text ?? null } };
 }
 
 /**
@@ -1203,7 +1223,7 @@ async function followOnStandingOf(s: DemoState, active: AgreementVersion | null,
  * as it was held. It is checked by the same engine again, against today's rate card; if the held price no longer matches, it is
  * not sent. The buyer then accepts and pays on their own page, with a payment setup of its own.
  */
-export async function sendFollowOn(opts: { conditionMet?: boolean } = {}): Promise<DemoState> {
+export async function sendFollowOn(opts: { conditionMet?: boolean; applyChange?: boolean } = {}): Promise<DemoState> {
   const before = await getState();
   const deal = dealContextFor(before, await pinnedEconomicsOf(before));
   return mutate(async (s) => {
@@ -1220,11 +1240,24 @@ export async function sendFollowOn(opts: { conditionMet?: boolean } = {}): Promi
 
     const out = await currentOutcome(s, deal);
     // The buyer's own go-ahead test is the merchant's to judge. The product shows it, asks, and records the answer; it never decides.
+    // When the buyer has said they want to go ahead, they have judged their own test; otherwise it is the merchant's to confirm.
+    const review = reviewOf(s);
     const condition = buyerConditionOf(out);
-    if (condition && opts.conditionMet !== true) throw new ActionError("Confirm that their condition was met before sending the rest of the year");
-    const evaluated = evaluateFollowOn(held, constraintsOf(out), deal);
-    if (!evaluated.approvable) throw new ActionError("The rest of the year no longer passes your rules at today's prices");
-    if (evaluated.structure.pricePaise !== held.pricing.prePaise) throw new ActionError("Your prices changed since this was held, so it no longer matches what you offered");
+    if (condition && review.state !== "proceed" && review.state !== "changes" && opts.conditionMet !== true) throw new ActionError("Confirm that their condition was met before sending the rest of the year");
+    const constraints = constraintsOf(out);
+    const full = evaluateFollowOn(held, constraints, deal);
+    if (!full.approvable) throw new ActionError("The rest of the year no longer passes your rules at today's prices");
+    if (full.structure.pricePaise !== held.pricing.prePaise) throw new ActionError("Your prices changed since this was held, so it no longer matches what you offered");
+    let evaluated = full;
+    let changeNote = "";
+    if (opts.applyChange) {
+      const change = review.reply?.refs.reviewChange;
+      if (!change) throw new ActionError("The buyer has not asked for a change");
+      const reduced = reducedFollowOn(held, change.removePackageId, constraints, deal);
+      if (!reduced) throw new ActionError("That change does not pass your rules");
+      evaluated = reduced.evaluated;
+      changeNote = ` · without ${reduced.removedName}, at the buyer's request`;
+    }
     const r = await attemptDelivery("proposal");
     if (!r.ok) throw new ActionError(r.reason);
 
@@ -1237,8 +1270,18 @@ export async function sendFollowOn(opts: { conditionMet?: boolean } = {}): Promi
     const msg = sendCode(s, "proposal", proposalMessageText(v.terms, version, proposalLink(v)), { agreementVersion: version });
     s.deliveries.push({ version, idempotencyKey: key, kind: "proposal", attempts: [{ attemptId: `${key}_a1`, at: clockOf(s).now(), status: "sent", failureReason: null }], deliveredAt: clockOf(s).now(), reference: msg.id });
     setStatus(s, "sent", "The rest of the year was sent after the review");
-    event(s, "follow_on_sent", `The rest of the year sent as version ${version}`, "merchant", `Held until ${held.heldUntil} · ${formatINR(held.pricing.totalPaise)} including GST · terms hash ${v.termsHash}${condition ? ` · the merchant confirmed their condition was met: “${condition}”` : ""}`);
+    event(s, "follow_on_sent", `The rest of the year sent as version ${version}${changeNote}`, "merchant", `Held until ${held.heldUntil} · ${formatINR(sum(evaluated.structure.payments.map((p) => p.totalPaise)))} including GST · terms hash ${v.termsHash}${review.reply ? ` · the buyer's reply: “${review.reply.text}”` : condition ? ` · the merchant confirmed their condition was met: “${condition}”` : ""}`);
   });
+}
+
+/** What leaving out the service the buyer named would come to, for the merchant's card; null unless the buyer asked for such a change. */
+export async function followOnChangePreview(s: DemoState, deal: ReturnType<typeof dealContextFor>): Promise<{ removedName: string; totalPaise: number; instalments: number; approval: "within_limit" | "requires_approval" | "unknown" } | null> {
+  const held = activeVersion(s)?.terms.followOn;
+  const change = reviewOf(s).reply?.refs.reviewChange;
+  if (!held || !change) return null;
+  const out = await currentOutcome(s, deal);
+  const reduced = reducedFollowOn(held, change.removePackageId, constraintsOf(out), deal);
+  return reduced ? { removedName: reduced.removedName, totalPaise: reduced.held.pricing.totalPaise, instalments: reduced.held.instalments, approval: reduced.held.approval } : null;
 }
 
 /** The buyer's own go-ahead condition, in their words, when they set one. */
@@ -1263,10 +1306,12 @@ export async function closeFollowOn(): Promise<DemoState> {
     const standing = await followOnStandingOf(s, active, deal, await fullyPaidOf(s, active, deal));
     if (!standing) throw new ActionError("The first phase must be paid in full before the review");
     if (standing.state === "waiting_review") throw new ActionError(`The review is on ${formatDate(standing.reviewDate)}`);
+    const review = reviewOf(s);
     const condition = buyerConditionOf(await currentOutcome(s, deal));
-    s.followOnClosed = { at: clockOf(s).now(), reason: "condition_not_met" };
-    outcome(s, { type: "merchant_closed", reasonCode: "other", note: condition ? `Their condition was not met: ${condition}` : "Their condition was not met", actor: "merchant", version: active.version, source: null });
-    event(s, "follow_on_closed", "The rest of the year was not sent: their condition was not met", "merchant", `The first phase stays paid and the deal closes after it${condition ? ` · their condition: “${condition}”` : ""}`);
+    const reason = review.state === "stop" ? "buyer_stopped" : "condition_not_met";
+    s.followOnClosed = { at: clockOf(s).now(), reason };
+    outcome(s, { type: "merchant_closed", reasonCode: "other", note: reason === "buyer_stopped" ? `The buyer chose to stop after the pilot: ${review.reply?.text ?? ""}` : condition ? `Their condition was not met: ${condition}` : "Their condition was not met", actor: "merchant", version: active.version, source: null });
+    event(s, "follow_on_closed", reason === "buyer_stopped" ? "The buyer chose to stop after the pilot; the deal closes after the first phase" : "The rest of the year was not sent: their condition was not met", "merchant", `The first phase stays paid and nothing more is due${reason === "condition_not_met" && condition ? ` · their condition: “${condition}”` : ""}`);
   });
 }
 
@@ -1638,12 +1683,12 @@ export async function simulate(kind: SimulatedEvent): Promise<DemoState> {
  * Record a simulated buyer reply and act on code's classification. Used identically for
  * pre-scripted and typed replies, and for replay and live-run states: no model is called.
  */
-function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; answerQuote?: string; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
+function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; at: string; scripted: boolean; answerValue?: string; answerQuote?: string; refs?: ConversationItem["refs"]; kind?: "buyer_reply" | "change_request" | "decline"; source?: ConversationItem["source"] }): ConversationItem {
   if (Date.parse(args.at) > Date.parse(clockOf(s).now())) advanceTo(s, args.at, "Simulated: buyer reply arrives");
   const at = Date.parse(args.at) < Date.parse(clockOf(s).now()) ? clockOf(s).now() : args.at;
   let reply: ConversationItem;
   try {
-    reply = receiveBuyerReply({ id: itemId(s, "conv"), dealId: s.dealId, text: args.text, at, inReplyTo: args.inReplyTo, conversation: s.conversation, timeZone: activeCase(s).deal.merchant.timeZone, scripted: args.scripted, kind: args.kind, source: args.source });
+    reply = receiveBuyerReply({ id: itemId(s, "conv"), dealId: s.dealId, text: args.text, at, inReplyTo: args.inReplyTo, conversation: s.conversation, timeZone: activeCase(s).deal.merchant.timeZone, scripted: args.scripted, kind: args.kind, source: args.source, refs: args.refs });
   } catch (e) {
     if (e instanceof ConversationError) throw new ActionError(e.message);
     throw e;
@@ -1654,7 +1699,7 @@ function applyBuyerReply(s: DemoState, args: { inReplyTo: string; text: string; 
   s.extraMessages.push({ id: reply.id, dealId: s.dealId, author: "buyer", text: reply.text, timestamp: reply.createdAt, source: "whatsapp", inReplyTo: target.refs.noticeId ?? target.id });
   const c = reply.classification!;
   const label = `${args.scripted ? "Scripted" : "Typed"} simulated reply`;
-  event(s, "buyer_message", `Buyer: “${reply.text}”`, "simulated", `${label} · reply to ${target.kind} ${target.id}${target.kind === "clarification" ? "" : ` · ${CLASSIFICATION_LABEL[c.kind]}`}`);
+  event(s, "buyer_message", `Buyer: “${reply.text}”`, "simulated", `${label} · reply to ${target.kind} ${target.id}${target.kind === "clarification" || target.kind === "review" ? "" : ` · ${CLASSIFICATION_LABEL[c.kind]}`}`);
 
   if (target.kind !== "notice") return reply; // clarification answers and proposal replies change nothing here
   if (c.kind === "payment_claimed") event(s, "payment_claimed", "Payment claimed — verification required", "engine", "Recorded only. Payment status, collection attempts and the ledger change only from a verified payment event.");
@@ -1762,7 +1807,7 @@ export async function buyerReply(args: { inReplyTo: string; scriptId?: string; t
           : sc.context === "notice"
             ? heroDemoEvents.preventiveReplyAt
             : clockOf(s).now();
-      applyBuyerReply(s, { inReplyTo: target.id, text: scriptedReplyText(s.caseId, sc), at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text });
+      applyBuyerReply(s, { inReplyTo: target.id, text: scriptedReplyText(s.caseId, sc), at, scripted: true, answerValue: "answerValue" in sc ? sc.answerValue : undefined, answerQuote: sc.text, refs: sc.context === "review" ? { reviewDecision: sc.reviewDecision, ...("reviewChange" in sc ? { reviewChange: sc.reviewChange } : {}) } : undefined });
       return;
     }
     if (!args.text?.trim()) throw new ActionError("Choose a scripted reply or type one");
@@ -2365,6 +2410,11 @@ export async function runSystemStep(id: SystemStepId): Promise<DemoState> {
       if (!active || !held || s.followOnSale || s.followOnClosed) throw new ActionError("There is no review to move to");
       if (!(await fullyPaidOf(s, active, deal))) throw new ActionError("Collect every payment of the first phase before the review");
       advanceTo(s, at10(held.reviewDate), "Simulated: the month-three review date");
+      // The held terms were approved at the start, so the review message goes out by itself, like a payment reminder.
+      if (!reviewOf(s).messageId) {
+        const m = sendCode(s, "review", reviewMessageText(held), {});
+        event(s, "review_message_sent", "The month-three review message was sent to the buyer", "simulated", m.text);
+      }
     });
   }
   return mutate((s) => {

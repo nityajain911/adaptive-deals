@@ -235,6 +235,10 @@ export const heroScriptedReplies = [
   { id: "notice-tak", context: "notice" as const, text: "20 tak paisa nahi hai" },
   { id: "notice-next-week", context: "notice" as const, text: "Cash tight till next week" },
   { id: "proposal-okay", context: "proposal" as const, text: "Okay" },
+  // The buyer's decision when the pilot ends. The decision rides on the script as metadata, exactly like a clarification's answer value; nothing is interpreted.
+  { id: "review-proceed", context: "review" as const, text: "Kabir: The pilot went well and enquiries are up. Let's go ahead with the rest of the year.", reviewDecision: "proceed" as const },
+  { id: "review-changes", context: "review" as const, text: "Kabir: We want to continue, but could the rest of the year leave out social media for now? That keeps us under our ₹60,000 limit.", reviewDecision: "changes" as const, reviewChange: { removePackageId: "social-media" } },
+  { id: "review-stop", context: "review" as const, text: "Kabir: Thanks, the pilot was useful, but we'd like to stop here.", reviewDecision: "stop" as const },
 ];
 
 /** Staged later events. Each one is a simulated demo action with an explicit simulated date. */

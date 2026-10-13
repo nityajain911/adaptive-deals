@@ -21,6 +21,7 @@ const KIND: Record<ConversationItem["kind"], string> = {
   notice: "Advance notice",
   payment: "Payment",
   amendment: "Revised proposal",
+  review: "Month-three review",
   buyer_reply: "Reply",
   change_request: "Change request",
   decline: "Declined",
@@ -43,7 +44,7 @@ export function ConversationThread({ s, scope, buyerName, opening = [], compact 
   const rootKind = (i: ConversationItem) => (i.inReplyTo ? byId.get(i.inReplyTo)?.kind : i.kind);
   const inScope = (i: ConversationItem) => {
     const k = rootKind(i);
-    return scope === "understand" ? k === "clarification" : k === "proposal" || k === "payment" || k === "notice" || k === "amendment";
+    return scope === "understand" ? k === "clarification" : k === "proposal" || k === "payment" || k === "notice" || k === "amendment" || k === "review";
   };
   const items = s.conversation.filter(inScope);
   const activeV = activeVersionOf(s.agreements)?.version ?? null;

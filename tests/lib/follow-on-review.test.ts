@@ -44,6 +44,10 @@ describe("the month-three review", () => {
   it("is due on the review date, with one action for the merchant", async () => {
     await firstPhasePaid();
     await svc.runSystemStep("advance_to_review");
+    // The review message has gone out; the merchant waits for what the buyer says.
+    expect((await progress()).rule).toBe("track.follow_on_awaiting_buyer");
+    const review = (await svc.getState()).conversation.findLast((m) => m.kind === "review")!;
+    await svc.buyerReply({ inReplyTo: review.id, scriptId: "review-proceed" });
     const p = await progress();
     expect(p.rule).toBe("track.follow_on_due");
     expect(p.primaryAction).toEqual({ id: "send_follow_on", label: "Send the rest of the year" });
@@ -197,5 +201,83 @@ describe("one payment, then the buyer's choice at the review", () => {
     await svc.runSystemStep("advance_to_review");
     const s = await svc.sendFollowOn({ conditionMet: true });
     expect(s.events.find((e) => e.kind === "follow_on_sent")?.detail).toContain("the merchant confirmed their condition was met: “");
+  });
+
+  it("sends the review message by itself on the review date, once, and says nothing internal", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    const messages = (await svc.getState()).conversation.filter((m) => m.kind === "review");
+    expect(messages).toHaveLength(1);
+    expect(messages[0].text).toBe("The first phase is done. Would you like to go ahead with the rest of the year? The rest of the year (₹84,960 including GST) stays open at today's rates until 18 Mar 2027. You can say yes, ask for a change, or stop here. Reply here.");
+    await expect(svc.runSystemStep("advance_to_review")).resolves.toBeTruthy();
+    expect((await svc.getState()).conversation.filter((m) => m.kind === "review")).toHaveLength(1);
+  });
+
+  async function reviewReply(scriptId: string) {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    const review = (await svc.getState()).conversation.findLast((m) => m.kind === "review")!;
+    await svc.buyerReply({ inReplyTo: review.id, scriptId });
+    return svc.getState();
+  }
+
+  it("if the buyer says to proceed, the merchant is asked to send, with no condition to confirm: the buyer judged their own test", async () => {
+    const s = await reviewReply("review-proceed");
+    expect(svc.reviewOf(s).state).toBe("proceed");
+    expect(await progress()).toMatchObject({ rule: "track.follow_on_due", primaryAction: { id: "send_follow_on" } });
+    const sent = await svc.sendFollowOn(); // no confirmation needed once the buyer has said so
+    expect(sent.agreements.at(-1)).toMatchObject({ status: "sent", continuesFrom: 1 });
+    expect(sent.events.find((e) => e.kind === "follow_on_sent")?.detail).toContain("the buyer's reply: “Kabir: The pilot went well");
+  });
+
+  it("if the buyer says to stop, the merchant is asked to close, and closing ends the deal as completed after the first phase", async () => {
+    const s = await reviewReply("review-stop");
+    expect(svc.reviewOf(s).state).toBe("stop");
+    expect(await progress()).toMatchObject({ rule: "track.follow_on_buyer_stop", primaryAction: { id: "close_follow_on", label: "Close after the first phase" } });
+    const closed = await svc.closeFollowOn();
+    expect(closed.followOnClosed).toMatchObject({ reason: "buyer_stopped" });
+    expect(closed.events.at(-1)?.title).toBe("The buyer chose to stop after the pilot; the deal closes after the first phase");
+    const p = await progress();
+    expect(p).toMatchObject({ rule: "track.follow_on_closed", kind: "terminal", headline: "The buyer chose to stop after the pilot, and you closed the deal. Nothing more is due, and the deal closes after the first phase." });
+    expect(p.stages.track).toBe("completed");
+    expect(closed.agreements).toHaveLength(1);
+  });
+
+  it("if the buyer asks for a change, the merchant sees what it would come to and can send it, send as held, or close", async () => {
+    const s = await reviewReply("review-changes");
+    expect(svc.reviewOf(s).state).toBe("changes");
+    expect(svc.reviewOf(s).reply?.refs.reviewChange).toEqual({ removePackageId: "social-media" });
+    expect(await progress()).toMatchObject({ rule: "track.follow_on_changes", primaryAction: { id: "send_follow_on" } });
+    const deal = (await import("@/lib/deal-context")).dealContextFor(s, await (await import("@/lib/deal-context")).pinnedEconomicsOf(s));
+    expect(await svc.followOnChangePreview(s, deal)).toEqual({ removedName: "Social media", totalPaise: 5_310_000, instalments: 3, approval: "within_limit" });
+    const sent = await svc.sendFollowOn({ applyChange: true });
+    const v = sent.agreements.at(-1)!;
+    expect(v).toMatchObject({ status: "sent", continuesFrom: 1 });
+    expect(v.terms.scope.map((x) => x.packageId)).toEqual(["search-marketing", "monthly-reporting"]);
+    expect(v.terms.excludedPackageIds).toEqual(["social-media"]);
+    expect(v.terms.pricing.totalPaise).toBe(5_310_000);
+    // Within the buyer's own ₹60,000 approval limit, so no MD attestation is asked of them.
+    expect(v.terms.conditions).not.toContain("buyer_attests_required_approval");
+    expect(sent.events.find((e) => e.kind === "follow_on_sent")?.title).toBe(`The rest of the year sent as version ${v.version} · without Social media, at the buyer's request`);
+    await svc.acceptAgreement(v.version, v.termsHash, false);
+    await svc.buyerCompleteSetup();
+    const done = await svc.getState();
+    expect(done.attempts.filter((a) => a.agreementVersion === v.version).map((a) => a.amountPaise)).toEqual([1_770_000, 1_770_000, 1_770_000]);
+  });
+
+  it("refuses a change the buyer did not ask for", async () => {
+    await reviewReply("review-proceed");
+    await expect(svc.sendFollowOn({ applyChange: true })).rejects.toThrow(/has not asked for a change/);
+  });
+
+  it("a typed reply is read by the owner: no decision is guessed, and the owner confirms the condition before sending", async () => {
+    await paidInOneGo();
+    await svc.runSystemStep("advance_to_review");
+    const review = (await svc.getState()).conversation.findLast((m) => m.kind === "review")!;
+    await svc.buyerReply({ inReplyTo: review.id, text: "Let me talk to my MD and get back to you." });
+    expect(svc.reviewOf(await svc.getState()).state).toBe("unclear");
+    expect((await progress()).headline).toContain("The buyer replied. Read it, then send the rest of the year");
+    await expect(svc.sendFollowOn()).rejects.toThrow(/Confirm that their condition was met/);
+    await expect(svc.sendFollowOn({ conditionMet: true })).resolves.toBeTruthy();
   });
 });

@@ -134,7 +134,7 @@ export function deriveFollowOn(x: EvaluatedStructure, constraints: BuyerConstrai
  * The rest of the year as a structure the engine can check and the buyer can accept, rebuilt exactly from what was held.
  * Its payment lines carry their own ids, so they never collide with the first phase's.
  */
-export function followOnStructure(held: CanonicalFollowOn, input: EngineInput): Structure {
+export function followOnStructure(held: CanonicalFollowOn, input: EngineInput, excluded: string[] = []): Structure {
   const built = buildStructure({
     template: "phased_scope",
     params: { follow_on: 1, plan: "follow_on_rest" },
@@ -152,7 +152,7 @@ export function followOnStructure(held: CanonicalFollowOn, input: EngineInput): 
   return {
     ...built,
     // The first phase already delivered what this leaves out, so nothing is "not included".
-    excludedPackageIds: [],
+    excludedPackageIds: [...excluded],
     payments: built.payments.map((p) => ({ ...p, id: pay(p.id) })),
     invoices: built.invoices.map((i) => ({ ...i, id: `p2-${i.id}`, paymentLineId: pay(i.paymentLineId) })),
   };
@@ -163,4 +163,31 @@ export function evaluateFollowOn(held: CanonicalFollowOn, constraints: BuyerCons
   const covered = new Set(held.scope.map((item) => item.packageId));
   const remaining: BuyerConstraints = { ...constraints, requiredPackages: constraints.requiredPackages.filter((id) => covered.has(id)) };
   return evaluateStructure(followOnStructure(held, input), remaining, input);
+}
+
+/**
+ * The rest of the year without one service the buyer asked to leave out, at the same rates, checked by the same engine.
+ * Null when the service cannot be removed, nothing would be left, or the smaller offer would not pass the rules.
+ */
+export function reducedFollowOn(held: CanonicalFollowOn, removePackageId: string, constraints: BuyerConstraints, input: EngineInput): { held: CanonicalFollowOn; evaluated: EvaluatedStructure; removedName: string } | null {
+  const removed = input.packages.find((p) => p.id === removePackageId);
+  if (!removed || !removed.removable || !held.scope.some((item) => item.packageId === removePackageId)) return null;
+  const scope = held.scope.filter((item) => item.packageId !== removePackageId);
+  if (!scope.length) return null;
+  const months = Math.max(...scope.map((item) => (input.packages.find((p) => p.id === item.packageId)?.kind === "monthly" ? item.months : 1)));
+  const covered = new Set(scope.map((item) => item.packageId));
+  const remaining: BuyerConstraints = { ...constraints, requiredPackages: constraints.requiredPackages.filter((id) => covered.has(id)) };
+  const offsets = [equalMonths(months, 1), ...(months >= 6 ? [equalMonths(Math.ceil(months / 3), 3)] : [])];
+  for (const paymentOffsetsMonths of offsets) {
+    const candidate: CanonicalFollowOn = { ...held, scope, paymentOffsetsMonths, instalments: paymentOffsetsMonths.length };
+    const structure = followOnStructure(candidate, input, [removePackageId]);
+    const evaluated = evaluateStructure(structure, remaining, input);
+    if (evaluated.verdict !== "feasible") continue;
+    return {
+      held: { ...candidate, approval: evaluated.approval, pricing: { prePaise: structure.pricePaise, gstPaise: sum(structure.payments.map((p) => p.gstPaise)), totalPaise: sum(structure.payments.map((p) => p.totalPaise)) } },
+      evaluated,
+      removedName: removed.name,
+    };
+  }
+  return null;
 }

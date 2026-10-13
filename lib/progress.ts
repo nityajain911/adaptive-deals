@@ -30,7 +30,8 @@ export type PrimaryActionId =
   | "review_follow_up"
   | "review_buyer_message"
   | "inspect_records"
-  | "send_follow_on";
+  | "send_follow_on"
+  | "close_follow_on";
 
 export interface DealProgress {
   stage: StageId;
@@ -50,7 +51,7 @@ export interface ProgressFacts {
   draftStale: boolean;
   fullyPaid: boolean;
   /** The rest of the year held after the first phase, once the first phase is paid in full. */
-  followOn?: { state: "waiting_review" | "due" | "lapsed"; reviewDate: string; heldUntil: string; totalPaise: number } | null;
+  followOn?: { state: "waiting_review" | "due" | "lapsed"; reviewDate: string; heldUntil: string; totalPaise: number; review?: { state: "none" | "awaiting" | "proceed" | "stop" | "changes" | "unclear"; replyText: string | null } } | null;
   questionCountUnsent: number;
   unansweredQuestions: number;
   repliesNeedInterpretation: number;
@@ -122,7 +123,7 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
   // 1. A proposal was ever delivered → Track, whatever historical fields say.
   if (!countering && s.deliveries.some((d) => d.deliveredAt !== null)) {
     const a = s.amendments.at(-1);
-    if (s.followOnClosed) return info("track", "track.follow_on_closed", "terminal", null, "You chose not to send the rest of the year because their condition was not met. Nothing more is due, and the deal closes after the first phase.", latest);
+    if (s.followOnClosed) return info("track", "track.follow_on_closed", "terminal", null, s.followOnClosed.reason === "buyer_stopped" ? "The buyer chose to stop after the pilot, and you closed the deal. Nothing more is due, and the deal closes after the first phase." : "You chose not to send the rest of the year because their condition was not met. Nothing more is due, and the deal closes after the first phase.", latest);
     if (s.status === "buyer_rejected" && s.agreements.find((v) => v.version === latest)?.continuesFrom) return info("track", "track.stopped_after_first", "terminal", null, "The buyer chose to stop after the first phase. Nothing more is due, and the deal closes here.", latest);
     if (s.status === "buyer_rejected") return info("track", "track.terminal", "terminal", null, `Buyer declined offer version ${latest}.`, latest);
     if (s.status === "completed") return info("track", "track.terminal", "terminal", null, "Deal completed.", latest);
@@ -153,7 +154,17 @@ function resolve(s: ProgressState, f: ProgressFacts): R {
     if (f.pendingDebit === "submitted") return info("track", "track.debit_pending", "waiting_on_system", "system", "Awaiting payment outcome.", activeV);
     if (f.pendingDebit) return info("track", "track.debit_pending", "waiting_on_system", "system", `Debit failed · retry scheduled for ${formatDate(f.pendingDebit.retryOn)}.`, activeV);
     if (f.nextPayment) return info("track", "track.next_payment", "informational", null, `Up to date · next payment ${formatINR(f.nextPayment.amountPaise)} on ${formatDate(f.nextPayment.dueDate)}.`, activeV);
-    if (f.followOn?.state === "due") return act("track", "track.follow_on_due", `The first phase is paid. Send the rest of the year (${formatINR(f.followOn.totalPaise)}), held until ${formatDate(f.followOn.heldUntil)}.`, "send_follow_on", "Send the rest of the year", activeV);
+    if (f.followOn?.state === "due") {
+      const review = f.followOn.review?.state ?? "none";
+      const held = `${formatINR(f.followOn.totalPaise)}, held until ${formatDate(f.followOn.heldUntil)}`;
+      // The buyer's own answer to the review message decides what the merchant is asked to do.
+      if (review === "awaiting") return info("track", "track.follow_on_awaiting_buyer", "waiting_on_buyer", "buyer", "Waiting for the buyer's decision on the rest of the year.", activeV);
+      if (review === "stop") return act("track", "track.follow_on_buyer_stop", "The buyer wants to stop after the pilot. Close the deal after the first phase.", "close_follow_on", "Close after the first phase", activeV);
+      if (review === "changes") return act("track", "track.follow_on_changes", "The buyer wants to go ahead, with a change. Decide how to answer.", "send_follow_on", "Send the rest of the year", activeV);
+      if (review === "proceed") return act("track", "track.follow_on_due", `The buyer wants to go ahead. Send the rest of the year (${held}).`, "send_follow_on", "Send the rest of the year", activeV);
+      if (review === "unclear") return act("track", "track.follow_on_due", `The buyer replied. Read it, then send the rest of the year (${held}) or close the deal.`, "send_follow_on", "Send the rest of the year", activeV);
+      return act("track", "track.follow_on_due", `The first phase is paid. Send the rest of the year (${held}).`, "send_follow_on", "Send the rest of the year", activeV);
+    }
     if (f.followOn?.state === "waiting_review") return info("track", "track.follow_on_waiting", "informational", null, `First phase paid. The review is on ${formatDate(f.followOn.reviewDate)}.`, activeV);
     if (f.followOn?.state === "lapsed") return info("track", "track.follow_on_lapsed", "informational", null, `First phase paid. The held price for the rest of the year ran out on ${formatDate(f.followOn.heldUntil)}.`, activeV);
     if (f.fullyPaid) return info("track", "track.fully_paid", "informational", null, s.agreements.find((v) => v.version === activeV)?.continuesFrom ? "Both phases collected. This deal is complete." : "All scheduled payments collected.", activeV);

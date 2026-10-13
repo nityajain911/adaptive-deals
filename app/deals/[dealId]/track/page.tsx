@@ -14,7 +14,7 @@ import { CurrentAgreement } from "@/components/track/current-agreement";
 import { InfoButton } from "@/components/info-button";
 import { Card } from "@/components/ui";
 import { loadDeal, stageHref } from "@/lib/deal-page";
-import { buyerConditionOf, corridorFor } from "@/lib/service";
+import { buyerConditionOf, corridorFor, followOnChangePreview, reviewOf } from "@/lib/service";
 import { FollowOnReview } from "@/components/track/follow-on-review";
 import { isResolvingDisposition } from "@/lib/deal-records";
 import { activeVersionOf, noticeReplyOutcome, replyNeedsExactDate, unresolvedWork } from "@/lib/views";
@@ -50,7 +50,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
   const shown = s.agreements.find((v) => v.version === (active?.version ?? latestDelivered?.version));
   const primary = progress.primaryAction;
   const workItems = unresolvedWork(s);
-  const hasAction = !!primary && ["draft_revised_terms", "review_revised_terms", "review_buyer_message", "review_buyer_request", "review_conflicting_evidence", "review_follow_up", "send_follow_on"].includes(primary.id);
+  const hasAction = !!primary && ["draft_revised_terms", "review_revised_terms", "review_buyer_message", "review_buyer_request", "review_conflicting_evidence", "review_follow_up", "send_follow_on", "close_follow_on"].includes(primary.id);
   // A sent offer the buyer has not accepted: nothing to do, nothing collected, so the page is only the offer and the way back.
   const quiet = progress.kind === "waiting_on_buyer" && !shown?.buyerAcceptance;
   const buyerVersion = progress.kind === "waiting_on_buyer" && progress.version ? progress.version : (shown?.version ?? 1);
@@ -71,6 +71,11 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
     return o?.label === "Merchant attention needed" || o?.label === "Payment claimed — verification required";
   });
 
+  // What the buyer said when the pilot ended, and what a change they asked for would come to.
+  const review = reviewOf(s);
+  const followOnBuyer = review.reply && review.state !== "none" && review.state !== "awaiting" ? { decision: review.state as "proceed" | "stop" | "changes" | "unclear", text: review.reply.text } : null;
+  const preview = primary?.id === "send_follow_on" && review.state === "changes" ? await followOnChangePreview(s, deal) : null;
+  const followOnChange = preview ? { removedName: preview.removedName, totalPaise: preview.totalPaise, within: preview.approval === "within_limit" } : null;
   const outcomeLine = performanceLine(performanceView({ s, out, deal, now }).summary);
   const financial = shown ? contractFinancialView({ agreement: shown, attempts: s.attempts, eligibleAt: s.eligibleAt, now }) : null;
   const agreementSummary = shown && financial
@@ -105,7 +110,7 @@ export default async function TrackPage(props: PageProps<"/deals/[dealId]/track"
           {quiet ? null : <div className="text-[13px] font-semibold uppercase tracking-wide text-muted">Next step</div>}
           <div className="flex flex-wrap items-center gap-3">
             {primary?.id === "draft_revised_terms" ? <PrimaryActionButton body={{ action: "propose_amendment" }}>{primary.label}</PrimaryActionButton> : null}
-            {primary?.id === "send_follow_on" ? <FollowOnReview label={primary.label} condition={buyerConditionOf(out)} /> : null}
+            {primary?.id === "send_follow_on" || primary?.id === "close_follow_on" ? <FollowOnReview label={primary.label} condition={buyerConditionOf(out)} buyer={followOnBuyer} change={followOnChange} heldTotalPaise={active?.terms.followOn?.pricing.totalPaise ?? 0} /> : null}
             {primary?.id === "review_revised_terms" ? <RevealButton targetId="amendment-card">{primary.label}</RevealButton> : null}
             {primary?.id === "review_buyer_message" ? <RevealButton targetId="attention-card">{primary.label}</RevealButton> : null}
             {primary && ["review_buyer_request", "review_conflicting_evidence", "review_follow_up"].includes(primary.id) ? <RevealButton targetId={decisionInChat ? "negotiation-corridor" : "buyer-work-card"}>{primary.label}</RevealButton> : null}

@@ -182,14 +182,16 @@ describe("simulated buyer reply control", () => {
         const before = (await svc.getState()).events.length;
         const state = await svc.getState();
         if (st.id === "send_follow_on") await svc.sendFollowOn({ conditionMet: true });
-        else if (st.id === "buyer_decide") {
+        else if (st.id === "buyer_reply" && state.conversation.some((m) => m.kind === "review" && !state.conversation.some((r) => r.inReplyTo === m.id))) {
+          await svc.buyerReply({ inReplyTo: state.conversation.findLast((m) => m.kind === "review")!.id, scriptId: "review-proceed" });
+        } else if (st.id === "buyer_decide") {
           const v = state.agreements.at(-1)!;
           await svc.acceptAgreement(v.version, v.termsHash, true);
           await svc.buyerCompleteSetup();
         } else await driveTo(svc, (x) => x.events.length !== before, 2, "preventive");
       }
     }
-    expect(ids.slice(-4)).toEqual(["collect_payment", "advance_to_review", "send_follow_on", "buyer_decide"]);
+    expect(ids.slice(-5)).toEqual(["collect_payment", "advance_to_review", "buyer_reply", "send_follow_on", "buyer_decide"]);
     const s = await svc.getState();
     expect(s.agreements.at(-1)).toMatchObject({ version: 3, status: "active", continuesFrom: 2 });
     expect(s.mandate).toMatchObject({ agreementVersion: 3, status: "confirmed" });
@@ -206,7 +208,9 @@ describe("simulated buyer reply control", () => {
       if (ids.at(-1) !== st.id) ids.push(st.id);
       const state = await svc.getState();
       if (st.systemAction) await svc.runSystemStep(st.systemAction);
-      else if (st.id === "send_follow_on") await svc.sendFollowOn({ conditionMet: true });
+      else if (st.id === "buyer_reply" && state.conversation.some((m) => m.kind === "review")) {
+        await svc.buyerReply({ inReplyTo: state.conversation.findLast((m) => m.kind === "review")!.id, scriptId: "review-proceed" });
+      } else if (st.id === "send_follow_on") await svc.sendFollowOn({ conditionMet: true });
       else if (st.id === "buyer_accept" || st.id === "buyer_decide") {
         const v = state.agreements.find((a) => a.status === "sent")!;
         await svc.acceptAgreement(v.version, v.termsHash, true);
@@ -218,7 +222,7 @@ describe("simulated buyer reply control", () => {
       }
       if (st.id === "buyer_decide") break;
     }
-    expect(ids).toEqual(["send_questions", "buyer_reply", "use_answers", "review_buyer_proposal", "buyer_accept", "advance_to_review", "send_follow_on", "buyer_decide"]);
+    expect(ids).toEqual(["send_questions", "buyer_reply", "use_answers", "review_buyer_proposal", "buyer_accept", "advance_to_review", "buyer_reply", "send_follow_on", "buyer_decide"]);
     const s = await svc.getState();
     expect(s.attempts.filter((a) => a.agreementVersion === 1).map((a) => a.status)).toEqual(["succeeded"]);
     expect(s.agreements.at(-1)).toMatchObject({ version: 2, status: "active", continuesFrom: 1 });

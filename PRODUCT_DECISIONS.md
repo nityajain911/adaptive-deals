@@ -715,3 +715,15 @@ After the hero changed to Harbour Fresh Foods, the Presenter page still offered 
 **The buyer's condition at the review.** Kabir's test ("if enquiries are up by about 20 a month by month three, we'll go ahead") is shown on the review card in his words. Only the owner can judge it, so there are two buttons: **Send the rest of the year** (which records that the owner confirmed it was met, with his words, in the event log) and **Not met · close after the first phase** (nothing is sent; the first phase stays paid and the deal reads *Completed*). The server refuses to send without the confirmation. The product never decides whether the test was met.
 
 **Case-specific replies.** The simulated buyer now answers the two clarification questions in this case's own voices (Divya on GST, Kabir on the approval limit). Each reply contains the recorded answer verbatim, and that phrase is what is recorded as the answer, so the recorded Cerebras run still continues and nothing was re-recorded. The questions themselves are the engine's two decision-relevant ones; the earlier ideas for extra questions (the MD's approval for phase two, the enquiry baseline) change no offer, so they are not asked.
+
+## The buyer answers the review; the merchant acts on the answer (13 October 2026)
+
+**Decision.** On the review date the product sends the buyer one message by itself (the held terms were approved at the start, so this is like a payment reminder): go ahead with the rest of the year, ask for a change, or stop. The buyer's answer decides what the merchant is asked to do:
+- **Go ahead** → *Send the rest of the year*. The buyer has judged their own test, so the owner is not asked to.
+- **Ask for a change** → the card shows what the change comes to and offers *Send with their change*, *Send as held* and *Close after the first phase*. The only change built is leaving out one removable service (here, social media: ₹53,100 including GST, three payments, within the buyer's own ₹60,000 limit, so no MD attestation). It is priced from the same rate card and passes the same rules, or it is not offered.
+- **Stop** → *Close after the first phase*; the deal is **Completed**, with the first phase sold and paid.
+- **A typed reply** is not interpreted. The owner reads it and either confirms the buyer's condition and sends, or closes.
+
+**How it is simulated.** The three answers are scripted replies the presenter chooses in the guide, each carrying its decision as metadata exactly like a clarification's answer value; nothing in a reply is interpreted.
+
+**What is not built.** Changes to price, dates or start (only leaving out a service), a counter-offer on the held price, and the buyer's reply arriving without the product's message first.

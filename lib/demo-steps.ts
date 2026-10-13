@@ -91,6 +91,11 @@ export function nextDemoStep(s: DemoState, progress: DealProgress, dealId: strin
       const held = heldOf(s);
       return held ? sys("advance_to_review", `Advance simulated date to ${formatDate(held.reviewDate)}`, at("track")) : null;
     }
+    case "track.follow_on_awaiting_buyer":
+      return nav("buyer_reply", "buyer", "Next: simulated buyer decision after the pilot", at("track"), true);
+    case "track.follow_on_buyer_stop":
+      return nav("close_follow_on", "merchant", "Next: close the deal after the first phase", at("track"));
+    case "track.follow_on_changes":
     case "track.follow_on_due":
       return nav("send_follow_on", "merchant", "Next: send the rest of the year", at("track"));
     default:
@@ -119,6 +124,9 @@ export function replyContext(s: DemoState): { inReplyTo: string; label: string; 
     if (!q) return null;
     return { inReplyTo: q.id, label: q.text, scripts: heroScriptedReplies.filter((r) => r.context === "clarification" && "questionId" in r && r.questionId === q.refs.questionId).map((r) => ({ id: r.id, text: scriptedReplyText(s.caseId, r) })) };
   }
+  // After the pilot, the buyer's decision: carry on, ask for a change, or stop.
+  const review = [...s.conversation].reverse().find((i) => i.kind === "review" && i.sentAt);
+  if (review && !replied(review.id)) return { inReplyTo: review.id, label: review.text, scripts: heroScriptedReplies.filter((r) => r.context === "review").map((r) => ({ id: r.id, text: r.text })) };
   const notice = [...s.conversation].reverse().find((i) => i.kind === "notice" && i.sentAt);
   if (!notice || replied(notice.id)) return null;
   const attempt = s.attempts.find((a) => a.id === notice.refs.attemptId);

@@ -1,7 +1,7 @@
 import type { CanonicalTerms } from "./agreement";
 import type { ChangeRequestDetail } from "./change-request";
 import { formatDate } from "./dates";
-import { heldOfferSentence } from "./follow-on";
+import { heldOfferSentence, type CanonicalFollowOn } from "./follow-on";
 import { formatINR } from "./money";
 import type { AdvanceNotice } from "./notices";
 import { classifyBuyerReply, type ReplyClassification } from "./replies";
@@ -29,7 +29,7 @@ export const STATE_LABEL: Record<ConversationState, string> = {
   received_from_buyer: "Received from buyer",
 };
 
-export type ConversationKind = "clarification" | "proposal" | "notice" | "payment" | "amendment" | "buyer_reply" | "change_request" | "decline";
+export type ConversationKind = "clarification" | "proposal" | "notice" | "payment" | "amendment" | "review" | "buyer_reply" | "change_request" | "decline";
 
 export interface ConversationItem {
   id: string;
@@ -46,7 +46,7 @@ export interface ConversationItem {
   provenance: "simulated";
   /** Selected from the demo operator's pre-scripted replies (false = typed). */
   scripted: boolean | null;
-  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; answerQuote?: string; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
+  refs: { questionId?: string; edited?: boolean; noticeId?: string; agreementVersion?: number; amendmentId?: string; attemptId?: string; answerValue?: string; answerQuote?: string; reviewDecision?: "proceed" | "stop" | "changes"; reviewChange?: { removePackageId: string }; topic?: "date" | "scope" | "price" | "other"; request?: ChangeRequestDetail };
   /** Code's classification of an inbound reply (never an AI interpretation). */
   classification: ReplyClassification | null;
 }
@@ -178,6 +178,11 @@ export function proposalMessageText(terms: CanonicalTerms, version: number, link
   const payments = terms.paymentSchedule.map((p) => `${formatINR(p.totalPaise)} on ${formatDate(p.dueDate.value)}`).join(", ");
   const held = terms.followOn ? ` ${heldOfferSentence(terms.followOn)}` : "";
   return `Here is our proposal (version ${version}): ${formatINR(terms.pricing.totalPaise)} including GST, paid as ${payments}.${held} Review and respond here: ${link}`;
+}
+
+/** The message the product sends on the review date: what was held, and the three things the buyer can say. */
+export function reviewMessageText(held: Pick<CanonicalFollowOn, "pricing" | "heldUntil">): string {
+  return `The first phase is done. Would you like to go ahead with the rest of the year? ${heldOfferSentence(held)} You can say yes, ask for a change, or stop here. Reply here.`;
 }
 
 export function noticeMessageText(n: AdvanceNotice): string {

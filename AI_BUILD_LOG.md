@@ -1285,3 +1285,11 @@ What the agent did: rewrote copy across the merchant, buyer and track screens, r
 **What I did:** the review card shows the condition and offers *Send the rest of the year* (confirms it was met) or *Not met · close after the first phase*; the server refuses to send unconfirmed; closing ends the deal as completed after the first phase. The simulated buyer replies in Divya's and Kabir's words, each carrying the recorded answer verbatim as its recorded answer text, so no re-recording was needed. Tests: service (refusal, confirmation recorded, closing), the case catalog, and end-to-end (the card, both buttons, the guide's ending).
 
 **Where I held back:** the extra questions I had sketched earlier (the MD's approval for phase two, the enquiry baseline) are still not asked, because the engine only asks what changes an offer. I also rebuilt the hand-written fallback replay, which was stale against the case file.
+
+### 2026-10-13 — [Claude Code] The buyer answers the review, and the merchant acts on it
+
+**Asked by the applicant:** after the pilot cut-off, a simulated reply from the buyer saying whether they proceed, stop or want changes, and the merchant decides the action from it.
+
+**What I did:** the product sends a review message on the review date; three scripted buyer answers (proceed, change, stop) are chosen in the guide; the Track card changes with the answer (send, send with their change / as held / close, or close). The change built is leaving out one removable service, worked out and checked by the engine (₹53,100, within the buyer's limit). Tests: service (each answer, the typed reply, the change sent and accepted), the guide's step sequence, and end-to-end for all three.
+
+**Where I limited it:** only "leave out a service" is a supported change; price, date and start changes are not, and the product says nothing about them. When the buyer has said to go ahead, the owner is no longer asked to confirm the condition (the buyer judged their own test); the earlier confirmation remains for a typed reply.
